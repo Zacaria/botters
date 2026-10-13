@@ -61,14 +61,27 @@ First game: always-on 2D grid territory conquest (splix/paper.io-like), 5-minute
 - ✅ Visuals: coloured squares until the game primitives are proven.
 - ✅ Format: 1v1 matchmaking queue with Elo; each side commands a swarm of ~12 units.
 
-## Proposal under review (2026-10-13): three clocks
+- ✅ Human: tight-character doctrine before the match + gestures; the agent does the heavy lifting, the human owns decisive actions through separate tools.
+- ✅ Win: 3 control points, first to 100 points, wipe, or leader at **5 minutes**.
+- ✅ Units: counter-triangle combat units **+ miners** that earn resources and need protection.
+- ✅ First test clients: Claude Code and Codex.
+- ✅ The agent plays by calling tools that give orders ("piloting a plane"), not by uploading rule logic.
 
-| Layer | Speed | Does |
-|---|---|---|
-| Human (browser) | every 10–30 s | Intent: map pings, drawn zones, short orders |
-| Agent (MCP) | every 2–10 s | `wait_for_event` → read state + human orders → rewrite bot |
-| Bot (server) | 10 ticks/s | Moves the 12 units |
+## Proposal under review (2026-10-13 #2): pilot / commander / human
 
-Hosting: no server tick loop. The simulation is deterministic: match state = f(seed, timestamped bot edits). Convex stores only the event log; the MCP server (Vercel, `mcp-handler`) and each browser replay it to the current tick. A 10-minute match is 6,000 ticks × 24 units, which replays in milliseconds. Vercel functions cap at 300 s (Hobby) / 800 s (Pro), so no function owns a match.
+| Role | Model | Speed | Does |
+|---|---|---|---|
+| Pilot | Jev-class decision model (or any fast model) | ~5 batched calls/s | Picks an order for every unit from typed choices |
+| Commander | Claude Code / Codex (any LLM) | every 5–15 s | Rewrites what the pilot is asked and weighs; can also order directly |
+| Human | browser | a few times per match | Decisive abilities on cooldown, pings |
+| Units | server rules | 10 ticks/s | Execute last order: move, auto-attack, mine |
+
+Evidence: Jev (TypeSafe, launched 2026-09-15) returns typed choices in ~114–500 ms at $0.042 per million input tokens, output free. The Jev Wall plays 27–36 real-time games at one batched request per ~180 ms tick. Field reports: Jev beats slower chat models when a clock punishes latency, but loses on strategy without a clock — so a slower commander still matters.
+
+Cost estimate (unmeasured): pilot 5 Hz × 300 s × ~2k tokens ≈ 3M tokens ≈ $0.13/match.
+
+Design rule: the public API is the game. Assume every client is a bot and will exploit any leaked information or loophole.
+
+Hosting: no server tick loop. The simulation is deterministic: match state = f(seed, timestamped orders). Convex stores only the order log; the MCP/HTTP API (Vercel, `mcp-handler`) and each browser replay it to the current tick. A 5-minute match is 3,000 ticks × ~30 units, which replays in milliseconds. Orders are applied at the tick the server receives them, so latency is a real cost. Vercel functions cap at 300 s (Hobby) / 800 s (Pro), so no function owns a match.
 
 Biggest technical risk: chat clients (Claude.ai, ChatGPT) only act during a turn. One `wait_for_event` loop must keep one turn alive for the whole match. Spike this first.
