@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Botters</title>
+<style>
+  body { margin: 0; background: #111; color: #ddd; font: 14px ui-monospace, monospace; display: flex; gap: 16px; padding: 16px }
+  canvas { background: #1b1b1b; cursor: crosshair; image-rendering: pixelated }
+  aside { width: 300px; display: flex; flex-direction: column; gap: 10px }
+  button { font: inherit; padding: 8px; background: #222; color: #ddd; border: 1px solid #444; cursor: pointer; text-align: left }
+  button:disabled { opacity: .4; cursor: default } button.armed { border-color: #ff0; color: #ff0 }
+  .call { border: 2px solid #ff0; padding: 8px; background: #2a2a00; animation: pulse 1s infinite }
+  @keyframes pulse { 50% { background: #444400 } }
+  input { font: inherit; padding: 6px; background: #000; color: #ddd; border: 1px solid #444 }
+  .blue { color: #4aa3ff } .red { color: #ff5a5a } small { color: #888 }
+  #end { font-size: 22px; color: #ff0 }
+</style>
+<canvas id="c"></canvas>
+<aside>
+  <div id="hud">connecting…</div>
+  <div id="calls"></div>
+  <div id="abilities"></div>
+  <form id="say"><input id="msg" placeholder="order to your agent (Enter)" maxlength="140" style="width:100%"></form>
+  <small>Click an ability, then click the map. Right-click the map to ping your agent.</small>
+  <div id="end"></div>
+</aside>
+<script>
+const q = new URLSearchParams(location.search), token = q.get('t'), S = 24
+const cv = document.getElementById('c'), g = cv.getContext('2d')
+let map, v, calls = [], opp, armed = null
+const COL = { blue: '#4aa3ff', red: '#ff5a5a' }, SHAPE = { fast: '▲', tank: '■', ranged: '●', miner: '◆' }
+const post = (path, body) => fetch(`${path}?token=${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json())
+const es = new EventSource(`/stream?token=${token}`)
+es.addEventListener('map', e => { map = JSON.parse(e.data); cv.width = map.W * S; cv.height = map.H * S })
+es.onmessage = e => { ({ view: v, calls, opponent: opp } = JSON.parse(e.data)); draw(); panel() }
+
+function draw() {
+  if (!map || !v) return
+  const me = v.side, foe = me === 'blue' ? 'red' : 'blue'
+  g.fillStyle = '#1b1b1b'; g.fillRect(0, 0, cv.width, cv.height)
+  map.bush.forEach((b, i) => { if (b) { g.fillStyle = '#1f4a26'; g.fillRect((i % map.W) * S, Math.floor(i / map.W) * S, S, S) } })
+  g.fillStyle = 'rgba(255,255,255,.035)' // what you can see
+  for (const u of v.units) { g.beginPath(); g.arc(u.x * S, u.y * S, 6 * S, 0, 7); g.fill() }
+  for (const n of map.nodes) { g.fillStyle = '#806a1a'; g.fillRect(n.x * S - 5, n.y * S - 5, 10, 10) }
+  for (const [k, p] of Object.entries(v.points)) {
+    g.strokeStyle = p.owner === 'you' ? COL[me] : p.owner === 'enemy' ? COL[foe] : '#777'; g.lineWidth = 3
+    g.beginPath(); g.arc(p.x * S, p.y * S, 1.5 * S, 0, 7); g.stroke()
+    g.fillStyle = '#aaa'; g.font = '12px monospace'; g.fillText(k, p.x * S - 4, p.y * S - 1.7 * S)
+  }
+  for (const k of v.strikes) { g.strokeStyle = k.by === 'you' ? '#ff0' : '#f80'; g.setLineDash([4, 4]); g.beginPath(); g.arc(k.x * S, k.y * S, 2 * S, 0, 7); g.stroke(); g.setLineDash([]) }
+  for (const c of calls) if (c.x != null) { g.strokeStyle = '#ff0'; g.lineWidth = 2; g.strokeRect(c.x * S - 10, c.y * S - 10, 20, 20) }
+  const unit = (u, side) => {
+    g.fillStyle = COL[side]; g.globalAlpha = u.inBush ? 0.55 : 1
+    g.font = `${u.type === 'tank' ? 20 : 16}px monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'
+    g.fillText(SHAPE[u.type], u.x * S, u.y * S)
+    g.fillStyle = '#0f0'; g.fillRect(u.x * S - 8, u.y * S + 10, 16 * u.hp / u.maxHp, 2)
+    g.globalAlpha = 1; g.textAlign = 'start'; g.textBaseline = 'alphabetic'
+  }
+  v.units.forEach(u => unit(u, me)); v.enemies.forEach(u => unit(u, foe))
+}
+
+function panel() {
+  const me = v.side
+  document.getElementById('hud').innerHTML = `<b class="${me}">you: ${me}</b> · ${v.secondsLeft}s left<br>score <b>${v.score.you}</b> – ${v.score.enemy} (to ${v.score.win})<br>resources ${v.resources} · units ${v.units.length} · enemies seen ${v.enemies.length}` +
+    (map?.players ? `<br><small>${Object.entries(map.players).map(([s, p]) => `<span class="${s}">${p.name}</span> ${p.setup}`).join(' vs ')}</small>` : '') +
+    (opp ? `<br><small>enemy pilot latency ${opp.ms} ms</small>` : '')
+  document.getElementById('calls').innerHTML = calls.map(c => `<div class="call">🤖 your agent asks: <b>${c.ability}</b>${c.x != null ? ` at (${c.x},${c.y})` : ''}<br>${esc(c.message)}<br><button onclick='fire(${JSON.stringify(c)})'>do it (${v.abilities[c.ability] ? 'ready in ' + v.abilities[c.ability] + 's' : 'ready'})</button></div>`).join('')
+  document.getElementById('abilities').innerHTML = Object.entries(v.abilities).map(([a, cd]) => `<button ${cd ? 'disabled' : ''} class="${armed === a ? 'armed' : ''}" onclick="arm('${a}')">${a}${cd ? ` (${cd}s)` : ''}</button>`).join('')
+  if (v.ended) document.getElementById('end').textContent = v.ended.winner === me ? `YOU WON (${v.ended.reason})` : v.ended.winner ? `you lost (${v.ended.reason})` : 'draw'
+}
+const esc = s => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c])
+window.arm = a => { if (a === 'strike') armed = armed === a ? null : a; else post('/input', { ability: a }) ; panel() }
+window.fire = c => post('/input', { ability: c.ability, x: c.x, y: c.y })
+const at = e => ({ x: Math.round(e.offsetX / S * 10) / 10, y: Math.round(e.offsetY / S * 10) / 10 })
+cv.onclick = e => { if (armed) { post('/input', { ability: armed, ...at(e) }); armed = null } }
+cv.oncontextmenu = e => { e.preventDefault(); post('/say', { text: 'ping', ...at(e) }) }
+document.getElementById('say').onsubmit = e => { e.preventDefault(); const m = document.getElementById('msg'); if (m.value) post('/say', { text: m.value }); m.value = '' }
+</script>

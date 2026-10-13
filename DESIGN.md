@@ -67,6 +67,34 @@ First game: always-on 2D grid territory conquest (splix/paper.io-like), 5-minute
 - ✅ First test clients: Claude Code and Codex.
 - ✅ The agent plays by calling tools that give orders ("piloting a plane"), not by uploading rule logic.
 
+- ✅ Fog of war from day one. Bushes hide units unless an enemy is within 1.5 tiles; attacking from a bush reveals the attacker for 1 s.
+- ✅ Latency is a real cost: an order applies on the tick the server receives it.
+- ✅ The pilot runs on the player's machine (`npx botters`); their model key never leaves it.
+- ✅ Hand-written scripts allowed. Cap: 5 order batches per second per player. One Elo ladder, labelled by setup.
+- ✅ Human abilities (strike, overdrive, recall, reveal) are browser-only. The agent can **call for the human** with a message, a suggested ability and a target; the human confirms with one click.
+- ✅ Pilots to compare: Jev (TypeSafe API) and Clef-flash (local Ollama on the gamer tower). No placeholder pilot.
+
+Measured 2026-10-13: Jev, 12 unit questions in one request, median 237 ms (225–265 ms, n=6), ~1.9k input tokens. Clef-flash blocked: tower Ollama is 0.34.0, `/v1/systemone` needs ≥0.35.0.
+
+## Spike (built 2026-10-13)
+
+Local Node server + local MCP client, to test the feel before hosting. The simulation (`sim.js`) is pure and deterministic and every input is logged by tick, so moving it to Vercel + Convex later is a port, not a rewrite. See README.md to run it.
+
+### Spike results (2026-10-13, local server, real models)
+
+| Match | Result | Commander activity | Cost |
+|---|---|---|---|
+| Jev pilot vs Jev pilot, different doctrines | Aggressive doctrine won 200–0 | none | ~2–3M Jev input tokens per side ≈ $0.09–0.13 |
+| Claude Code (Haiku) + Jev vs Jev alone | Commander lost by wipe at 122–106 (enemy spent everything on miners, then flooded units) | 46 waits, 7 intents, 1 call_human, whole match in one turn | $0.35 Haiku + ~$0.11 Jev |
+| Codex + Jev vs Jev alone | Commander won 200–0 in 83 s | 9 waits, 2 intents, 1 direct order, 1 call_human | 286k input tokens (256k cached) |
+
+- Jev pilot: median 223–319 ms per decision for 12–60 units, 0 errors in ~1,900 calls.
+- Both CLIs held one turn for a whole match. Codex `exec` needs `default_tools_approval_mode="approve"` for the server.
+- Fixed after match 2: unit cap 20, miner cap 6 (an economy snowball decided the match).
+- Open balance problem: holding all 3 points ends the match in ~67 s, so the first fight decides everything. Candidates: higher win score, score only for the majority holder, or a comeback mechanic. Decide after a human plays.
+- Clef-flash untested: the tower's Ollama is 0.34.0; `/v1/systemone` needs ≥ 0.35.0.
+- Browser view: HTTP and stream verified (page 200, 10 frames/s, ping and abilities accepted); not yet looked at by a human.
+
 ## Proposal under review (2026-10-13 #2): pilot / commander / human
 
 | Role | Model | Speed | Does |
