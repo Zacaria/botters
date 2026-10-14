@@ -7,7 +7,6 @@ export const MAX_SWARMS = 40, MAX_GAMBITS = 10
 const K = 0.0035 // square law: each tick a swarm loses K × the enemy count it touches
 const THINK = 10 // gambits are re-evaluated every 0.5 s
 const SWARM_VISION = 150, PLANET_VISION = 80, START_N = 3000
-const LAUNCH = 1500 // a planet with no friendly swarm on it stores production and launches it as one swarm of this size
 
 export const rad = n => 4 + Math.sqrt(n) * 0.32
 const speed = n => 1.5 - Math.min(1, n / 15000) * 0.9 // big swarms are slow
@@ -180,11 +179,11 @@ export function step(s) {
     else if ((p.owner === 0 && p.cap <= 0) || (p.owner === 1 && p.cap >= 0)) p.owner = -1
     if (p.owner < 0) continue
     const made = Math.min(p.mass, p.r * 0.12); p.mass -= made; p.stock += made // owned planets are eaten into particles
-    const near = s.swarms.find(c => c.side === p.owner && dist(c, p) < p.r + rad(c.n) + 10)
-    if (near) { near.n += p.stock; p.stock = 0 } // a friendly swarm on the planet absorbs production continuously
-    else if (p.stock >= LAUNCH || (p.mass <= 0 && p.stock >= 1)) { // otherwise the planet launches one real swarm at a time
-      const to = addSwarm(s, p.owner, p.x, p.y, 0) || nearest(p, s.swarms.filter(c => c.side === p.owner))
-      if (to) { to.n += p.stock; p.stock = 0 }
+    if (p.stock >= 60 || p.mass <= 0) {
+      const near = s.swarms.find(c => c.side === p.owner && dist(c, p) < p.r + rad(c.n) + 10)
+      const to = near || addSwarm(s, p.owner, p.x, p.y, 0) || nearest(p, s.swarms.filter(c => c.side === p.owner))
+      if (to) to.n += p.stock
+      p.stock = 0
     }
   }
   const alive = side => s.swarms.some(c => c.side === side) || s.planets.some(p => p.owner === side && p.mass > 0)
@@ -193,7 +192,7 @@ export function step(s) {
   else if (s.tick >= MATCH_TICKS) s.ended = { winner: a > b ? 0 : b > a ? 1 : null, reason: 'time' }
 }
 
-export const totals = s => [0, 1].map(side => Math.round(s.swarms.reduce((a, c) => a + (c.side === side ? c.n : 0), 0) + s.planets.reduce((a, p) => a + (p.owner === side ? p.stock : 0), 0)))
+export const totals = s => [0, 1].map(side => Math.round(s.swarms.reduce((a, c) => a + (c.side === side ? c.n : 0), 0)))
 
 // What one side may know: its swarms, visible enemy swarms, public planets and particle totals.
 export function view(s, side) {

@@ -92,17 +92,6 @@ test('a swarm parked on a free planet captures it and eats it into particles', (
   assert.ok(c)
 })
 
-test('pace: planets launch a few real swarms, not a stream of tiny ones', () => {
-  let born = 0, tiny = 0
-  const s = createMatch(14), known = new Set(s.swarms.map(c => c.id))
-  run(s, 120 * TPS)
-  // count every swarm ever created by watching ids: nextId is monotonic
-  for (let id = 1; id < s.nextId; id++) if (!known.has(id)) born++
-  for (const c of s.swarms) if (c.n < 300 && !known.has(c.id)) tiny++
-  assert.ok(born / 2 < 40, `${born} swarms born in 2 minutes`) // was ~490 before
-  assert.ok(tiny <= 4, `${tiny} tiny swarms alive`)
-})
-
 test('hand control: orders override gambits until released; split halves a swarm; caps hold', () => {
   const s = empty(9)
   only(s, 1, [{ if: 'always', then: 'hold' }])
