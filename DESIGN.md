@@ -95,7 +95,17 @@ Local Node server + local MCP client, to test the feel before hosting. The simul
 - Clef-flash untested: the tower's Ollama is 0.34.0; `/v1/systemone` needs ≥ 0.35.0.
 - Browser view: HTTP and stream verified (page 200, 10 frames/s, ping and abilities accepted); not yet looked at by a human.
 
-## Proposal under review (2026-10-13 #2): pilot / commander / human
+## Proposal under review (2026-10-14 #3): gambits, no model in the tick loop
+
+Trigger: the per-tick Jev pilot costs ~$0.10 per side per match (2–3M input tokens); tests already spent ~$1. Owner agrees to return to "the agent writes the bot, the server runs the bot".
+
+- Each squad runs an ordered list of `if condition → action` rules picked from fixed menus (Final Fantasy XII "gambits"). Server evaluates every tick for free.
+- The agent watches events and rewrites gambits live (~10–30 LLM calls per match, on the player's own subscription).
+- The browser shows each squad's gambits and highlights the one firing (authorship).
+- The human keeps the decisive abilities and answers the agent's calls.
+- Jev leaves the tick loop.
+
+## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 
 | Role | Model | Speed | Does |
 |---|---|---|---|
