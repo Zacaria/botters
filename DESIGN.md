@@ -113,6 +113,15 @@ Decisions 2026-10-14:
 
 Swarm feasibility (measured 2026-10-14, Xeon 4214 single thread, cell-binned square-law fights): 1k units 0.6 ms/tick, 10k 0.7 ms, 100k 8.4 ms, 1M 54 ms. Browser sketch (`spikes/swarm.html`, headless Chromium, software rendering): 40k units 12.6 ms/frame, 200k 36 ms/frame. Consequence: at ≥100k units, replaying the whole match on each request (the Vercel plan) is too slow (≈17 s per replay); a long-lived simulation process per match is needed.
 
+Decisions 2026-10-14 #2:
+- ✅ Q20 Swarm feel confirmed. Steering 3 swarms by hand is too hard → gambits drive swarms, the human grabs one at a time. Theme: space swarms conquering and consuming planets, many planets, several swarm types later.
+- ✅ Q21 10–50k particles per side. Simulate **cohorts** (centre + count), draw particles client-side only.
+- ✅ Q22 Swarm-level gambits.
+
+Cohort measurement (VM, Node, square-law fights between cohorts): full 5-minute replay of 3,000 ticks = 97 ms at 16 cohorts/side, 534 ms at 64, 2.1 s at 128 (O(n²) pairs; cap swarms per side at 40). `spikes/space.html`: 8 headless house-vs-default-gambit matches, 0.09–0.17 ms per tick, up to 77 swarms on the map, 1–8 lead changes per match, gambits won 6/8.
+
+Hosting answer (Q23): yes, a 5-minute match fits Vercel. Fluid compute allows 300 s on Hobby and 800 s on Pro; with cohorts the simulation is ~0.1 ms per tick, so a stateless replay per request also works (≤0.5 s). Live updates: Vercel WebSockets (public beta since June 2026) or Convex subscriptions. To be spiked when the game moves online.
+
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 
 | Role | Model | Speed | Does |
