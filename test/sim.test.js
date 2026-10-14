@@ -1,102 +1,141 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createMatch, applyInput, step, view, spawn, POINTS, TPS, MATCH_TICKS, WIN_SCORE } from '../sim.js'
+import { createMatch, applyInput, step, view, addSwarm, W, H, TPS, MATCH_TICKS, MAX_SWARMS, DEFAULT_GAMBITS } from '../sim.js'
 
-const empty = seed => { const s = createMatch(seed); s.units = []; return s }
 const run = (s, ticks) => { for (let i = 0; i < ticks && !s.ended; i++) step(s) }
-const duel = (a, b, gap = 1) => {
-  const s = empty(1)
-  const u = spawn(s, 'blue', a, 10, 12), e = spawn(s, 'red', b, 10 + gap, 12)
-  spawn(s, 'blue', 'miner', 2, 2); spawn(s, 'red', 'miner', 38, 22) // keep both sides alive
-  applyInput(s, 'blue', { orders: { [u.id]: { target: e.id } } })
-  applyInput(s, 'red', { orders: { [e.id]: { target: u.id } } })
-  run(s, 30 * TPS)
-  return { blue: s.units.some(x => x.id === u.id), red: s.units.some(x => x.id === e.id) }
+const empty = seed => { // planets kept, no starting swarms, both homes kept alive
+  const s = createMatch(seed); s.swarms = []; return s
 }
+const only = (s, side, gambits) => applyInput(s, side, { gambits })
 
-test('same seed and inputs give the same match', () => {
+test('same seed and inputs give the same match; maps are mirrored and differ by seed', () => {
   const play = () => {
     const s = createMatch(7)
-    for (let t = 0; t < 600; t++) {
-      if (t === 5) applyInput(s, 'blue', { orders: Object.fromEntries(s.units.filter(u => u.side === 'blue').map(u => [u.id, { x: 20, y: 12 }])) })
-      if (t === 9) applyInput(s, 'red', { orders: Object.fromEntries(s.units.filter(u => u.side === 'red').map(u => [u.id, { x: 20, y: 12 }])) })
+    for (let t = 0; t < 1200; t++) {
+      if (t === 40) applyInput(s, 0, { order: { swarm: s.swarms[0].id, x: 600, y: 350 } })
       step(s)
     }
     return JSON.stringify(s)
   }
   assert.equal(play(), play())
-  assert.notDeepEqual(createMatch(1).bush, createMatch(2).bush)
+  const s = createMatch(1)
+  for (const p of s.planets) assert.ok(s.planets.some(o => Math.abs(o.x - (W - p.x)) < 1e-9 && o.y === p.y && o.r === p.r))
+  assert.notDeepEqual(createMatch(1).planets, createMatch(2).planets)
 })
 
-test('counter triangle decides duels', () => {
-  assert.deepEqual(duel('tank', 'fast'), { blue: true, red: false })
-  assert.deepEqual(duel('fast', 'ranged'), { blue: true, red: false })
-  assert.deepEqual(duel('ranged', 'tank', 6), { blue: true, red: false })
-})
-
-test('bushes hide units until an enemy is close', () => {
+test('square law: the bigger swarm wins and loses far fewer than the smaller one', () => {
   const s = empty(3)
-  const b = s.bush.findIndex((v, i) => v && i % 40 > 8 && i % 40 < 30)
-  const bx = b % 40 + 0.5, by = Math.floor(b / 40) + 0.5
-  const hidden = spawn(s, 'red', 'fast', bx, by)
-  const watcher = spawn(s, 'blue', 'ranged', bx + 3, by)
-  const sees = () => view(s, 'blue').enemies.some(e => e.id === hidden.id)
-  if (s.bush[Math.floor(by) * 40 + Math.floor(bx + 3)]) watcher.x = bx - 3
-  assert.equal(sees(), false)
-  watcher.x = bx + 1
-  assert.equal(sees(), true)
+  only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const a = addSwarm(s, 0, 600, 350, 2000), b = addSwarm(s, 1, 610, 350, 1000)
+  run(s, 60 * TPS)
+  assert.ok(!s.swarms.includes(b))
+  assert.ok(a.n > 1500, `bigger kept ${a.n}`) // Lanchester: sqrt(2000² − 1000²) ≈ 1732
 })
 
-test('holding a point captures it and scores', () => {
+test('gambits: first enabled matching rule decides, disabled rules are skipped', () => {
   const s = empty(4)
-  spawn(s, 'blue', 'tank', POINTS.B.x, POINTS.B.y)
-  spawn(s, 'red', 'miner', 38, 22)
-  run(s, 3 * TPS)
-  assert.equal(s.points.B.owner, 'blue')
-  const before = s.score.blue
-  run(s, 10 * TPS)
-  assert.ok(s.score.blue > before)
+  only(s, 1, [{ if: 'always', then: 'hold' }])
+  const c = addSwarm(s, 0, 300, 350, 1000)
+  addSwarm(s, 1, 380, 350, 5000) // visible, much bigger
+  only(s, 0, [{ if: 'bigger_enemy_near', then: 'retreat' }, { if: 'always', then: 'hold' }])
+  run(s, 20)
+  assert.equal(c.rule, 0)
+  assert.ok(c.tx < 300, 'retreats away from the threat, towards home')
+  applyInput(s, 0, { toggle: 0 })
+  run(s, 20)
+  assert.equal(c.rule, 1)
 })
 
-test('match ends by score, wipe or time', () => {
-  let s = empty(5); spawn(s, 'blue', 'tank', 5, 5); spawn(s, 'red', 'tank', 30, 5)
-  s.score.blue = WIN_SCORE; step(s)
-  assert.deepEqual(s.ended, { winner: 'blue', reason: 'score' })
-
-  s = empty(5); spawn(s, 'blue', 'tank', 5, 5); step(s)
-  assert.deepEqual(s.ended, { winner: 'blue', reason: 'wipe' })
-
-  s = empty(5); spawn(s, 'blue', 'tank', 5, 5); spawn(s, 'red', 'tank', 30, 5)
-  s.score.red = 3; s.tick = MATCH_TICKS - 1; step(s)
-  assert.deepEqual(s.ended, { winner: 'red', reason: 'time' })
+test('gambit parameters change what a condition matches', () => {
+  const s = empty(5)
+  only(s, 1, [{ if: 'always', then: 'hold' }])
+  const c = addSwarm(s, 0, 300, 350, 1000)
+  addSwarm(s, 1, 380, 350, 1500)
+  only(s, 0, [{ if: 'bigger_enemy_near', p: 2, then: 'retreat' }, { if: 'always', then: 'hold' }])
+  run(s, 20)
+  assert.equal(c.rule, 1) // 1500 is not 2× bigger
 })
 
-test('strike is telegraphed, hits enemies only, then cools down', () => {
-  const s = empty(6)
-  const mine = spawn(s, 'blue', 'tank', 20, 12), foe = spawn(s, 'red', 'tank', 21, 12)
-  spawn(s, 'red', 'miner', 38, 22)
-  assert.equal(applyInput(s, 'blue', { ability: 'strike', x: 20.5, y: 12 }).ok, true)
-  assert.equal(view(s, 'red').strikes.length, 1)
-  const hp = foe.hp
-  step(s); assert.equal(foe.hp, hp)
-  run(s, TPS)
-  assert.ok(foe.hp < hp - 50)
-  assert.equal(mine.hp > 140, true)
-  assert.equal(applyInput(s, 'blue', { ability: 'strike', x: 5, y: 5 }).ok, false)
+test('invalid gambit lists are rejected and the old list stays', () => {
+  const s = createMatch(6), before = s.gambits[0]
+  assert.equal(only(s, 0, [{ if: 'teleport', then: 'go' }]).ok, false)
+  assert.equal(only(s, 0, [{ if: 'always', then: 'explode' }]).ok, false)
+  assert.equal(only(s, 0, Array(11).fill({ if: 'always', then: 'hold' })).ok, false)
+  assert.equal(only(s, 0, [{ if: 'small', p: -5, then: 'go' }]).ok, false)
+  assert.equal(s.gambits[0], before)
+  assert.ok(DEFAULT_GAMBITS.length <= 10)
 })
 
-test('a side cannot order enemy units', () => {
-  const s = createMatch(8)
-  const red = s.units.find(u => u.side === 'red')
-  assert.equal(applyInput(s, 'blue', { orders: { [red.id]: { x: 0, y: 0 } } }).ok, false)
+test('fog: enemy swarms out of vision are hidden from the view and from gambits', () => {
+  const s = empty(7)
+  only(s, 1, [{ if: 'always', then: 'hold' }])
+  const c = addSwarm(s, 0, 300, 120, 1000)
+  const far = addSwarm(s, 1, 900, 600, 9000)
+  assert.equal(view(s, 0).enemies.some(e => e.id === far.id), false)
+  only(s, 0, [{ if: 'bigger_enemy_near', p: 1.2, then: 'retreat' }, { if: 'always', then: 'hold' }])
+  run(s, 20)
+  assert.equal(c.rule, 1)
+  far.x = 330; far.y = 120
+  assert.equal(view(s, 0).enemies.some(e => e.id === far.id), true)
 })
 
-test('economy is capped so it cannot snowball forever', () => {
-  const s = createMatch(9)
-  s.res.blue = 10000
-  let miners = 0
-  for (let i = 0; i < 30; i++) if (applyInput(s, 'blue', { buy: 'miner' }).ok) miners++
-  assert.equal(miners, 3) // starts with 3, miner cap 6
-  for (let i = 0; i < 30; i++) applyInput(s, 'blue', { buy: 'tank' })
-  assert.equal(s.units.filter(u => u.side === 'blue').length, 20)
+test('a swarm parked on a free planet captures it and eats it into particles', () => {
+  const s = empty(8)
+  only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const p = s.planets.find(p => p.owner === -1)
+  const c = addSwarm(s, 0, p.x, p.y, 1000)
+  run(s, 60 * TPS)
+  assert.equal(p.owner, 0)
+  assert.ok(p.mass < p.m0)
+  const mine = s.swarms.filter(o => o.side === 0).reduce((a, o) => a + o.n, 0)
+  assert.ok(mine > 1000, `side grew to ${mine}`)
+  assert.ok(c)
+})
+
+test('hand control: orders override gambits until released; split halves a swarm; caps hold', () => {
+  const s = empty(9)
+  only(s, 1, [{ if: 'always', then: 'hold' }])
+  only(s, 0, [{ if: 'always', then: 'hold' }])
+  const c = addSwarm(s, 0, 300, 350, 2000)
+  assert.equal(applyInput(s, 0, { order: { swarm: c.id, x: 500, y: 350 } }).ok, true)
+  run(s, 40)
+  assert.ok(c.x > 330 && c.manual)
+  const before = s.swarms.filter(o => o.side === 0).length // the home planet spawns its own swarm too
+  assert.equal(applyInput(s, 0, { split: c.id }).ok, true)
+  assert.equal(s.swarms.filter(o => o.side === 0).length, before + 1)
+  assert.equal(c.n, 1000)
+  applyInput(s, 0, { release: c.id })
+  run(s, 20)
+  assert.equal(c.manual, false)
+  for (let i = 0; i < 60; i++) addSwarm(s, 0, 100 + i * 15, 100, 300)
+  assert.ok(s.swarms.filter(o => o.side === 0).length <= MAX_SWARMS)
+})
+
+test('a side cannot command enemy swarms', () => {
+  const s = createMatch(10)
+  const red = s.swarms.find(o => o.side === 1)
+  assert.equal(applyInput(s, 0, { order: { swarm: red.id, x: 0, y: 0 } }).ok, false)
+  assert.equal(applyInput(s, 0, { split: red.id }).ok, false)
+})
+
+test('match ends by wipe, or at 5:00 by particle count', () => {
+  let s = empty(11)
+  for (const p of s.planets) if (p.owner === 1) p.mass = 0
+  addSwarm(s, 0, 100, 100, 500)
+  step(s)
+  assert.deepEqual(s.ended, { winner: 0, reason: 'wipe' })
+  s = createMatch(12)
+  s.swarms.find(o => o.side === 1).n += 500
+  s.tick = MATCH_TICKS - 1
+  step(s)
+  assert.equal(s.ended.winner, 1)
+  assert.equal(s.ended.reason, 'time')
+})
+
+test('default gambits beat doing nothing', () => {
+  const s = createMatch(13)
+  only(s, 1, [{ if: 'always', then: 'hold' }])
+  run(s, MATCH_TICKS)
+  assert.equal(s.ended.winner, 0)
+  assert.ok(H > 0)
 })

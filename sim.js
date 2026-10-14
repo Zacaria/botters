@@ -1,193 +1,214 @@
-// Deterministic match simulation. Pure: same seed + same inputs at the same ticks => same match.
-// No Math.random / Date here, so a match can be replayed from its input log.
+// Botters simulation: space swarms conquer and eat planets. Pure and deterministic: state = f(seed, inputs by tick).
+// A swarm is a cohort (centre + particle count); individual particles only exist in the browser.
+// Sides are 0 and 1. Every swarm follows its side's gambits (IF condition → action) unless a human grabbed it.
 
-export const W = 40, H = 24, TPS = 10, MATCH_TICKS = 300 * TPS, WIN_SCORE = 200
-export const VISION = 6, BUSH_REVEAL = 1.5, CAPTURE_R = 1.5, MINE_R = 1.2
-export const POINTS = { A: { x: 20, y: 4 }, B: { x: 20, y: 12 }, C: { x: 20, y: 20 } }
-export const NODES = [{ x: 5, y: 6 }, { x: 5, y: 18 }, { x: 14, y: 12 }, { x: 26, y: 12 }, { x: 35, y: 6 }, { x: 35, y: 18 }]
-export const BASE = { blue: { x: 2, y: 12 }, red: { x: 38, y: 12 } }
-export const UNITS = {
-  fast: { hp: 80, speed: 0.18, range: 1, dmg: 6, cd: 5, beats: 'ranged', cost: 20 },
-  tank: { hp: 160, speed: 0.08, range: 1, dmg: 7, cd: 8, beats: 'fast', cost: 30 },
-  ranged: { hp: 60, speed: 0.11, range: 4, dmg: 8, cd: 7, beats: 'tank', cost: 25 },
-  miner: { hp: 50, speed: 0.1, range: 0, dmg: 0, cd: 1, beats: null, cost: 15 },
-}
-export const COUNTER = 1.75, MINE_RATE = 0.05, MAX_UNITS = 20, MAX_MINERS = 6
-export const ABILITIES = { strike: 45 * TPS, overdrive: 60 * TPS, recall: 60 * TPS, reveal: 45 * TPS }
-const STRIKE = { delay: 10, r: 2, dmg: 90 }
-const START = ['miner', 'miner', 'miner', 'fast', 'fast', 'fast', 'tank', 'tank', 'tank', 'ranged', 'ranged', 'ranged']
-const SIDES = ['blue', 'red'], other = side => (side === 'blue' ? 'red' : 'blue')
+export const W = 1200, H = 700, TPS = 20, MATCH_TICKS = 300 * TPS
+export const MAX_SWARMS = 40, MAX_GAMBITS = 10
+const K = 0.0035 // square law: each tick a swarm loses K × the enemy count it touches
+const THINK = 10 // gambits are re-evaluated every 0.5 s
+const SWARM_VISION = 150, PLANET_VISION = 80, START_N = 3000
+
+export const rad = n => 4 + Math.sqrt(n) * 0.32
+const speed = n => 1.5 - Math.min(1, n / 15000) * 0.9 // big swarms are slow
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
+const nearest = (c, list, max = Infinity) => { let b = null, bd = max; for (const o of list) { const d = dist(c, o); if (d < bd) { bd = d; b = o } } return b }
 
+// ---------- gambits ----------
+// A condition returns what it found (an enemy, a planet, a friend) or nothing. `p` tunes it.
+export const CONDITIONS = {
+  bigger_enemy_near: { p: 1.2, doc: 'a visible enemy swarm at least p× our size within 170 → that enemy', fn: (s, c, p) => nearest(c, seen(s, c.side).filter(o => o.n >= c.n * p), 170) },
+  weaker_enemy_near: { p: 0.9, doc: 'a visible enemy swarm at most p× our size within 230 → that enemy', fn: (s, c, p) => nearest(c, seen(s, c.side).filter(o => o.n <= c.n * p), 230) },
+  enemy_near: { p: 200, doc: 'any visible enemy swarm within p → that enemy', fn: (s, c, p) => nearest(c, seen(s, c.side), p) },
+  planet_attacked: { p: 500, doc: 'one of our planets within p has a visible enemy next to it → that planet', fn: (s, c, p) => nearest(c, s.planets.filter(o => o.owner === c.side && o.mass > 0 && nearest(o, seen(s, c.side), o.r + 70)), p) },
+  small: { p: 400, doc: 'this swarm has fewer than p particles → the nearest friendly swarm', fn: (s, c, p) => c.n < p && nearest(c, s.swarms.filter(o => o.side === c.side && o !== c)) },
+  big: { p: 4000, doc: 'this swarm has more than p particles → itself', fn: (s, c, p) => c.n > p && c },
+  free_planet: { p: 2000, doc: 'an unowned planet with mass left within p → that planet', fn: (s, c, p) => nearest(c, s.planets.filter(o => o.owner === -1 && o.mass > 0), p) },
+  enemy_planet: { p: 2000, doc: 'an enemy planet with mass left within p → that planet', fn: (s, c, p) => nearest(c, s.planets.filter(o => o.owner === 1 - c.side && o.mass > 0), p) },
+  always: { p: 0, doc: 'always true → nothing', fn: () => true },
+}
+export const ACTIONS = {
+  go: { doc: 'move to what the condition found: attack the enemy, capture or defend the planet, merge into the friend', fn: (s, c, it) => moveTo(c, it) },
+  retreat: { doc: 'move to the nearest friendly swarm at least half our size, else home', fn: (s, c) => moveTo(c, nearest(c, s.swarms.filter(o => o.side === c.side && o !== c && o.n >= c.n / 2)) || s.planets[c.side]) },
+  split: { doc: 'split in two; the new half heads for the second-nearest planet we do not own', fn: (s, c) => !!split(s, c, false) },
+  hold: { doc: 'stop where it is', fn: (s, c) => moveTo(c, c) },
+}
+const moveTo = (c, t) => { if (!t || t.x === undefined) return false; c.tx = t.x; c.ty = t.y; return true }
+const rule = (cond, then) => ({ if: cond, then, on: true })
+export const DEFAULT_GAMBITS = [
+  rule('bigger_enemy_near', 'retreat'), rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go'), rule('small', 'go'),
+  rule('big', 'split'), rule('free_planet', 'go'), rule('enemy_planet', 'go'),
+]
+export const HOUSE_GAMBITS = [ // greedy blob: never retreats, never splits
+  rule('weaker_enemy_near', 'go'), rule('free_planet', 'go'), rule('small', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold'),
+]
+
+function checkGambits(list) {
+  if (!Array.isArray(list) || !list.length || list.length > MAX_GAMBITS) return `send 1 to ${MAX_GAMBITS} gambits`
+  for (const r of list) {
+    if (!CONDITIONS[r?.if]) return `unknown condition "${r?.if}". Known: ${Object.keys(CONDITIONS).join(', ')}`
+    if (!ACTIONS[r.then]) return `unknown action "${r.then}". Known: ${Object.keys(ACTIONS).join(', ')}`
+    if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) return 'p must be a number in (0, 100000]'
+  }
+  return null
+}
+
+// ---------- fog ----------
+let VIS = null // computed once per thinking tick, so gambits don't recompute vision per swarm
+export function seen(s, side) { // enemy swarms this side can see right now
+  if (VIS) return VIS[side]
+  const eyes = [...s.swarms.filter(o => o.side === side).map(o => ({ x: o.x, y: o.y, r: SWARM_VISION + rad(o.n) })),
+    ...s.planets.filter(p => p.owner === side).map(p => ({ x: p.x, y: p.y, r: p.r + PLANET_VISION }))]
+  return s.swarms.filter(o => o.side !== side && eyes.some(e => dist(e, o) < e.r + rad(o.n)))
+}
+
+// ---------- match ----------
 function rng(seed) { // mulberry32
   let a = seed >>> 0
   return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
 }
 
-function makeBushes(seed) { // mirror-symmetric so neither side gets a better map
-  const r = rng(seed), bush = new Array(W * H).fill(0)
-  const blocked = (x, y) => x < 4 || [...Object.values(POINTS), ...NODES].some(p => Math.hypot(p.x - x, p.y - y) < 2.5)
-  for (let c = 0; c < 9; c++) {
-    let x = 4 + Math.floor(r() * 16), y = Math.floor(r() * H)
-    for (let i = 0, n = 4 + Math.floor(r() * 6); i < n; i++) {
-      if (x >= 0 && x < W / 2 && y >= 0 && y < H && !blocked(x + 0.5, y + 0.5)) bush[y * W + x] = bush[y * W + (W - 1 - x)] = 1
-      if (r() < 0.5) x += r() < 0.5 ? 1 : -1; else y += r() < 0.5 ? 1 : -1
-    }
-  }
-  return bush
-}
-
-export const inBush = (s, u) => s.bush[Math.floor(u.y) * W + Math.floor(u.x)] === 1
-
-export function spawn(s, side, type, x, y) {
-  const u = { id: side[0] + ++s.ids[side], side, type, x, y, hp: UNITS[type].hp, cd: UNITS[type].cd, order: null, revealUntil: 0 }
-  s.units.push(u)
-  return u
-}
-
 export function createMatch(seed) {
-  const s = {
-    seed, tick: 0, bush: makeBushes(seed), units: [], ids: { blue: 0, red: 0 }, ended: null,
-    score: { blue: 0, red: 0 }, res: { blue: 0, red: 0 },
-    points: Object.fromEntries(Object.keys(POINTS).map(k => [k, { owner: null, c: 0 }])),
-    ready: { blue: {}, red: {} }, boost: { blue: 0, red: 0 }, reveal: { blue: 0, red: 0 }, strikes: [],
+  const r = rng(seed), planets = [{ x: 90, y: H / 2, r: 26, owner: 0, cap: 1 }, { x: W - 90, y: H / 2, r: 26, owner: 1, cap: -1 }]
+  for (let tries = 0; planets.length < 28 && tries < 5000; tries++) { // mirror-symmetric so neither side gets a better map
+    const x = 180 + r() * (W / 2 - 210), y = 40 + r() * (H - 80), pr = Math.round(6 + r() * 16)
+    if (planets.some(p => Math.hypot(p.x - x, p.y - y) < p.r + pr + 50)) continue
+    for (const mx of [x, W - x]) planets.push({ x: mx, y, r: pr, owner: -1, cap: 0 })
   }
-  for (const side of SIDES) START.forEach((type, i) => {
-    const x = side === 'blue' ? 2 + (i % 2) : W - 2 - (i % 2)
-    spawn(s, side, type, x, 6.5 + i)
-  })
+  planets.forEach((p, i) => { p.id = i; p.mass = p.m0 = p.r === 26 ? 15000 : p.r * p.r * 25; p.stock = 0 })
+  const s = { seed, tick: 0, nextId: 1, planets, swarms: [], gambits: [DEFAULT_GAMBITS, DEFAULT_GAMBITS], ended: null }
+  for (const side of [0, 1]) for (const dy of [-70, 0, 70]) addSwarm(s, side, planets[side].x + (side ? -45 : 45), H / 2 + dy, START_N)
   return s
 }
 
-export function visibleEnemies(s, side) {
-  const mine = s.units.filter(u => u.side === side)
-  return s.units.filter(e => e.side !== side && (s.reveal[side] > s.tick || mine.some(f => {
-    const d = dist(f, e)
-    return d <= VISION && (d <= BUSH_REVEAL || !inBush(s, e) || e.revealUntil > s.tick)
-  })))
+export function addSwarm(s, side, x, y, n) {
+  if (s.swarms.filter(o => o.side === side).length >= MAX_SWARMS) return null
+  const c = { id: s.nextId++, side, x, y, n, tx: x, ty: y, manual: false, rule: -1, noMerge: 0, eng: false }
+  s.swarms.push(c)
+  return c
 }
 
-// One player input, applied before the next tick. Returns {ok} or {ok:false, error}.
+function split(s, c, manual) {
+  if (c.n < 200) return null
+  const b = addSwarm(s, c.side, c.x + 4, c.y + 4, c.n / 2)
+  if (!b) return null
+  c.n /= 2
+  b.manual = c.manual = manual; c.noMerge = b.noMerge = s.tick + 80
+  const t = s.planets.filter(p => p.mass > 0 && p.owner !== c.side).sort((p, o) => dist(c, p) - dist(c, o) || p.id - o.id)
+  moveTo(b, t[1] || { x: c.x, y: Math.min(H - 10, c.y + 80) })
+  return b
+}
+
+function think(s, c) {
+  const list = s.gambits[c.side]
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i]
+    if (!r.on) continue
+    const it = CONDITIONS[r.if].fn(s, c, r.p ?? CONDITIONS[r.if].p)
+    if (it && ACTIONS[r.then].fn(s, c, it) !== false) { c.rule = i; return }
+  }
+  c.rule = -1
+}
+
+// One input from one side, applied before the next tick. Returns { ok } or { ok: false, error }.
+// gambits / toggle: the side's rule list. order / split / release: hand control of one swarm.
 export function applyInput(s, side, input) {
   if (s.ended) return { ok: false, error: 'match ended' }
-  const skipped = []
-  if (input.orders) {
-    // Orders are planned on a slightly old view: dead units and vanished targets are skipped, not errors.
-    const seen = new Set(visibleEnemies(s, side).map(e => e.id))
-    for (const [id, o] of Object.entries(input.orders)) {
-      if (!id.startsWith(side[0])) return { ok: false, error: `not your unit: ${id}` }
-      if (o.target === undefined && !(o.hold || (Number.isFinite(o.x) && Number.isFinite(o.y)))) return { ok: false, error: `bad order for ${id}` }
-    }
-    for (const [id, o] of Object.entries(input.orders)) {
-      const u = s.units.find(x => x.id === id)
-      if (!u || (o.target !== undefined && !seen.has(o.target))) { skipped.push(id); continue }
-      if (o.target !== undefined) { const t = s.units.find(x => x.id === o.target); u.order = { target: t.id, x: t.x, y: t.y } }
-      else u.order = o.hold ? null : { x: Math.min(W - 0.5, Math.max(0.5, o.x)), y: Math.min(H - 0.5, Math.max(0.5, o.y)) }
-    }
+  const own = id => s.swarms.find(o => o.id === id && o.side === side)
+  if (input.gambits !== undefined) {
+    const err = checkGambits(input.gambits); if (err) return { ok: false, error: err }
+    s.gambits[side] = input.gambits.map(r => ({ if: r.if, ...(r.p !== undefined && { p: r.p }), then: r.then, on: r.on !== false }))
   }
-  if (input.buy) {
-    const type = UNITS[input.buy]
-    if (!type) return { ok: false, error: `unknown unit: ${input.buy}` }
-    const own = s.units.filter(u => u.side === side)
-    if (own.length >= MAX_UNITS) return { ok: false, error: `unit cap ${MAX_UNITS}` }
-    if (input.buy === 'miner' && own.filter(u => u.type === 'miner').length >= MAX_MINERS) return { ok: false, error: `miner cap ${MAX_MINERS}` }
-    if (s.res[side] < type.cost) return { ok: false, error: `need ${type.cost} resources` }
-    s.res[side] -= type.cost
-    spawn(s, side, input.buy, BASE[side].x, BASE[side].y)
+  if (input.toggle !== undefined) {
+    if (!s.gambits[side][input.toggle]) return { ok: false, error: 'no such gambit' }
+    s.gambits[side] = s.gambits[side].map((o, i) => i === input.toggle ? { ...o, on: !o.on } : o)
   }
-  if (input.ability) {
-    const a = input.ability
-    if (!(a in ABILITIES)) return { ok: false, error: `unknown ability: ${a}` }
-    if ((s.ready[side][a] || 0) > s.tick) return { ok: false, error: `${a} ready in ${Math.ceil((s.ready[side][a] - s.tick) / TPS)}s` }
-    if (a === 'strike' && !(Number.isFinite(input.x) && Number.isFinite(input.y))) return { ok: false, error: 'strike needs x, y' }
-    s.ready[side][a] = s.tick + ABILITIES[a]
-    if (a === 'strike') s.strikes.push({ side, x: input.x, y: input.y, at: s.tick + STRIKE.delay })
-    if (a === 'overdrive') s.boost[side] = s.tick + 5 * TPS
-    if (a === 'reveal') s.reveal[side] = s.tick + 3 * TPS
-    if (a === 'recall') s.units.filter(u => u.side === side && u.type === 'miner').forEach(u => { u.x = BASE[side].x; u.y = BASE[side].y; u.order = null })
+  if (input.order) {
+    const c = own(input.order.swarm), { x, y } = input.order
+    if (!c) return { ok: false, error: `no swarm ${input.order.swarm} of yours (it may have merged or died)` }
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, error: 'x and y required' }
+    c.manual = true; moveTo(c, { x: Math.max(0, Math.min(W, x)), y: Math.max(0, Math.min(H, y)) })
   }
-  return { ok: true, skipped }
-}
-
-function moveToward(u, goal, speed) {
-  const d = dist(u, goal)
-  if (d < 0.01) return
-  const k = Math.min(speed, d) / d
-  u.x += (goal.x - u.x) * k; u.y += (goal.y - u.y) * k
+  if (input.split !== undefined) {
+    const c = own(input.split); if (!c) return { ok: false, error: `no swarm ${input.split} of yours` }
+    if (!split(s, c, c.manual)) return { ok: false, error: 'cannot split (under 200 particles, or 40 swarms already)' }
+  }
+  if (input.release !== undefined) {
+    const c = own(input.release); if (!c) return { ok: false, error: `no swarm ${input.release} of yours` }
+    c.manual = false
+  }
+  return { ok: true }
 }
 
 export function step(s) {
   if (s.ended) return
-  const seen = Object.fromEntries(SIDES.map(side => [side, new Set(visibleEnemies(s, side).map(e => e.id))]))
-  const byId = new Map(s.units.map(u => [u.id, u]))
-
-  for (const u of s.units) { // move
-    const T = UNITS[u.type], speed = T.speed * (s.boost[u.side] > s.tick ? 1.5 : 1)
-    if (!u.order) continue
-    const t = u.order.target !== undefined && byId.get(u.order.target)
-    if (t && seen[u.side].has(t.id)) { u.order.x = t.x; u.order.y = t.y } // track while visible; else go to last seen spot
-    if (t && dist(u, t) <= T.range && seen[u.side].has(t.id)) continue
-    moveToward(u, u.order, speed)
-    if (!t && dist(u, u.order) < 0.05) u.order = u.order.target !== undefined ? null : u.order
-  }
-
-  for (const u of s.units) { // attack
-    const T = UNITS[u.type]
-    if (u.cd > 0) u.cd--
-    if (!T.dmg || u.cd > 0) continue
-    const ordered = u.order?.target !== undefined && byId.get(u.order.target)
-    const inRange = e => e.hp > 0 && seen[u.side].has(e.id) && dist(u, e) <= T.range
-    const target = ordered && inRange(ordered) ? ordered
-      : s.units.filter(e => e.side !== u.side && inRange(e)).sort((a, b) => dist(u, a) - dist(u, b))[0]
-    if (!target) continue
-    target.hp -= T.dmg * (T.beats === target.type ? COUNTER : 1)
-    u.cd = T.cd
-    if (inBush(s, u)) u.revealUntil = s.tick + TPS
-  }
-
-  for (const k of s.strikes.filter(k => k.at <= s.tick)) // strikes land after a visible delay
-    for (const e of s.units) if (e.side !== k.side && dist(e, k) <= STRIKE.r) e.hp -= STRIKE.dmg
-  s.strikes = s.strikes.filter(k => k.at > s.tick)
-
-  for (const u of s.units) // mine
-    if (u.type === 'miner' && u.hp > 0 && NODES.some(n => dist(u, n) <= MINE_R)) s.res[u.side] += MINE_RATE
-
-  s.units = s.units.filter(u => u.hp > 0)
-
-  for (const [k, p] of Object.entries(s.points)) { // capture and score
-    const near = side => s.units.some(u => u.side === side && dist(u, POINTS[k]) <= CAPTURE_R)
-    const b = near('blue'), r = near('red')
-    if (b && !r) p.c = Math.min(1, p.c + 0.05)
-    if (r && !b) p.c = Math.max(-1, p.c - 0.05)
-    if (p.c >= 1) p.owner = 'blue'
-    else if (p.c <= -1) p.owner = 'red'
-    else if ((p.owner === 'blue' && p.c <= 0) || (p.owner === 'red' && p.c >= 0)) p.owner = null
-    if (p.owner) s.score[p.owner] += 1 / TPS
-  }
-
   s.tick++
-  const alive = side => s.units.some(u => u.side === side)
-  const lead = s.score.blue === s.score.red ? null : s.score.blue > s.score.red ? 'blue' : 'red'
-  const top = SIDES.find(side => s.score[side] >= WIN_SCORE)
-  if (top) s.ended = { winner: lead, reason: 'score' }
-  else if (!alive('blue') || !alive('red')) s.ended = { winner: alive('blue') ? 'blue' : alive('red') ? 'red' : null, reason: 'wipe' }
-  else if (s.tick >= MATCH_TICKS) s.ended = { winner: lead, reason: 'time' }
+  if (s.tick % THINK === 0) {
+    VIS = [seen(s, 0), seen(s, 1)]
+    for (const c of [...s.swarms]) if (!c.manual) think(s, c)
+    VIS = null
+  }
+  for (const c of s.swarms) {
+    const d = dist(c, { x: c.tx, y: c.ty }), v = Math.min(d, speed(c.n) * (c.eng ? 0.25 : 1))
+    if (d > 1) { c.x += (c.tx - c.x) / d * v; c.y += (c.ty - c.y) / d * v }
+  }
+  const loss = new Map()
+  for (const c of s.swarms) c.eng = false
+  for (let i = 0; i < s.swarms.length; i++) for (let j = i + 1; j < s.swarms.length; j++) {
+    const a = s.swarms[i], b = s.swarms[j]
+    if (a.side !== b.side && dist(a, b) < rad(a.n) + rad(b.n)) {
+      loss.set(a, (loss.get(a) || 0) + K * b.n); loss.set(b, (loss.get(b) || 0) + K * a.n); a.eng = b.eng = true
+    }
+  }
+  for (const [c, l] of loss) c.n -= l
+  for (let i = 0; i < s.swarms.length; i++) for (let j = i + 1; j < s.swarms.length; j++) { // overlapping friends merge
+    const a = s.swarms[i], b = s.swarms[j]
+    if (a.side === b.side && a.n > 0 && b.n > 0 && a.noMerge < s.tick && b.noMerge < s.tick && dist(a, b) < 0.5 * (rad(a.n) + rad(b.n))) {
+      a.x = (a.x * a.n + b.x * b.n) / (a.n + b.n); a.y = (a.y * a.n + b.y * b.n) / (a.n + b.n); a.n += b.n; b.n = 0
+      a.manual = a.manual || b.manual
+    }
+  }
+  s.swarms = s.swarms.filter(c => c.n >= 1)
+  for (const p of s.planets) {
+    if (p.mass <= 0) continue
+    const pres = [0, 0]
+    for (const c of s.swarms) if (dist(c, p) < p.r + rad(c.n)) pres[c.side] += c.n
+    const rate = n => Math.sqrt(n) / (p.r * 300)
+    if (pres[0] && !pres[1]) p.cap = Math.min(1, p.cap + rate(pres[0]))
+    if (pres[1] && !pres[0]) p.cap = Math.max(-1, p.cap - rate(pres[1]))
+    if (p.cap >= 1) p.owner = 0; else if (p.cap <= -1) p.owner = 1
+    else if ((p.owner === 0 && p.cap <= 0) || (p.owner === 1 && p.cap >= 0)) p.owner = -1
+    if (p.owner < 0) continue
+    const made = Math.min(p.mass, p.r * 0.12); p.mass -= made; p.stock += made // owned planets are eaten into particles
+    if (p.stock >= 60 || p.mass <= 0) {
+      const near = s.swarms.find(c => c.side === p.owner && dist(c, p) < p.r + rad(c.n) + 10)
+      const to = near || addSwarm(s, p.owner, p.x, p.y, 0) || nearest(p, s.swarms.filter(c => c.side === p.owner))
+      if (to) to.n += p.stock
+      p.stock = 0
+    }
+  }
+  const alive = side => s.swarms.some(c => c.side === side) || s.planets.some(p => p.owner === side && p.mass > 0)
+  const [a, b] = totals(s)
+  if (!alive(0) || !alive(1)) s.ended = { winner: alive(0) ? 0 : alive(1) ? 1 : null, reason: 'wipe' }
+  else if (s.tick >= MATCH_TICKS) s.ended = { winner: a > b ? 0 : b > a ? 1 : null, reason: 'time' }
 }
 
-// What one side is allowed to know. Never leaks hidden enemies.
+export const totals = s => [0, 1].map(side => Math.round(s.swarms.reduce((a, c) => a + (c.side === side ? c.n : 0), 0)))
+
+// What one side may know: its swarms, visible enemy swarms, public planets and particle totals.
 export function view(s, side) {
-  const r1 = n => Math.round(n * 10) / 10
+  const r = n => Math.round(n), t = totals(s)
   return {
-    tick: s.tick, side, secondsLeft: Math.ceil((MATCH_TICKS - s.tick) / TPS), ended: s.ended,
-    score: { you: Math.floor(s.score[side]), enemy: Math.floor(s.score[other(side)]), win: WIN_SCORE },
-    resources: Math.floor(s.res[side]),
-    points: Object.fromEntries(Object.entries(s.points).map(([k, p]) => [k, { ...POINTS[k], owner: p.owner === side ? 'you' : p.owner ? 'enemy' : null }])),
-    units: s.units.filter(u => u.side === side).map(u => ({ id: u.id, type: u.type, x: r1(u.x), y: r1(u.y), hp: Math.ceil(u.hp), maxHp: UNITS[u.type].hp, inBush: inBush(s, u), order: u.order && (u.order.target !== undefined ? { target: u.order.target } : { x: r1(u.order.x), y: r1(u.order.y) }) })),
-    enemies: visibleEnemies(s, side).map(u => ({ id: u.id, type: u.type, x: r1(u.x), y: r1(u.y), hp: Math.ceil(u.hp), maxHp: UNITS[u.type].hp })),
-    strikes: s.strikes.map(k => ({ x: k.x, y: k.y, inSeconds: (k.at - s.tick) / TPS, by: k.side === side ? 'you' : 'enemy' })),
-    abilities: Object.fromEntries(Object.keys(ABILITIES).map(a => [a, Math.max(0, Math.ceil(((s.ready[side][a] || 0) - s.tick) / TPS))])),
-    boosted: s.boost[side] > s.tick, revealed: s.reveal[side] > s.tick,
+    tick: s.tick, secondsLeft: Math.max(0, Math.ceil((MATCH_TICKS - s.tick) / TPS)),
+    ended: s.ended && { reason: s.ended.reason, result: s.ended.winner === side ? 'won' : s.ended.winner === null ? 'draw' : 'lost' },
+    totals: { you: t[side], enemy: t[1 - side] },
+    swarms: s.swarms.filter(c => c.side === side).map(c => ({ id: c.id, x: r(c.x), y: r(c.y), n: r(c.n), tx: r(c.tx), ty: r(c.ty), manual: c.manual, rule: c.rule, fighting: c.eng })),
+    enemies: seen(s, side).map(c => ({ id: c.id, x: r(c.x), y: r(c.y), n: r(c.n), fighting: c.eng })),
+    planets: s.planets.map(p => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', massLeft: r(p.mass), mass: p.m0, capture: Math.round((side ? -p.cap : p.cap) * 100) / 100 })),
+    gambits: s.gambits[side],
   }
 }
 
-export const mapInfo = s => ({ W, H, bush: s.bush, points: POINTS, nodes: NODES, base: BASE, units: UNITS, abilities: ABILITIES, counter: COUNTER, maxUnits: MAX_UNITS, maxMiners: MAX_MINERS })
+export const rules = () => ({
+  conditions: Object.fromEntries(Object.entries(CONDITIONS).map(([k, c]) => [k, `${c.doc}${c.p ? ` (default p ${c.p})` : ''}`])),
+  actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, a]) => [k, a.doc])),
+})

@@ -1,43 +1,48 @@
-// Spike game server: matchmaking queue, 10 Hz match loop, player API, browser stream, Elo.
+// Game server: matchmaking (vs another player or vs the house), 20 Hz match loop, agent API, browser stream, Elo.
 // ponytail: all state in memory, one process. Port to Vercel + Convex once the game is fun.
 import http from 'node:http'
 import { readFileSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
-import { createMatch, applyInput, step, view, mapInfo, TPS } from './sim.js'
+import { createMatch, applyInput, step, view, rules, HOUSE_GAMBITS, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
-const RATE = 5, START_DELAY = 3000, FINISHED_TTL = 10 * 60 * 1000
+const RATE = 5, START_DELAY = Number(process.env.BOTTERS_START_DELAY || 10000), FINISHED_TTL = 10 * 60 * 1000, FRAME_EVERY = 2 // browser: 10 frames/s
 const tickets = new Map(), matches = new Map(), tokens = new Map(), elo = new Map()
 let waiting = null
 const id = () => randomBytes(12).toString('base64url')
 
-function startMatch(a, b) {
-  const m = { id: id(), s: createMatch(randomInt(2 ** 31)), players: {}, log: [], streams: new Set(), startsAt: Date.now() + START_DELAY }
-  for (const [side, t] of [['blue', a], ['red', b]]) {
-    const p = { side, name: t.name, setup: t.setup, agent: id(), human: id(), events: [], seq: 0, waiters: [], sent: [], calls: [], pilotMs: null, prev: null }
+function startMatch(a, b) { // b === null: the house plays side 1 with fixed gambits and no agent
+  const m = { id: id(), s: createMatch(randomInt(2 ** 31)), players: [], log: [], streams: new Set(), startsAt: Date.now() + START_DELAY }
+  if (!b) applyInput(m.s, 1, { gambits: HOUSE_GAMBITS })
+  ;[a, b].forEach((t, side) => {
+    const p = { side, name: t ? t.name : 'house', setup: t ? t.setup : 'fixed gambits', agent: id(), human: id(), events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null }
     m.players[side] = p
+    if (!t) return
     tokens.set(p.agent, { m, side, role: 'agent' }); tokens.set(p.human, { m, side, role: 'human' })
-    t.match = { matchId: m.id, side, token: p.agent, watch: `${ORIGIN}/?m=${m.id}&t=${p.human}`, opponent: { name: b === t ? a.name : b.name, setup: b === t ? a.setup : b.setup } }
-  }
+    const o = side ? a : b
+    t.match = { side, token: p.agent, watch: `${ORIGIN}/?t=${p.human}`, opponent: o ? `${o.name} (${o.setup})` : 'house (fixed gambits, no agent)' }
+  })
   matches.set(m.id, m)
-  for (const side of ['blue', 'red']) emit(m, side, `match starts in ${START_DELAY / 1000}s. You are ${side}.`)
+  for (const p of m.players) emit(m, p.side, `match starts in ${START_DELAY / 1000}s. Your home planet is on the ${p.side ? 'right' : 'left'}. Set your opening gambits now.`)
   const timer = setInterval(() => {
-    if (Date.now() < m.startsAt) return
+    if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
     step(m.s)
-    for (const side of ['blue', 'red']) diffEvents(m, side)
-    const frame = side => `data: ${JSON.stringify({ view: view(m.s, side), calls: m.players[side].calls, intent: m.players[side].intent, pilot: m.players[side].pilotMs, opponent: m.players[side === 'blue' ? 'red' : 'blue'].pilotMs })}\n\n`
-    for (const st of m.streams) st.res.write(frame(st.side))
+    if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
+    if (m.s.tick % FRAME_EVERY === 0 || m.s.ended) for (const st of m.streams) send(st, m)
     if (m.s.ended) { clearInterval(timer); finish(m); setTimeout(() => matches.delete(m.id), FINISHED_TTL) }
   }, 1000 / TPS)
 }
 
+const frame = (m, side) => ({ view: view(m.s, side), calls: m.players[side].calls, feed: m.players[side].feed, startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)) })
+const send = (st, m) => st.res.write(`data: ${JSON.stringify(frame(m, st.side))}\n\n`)
+
 function finish(m) {
-  const [b, r] = [m.players.blue, m.players.red], w = m.s.ended.winner
-  const rb = elo.get(b.name) ?? 1000, rr = elo.get(r.name) ?? 1000
-  const exp = 1 / (1 + 10 ** ((rr - rb) / 400)), got = w === 'blue' ? 1 : w === 'red' ? 0 : 0.5
-  elo.set(b.name, Math.round(rb + 32 * (got - exp))); elo.set(r.name, Math.round(rr - 32 * (got - exp)))
-  console.log(JSON.stringify({ match: m.id, ...m.s.ended, blue: `${b.name} (${b.setup})`, red: `${r.name} (${r.setup})`, score: m.s.score, inputs: m.log.length }))
+  const [a, b] = m.players, w = m.s.ended.winner
+  const ra = elo.get(a.name) ?? 1000, rb = elo.get(b.name) ?? 1000
+  const exp = 1 / (1 + 10 ** ((rb - ra) / 400)), got = w === 0 ? 1 : w === 1 ? 0 : 0.5
+  elo.set(a.name, Math.round(ra + 32 * (got - exp))); elo.set(b.name, Math.round(rb - 32 * (got - exp)))
+  console.log(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${b.name} (${b.setup})`, totals: view(m.s, 0).totals, inputs: m.log.length }))
 }
 
 function emit(m, side, text) {
@@ -46,34 +51,37 @@ function emit(m, side, text) {
   if (p.events.length > 200) p.events.shift()
   p.waiters.splice(0).forEach(fn => fn())
 }
+const feed = (m, side, who, text) => { const p = m.players[side]; p.feed = [...p.feed, { t: Math.floor(m.s.tick / TPS), who, text }].slice(-8) }
 
-function diffEvents(m, side) { // turn state changes into things an agent should react to
-  const p = m.players[side], v = view(m.s, side), was = p.prev
-  p.prev = { v, lastSeen: was?.lastSeen ?? {} }
-  const lastSeen = p.prev.lastSeen
-  for (const e of v.enemies) {
-    if (!(e.id in lastSeen) || v.tick - lastSeen[e.id] > 5 * TPS) emit(m, side, `enemy ${e.type} ${e.id} spotted at (${e.x},${e.y})`)
-    lastSeen[e.id] = v.tick
-  }
+function diffEvents(m, p) { // once per second: turn state changes into things an agent should react to
+  const v = view(m.s, p.side), was = p.prev
+  p.prev = v
+  if (v.ended) return emit(m, p.side, `match over: you ${v.ended.result} (${v.ended.reason}). Particles ${v.totals.you} vs ${v.totals.enemy}.`)
   if (!was) return
-  for (const [k, pt] of Object.entries(v.points)) if (pt.owner !== was.v.points[k].owner)
-    emit(m, side, pt.owner ? `${pt.owner === 'you' ? 'you' : 'enemy'} captured ${k}` : `${k} is neutral again`)
-  for (const u of was.v.units) if (!v.units.some(x => x.id === u.id)) emit(m, side, `your ${u.type} ${u.id} died at (${u.x},${u.y})`)
-  for (const e of was.v.enemies) if (!v.enemies.some(x => x.id === e.id) && !m.s.units.some(x => x.id === e.id)) emit(m, side, `enemy ${e.type} ${e.id} killed`)
-  for (const k of v.strikes) if (k.by === 'enemy' && !was.v.strikes.some(o => o.x === k.x && o.y === k.y)) emit(m, side, `ENEMY STRIKE landing at (${k.x},${k.y}) in ${k.inSeconds}s, move out`)
-  if (v.ended) emit(m, side, `match over: ${v.ended.winner === side ? 'you WON' : v.ended.winner ? 'you lost' : 'draw'} (${v.ended.reason}) ${v.score.you}-${v.score.enemy}`)
+  for (const e of v.enemies) if (e.n >= 1500 && !was.enemies.some(o => o.id === e.id)) emit(m, p.side, `enemy swarm ${e.id} (${e.n}) spotted at (${e.x},${e.y})`)
+  for (const pl of v.planets) {
+    const before = was.planets[pl.id].owner
+    if (pl.owner === before || pl.massLeft <= 0) continue
+    emit(m, p.side, pl.owner === 'you' ? `you captured planet ${pl.id} (${pl.x},${pl.y})` : pl.owner === 'enemy' ? `ENEMY captured planet ${pl.id} at (${pl.x},${pl.y})` : `planet ${pl.id} at (${pl.x},${pl.y}) is neutral again (was ${before === 'you' ? 'yours' : 'enemy'})`)
+  }
+  for (const c of was.swarms) if (c.n >= 500 && !v.swarms.some(o => o.id === c.id) && c.fighting) emit(m, p.side, `your swarm ${c.id} (${c.n}) was destroyed near (${c.x},${c.y})`)
+  const behind = v.totals.you < v.totals.enemy
+  if (behind !== was.totals.you < was.totals.enemy) emit(m, p.side, behind ? `you fell behind: ${v.totals.you} vs ${v.totals.enemy} particles` : `you took the lead: ${v.totals.you} vs ${v.totals.enemy} particles`)
+  if (v.secondsLeft === 60) emit(m, p.side, `1 minute left. Particles ${v.totals.you} vs ${v.totals.enemy}.`)
 }
 
 const json = (res, code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)) }
 const body = req => new Promise((ok, ko) => { let d = ''; req.on('data', c => { d += c; if (d.length > 65536) req.destroy() }); req.on('end', () => { try { ok(d ? JSON.parse(d) : {}) } catch (e) { ko(e) } }) })
 const auth = (q, role) => { const a = tokens.get(q); return a && (!role || a.role === role) ? a : null }
+export const describe = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 
 const routes = {
   'POST /join': async (req, res) => {
     const b = await body(req)
     const t = { id: id(), name: String(b.name || 'anon').slice(0, 24), setup: String(b.setup || '?').slice(0, 40), match: null }
     tickets.set(t.id, t)
-    if (waiting && tickets.has(waiting.id) && waiting.name !== t.name) { const a = waiting; waiting = null; startMatch(a, t) } else waiting = t
+    if (b.vs === 'house') startMatch(t, null)
+    else if (waiting && tickets.has(waiting.id) && waiting.name !== t.name) { const a = waiting; waiting = null; startMatch(a, t) } else waiting = t
     json(res, 200, { ticket: t.id, match: t.match })
   },
   'GET /ticket': (req, res, q) => { // long-poll until matched (≤20 s)
@@ -83,55 +91,75 @@ const routes = {
     const poll = () => t.match || Date.now() > until ? json(res, 200, { match: t.match }) : setTimeout(poll, 250)
     poll()
   },
+  'GET /rules': (req, res) => json(res, 200, { map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }),
   'GET /state': (req, res, q) => {
     const a = auth(q.get('token')); if (!a) return json(res, 401, { error: 'bad token' })
-    const p = a.m.players[a.side]
-    json(res, 200, { ...view(a.m.s, a.side), startsIn: Math.max(0, (a.m.startsAt - Date.now()) / 1000), calls: p.calls, map: q.get('map') ? mapInfo(a.m.s) : undefined })
+    json(res, 200, frame(a.m, a.side))
   },
-  'GET /events': (req, res, q) => { // long-poll for events after `since` (≤ timeout s)
+  'GET /events': (req, res, q) => { // long-poll for events after `since`
     const a = auth(q.get('token')); if (!a) return json(res, 401, { error: 'bad token' })
     const p = a.m.players[a.side], since = Number(q.get('since') || 0)
-    const reply = () => json(res, 200, { events: p.events.filter(e => e.seq > since), state: view(a.m.s, a.side) })
+    const reply = () => json(res, 200, { events: p.events.filter(e => e.seq > since), state: view(a.m.s, a.side), startsIn: Math.max(0, Math.ceil((a.m.startsAt - Date.now()) / 1000)) })
     if (p.events.some(e => e.seq > since) || a.m.s.ended) return reply()
     const t = setTimeout(() => { p.waiters = p.waiters.filter(f => f !== fn); reply() }, Math.min(25, Number(q.get('timeout') || 10)) * 1000)
     const fn = () => { clearTimeout(t); reply() }
     p.waiters.push(fn)
   },
-  'POST /input': async (req, res, q) => {
+  'POST /input': async (req, res, q) => { // agent or human: gambits, toggle, order, split, release
     const a = auth(q.get('token')); if (!a) return json(res, 401, { error: 'bad token' })
     const b = await body(req), p = a.m.players[a.side], now = Date.now()
-    if (now < a.m.startsAt) return json(res, 409, { error: 'match not started' })
     if (a.role === 'agent') {
-      if (b.ability) return json(res, 403, { error: 'abilities are human-only: use call_human' })
       p.sent = p.sent.filter(x => now - x < 1000)
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
-      if (Number.isFinite(b.pilotMs)) p.pilotMs = { ms: Math.round(b.pilotMs), setup: p.setup }
-      if (typeof b.intent === 'string') p.intent = b.intent.slice(0, 200)
     }
-    const input = { orders: b.orders, buy: b.buy, ability: b.ability, x: b.x, y: b.y }
+    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release }
+    if (now < a.m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
     const r = applyInput(a.m.s, a.side, input)
-    if (r.ok) a.m.log.push({ tick: a.m.s.tick, side: a.side, input })
-    if (r.ok && b.ability) p.calls = p.calls.filter(c => c.ability !== b.ability)
+    if (r.ok) {
+      a.m.log.push({ tick: a.m.s.tick, side: a.side, input })
+      const why = b.why ? `: ${String(b.why).slice(0, 120)}` : ''
+      if (a.role === 'agent') {
+        if (b.gambits) feed(a.m, a.side, 'agent', `rewrote the gambits${why}`)
+        if (b.order) feed(a.m, a.side, 'agent', `took swarm ${b.order.swarm} to (${Math.round(b.order.x)},${Math.round(b.order.y)})${why}`)
+        if (b.split !== undefined) feed(a.m, a.side, 'agent', `split swarm ${b.split}${why}`)
+        if (b.release !== undefined) feed(a.m, a.side, 'agent', `gave swarm ${b.release} back to the gambits`)
+      } else {
+        const list = a.m.s.gambits[a.side]
+        if (b.toggle !== undefined) emit(a.m, a.side, `HUMAN switched gambit ${b.toggle + 1} ${list[b.toggle].on ? 'ON' : 'OFF'}: ${describe(list[b.toggle])}`)
+        if (b.order) { p.calls = p.calls.filter(c => c.swarm !== b.order.swarm); emit(a.m, a.side, `HUMAN took swarm ${b.order.swarm} by hand to (${Math.round(b.order.x)},${Math.round(b.order.y)})`) }
+        if (b.split !== undefined) emit(a.m, a.side, `HUMAN split swarm ${b.split}`)
+        if (b.release !== undefined) emit(a.m, a.side, `HUMAN gave swarm ${b.release} back to the gambits`)
+      }
+    }
     json(res, r.ok ? 200 : 400, r)
   },
-  'POST /call': async (req, res, q) => { // agent asks the human for an ability
+  'POST /call': async (req, res, q) => { // agent asks its human to take a swarm somewhere by hand
     const a = auth(q.get('token'), 'agent'); if (!a) return json(res, 401, { error: 'bad token' })
     const b = await body(req), p = a.m.players[a.side]
-    p.calls = [...p.calls.filter(c => c.ability !== b.ability), { ability: b.ability, x: b.x, y: b.y, message: String(b.message || '').slice(0, 140), t: Math.floor(a.m.s.tick / TPS) }].slice(-3)
+    const call = { swarm: Number.isFinite(b.swarm) ? b.swarm : null, x: Number.isFinite(b.x) ? Math.round(b.x) : null, y: Number.isFinite(b.y) ? Math.round(b.y) : null, message: String(b.message || '').slice(0, 140), t: Math.floor(a.m.s.tick / TPS) }
+    p.calls = [...p.calls.filter(c => call.swarm === null || c.swarm !== call.swarm), call].slice(-3)
+    feed(a.m, a.side, 'agent', `asks you: ${call.message}`)
     json(res, 200, { ok: true })
   },
-  'POST /say': async (req, res, q) => { // human ping or order to their agent
+  'POST /dismiss': async (req, res, q) => {
     const a = auth(q.get('token'), 'human'); if (!a) return json(res, 401, { error: 'bad token' })
-    const b = await body(req)
-    emit(a.m, a.side, `HUMAN: ${String(b.text || 'ping').slice(0, 140)}${Number.isFinite(b.x) ? ` at (${b.x},${b.y})` : ''}`)
+    const b = await body(req), p = a.m.players[a.side]
+    p.calls = p.calls.filter((c, i) => i !== b.index)
+    json(res, 200, { ok: true })
+  },
+  'POST /say': async (req, res, q) => { // human message or ping to their agent
+    const a = auth(q.get('token'), 'human'); if (!a) return json(res, 401, { error: 'bad token' })
+    const b = await body(req), text = String(b.text || 'look here').slice(0, 140), at = Number.isFinite(b.x) ? ` at (${Math.round(b.x)},${Math.round(b.y)})` : ''
+    emit(a.m, a.side, `HUMAN: ${text}${at}`); feed(a.m, a.side, 'you', `${text}${at}`)
     json(res, 200, { ok: true })
   },
   'GET /stream': (req, res, q) => {
     const a = auth(q.get('token'), 'human'); if (!a) return json(res, 401, { error: 'bad token' })
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
-    res.write(`event: map\ndata: ${JSON.stringify({ ...mapInfo(a.m.s), side: a.side, players: Object.fromEntries(Object.entries(a.m.players).map(([s, p]) => [s, { name: p.name, setup: p.setup }])) })}\n\n`)
+    res.write(`event: hello\ndata: ${JSON.stringify({ W, H, side: a.side, players: a.m.players.map(p => ({ name: p.name, setup: p.setup })), rules: rules() })}\n\n`)
     const st = { res, side: a.side }
+    send(st, a.m)
     a.m.streams.add(st); req.on('close', () => a.m.streams.delete(st))
   },
   'GET /leaderboard': (req, res) => json(res, 200, [...elo].sort((a, b) => b[1] - a[1]).map(([name, rating]) => ({ name, rating }))),

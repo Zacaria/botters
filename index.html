@@ -2,107 +2,183 @@
 <meta charset="utf-8">
 <title>Botters</title>
 <style>
-  body { margin: 0; background: #111; color: #ddd; font: 14px ui-monospace, monospace; display: flex; gap: 16px; padding: 16px }
-  canvas { background: #1b1b1b; cursor: crosshair; image-rendering: pixelated }
-  aside { width: 300px; display: flex; flex-direction: column; gap: 10px }
-  button { font: inherit; padding: 8px; background: #222; color: #ddd; border: 1px solid #444; cursor: pointer; text-align: left }
-  button:disabled { opacity: .4; cursor: default } button.armed { border-color: #ff0; color: #ff0 }
-  .call { border: 2px solid #ff0; padding: 8px; background: #2a2a00; animation: pulse 1s infinite }
-  @keyframes pulse { 50% { background: #444400 } }
-  input { font: inherit; padding: 6px; background: #000; color: #ddd; border: 1px solid #444 }
-  .blue { color: #4aa3ff } .red { color: #ff5a5a } small { color: #888 }
-  #end { font-size: 22px; color: #ff0 }
+  html, body { margin: 0; background: #050507; color: #b8b8c4; font: 13px ui-monospace, monospace; overflow: hidden }
+  canvas { position: fixed; cursor: crosshair }
+  #hud { position: fixed; left: 14px; top: 10px; pointer-events: none; white-space: pre; line-height: 1.55; text-shadow: 0 0 4px #000 }
+  aside { position: fixed; right: 0; top: 0; bottom: 0; width: 400px; padding: 10px 14px; box-sizing: border-box; background: #08080b; border-left: 1px solid #1c1c24; overflow: auto; line-height: 1.5 }
+  h3 { margin: 10px 0 4px; color: #fff; font-size: 13px }
+  .g { padding: 3px 6px; border-left: 2px solid #333; cursor: pointer; margin-bottom: 2px; background: #0e0e13 }
+  .g.off { opacity: .35; text-decoration: line-through } .g.hot { border-left-color: #ff2e88 } .g i { color: #ff2e88; font-style: normal; float: right }
+  .call { border: 2px solid #ffd400; padding: 6px 8px; margin-bottom: 6px; background: #1d1900; animation: pulse 1s infinite }
+  @keyframes pulse { 50% { background: #332c00 } }
+  button { font: inherit; padding: 3px 10px; margin: 4px 6px 0 0; background: #1a1a22; color: #ddd; border: 1px solid #444; cursor: pointer }
+  input { font: inherit; width: 100%; box-sizing: border-box; padding: 6px; background: #000; color: #ddd; border: 1px solid #333 }
+  .you { color: #ff2e88 } .foe { color: #5b8cff } .agent { color: #9fe8c0 } .dim { color: #6a6a7a }
+  #feed div { margin-bottom: 2px }
+  #big { position: fixed; left: 0; right: 400px; top: 40%; text-align: center; font-size: 38px; color: #fff; pointer-events: none; text-shadow: 0 0 12px #000 }
+  #toast { min-height: 1.5em; margin-top: 6px }
 </style>
 <canvas id="c"></canvas>
+<div id="hud">connecting…</div>
+<div id="big"></div>
 <aside>
-  <div id="hud">connecting…</div>
   <div id="calls"></div>
-  <div id="abilities" style="display:flex;flex-direction:column;gap:6px"></div>
-  <form id="say"><input id="msg" placeholder="order to your agent (Enter)" maxlength="140" style="width:100%"></form>
-  <div id="toast" style="min-height:2.6em"></div>
-  <small><b>W E R</b> (or click): fire overdrive / recall / reveal instantly.<br><b>Q</b> then click the map: strike there.<br><b>Right-click</b> the map: ping your agent. Type below: order your agent.<br>When your agent asks for help, a yellow card appears: click <b>do it</b>.</small>
-  <div id="end"></div>
+  <h3>your gambits <span class="dim">(click or 1–0 to switch a rule on/off)</span></h3>
+  <div id="gambits"></div>
+  <h3>agent feed</h3>
+  <div id="feed"></div>
+  <form id="say"><input id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form>
+  <div id="toast"></div>
+  <p class="dim">
+    <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <b>Tab</b> next swarm · <b>Esc</b> drop<br>
+    <b>click the map with nothing grabbed</b>: ping your agent there<br>
+    first matching rule wins, every 0.5 s. Square law: bigger swarms win fights and lose little. Owned planets are eaten into particles. More particles at 5:00 wins.
+  </p>
+  <p class="dim" id="rules"></p>
 </aside>
 <script>
-const q = new URLSearchParams(location.search), token = q.get('t'), S = 24
+const token = new URLSearchParams(location.search).get('t')
+const BUDGET = 60000, COLS = { you: 0xff882eff, enemy: 0xffff8c5b }, CSS = { you: '#ff2e88', enemy: '#5b8cff' }, WHITE = 0xffffffff
 const cv = document.getElementById('c'), g = cv.getContext('2d')
-let map, v, calls = [], opp, armed = null, intent = '', pilot
-const COL = { blue: '#4aa3ff', red: '#ff5a5a' }, SHAPE = { fast: '▲', tank: '■', ranged: '●', miner: '◆' }
+let W = 1200, H = 700, k = 1, ox = 0, oy = 0, img, px
+const TN = 1 << 17, TA = new Float32Array(TN), TR = new Float32Array(TN), TW = new Float32Array(TN)
+for (let i = 0; i < TN; i++) { TA[i] = Math.random() * 6.283; TR[i] = Math.sqrt(Math.random()); TW[i] = (Math.random() - 0.5) * 0.06 }
+const rad = n => 4 + Math.sqrt(n) * 0.32
+const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
+function fit() {
+  const vw = innerWidth - 400; k = Math.min(vw / W, innerHeight / H)
+  cv.width = W; cv.height = H; cv.style.width = W * k + 'px'; cv.style.height = H * k + 'px'
+  ox = (vw - W * k) / 2; oy = (innerHeight - H * k) / 2; cv.style.left = ox + 'px'; cv.style.top = oy + 'px'
+  img = g.createImageData(W, H); px = new Uint32Array(img.data.buffer)
+}
+fit(); onresize = fit
+
+let v = null, calls = [], feed = [], startsIn = 0, hello = null, sel = null, frameAt = 0
+const pos = new Map() // id -> { x0, y0, x1, y1 } for smooth motion between server frames
 const post = (path, body) => fetch(`${path}?token=${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json())
+const toast = (t, ok = true) => { const el = document.getElementById('toast'); el.textContent = t; el.style.color = ok ? '#8f8' : '#f88' }
+const act = (body, label) => post('/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
+
 const es = new EventSource(`/stream?token=${token}`)
-es.addEventListener('map', e => { map = JSON.parse(e.data); cv.width = map.W * S; cv.height = map.H * S })
-es.onmessage = e => { ({ view: v, calls, opponent: opp, intent, pilot } = JSON.parse(e.data)); draw(); panel() }
+es.addEventListener('hello', e => {
+  hello = JSON.parse(e.data); W = hello.W; H = hello.H; fit()
+  document.getElementById('rules').innerHTML = 'conditions: ' + Object.entries(hello.rules.conditions).map(([c, d]) => `<b>${c}</b> ${esc(d)}`).join(' · ') + '<br>actions: ' + Object.entries(hello.rules.actions).map(([a, d]) => `<b>${a}</b> ${esc(d)}`).join(' · ')
+})
+es.onmessage = e => {
+  const f = JSON.parse(e.data)
+  v = f.view; calls = f.calls; feed = f.feed; startsIn = f.startsIn; frameAt = performance.now()
+  const live = new Set()
+  for (const c of [...v.swarms, ...v.enemies]) {
+    live.add(c.id); const p = pos.get(c.id)
+    if (p) { const t = cur(p); p.x0 = t.x; p.y0 = t.y; p.x1 = c.x; p.y1 = c.y } else pos.set(c.id, { x0: c.x, y0: c.y, x1: c.x, y1: c.y })
+  }
+  for (const id of pos.keys()) if (!live.has(id)) pos.delete(id)
+  if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
+  panel()
+}
+es.onerror = () => { if (!v) document.getElementById('hud').textContent = 'cannot connect: is the match link still valid?' }
+const cur = p => { const t = Math.min(1, (performance.now() - frameAt) / 100); return { x: p.x0 + (p.x1 - p.x0) * t, y: p.y0 + (p.y1 - p.y0) * t } }
 
 function draw() {
-  if (!map || !v) return
-  const me = v.side, foe = me === 'blue' ? 'red' : 'blue'
-  g.fillStyle = '#1b1b1b'; g.fillRect(0, 0, cv.width, cv.height)
-  map.bush.forEach((b, i) => { if (b) { g.fillStyle = '#1f4a26'; g.fillRect((i % map.W) * S, Math.floor(i / map.W) * S, S, S) } })
-  g.fillStyle = 'rgba(255,255,255,.035)' // what you can see
-  for (const u of v.units) { g.beginPath(); g.arc(u.x * S, u.y * S, 6 * S, 0, 7); g.fill() }
-  for (const n of map.nodes) { g.fillStyle = '#806a1a'; g.fillRect(n.x * S - 5, n.y * S - 5, 10, 10) }
-  for (const [k, p] of Object.entries(v.points)) {
-    g.strokeStyle = p.owner === 'you' ? COL[me] : p.owner === 'enemy' ? COL[foe] : '#777'; g.lineWidth = 3
-    g.beginPath(); g.arc(p.x * S, p.y * S, 1.5 * S, 0, 7); g.stroke()
-    g.fillStyle = '#aaa'; g.font = '12px monospace'; g.fillText(k, p.x * S - 4, p.y * S - 1.7 * S)
+  requestAnimationFrame(draw)
+  if (!v || !px) return
+  for (let i = 0; i < px.length; i++) px[i] = ((px[i] >>> 1) & 0x7f7f7f7f) | 0xff000000 // trails
+  const all = [...v.swarms.map(c => [c, 'you']), ...v.enemies.map(c => [c, 'enemy'])]
+  const total = all.reduce((a, [c]) => a + c.n, 0), scale = Math.min(1, BUDGET / Math.max(1, total)), t = performance.now() * 0.06
+  for (const [c, who] of all) {
+    const p = pos.get(c.id); if (!p) continue
+    const at = cur(p), m = Math.ceil(c.n * scale), rr = rad(c.n), col = COLS[who], seed = (c.id * 7919) & (TN - 1)
+    for (let i = 0; i < m; i++) {
+      const j = (seed + i) & (TN - 1), a = TA[j] + t * TW[j], r = TR[j] * rr
+      const x = (at.x + Math.cos(a) * r) | 0, y = (at.y + Math.sin(a) * r * 0.85) | 0
+      if (x >= 0 && x < W && y >= 0 && y < H) px[y * W + x] = c.fighting && (j & 3) === 0 && Math.random() < 0.5 ? WHITE : col
+    }
   }
-  for (const k of v.strikes) { g.strokeStyle = k.by === 'you' ? '#ff0' : '#f80'; g.setLineDash([4, 4]); g.beginPath(); g.arc(k.x * S, k.y * S, 2 * S, 0, 7); g.stroke(); g.setLineDash([]) }
-  for (const c of calls) if (c.x != null) { g.strokeStyle = '#ff0'; g.lineWidth = 2; g.strokeRect(c.x * S - 10, c.y * S - 10, 20, 20) }
-  const unit = (u, side) => {
-    g.fillStyle = COL[side]; g.globalAlpha = u.inBush ? 0.55 : 1
-    g.font = `${u.type === 'tank' ? 20 : 16}px monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'
-    g.fillText(SHAPE[u.type], u.x * S, u.y * S)
-    g.fillStyle = '#0f0'; g.fillRect(u.x * S - 8, u.y * S + 10, 16 * u.hp / u.maxHp, 2)
-    g.globalAlpha = 1; g.textAlign = 'start'; g.textBaseline = 'alphabetic'
+  g.putImageData(img, 0, 0)
+  g.fillStyle = 'rgba(255,255,255,0.025)' // what you can see
+  for (const c of v.swarms) { const p = pos.get(c.id); if (!p) continue; const a = cur(p); g.beginPath(); g.arc(a.x, a.y, 150 + rad(c.n), 0, 7); g.fill() }
+  for (const p of v.planets) {
+    const col = p.owner ? CSS[p.owner] : '#555', left = p.massLeft / p.mass
+    g.globalAlpha = p.massLeft > 0 ? 1 : 0.25
+    g.fillStyle = p.owner ? col + '55' : '#2a2a33'; g.beginPath(); g.arc(p.x, p.y, Math.max(1.5, p.r * Math.sqrt(left)), 0, 7); g.fill()
+    g.strokeStyle = col; g.lineWidth = 1; g.setLineDash(p.massLeft > 0 ? [] : [2, 3]); g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.stroke(); g.setLineDash([])
+    if (Math.abs(p.capture) < 1 && p.capture !== 0) { g.strokeStyle = p.capture > 0 ? CSS.you : CSS.enemy; g.lineWidth = 2; g.beginPath(); g.arc(p.x, p.y, p.r + 4, -1.57, -1.57 + Math.abs(p.capture) * 6.283); g.stroke() }
+    g.globalAlpha = 1
   }
-  v.units.forEach(u => unit(u, me)); v.enemies.forEach(u => unit(u, foe))
-  if (armed === 'strike' && mouse) { g.fillStyle = 'rgba(255,255,0,.18)'; g.strokeStyle = '#ff0'; g.lineWidth = 2; g.beginPath(); g.arc(mouse.x * S, mouse.y * S, 2 * S, 0, 7); g.fill(); g.stroke() }
-  for (const p of pings) if (p.until > Date.now()) { g.strokeStyle = '#0ff'; g.lineWidth = 2; g.beginPath(); g.arc(p.x * S, p.y * S, S * (1 + (p.until - Date.now()) / 1500), 0, 7); g.stroke() }
+  for (const c of v.swarms) if (c.manual || c.id === sel) {
+    const a = cur(pos.get(c.id))
+    g.strokeStyle = c.id === sel ? '#fff' : 'rgba(255,255,255,.4)'; g.lineWidth = 1
+    g.beginPath(); g.arc(a.x, a.y, rad(c.n) + 5, 0, 7); g.stroke()
+    g.setLineDash([3, 4]); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(c.tx, c.ty); g.stroke(); g.setLineDash([])
+  }
+  for (const c of calls) {
+    const s = v.swarms.find(o => o.id === c.swarm), pulse = 6 + 4 * Math.sin(performance.now() / 150)
+    g.strokeStyle = '#ffd400'; g.lineWidth = 2
+    if (s) { const a = cur(pos.get(s.id)); g.beginPath(); g.arc(a.x, a.y, rad(s.n) + pulse, 0, 7); g.stroke(); if (c.x !== null) { g.setLineDash([6, 4]); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(c.x, c.y); g.stroke(); g.setLineDash([]) } }
+    if (c.x !== null) { g.beginPath(); g.arc(c.x, c.y, pulse + 4, 0, 7); g.stroke() }
+  }
+  for (const p of pings) if (p.until > Date.now()) { g.strokeStyle = '#0ff'; g.lineWidth = 2; g.beginPath(); g.arc(p.x, p.y, 8 + 20 * (p.until - Date.now()) / 1500, 0, 7); g.stroke() }
+}
+requestAnimationFrame(draw)
+
+let lastCalls = '', lastGambits = '', lastFeed = ''
+function panel() {
+  const n = c => c.toLocaleString(), mineP = v.planets.filter(p => p.owner === 'you' && p.massLeft > 0).length, theirP = v.planets.filter(p => p.owner === 'enemy' && p.massLeft > 0).length
+  const s = sel !== null && v.swarms.find(c => c.id === sel)
+  document.getElementById('hud').innerHTML =
+    `<b class="you">you ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP} planets      <b class="foe">enemy ${n(v.totals.enemy)}</b> · ${theirP} planets` +
+    (hello ? `   <span class="dim">${esc(hello.players[hello.side].name)} vs ${esc(hello.players[1 - hello.side].name)} (${esc(hello.players[1 - hello.side].setup)})</span>` : '') +
+    `\n${Math.floor(v.secondsLeft / 60)}:${String(v.secondsLeft % 60).padStart(2, '0')} left · more particles at 5:00 wins\n` +
+    (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
+  document.getElementById('big').textContent = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw') + ` (${v.ended.reason})` : startsIn > 0 ? `starts in ${startsIn}s: your agent is writing the opening gambits` : ''
+
+  const counts = v.gambits.map(() => 0); for (const c of v.swarms) if (!c.manual && c.rule >= 0) counts[c.rule]++
+  const gk = JSON.stringify(v.gambits) // rebuild only on change: rebuilding every frame swallows clicks
+  if (gk !== lastGambits) {
+    lastGambits = gk
+    document.getElementById('gambits').innerHTML = v.gambits.map((r, i) => `<div class="g${r.on ? '' : ' off'}" data-g="${i}"><b>${(i + 1) % 10}</b> IF ${r.if.replaceAll('_', ' ')}${r.p !== undefined ? ` (${r.p})` : ''} → ${r.then} <i></i></div>`).join('')
+  }
+  document.querySelectorAll('[data-g]').forEach(d => { const c = counts[d.dataset.g]; d.querySelector('i').textContent = c ? `${c} swarm${c > 1 ? 's' : ''}` : ''; d.classList.toggle('hot', c > 0) })
+  const ck = JSON.stringify(calls)
+  if (ck !== lastCalls) {
+    lastCalls = ck
+    document.getElementById('calls').innerHTML = calls.map((c, i) => `<div class="call">🤖 your agent asks: ${esc(c.message)}${c.swarm !== null ? `<br>swarm #${c.swarm}${c.x !== null ? ` → (${c.x},${c.y})` : ''}` : ''}<br>` +
+      (c.swarm !== null && c.x !== null ? `<button data-do="${i}">do it</button>` : c.swarm !== null ? `<button data-grab="${i}">grab it</button>` : '') + `<button data-no="${i}">dismiss</button></div>`).join('')
+  }
+  const fk = JSON.stringify(feed)
+  if (fk !== lastFeed) {
+    lastFeed = fk
+    document.getElementById('feed').innerHTML = feed.slice().reverse().map(f => `<div><span class="dim">${Math.floor(f.t / 60)}:${String(f.t % 60).padStart(2, '0')}</span> <span class="${f.who === 'agent' ? 'agent' : 'you'}">${f.who === 'agent' ? '🤖' : 'you'}</span> ${esc(f.text)}</div>`).join('') || '<span class="dim">nothing yet</span>'
+  }
 }
 
-function panel() {
-  const me = v.side
-  document.getElementById('hud').innerHTML = `<b class="${me}">you: ${me}</b> · ${v.secondsLeft}s left<br>score <b>${v.score.you}</b> – ${v.score.enemy} (to ${v.score.win})<br>resources ${v.resources} · units ${v.units.length} · enemies seen ${v.enemies.length}` +
-    (map?.players ? `<br><small>${Object.entries(map.players).map(([s, p]) => `<span class="${s}">${p.name}</span> ${p.setup}`).join(' vs ')}</small>` : '') +
-    (pilot ? `<br><small>your pilot ${pilot.ms} ms</small>` : '') + (opp ? `<small> · enemy pilot ${opp.ms} ms</small>` : '') +
-    `<br><br>🤖 agent's order to the pilot:<br><i>${intent ? esc(intent) : '(none yet: following doctrine)'}</i>`
-  const callsKey = JSON.stringify(calls) // rebuild only on change: rebuilding every frame swallowed clicks
-  if (callsKey !== lastCalls) { lastCalls = callsKey; document.getElementById('calls').innerHTML = calls.map((c, i) => `<div class="call">🤖 your agent asks: <b>${c.ability}</b>${c.x != null ? ` at (${c.x},${c.y})` : ''}<br>${esc(c.message)}<br><button data-call="${i}">do it</button></div>`).join('') }
-  document.querySelectorAll('[data-call]').forEach(b => { const c = calls[b.dataset.call], cd = v.abilities[c.ability]; b.disabled = !!cd; b.textContent = cd ? `do it (ready in ${cd}s)` : 'do it' })
-  for (const [a, cd] of Object.entries(v.abilities)) {
-    const b = buttons[a]; b.disabled = !!cd; b.className = armed === a ? 'armed' : ''
-    b.textContent = `[${KEYS[a]}] ${a}${cd ? ` (${cd}s)` : armed === a ? ': click the map' : ''}`
-  }
-  if (v.ended) document.getElementById('end').textContent = v.ended.winner === me ? `YOU WON (${v.ended.reason})` : v.ended.winner ? `you lost (${v.ended.reason})` : 'draw'
+const toggle = i => { if (v?.gambits[i]) act({ toggle: i }, `rule ${i + 1} ${v.gambits[i].on ? 'off' : 'on'}`) }
+document.getElementById('gambits').onclick = e => { const d = e.target.closest('[data-g]'); if (d) toggle(+d.dataset.g) }
+document.getElementById('calls').onclick = e => {
+  const b = e.target.dataset, c = calls[b.do ?? b.grab ?? b.no]; if (!c) return
+  if (b.do !== undefined) { act({ order: { swarm: c.swarm, x: c.x, y: c.y } }, `swarm #${c.swarm} sent`); sel = c.swarm }
+  if (b.grab !== undefined) { sel = c.swarm; toast(`swarm #${c.swarm} grabbed: click the map to send it`) }
+  post('/dismiss', { index: +(b.do ?? b.grab ?? b.no) })
 }
-const esc = s => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c])
-const KEYS = { strike: 'Q', overdrive: 'W', recall: 'E', reveal: 'R' }
-const HELP = { strike: 'area damage where you click, lands after 1 s', overdrive: 'all your units +50% speed for 5 s', recall: 'teleport your miners home', reveal: 'see the whole map for 3 s' }
-let lastCalls = '', mouse = null
-const buttons = Object.fromEntries(Object.keys(KEYS).map(a => {
-  const b = document.createElement('button'); b.title = HELP[a]; b.onclick = () => arm(a)
-  document.getElementById('abilities').append(b); return [a, b]
-}))
-const toast = (t, ok = true) => { const el = document.getElementById('toast'); el.textContent = t; el.style.color = ok ? '#8f8' : '#f88' }
-const use = (body, label) => post('/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
-const arm = a => {
-  if (!v || v.abilities[a]) return toast(`✗ ${a} not ready`, false)
-  if (a === 'strike') { armed = armed === a ? null : a; toast(armed ? 'strike armed: click the map (Esc to cancel)' : 'strike cancelled') }
-  else use({ ability: a }, `${a}: ${HELP[a]}`)
-  if (v) panel()
-}
-window.fire = c => use({ ability: c.ability, x: c.x, y: c.y }, `${c.ability} (agent's call)`)
-document.getElementById('calls').onclick = e => { const i = e.target.dataset?.call; if (i !== undefined) fire(calls[i]) }
-onkeydown = e => {
-  if (e.target.tagName === 'INPUT') return
-  if (e.key === 'Escape') { armed = null; toast('cancelled') }
-  const a = Object.keys(KEYS).find(k => KEYS[k] === e.key.toUpperCase()); if (a) arm(a)
-}
-cv.onmousemove = e => { mouse = at(e) }
-cv.onmouseleave = () => { mouse = null }
-const at = e => ({ x: Math.round(e.offsetX / S * 10) / 10, y: Math.round(e.offsetY / S * 10) / 10 })
-cv.onclick = e => { if (armed) { use({ ability: armed, ...at(e) }, `strike at (${at(e).x},${at(e).y})`); armed = null } else toast('arm an ability first (Q/W/E/R), or right-click to ping your agent', false) }
-cv.oncontextmenu = e => { e.preventDefault(); const p = at(e); post('/say', { text: 'ping', ...p }); pings.push({ ...p, until: Date.now() + 1500 }); toast(`ping sent to your agent at (${p.x},${p.y})`) }
+const at = e => ({ x: (e.clientX - ox) / k, y: (e.clientY - oy) / k })
 const pings = []
-document.getElementById('say').onsubmit = e => { e.preventDefault(); const m = document.getElementById('msg'); if (m.value) { post('/say', { text: m.value }); toast(`sent to your agent: ${m.value}`) } m.value = '' }
+cv.onmousedown = e => {
+  if (!v) return
+  const p = at(e), hit = v.swarms.find(c => { const a = cur(pos.get(c.id)); return Math.hypot(a.x - p.x, a.y - p.y) < rad(c.n) + 8 })
+  if (hit && hit.id !== sel) { sel = hit.id; return panel() }
+  if (sel !== null) return act({ order: { swarm: sel, x: Math.round(p.x), y: Math.round(p.y) } }, `swarm #${sel} → (${Math.round(p.x)},${Math.round(p.y)})`)
+  post('/say', { text: 'look here', x: p.x, y: p.y }); pings.push({ ...p, until: Date.now() + 1500 }); toast('ping sent to your agent')
+}
+oncontextmenu = e => e.preventDefault()
+onkeydown = e => {
+  if (e.target.tagName === 'INPUT' || !v) return
+  const key = e.key.toLowerCase()
+  if (key >= '0' && key <= '9') toggle((+key + 9) % 10)
+  if (key === 'escape') sel = null
+  if (key === 'g' && sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`)
+  if (key === 's' && sel !== null) act({ split: sel }, `swarm #${sel} split`)
+  if (key === 'tab') { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }
+  panel()
+}
+document.getElementById('say').onsubmit = e => { e.preventDefault(); const m = document.getElementById('msg'); if (m.value) { post('/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
 </script>

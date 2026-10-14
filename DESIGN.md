@@ -120,6 +120,10 @@ Decisions 2026-10-14 #2:
 
 Cohort measurement (VM, Node, square-law fights between cohorts): full 5-minute replay of 3,000 ticks = 97 ms at 16 cohorts/side, 534 ms at 64, 2.1 s at 128 (O(n²) pairs; cap swarms per side at 40). `spikes/space.html`: 8 headless house-vs-default-gambit matches, 0.09–0.17 ms per tick, up to 77 swarms on the map, 1–8 lead changes per match, gambits won 6/8.
 
+Decisions 2026-10-14 #3 (owner played the space sketch: "felt great, there's a learning curve and I could feel the pressure"):
+- ✅ Q24 The space sketch becomes the game: `sim.js` (deterministic cohort sim, 20 Hz, fog), `server.js`, `client.js` (MCP: join_match, wait_for_event, set_gambits, order_swarm, split_swarm, release_swarm, call_human), `index.html`. Jev pilot deleted. House opponent = fixed gambits, no agent, no model.
+- ✅ Q25 Three swarm types (locusts fast/fragile/fast eaters, carapace slow/tough, spores ranged) right after the first agent-played match.
+
 Hosting answer (Q23): yes, a 5-minute match fits Vercel. Fluid compute allows 300 s on Hobby and 800 s on Pro; with cohorts the simulation is ~0.1 ms per tick, so a stateless replay per request also works (≤0.5 s). Live updates: Vercel WebSockets (public beta since June 2026) or Convex subscriptions. To be spiked when the game moves online.
 
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
