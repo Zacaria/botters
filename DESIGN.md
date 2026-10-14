@@ -105,6 +105,14 @@ Trigger: the per-tick Jev pilot costs ~$0.10 per side per match (2–3M input to
 - The human keeps the decisive abilities and answers the agent's calls.
 - Jev leaves the tick loop.
 
+Decisions 2026-10-14:
+- ✅ Q16 Gambits replace the Jev pilot; pilot code is deleted in the gambit build (no fallback kept).
+- ✅ Q17 Go massive: swarms of particles, still grouped; agent manages groups. Art direction: neon pixel point-cloud on near-black (owner reference: omp.sh landing page).
+- ✅ Q18 Doctrine → agent → starting gambits. Players can share them; the meta should keep shifting through rule granularity.
+- ✅ Q19 Try: only the side holding 2 of 3 points scores, win at 300.
+
+Swarm feasibility (measured 2026-10-14, Xeon 4214 single thread, cell-binned square-law fights): 1k units 0.6 ms/tick, 10k 0.7 ms, 100k 8.4 ms, 1M 54 ms. Browser sketch (`spikes/swarm.html`, headless Chromium, software rendering): 40k units 12.6 ms/frame, 200k 36 ms/frame. Consequence: at ≥100k units, replaying the whole match on each request (the Vercel plan) is too slow (≈17 s per replay); a long-lived simulation process per match is needed.
+
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 
 | Role | Model | Speed | Does |
