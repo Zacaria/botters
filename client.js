@@ -3,6 +3,8 @@
 //   node client.js          MCP server over stdio (Claude Code, Codex)
 //   node client.js --auto   pilot only: joins, plays one match with the doctrine, exits
 import { readFileSync, existsSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+try { process.loadEnvFile(new URL('.env', import.meta.url).pathname) } catch {} // optional local secrets/settings
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
@@ -12,7 +14,7 @@ const SERVER = env.BOTTERS_SERVER || 'http://localhost:8787'
 const NAME = env.BOTTERS_NAME || 'anon'
 const PILOT = { url: env.BOTTERS_PILOT_URL || 'https://api.typesafe.ai/v1/systemone', model: env.BOTTERS_PILOT_MODEL || 'jev-latest', key: env.BOTTERS_PILOT_KEY || env.TYPESAFE_API_KEY }
 const DOCTRINE_MAX = 500, INTENT_MAX = 200
-const doctrineFile = env.BOTTERS_DOCTRINE || 'DOCTRINE.md'
+const doctrineFile = env.BOTTERS_DOCTRINE || new URL('DOCTRINE.md', import.meta.url).pathname
 const doctrine = (existsSync(doctrineFile) ? readFileSync(doctrineFile, 'utf8') : 'Protect miners. Take the nearest points. Fight with counters.').slice(0, DOCTRINE_MAX)
 const log = (...a) => console.error('[botters]', ...a) // stdout belongs to MCP
 
@@ -30,6 +32,7 @@ async function join(setup) {
   for (let i = 0; !match && i < 6; i++) match = (await api('GET', `/ticket?id=${j.ticket}`)).match
   if (!match) return null
   S.match = match
+  if (env.BOTTERS_OPEN) spawn('open', [...(env.BOTTERS_OPEN === '1' ? [] : ['-a', env.BOTTERS_OPEN]), match.watch], { stdio: 'ignore', detached: true }).unref()
   S.map = (await api('GET', `/state?token=${match.token}&map=1`)).map
   S.since = 0; S.locks.clear(); S.pilot = { calls: 0, ms: [], errors: 0, last: {}, tokens: 0 }
   pilotLoop()

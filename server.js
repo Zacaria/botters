@@ -26,7 +26,7 @@ function startMatch(a, b) {
     if (Date.now() < m.startsAt) return
     step(m.s)
     for (const side of ['blue', 'red']) diffEvents(m, side)
-    const frame = side => `data: ${JSON.stringify({ view: view(m.s, side), calls: m.players[side].calls, opponent: m.players[side === 'blue' ? 'red' : 'blue'].pilotMs })}\n\n`
+    const frame = side => `data: ${JSON.stringify({ view: view(m.s, side), calls: m.players[side].calls, intent: m.players[side].intent, pilot: m.players[side].pilotMs, opponent: m.players[side === 'blue' ? 'red' : 'blue'].pilotMs })}\n\n`
     for (const st of m.streams) st.res.write(frame(st.side))
     if (m.s.ended) { clearInterval(timer); finish(m); setTimeout(() => matches.delete(m.id), FINISHED_TTL) }
   }, 1000 / TPS)
@@ -107,6 +107,7 @@ const routes = {
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
       if (Number.isFinite(b.pilotMs)) p.pilotMs = { ms: Math.round(b.pilotMs), setup: p.setup }
+      if (typeof b.intent === 'string') p.intent = b.intent.slice(0, 200)
     }
     const input = { orders: b.orders, buy: b.buy, ability: b.ability, x: b.x, y: b.y }
     const r = applyInput(a.m.s, a.side, input)

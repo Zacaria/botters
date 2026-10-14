@@ -25,12 +25,12 @@
 <script>
 const q = new URLSearchParams(location.search), token = q.get('t'), S = 24
 const cv = document.getElementById('c'), g = cv.getContext('2d')
-let map, v, calls = [], opp, armed = null
+let map, v, calls = [], opp, armed = null, intent = '', pilot
 const COL = { blue: '#4aa3ff', red: '#ff5a5a' }, SHAPE = { fast: '▲', tank: '■', ranged: '●', miner: '◆' }
 const post = (path, body) => fetch(`${path}?token=${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json())
 const es = new EventSource(`/stream?token=${token}`)
 es.addEventListener('map', e => { map = JSON.parse(e.data); cv.width = map.W * S; cv.height = map.H * S })
-es.onmessage = e => { ({ view: v, calls, opponent: opp } = JSON.parse(e.data)); draw(); panel() }
+es.onmessage = e => { ({ view: v, calls, opponent: opp, intent, pilot } = JSON.parse(e.data)); draw(); panel() }
 
 function draw() {
   if (!map || !v) return
@@ -61,7 +61,8 @@ function panel() {
   const me = v.side
   document.getElementById('hud').innerHTML = `<b class="${me}">you: ${me}</b> · ${v.secondsLeft}s left<br>score <b>${v.score.you}</b> – ${v.score.enemy} (to ${v.score.win})<br>resources ${v.resources} · units ${v.units.length} · enemies seen ${v.enemies.length}` +
     (map?.players ? `<br><small>${Object.entries(map.players).map(([s, p]) => `<span class="${s}">${p.name}</span> ${p.setup}`).join(' vs ')}</small>` : '') +
-    (opp ? `<br><small>enemy pilot latency ${opp.ms} ms</small>` : '')
+    (pilot ? `<br><small>your pilot ${pilot.ms} ms</small>` : '') + (opp ? `<small> · enemy pilot ${opp.ms} ms</small>` : '') +
+    `<br><br>🤖 agent's order to the pilot:<br><i>${intent ? esc(intent) : '(none yet: following doctrine)'}</i>`
   document.getElementById('calls').innerHTML = calls.map(c => `<div class="call">🤖 your agent asks: <b>${c.ability}</b>${c.x != null ? ` at (${c.x},${c.y})` : ''}<br>${esc(c.message)}<br><button onclick='fire(${JSON.stringify(c)})'>do it (${v.abilities[c.ability] ? 'ready in ' + v.abilities[c.ability] + 's' : 'ready'})</button></div>`).join('')
   document.getElementById('abilities').innerHTML = Object.entries(v.abilities).map(([a, cd]) => `<button ${cd ? 'disabled' : ''} class="${armed === a ? 'armed' : ''}" onclick="arm('${a}')">${a}${cd ? ` (${cd}s)` : ''}</button>`).join('')
   if (v.ended) document.getElementById('end').textContent = v.ended.winner === me ? `YOU WON (${v.ended.reason})` : v.ended.winner ? `you lost (${v.ended.reason})` : 'draw'
