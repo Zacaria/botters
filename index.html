@@ -53,7 +53,7 @@ function fit() {
 }
 fit(); onresize = fit
 
-let v = null, calls = [], feed = [], startsIn = 0, hello = null, sel = null, frameAt = 0
+let v = null, report = null, calls = [], feed = [], startsIn = 0, hello = null, sel = null, frameAt = 0
 const pos = new Map() // id -> { x0, y0, x1, y1 } for smooth motion between server frames
 const post = (path, body) => fetch(`${path}?token=${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json())
 const toast = (t, ok = true) => { const el = document.getElementById('toast'); el.textContent = t; el.style.color = ok ? '#8f8' : '#f88' }
@@ -66,7 +66,7 @@ es.addEventListener('hello', e => {
 })
 es.onmessage = e => {
   const f = JSON.parse(e.data)
-  v = f.view; calls = f.calls; feed = f.feed; startsIn = f.startsIn
+  v = f.view; report = f.report; calls = f.calls; feed = f.feed; startsIn = f.startsIn
   const live = new Set()
   for (const c of [...v.swarms, ...v.enemies]) { // start from where the swarm is drawn now, before resetting the clock
     live.add(c.id); const p = pos.get(c.id)
@@ -131,7 +131,10 @@ function panel() {
     (hello ? `   <span class="dim">${esc(hello.players[hello.side].name)} vs ${esc(hello.players[1 - hello.side].name)} (${esc(hello.players[1 - hello.side].setup)})</span>` : '') +
     `\n${Math.floor(v.secondsLeft / 60)}:${String(v.secondsLeft % 60).padStart(2, '0')} left · more particles at 5:00 wins\n` +
     (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
-  document.getElementById('big').textContent = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw') + ` (${v.ended.reason})` : startsIn > 0 ? `starts in ${startsIn}s: your agent is writing the opening gambits` : ''
+  const line = (label, r) => `${label}: ${r.result.toUpperCase()} ${n(r.you)} vs ${n(r.enemy)}`
+  if (report) document.getElementById('big').innerHTML = `${v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw'} (${v.ended.reason})<div style="font-size:16px;margin-top:14px;line-height:1.8">` +
+    `same match replayed, same enemy:<br>${line('you + agent (real)', report.actual)}<br>${line(`without your ${report.humanInputs} actions`, report.withoutHuman)}<br>${line(`without your agent's ${report.agentInputs} actions`, report.withoutAgent)}</div>`
+  else document.getElementById('big').textContent = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw') + ` (${v.ended.reason})` : startsIn > 0 ? `starts in ${startsIn}s: your agent is writing the opening gambits` : ''
 
   const counts = v.gambits.map(() => 0); for (const c of v.swarms) if (!c.manual && c.rule >= 0) counts[c.rule]++
   const gk = JSON.stringify(v.gambits) // rebuild only on change: rebuilding every frame swallows clicks

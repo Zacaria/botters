@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createMatch, applyInput, step, view, addSwarm, W, H, TPS, MATCH_TICKS, MAX_SWARMS, DEFAULT_GAMBITS } from '../sim.js'
+import { createMatch, applyInput, step, view, addSwarm, W, H, TPS, MATCH_TICKS, MAX_SWARMS, DEFAULT_GAMBITS, replay } from '../sim.js'
 
 const run = (s, ticks) => { for (let i = 0; i < ticks && !s.ended; i++) step(s) }
 const empty = seed => { // planets kept, no starting swarms, both homes kept alive
@@ -130,6 +130,21 @@ test('match ends by wipe, or at 5:00 by particle count', () => {
   step(s)
   assert.equal(s.ended.winner, 1)
   assert.equal(s.ended.reason, 'time')
+})
+
+test('replay: the input log reproduces the match; dropping inputs gives the "what if" match', () => {
+  const s = createMatch(15), log = []
+  const send = (side, role, input) => { if (applyInput(s, side, input).ok) log.push({ tick: s.tick, side, role, input }) }
+  send(1, 'house', { gambits: [{ if: 'always', then: 'hold' }] })
+  while (!s.ended) {
+    if (s.tick === 100) send(0, 'agent', { gambits: [{ if: 'free_planet', then: 'go' }] })
+    if (s.tick === 400) send(0, 'human', { order: { swarm: s.swarms.find(c => c.side === 0).id, x: 1100, y: 350 } })
+    step(s)
+  }
+  assert.deepEqual(replay(15, log).ended, s.ended)
+  assert.equal(JSON.stringify(replay(15, log)), JSON.stringify(s))
+  const noHuman = replay(15, log.filter(l => l.role !== 'human'))
+  assert.notEqual(JSON.stringify(noHuman), JSON.stringify(s))
 })
 
 test('default gambits beat doing nothing', () => {

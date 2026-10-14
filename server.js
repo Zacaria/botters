@@ -3,7 +3,7 @@
 import http from 'node:http'
 import { readFileSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
-import { createMatch, applyInput, step, view, rules, HOUSE_GAMBITS, TPS, W, H, MAX_GAMBITS } from './sim.js'
+import { createMatch, applyInput, step, view, rules, replay, totals, HOUSE_GAMBITS, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
@@ -14,7 +14,7 @@ const id = () => randomBytes(12).toString('base64url')
 
 function startMatch(a, b) { // b === null: the house plays side 1 with fixed gambits and no agent
   const m = { id: id(), s: createMatch(randomInt(2 ** 31)), players: [], log: [], streams: new Set(), startsAt: Date.now() + START_DELAY }
-  if (!b) applyInput(m.s, 1, { gambits: HOUSE_GAMBITS })
+  if (!b) { applyInput(m.s, 1, { gambits: HOUSE_GAMBITS }); m.log.push({ tick: 0, side: 1, role: 'house', input: { gambits: HOUSE_GAMBITS } }) }
   ;[a, b].forEach((t, side) => {
     const p = { side, name: t ? t.name : 'house', setup: t ? t.setup : 'fixed gambits', agent: id(), human: id(), events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null }
     m.players[side] = p
@@ -29,12 +29,12 @@ function startMatch(a, b) { // b === null: the house plays side 1 with fixed gam
     if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
     step(m.s)
     if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
+    if (m.s.ended) { clearInterval(timer); finish(m); setTimeout(() => matches.delete(m.id), FINISHED_TTL) } // before the last frame: it carries the report
     if (m.s.tick % FRAME_EVERY === 0 || m.s.ended) for (const st of m.streams) send(st, m)
-    if (m.s.ended) { clearInterval(timer); finish(m); setTimeout(() => matches.delete(m.id), FINISHED_TTL) }
   }, 1000 / TPS)
 }
 
-const frame = (m, side) => ({ view: view(m.s, side), calls: m.players[side].calls, feed: m.players[side].feed, startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)) })
+const frame = (m, side) => ({ view: view(m.s, side), report: m.report?.[side], calls: m.players[side].calls, feed: m.players[side].feed, startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)) })
 const send = (st, m) => st.res.write(`data: ${JSON.stringify(frame(m, st.side))}\n\n`)
 
 function finish(m) {
@@ -42,7 +42,18 @@ function finish(m) {
   const ra = elo.get(a.name) ?? 1000, rb = elo.get(b.name) ?? 1000
   const exp = 1 / (1 + 10 ** ((rb - ra) / 400)), got = w === 0 ? 1 : w === 1 ? 0 : 0.5
   elo.set(a.name, Math.round(ra + 32 * (got - exp))); elo.set(b.name, Math.round(rb - 32 * (got - exp)))
-  console.log(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${b.name} (${b.setup})`, totals: view(m.s, 0).totals, inputs: m.log.length }))
+  m.report = m.players.map(p => whatIf(m, p.side))
+  console.log(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${b.name} (${b.setup})`, totals: view(m.s, 0).totals, inputs: m.log.length, report: m.report[0] }))
+}
+
+// Who won it? Replay the match without this side's human inputs, then without its agent's. Same seed, same opponent inputs.
+// ponytail: honest but partial — in the replay the agent repeats its orders blindly instead of reacting to the new situation.
+// ponytail: 3 synchronous replays (~0.5 s each) at match end block the server loop; move to a worker if matches overlap.
+function whatIf(m, side) {
+  const res = s => { const t = totals(s), w = s.ended.winner; return { result: w === side ? 'won' : w === null ? 'draw' : 'lost', you: t[side], enemy: t[1 - side] } }
+  const without = role => res(replay(m.s.seed, m.log.filter(l => l.side !== side || l.role !== role)))
+  const count = role => m.log.filter(l => l.side === side && l.role === role).length
+  return { actual: res(m.s), humanInputs: count('human'), agentInputs: count('agent'), withoutHuman: without('human'), withoutAgent: without('agent') }
 }
 
 function emit(m, side, text) {
@@ -117,7 +128,7 @@ const routes = {
     if (now < a.m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
     const r = applyInput(a.m.s, a.side, input)
     if (r.ok) {
-      a.m.log.push({ tick: a.m.s.tick, side: a.side, input })
+      a.m.log.push({ tick: a.m.s.tick, side: a.side, role: a.role, input })
       const why = b.why ? `: ${String(b.why).slice(0, 120)}` : ''
       if (a.role === 'agent') {
         if (b.gambits) feed(a.m, a.side, 'agent', `rewrote the gambits${why}`)

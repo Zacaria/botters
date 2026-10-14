@@ -192,6 +192,17 @@ export function step(s) {
   else if (s.tick >= MATCH_TICKS) s.ended = { winner: a > b ? 0 : b > a ? 1 : null, reason: 'time' }
 }
 
+// Rebuild a match from its seed and input log ({ tick, side, input }, in arrival order). Drop entries to ask "what if".
+export function replay(seed, log) {
+  const s = createMatch(seed)
+  let i = 0
+  while (!s.ended) {
+    for (; i < log.length && log[i].tick === s.tick; i++) applyInput(s, log[i].side, log[i].input)
+    step(s)
+  }
+  return s
+}
+
 export const totals = s => [0, 1].map(side => Math.round(s.swarms.reduce((a, c) => a + (c.side === side ? c.n : 0), 0)))
 
 // What one side may know: its swarms, visible enemy swarms, public planets and particle totals.
