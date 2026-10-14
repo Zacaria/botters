@@ -66,12 +66,13 @@ es.addEventListener('hello', e => {
 })
 es.onmessage = e => {
   const f = JSON.parse(e.data)
-  v = f.view; calls = f.calls; feed = f.feed; startsIn = f.startsIn; frameAt = performance.now()
+  v = f.view; calls = f.calls; feed = f.feed; startsIn = f.startsIn
   const live = new Set()
-  for (const c of [...v.swarms, ...v.enemies]) {
+  for (const c of [...v.swarms, ...v.enemies]) { // start from where the swarm is drawn now, before resetting the clock
     live.add(c.id); const p = pos.get(c.id)
     if (p) { const t = cur(p); p.x0 = t.x; p.y0 = t.y; p.x1 = c.x; p.y1 = c.y } else pos.set(c.id, { x0: c.x, y0: c.y, x1: c.x, y1: c.y })
   }
+  frameAt = performance.now()
   for (const id of pos.keys()) if (!live.has(id)) pos.delete(id)
   if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
   panel()
