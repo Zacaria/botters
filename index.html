@@ -17,9 +17,10 @@
 <aside>
   <div id="hud">connecting…</div>
   <div id="calls"></div>
-  <div id="abilities"></div>
+  <div id="abilities" style="display:flex;flex-direction:column;gap:6px"></div>
   <form id="say"><input id="msg" placeholder="order to your agent (Enter)" maxlength="140" style="width:100%"></form>
-  <small>Click an ability, then click the map. Right-click the map to ping your agent.</small>
+  <div id="toast" style="min-height:2.6em"></div>
+  <small><b>W E R</b> (or click): fire overdrive / recall / reveal instantly.<br><b>Q</b> then click the map: strike there.<br><b>Right-click</b> the map: ping your agent. Type below: order your agent.<br>When your agent asks for help, a yellow card appears: click <b>do it</b>.</small>
   <div id="end"></div>
 </aside>
 <script>
@@ -55,6 +56,8 @@ function draw() {
     g.globalAlpha = 1; g.textAlign = 'start'; g.textBaseline = 'alphabetic'
   }
   v.units.forEach(u => unit(u, me)); v.enemies.forEach(u => unit(u, foe))
+  if (armed === 'strike' && mouse) { g.fillStyle = 'rgba(255,255,0,.18)'; g.strokeStyle = '#ff0'; g.lineWidth = 2; g.beginPath(); g.arc(mouse.x * S, mouse.y * S, 2 * S, 0, 7); g.fill(); g.stroke() }
+  for (const p of pings) if (p.until > Date.now()) { g.strokeStyle = '#0ff'; g.lineWidth = 2; g.beginPath(); g.arc(p.x * S, p.y * S, S * (1 + (p.until - Date.now()) / 1500), 0, 7); g.stroke() }
 }
 
 function panel() {
@@ -63,15 +66,43 @@ function panel() {
     (map?.players ? `<br><small>${Object.entries(map.players).map(([s, p]) => `<span class="${s}">${p.name}</span> ${p.setup}`).join(' vs ')}</small>` : '') +
     (pilot ? `<br><small>your pilot ${pilot.ms} ms</small>` : '') + (opp ? `<small> · enemy pilot ${opp.ms} ms</small>` : '') +
     `<br><br>🤖 agent's order to the pilot:<br><i>${intent ? esc(intent) : '(none yet: following doctrine)'}</i>`
-  document.getElementById('calls').innerHTML = calls.map(c => `<div class="call">🤖 your agent asks: <b>${c.ability}</b>${c.x != null ? ` at (${c.x},${c.y})` : ''}<br>${esc(c.message)}<br><button onclick='fire(${JSON.stringify(c)})'>do it (${v.abilities[c.ability] ? 'ready in ' + v.abilities[c.ability] + 's' : 'ready'})</button></div>`).join('')
-  document.getElementById('abilities').innerHTML = Object.entries(v.abilities).map(([a, cd]) => `<button ${cd ? 'disabled' : ''} class="${armed === a ? 'armed' : ''}" onclick="arm('${a}')">${a}${cd ? ` (${cd}s)` : ''}</button>`).join('')
+  const callsKey = JSON.stringify(calls) // rebuild only on change: rebuilding every frame swallowed clicks
+  if (callsKey !== lastCalls) { lastCalls = callsKey; document.getElementById('calls').innerHTML = calls.map((c, i) => `<div class="call">🤖 your agent asks: <b>${c.ability}</b>${c.x != null ? ` at (${c.x},${c.y})` : ''}<br>${esc(c.message)}<br><button data-call="${i}">do it</button></div>`).join('') }
+  document.querySelectorAll('[data-call]').forEach(b => { const c = calls[b.dataset.call], cd = v.abilities[c.ability]; b.disabled = !!cd; b.textContent = cd ? `do it (ready in ${cd}s)` : 'do it' })
+  for (const [a, cd] of Object.entries(v.abilities)) {
+    const b = buttons[a]; b.disabled = !!cd; b.className = armed === a ? 'armed' : ''
+    b.textContent = `[${KEYS[a]}] ${a}${cd ? ` (${cd}s)` : armed === a ? ': click the map' : ''}`
+  }
   if (v.ended) document.getElementById('end').textContent = v.ended.winner === me ? `YOU WON (${v.ended.reason})` : v.ended.winner ? `you lost (${v.ended.reason})` : 'draw'
 }
 const esc = s => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c])
-window.arm = a => { if (a === 'strike') armed = armed === a ? null : a; else post('/input', { ability: a }) ; panel() }
-window.fire = c => post('/input', { ability: c.ability, x: c.x, y: c.y })
+const KEYS = { strike: 'Q', overdrive: 'W', recall: 'E', reveal: 'R' }
+const HELP = { strike: 'area damage where you click, lands after 1 s', overdrive: 'all your units +50% speed for 5 s', recall: 'teleport your miners home', reveal: 'see the whole map for 3 s' }
+let lastCalls = '', mouse = null
+const buttons = Object.fromEntries(Object.keys(KEYS).map(a => {
+  const b = document.createElement('button'); b.title = HELP[a]; b.onclick = () => arm(a)
+  document.getElementById('abilities').append(b); return [a, b]
+}))
+const toast = (t, ok = true) => { const el = document.getElementById('toast'); el.textContent = t; el.style.color = ok ? '#8f8' : '#f88' }
+const use = (body, label) => post('/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
+const arm = a => {
+  if (!v || v.abilities[a]) return toast(`✗ ${a} not ready`, false)
+  if (a === 'strike') { armed = armed === a ? null : a; toast(armed ? 'strike armed: click the map (Esc to cancel)' : 'strike cancelled') }
+  else use({ ability: a }, `${a}: ${HELP[a]}`)
+  if (v) panel()
+}
+window.fire = c => use({ ability: c.ability, x: c.x, y: c.y }, `${c.ability} (agent's call)`)
+document.getElementById('calls').onclick = e => { const i = e.target.dataset?.call; if (i !== undefined) fire(calls[i]) }
+onkeydown = e => {
+  if (e.target.tagName === 'INPUT') return
+  if (e.key === 'Escape') { armed = null; toast('cancelled') }
+  const a = Object.keys(KEYS).find(k => KEYS[k] === e.key.toUpperCase()); if (a) arm(a)
+}
+cv.onmousemove = e => { mouse = at(e) }
+cv.onmouseleave = () => { mouse = null }
 const at = e => ({ x: Math.round(e.offsetX / S * 10) / 10, y: Math.round(e.offsetY / S * 10) / 10 })
-cv.onclick = e => { if (armed) { post('/input', { ability: armed, ...at(e) }); armed = null } }
-cv.oncontextmenu = e => { e.preventDefault(); post('/say', { text: 'ping', ...at(e) }) }
-document.getElementById('say').onsubmit = e => { e.preventDefault(); const m = document.getElementById('msg'); if (m.value) post('/say', { text: m.value }); m.value = '' }
+cv.onclick = e => { if (armed) { use({ ability: armed, ...at(e) }, `strike at (${at(e).x},${at(e).y})`); armed = null } else toast('arm an ability first (Q/W/E/R), or right-click to ping your agent', false) }
+cv.oncontextmenu = e => { e.preventDefault(); const p = at(e); post('/say', { text: 'ping', ...p }); pings.push({ ...p, until: Date.now() + 1500 }); toast(`ping sent to your agent at (${p.x},${p.y})`) }
+const pings = []
+document.getElementById('say').onsubmit = e => { e.preventDefault(); const m = document.getElementById('msg'); if (m.value) { post('/say', { text: m.value }); toast(`sent to your agent: ${m.value}`) } m.value = '' }
 </script>
