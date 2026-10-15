@@ -26,8 +26,13 @@ export class ConvexStore {
       throw Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })
     }
   }
-  // Cache is invocation-local and only speculative: every response must pass CAS.
+  // Invocation-local speculative cache; writes pass CAS, read-only frames use a fresh snapshot.
   scoped() { const store = Object.create(this); store.cache = new Map(); return store }
+  async snapshot(tokenKey, options) {
+    const data = await this.call('query', 'store:get', { keys: [this.prefix + tokenKey], now: Date.now(), followToken: true }, options)
+    this.cache = new Map(data.keys.map((key, i) => [key.slice(this.prefix.length), data.values[i]]))
+    this.snapshotKeys = new Set(this.cache.keys())
+  }
   async get(key, options = {}) {
     if (!options.fresh && this.cache?.has(key)) return this.cache.get(key)
     const [value] = await this.call('query', 'store:get', { keys: [this.prefix + key], now: Date.now() }, options)
@@ -37,10 +42,11 @@ export class ConvexStore {
   async commit(entries, options) {
     const ok = await this.call('mutation', 'store:commit', { entries: entries.map(e => ({ ...e, key: this.prefix + e.key })) }, options)
     if (this.cache) {
-      if (ok) for (const e of entries) this.cache.set(e.key, e.value === '' ? e.raw : e.value)
+      if (ok) { for (const e of entries) this.cache.set(e.key, e.value === '' ? e.raw : e.value); this.snapshotKeys = null }
       else {
         const values = await this.call('query', 'store:get', { keys: entries.map(e => this.prefix + e.key), now: Date.now() }, options)
         entries.forEach((e, i) => this.cache.set(e.key, values[i]))
+        this.snapshotKeys = new Set(entries.map(e => e.key))
       }
     }
     return ok
@@ -79,7 +85,9 @@ export async function transaction(store, fn, { deadline = Infinity } = {}) {
   for (let attempt = 0; attempt < 20; attempt++) {
     checkDeadline(deadline)
     const records = new Map()
+    let readOnly = false
     const tx = {
+      readOnly() { readOnly = true },
       async get(key, fallback = null, ttl = 86400) {
         if (!records.has(key)) {
           const raw = await store.get(key, { deadline })
@@ -95,6 +103,7 @@ export async function transaction(store, fn, { deadline = Infinity } = {}) {
     let result, failure
     try { result = await fn(tx) } catch (e) { if (!e.status || e.code === 'DEADLINE') throw e; failure = e }
     checkDeadline(deadline)
+    if (readOnly && !failure && store.snapshotKeys && [...records.keys()].every(key => store.snapshotKeys.has(key))) return result
     const entries = [...records.values()].map(r => {
       const value = JSON.stringify(r.object)
       return { key: r.key, raw: r.raw, value: value === r.raw || (!r.raw && r.object === null) ? '' : value, ttl: r.ttl }

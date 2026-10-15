@@ -9,7 +9,8 @@ const previewHeaders = new URL(base).hostname.endsWith('.vercel.app') && process
 const startedAt = performance.now(), run = Date.now().toString(36), clients = [], humanTokens = [], latency = []
 const parse = result => {
   if (result.isError) throw new Error(result.content?.map(c => c.text || '').join('\n') || 'MCP tool failed')
-  return JSON.parse(result.content.find(c => c.type === 'text').text)
+  const text = result.content.find(c => c.type === 'text').text
+  try { return JSON.parse(text) } catch { throw new Error(text) }
 }
 const tool = async (c, name, args = {}) => parse(await c.callTool({ name, arguments: args }, undefined, { timeout: 60000 }))
 const request = async (path, body) => {

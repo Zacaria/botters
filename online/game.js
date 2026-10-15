@@ -74,7 +74,10 @@ export class OnlineGame {
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
+    const frameRead = method === 'GET' && path === '/state'
+    if (frameRead && /^[\w-]{32}$/.test(q.get('token') || '')) await this.store.snapshot?.(`token:${hash(q.get('token'))}`, { deadline: this.deadline })
     return transaction(this.store, async tx => {
+      let persist = false
       const now = this.now()
       const loadSession = id => tx.get(`session:${id}`, null, SESSION_TTL)
       const appendLog = async (m, entry) => {
@@ -94,6 +97,7 @@ export class OnlineGame {
       }
       const finish = async m => {
         if (!m.s.ended || m.report) return
+        persist = true
         const chunks = []
         for (let i = 0; i < Math.ceil(m.logCount / 64); i++) {
           const chunk = await tx.read(`log:${m.id}:${i}`)
@@ -125,6 +129,7 @@ export class OnlineGame {
         const m = await tx.get(`match:${id}`)
         if (!m) return null
         const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
+        if (target - m.s.tick >= TPS) persist = true
         while (m.s.tick < target && !m.s.ended) {
           if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
           step(m.s)
@@ -169,13 +174,13 @@ export class OnlineGame {
       const auth = await tx.get(`token:${hash(bearer)}`, null, SESSION_TTL)
       const s = auth && await loadSession(auth.id)
       if (!s) fail(401, 'Unknown session. Open a new lobby.')
-      if (!auth.touched || now - auth.touched >= 60000) auth.touched = now
-      if (!s.touched || now - s.touched >= 60000) s.touched = now
+      if (!auth.touched || now - auth.touched >= 60000) { auth.touched = now; persist = true }
+      if (!s.touched || now - s.touched >= 60000) { s.touched = now; persist = true }
       const human = () => { if (auth.role !== 'human') fail(401, 'A human session token is required.') }
       const agent = () => { if (auth.role !== 'agent') fail(401, 'An agent session token is required.') }
-      if (auth.role === 'agent') s.agentSeen = now
+      if (auth.role === 'agent') { s.agentSeen = now; persist = true }
       const m = await loadMatch(s.match), p = m?.players[s.side]
-      if (p && now - p.seen >= 5000) p.seen = now
+      if (p && now - p.seen >= 5000) { p.seen = now; persist = true }
       const requireMatch = () => { if (!m) fail(409, 'Not in a match.') }
       const roomInfo = async idx => {
         const room = idx.rooms[s.room]
@@ -288,7 +293,7 @@ export class OnlineGame {
         return { match: { id: m.id, side: s.side, opponent: `${opponent(m, s.side).name} (${opponent(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
           startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), state: view(m.s, s.side) } }
       }
-      if (method === 'GET' && path === '/state') { requireMatch(); return frame(m, s.side) }
+      if (frameRead) { requireMatch(); if (!persist) tx.readOnly(); return frame(m, s.side) }
       if (method === 'GET' && path === '/events') {
         agent()
         if (!m || !p.agentJoined) return { events: [], state: null, next: m && !p.withAgent ? 'solo' : 'join' }

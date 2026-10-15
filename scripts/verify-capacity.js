@@ -59,10 +59,9 @@ const stream = async s => {
       if (times.length >= 40) break
     }
   } finally { controller.abort() }
-  assert.equal(times.length, 40)
   return { frames: times.length, fps: (times.length - 1) * 1000 / (times.at(-1) - times[0]), firstTick: ticks[0], lastTick: ticks.at(-1) }
 }
 const streams = await Promise.all(sessions.map(stream))
 const sorted = [...samples].sort((a, b) => a - b)
-console.log(JSON.stringify({ server: base, fixture: 'actual Vercel iad1 + free Convex US East; 8-minute/40-planet settings, 40 stationary swarms per side; synthetic 470-second checkpoint reset before each HTTP sample, then two simultaneous 40-frame streams; not a wall-clock 8-minute match', samples: samples.length, requestP95Ms: sorted[Math.ceil(sorted.length * .95) - 1], streams, passes10Fps: streams.every(s => s.fps >= 10), requestMs: samples }, null, 2))
-assert.ok(streams.every(s => s.fps >= 10), 'Delivered streams must sustain >=10fps')
+console.log(JSON.stringify({ server: base, fixture: 'actual Vercel iad1 + free Convex US East; 8-minute/40-planet settings, 40 stationary swarms per side; synthetic 470-second checkpoint reset before each HTTP sample, then two simultaneous 40-frame streams; not a wall-clock 8-minute match', samples: samples.length, requestP95Ms: sorted[Math.ceil(sorted.length * .95) - 1], streams, passes10Fps: streams.every(s => s.frames === 40 && s.fps >= 10), requestMs: samples }, null, 2))
+assert.ok(streams.every(s => s.frames === 40 && s.fps >= 10), 'Both delivered streams must sustain >=10fps for 40 frames')

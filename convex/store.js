@@ -13,8 +13,18 @@ async function read(ctx, key, now) {
 
 // Internal only: deployment-admin authorization, never callable by browser users.
 export const get = internalQueryGeneric({
-  args: { keys: v.array(v.string()), now: v.number() },
-  handler: async (ctx, { keys }) => Promise.all(keys.map(key => read(ctx, key, Date.now()))),
+  args: { keys: v.array(v.string()), now: v.number(), followToken: v.optional(v.boolean()) },
+  handler: async (ctx, { keys, followToken }) => {
+    const now = Date.now(), values = await Promise.all(keys.map(key => read(ctx, key, now)))
+    if (!followToken) return values
+    const namespace = /^(.*)token:[a-f0-9]{64}$/.exec(keys[0])?.[1], auth = values[0] && JSON.parse(values[0])
+    if (namespace && auth) {
+      keys.push(`${namespace}session:${auth.id}`); values.push(await read(ctx, keys.at(-1), now))
+      const session = values.at(-1) && JSON.parse(values.at(-1))
+      if (session?.match) { keys.push(`${namespace}match:${session.match}`); values.push(await read(ctx, keys.at(-1), now)) }
+    }
+    return { keys, values }
+  },
 })
 
 export const commit = internalMutationGeneric({

@@ -306,7 +306,7 @@ function fit() {
 }
 fit(); onresize = fit
 
-let F = null, v = null, sel = null, frameAt = 0, es = null, editing = null, lastBy = '', prevRules = []
+let F = null, v = null, sel = null, frameAt = 0, es = null, streamRetry = null, editing = null, lastBy = '', prevRules = []
 const pos = new Map() // id -> { x0, y0, x1, y1 } for smooth motion between server frames
 const cur = p => { const t = Math.min(1, (performance.now() - frameAt) / 100); return { x: p.x0 + (p.x1 - p.x0) * t, y: p.y0 + (p.y1 - p.y0) * t } }
 const act = (body, label) => api('POST', '/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
@@ -315,8 +315,14 @@ function match() {
   clearTimeout(lobbyTimer); lastFrame = Date.now(); $('connection').hidden = true
   show('game'); fit(); v = null; F = null; pos.clear(); sel = null; lastBy = ''; stopEditing()
   $('big').innerHTML = ''; $('feed').innerHTML = ''; $('toast').textContent = ''
-  es?.close(); es = new EventSource(`/stream?token=${token}`)
-  es.onmessage = e => {
+  connectStream()
+}
+function connectStream() {
+  clearTimeout(streamRetry); es?.close()
+  if ($('game').hidden || (v?.ended && F?.report)) return
+  const stream = es = new EventSource(`/stream?token=${token}`)
+  stream.onmessage = e => {
+    if (es !== stream) return
     lastFrame = Date.now(); if (navigator.onLine) $('connection').hidden = true
     F = JSON.parse(e.data); v = F.view
     const live = new Set()
@@ -328,9 +334,14 @@ function match() {
     for (const id of pos.keys()) if (!live.has(id)) pos.delete(id)
     if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
     panel()
-    if (v.ended && F.report) es.close()
+    if (v.ended && F.report) stream.close()
   }
-  es.onerror = () => { if (!v?.ended) { $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…' } }
+  stream.onerror = () => {
+    if (es !== stream || $('game').hidden || (v?.ended && F?.report)) return
+    $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…'
+    // HTTP errors can permanently close EventSource instead of invoking its retry loop.
+    if (stream.readyState === EventSource.CLOSED) streamRetry = setTimeout(connectStream, 1000)
+  }
 }
 setInterval(() => { if (!$('game').hidden && !v?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
 window.addEventListener('offline', () => { if (!$('game').hidden && !v?.ended) { $('connection').hidden = false; $('connection').textContent = 'You are offline. The match continues; reconnecting when your connection returns…' } })
