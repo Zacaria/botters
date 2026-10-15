@@ -234,7 +234,8 @@ export class OnlineGame {
             if (room.members.length >= 2) fail(409, 'Room is full.')
             // A finished room can accept a replacement; an active match cannot.
             if (active(await loadMatch(room.match))) fail(409, 'This room is playing a match.')
-            room.members.push(s.id); room.ready = []; room.updated = now; s.room = code; s.roomPrefs = parsePlay(body)
+            const req = parsePlay(body)
+            room.members.push(s.id); room.ready = []; room.updated = now; s.room = code; s.roomPrefs = req
           }
           return await roomInfo(idx)
         }

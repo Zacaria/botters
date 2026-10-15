@@ -65,6 +65,34 @@ test('room host authority, code/link, settings, concurrent membership, finish an
   assert.equal((await f.call(a, 'GET', '/lobby')).history.length, 1)
 })
 
+test('rejected room join leaves membership, readiness, timestamps and guest preferences unchanged', async () => {
+  const f = fixture(), host = await f.session('host'), guest = await f.session('guest'), replacement = await f.session('replacement')
+  const room = await f.call(host, 'POST', '/rooms', { minutes: 3, planets: 16, planning: 10 })
+  // Retain saved preferences from an earlier room so a partial overwrite is observable.
+  await f.call(guest, 'POST', '/rooms', { withAgent: false, opening: [{ if: 'always', then: 'hold' }] })
+  await f.call(guest, 'POST', '/rooms/leave')
+  const sessions = () => [...f.store.data.entries()].filter(([key]) => key.startsWith('session:')).map(([, r]) => JSON.parse(r.value))
+  const beforeGuest = sessions().find(s => s.name === 'guest')
+  const idx = JSON.parse(await f.store.get('index'))
+  // A host may already be ready while a finished room awaits a replacement.
+  idx.rooms[room.code].ready = [idx.rooms[room.code].host]
+  await f.store.commit([{ key: 'index', raw: await f.store.get('index'), value: JSON.stringify(idx), ttl: 0 }])
+  const beforeRoom = structuredClone(idx.rooms[room.code])
+  f.advance(1000)
+  await assert.rejects(f.call(guest, 'POST', '/rooms/join', { code: room.code, opening: [{ if: 'always', then: 'hold', p: 100001 }] }), { status: 400 })
+  const afterRoom = JSON.parse(await f.store.get('index')).rooms[room.code]
+  assert.deepEqual(afterRoom, beforeRoom)
+  const afterGuest = sessions().find(s => s.id === beforeGuest.id)
+  assert.equal(afterGuest.room, beforeGuest.room)
+  assert.deepEqual(afterGuest.roomPrefs, beforeGuest.roomPrefs)
+  assert.equal((await f.call(host, 'GET', '/room')).players.length, 1)
+  assert.equal((await f.call(guest, 'GET', '/lobby')).room, null)
+  const joined = await f.call(replacement, 'POST', '/rooms/join', { code: room.code })
+  assert.equal(joined.players.length, 2)
+  assert.deepEqual(joined.players.map(p => p.name), ['host', 'replacement'])
+  assert.deepEqual(joined.ready, [])
+})
+
 test('cold instance resumes, concurrent agent rate limit is shared, replay and Elo finish exactly once', async () => {
   const f = fixture(), a = await f.session('a', 'codex'), b = await f.session('b', 'claude')
   await f.call(a, 'POST', '/play', { vs: 'player', minutes: 3, planning: 10 })
