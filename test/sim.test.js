@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createMatch, applyInput, step, view, addSwarm, W, H, TPS, MATCH_TICKS, MAX_SWARMS, DEFAULT_GAMBITS, replay } from '../sim.js'
+import { createMatch, applyInput, step, view, addSwarm, W, H, TPS, MAX_SWARMS, DEFAULT_GAMBITS, HOUSE, replay } from '../sim.js'
 
 const run = (s, ticks) => { for (let i = 0; i < ticks && !s.ended; i++) step(s) }
 const empty = seed => { // planets kept, no starting swarms, both homes kept alive
@@ -126,7 +126,7 @@ test('match ends by wipe, or at 5:00 by particle count', () => {
   assert.deepEqual(s.ended, { winner: 0, reason: 'wipe' })
   s = createMatch(12)
   s.swarms.find(o => o.side === 1).n += 500
-  s.tick = MATCH_TICKS - 1
+  s.tick = s.endTick - 1
   step(s)
   assert.equal(s.ended.winner, 1)
   assert.equal(s.ended.reason, 'time')
@@ -150,7 +150,23 @@ test('replay: the input log reproduces the match; dropping inputs gives the "wha
 test('default gambits beat doing nothing', () => {
   const s = createMatch(13)
   only(s, 1, [{ if: 'always', then: 'hold' }])
-  run(s, MATCH_TICKS)
+  run(s, s.endTick)
   assert.equal(s.ended.winner, 0)
   assert.ok(H > 0)
+})
+
+test('match options: length and planet count; unknown values fall back to defaults; replay keeps them', () => {
+  const s = createMatch(16, { minutes: 3, planets: 16 })
+  assert.equal(s.planets.length, 16)
+  assert.equal(s.endTick, 3 * 60 * TPS)
+  const d = createMatch(16, { minutes: 99, planets: 7 })
+  assert.equal(d.planets.length, 28)
+  assert.equal(d.endTick, 5 * 60 * TPS)
+  run(s, s.endTick)
+  assert.equal(JSON.stringify(replay(16, [], { minutes: 3, planets: 16 })), JSON.stringify(s))
+})
+
+test('house levels are ordered: easy loses more often than hard against the default gambits', () => {
+  const wins = list => { let w = 0; for (let seed = 1; seed <= 6; seed++) { const s = createMatch(seed, { minutes: 3 }); only(s, 1, list); run(s, s.endTick); if (s.ended.winner === 0) w++ } return w }
+  assert.ok(wins(HOUSE.easy) > wins(HOUSE.hard))
 })

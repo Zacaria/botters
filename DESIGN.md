@@ -126,6 +126,17 @@ Decisions 2026-10-14 #3 (owner played the space sketch: "felt great, there's a l
 
 Hosting answer (Q23): yes, a 5-minute match fits Vercel. Fluid compute allows 300 s on Hobby and 800 s on Pro; with cohorts the simulation is ~0.1 ms per tick, so a stateless replay per request also works (≤0.5 s). Live updates: Vercel WebSockets (public beta since June 2026) or Convex subscriptions. To be spiked when the game moves online.
 
+## Polish pass (2026-10-15)
+
+Owner, after 5 played matches vs Codex: "I don't understand how we can influence the written gambits, they don't seem to change. Also we don't get to configure the doctrine." Server log of those matches: Codex rewrote the gambits 6–13 times per match, but the panel only showed the current list, without who changed it or when; the doctrine was a file on disk.
+
+- Lobby per player session: name, **doctrine editor** (500 chars, saved on the server, editable mid-match: the agent gets a `HUMAN changed the doctrine` event), opponent, length, map, planning countdown, play alone or with the agent, opening gambits written by the agent or by hand.
+- Modes: house easy / normal / hard (fixed gambit sets; vs the default gambits over 12 seeds the default side wins 11 / 8 / 4) and another player (queue). 3 / 5 / 8 minutes. 16 / 28 / 40 planets.
+- In match: "last written by agent/you, at, why" line that flashes on change; new rules flash; full gambit editor; every human edit is sent to the agent as an event with the new list.
+- The agent no longer starts matches. `join_match` waits until the human presses Play (headless scripts can still pass `vs`).
+- End screen with a one-line verdict and Play again; history of the last 10 matches and leaderboard in the lobby.
+- `/guide`: how to plug Claude Code, Codex, any MCP client, or a plain HTTP script.
+
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 
 | Role | Model | Speed | Does |

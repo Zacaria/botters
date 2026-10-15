@@ -2,7 +2,7 @@
 // A swarm is a cohort (centre + particle count); individual particles only exist in the browser.
 // Sides are 0 and 1. Every swarm follows its side's gambits (IF condition → action) unless a human grabbed it.
 
-export const W = 1200, H = 700, TPS = 20, MATCH_TICKS = 300 * TPS
+export const W = 1200, H = 700, TPS = 20
 export const MAX_SWARMS = 40, MAX_GAMBITS = 10
 const K = 0.0035 // square law: each tick a swarm loses K × the enemy count it touches
 const THINK = 10 // gambits are re-evaluated every 0.5 s
@@ -38,11 +38,16 @@ export const DEFAULT_GAMBITS = [
   rule('bigger_enemy_near', 'retreat'), rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go'), rule('small', 'go'),
   rule('big', 'split'), rule('free_planet', 'go'), rule('enemy_planet', 'go'),
 ]
-export const HOUSE_GAMBITS = [ // greedy blob: never retreats, never splits
-  rule('weaker_enemy_near', 'go'), rule('free_planet', 'go'), rule('small', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold'),
-]
+export const HOUSE = { // fixed opponents. Measured vs DEFAULT_GAMBITS over 12 seeds: easy loses 11, normal loses 8, hard loses 4
+  easy: [rule('free_planet', 'go'), rule('small', 'go'), rule('always', 'hold')], // never fights on purpose
+  normal: [rule('weaker_enemy_near', 'go'), rule('free_planet', 'go'), rule('small', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // greedy blob: never retreats, never splits
+  hard: [rule('bigger_enemy_near', 'retreat'), rule('weaker_enemy_near', 'go'), rule('planet_attacked', 'go'), rule('small', 'go'), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')],
+}
+export const OPTIONS = { minutes: [3, 5, 8], planets: [16, 28, 40] } // allowed match settings; first value of each pair below is the default
+const DEFAULT_OPTS = { minutes: 5, planets: 28 }
+export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes) ? o.minutes : DEFAULT_OPTS.minutes, planets: OPTIONS.planets.includes(o?.planets) ? o.planets : DEFAULT_OPTS.planets })
 
-function checkGambits(list) {
+export function checkGambits(list) {
   if (!Array.isArray(list) || !list.length || list.length > MAX_GAMBITS) return `send 1 to ${MAX_GAMBITS} gambits`
   for (const r of list) {
     if (!CONDITIONS[r?.if]) return `unknown condition "${r?.if}". Known: ${Object.keys(CONDITIONS).join(', ')}`
@@ -67,15 +72,15 @@ function rng(seed) { // mulberry32
   return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
 }
 
-export function createMatch(seed) {
-  const r = rng(seed), planets = [{ x: 90, y: H / 2, r: 26, owner: 0, cap: 1 }, { x: W - 90, y: H / 2, r: 26, owner: 1, cap: -1 }]
-  for (let tries = 0; planets.length < 28 && tries < 5000; tries++) { // mirror-symmetric so neither side gets a better map
+export function createMatch(seed, options) {
+  const opts = matchOptions(options), r = rng(seed), planets = [{ x: 90, y: H / 2, r: 26, owner: 0, cap: 1 }, { x: W - 90, y: H / 2, r: 26, owner: 1, cap: -1 }]
+  for (let tries = 0; planets.length < opts.planets && tries < 5000; tries++) { // mirror-symmetric so neither side gets a better map
     const x = 180 + r() * (W / 2 - 210), y = 40 + r() * (H - 80), pr = Math.round(6 + r() * 16)
     if (planets.some(p => Math.hypot(p.x - x, p.y - y) < p.r + pr + 50)) continue
     for (const mx of [x, W - x]) planets.push({ x: mx, y, r: pr, owner: -1, cap: 0 })
   }
   planets.forEach((p, i) => { p.id = i; p.mass = p.m0 = p.r === 26 ? 15000 : p.r * p.r * 25; p.stock = 0 })
-  const s = { seed, tick: 0, nextId: 1, planets, swarms: [], gambits: [DEFAULT_GAMBITS, DEFAULT_GAMBITS], ended: null }
+  const s = { seed, opts, endTick: opts.minutes * 60 * TPS, tick: 0, nextId: 1, planets, swarms: [], gambits: [DEFAULT_GAMBITS, DEFAULT_GAMBITS], ended: null }
   for (const side of [0, 1]) for (const dy of [-70, 0, 70]) addSwarm(s, side, planets[side].x + (side ? -45 : 45), H / 2 + dy, START_N)
   return s
 }
@@ -189,12 +194,12 @@ export function step(s) {
   const alive = side => s.swarms.some(c => c.side === side) || s.planets.some(p => p.owner === side && p.mass > 0)
   const [a, b] = totals(s)
   if (!alive(0) || !alive(1)) s.ended = { winner: alive(0) ? 0 : alive(1) ? 1 : null, reason: 'wipe' }
-  else if (s.tick >= MATCH_TICKS) s.ended = { winner: a > b ? 0 : b > a ? 1 : null, reason: 'time' }
+  else if (s.tick >= s.endTick) s.ended = { winner: a > b ? 0 : b > a ? 1 : null, reason: 'time' }
 }
 
 // Rebuild a match from its seed and input log ({ tick, side, input }, in arrival order). Drop entries to ask "what if".
-export function replay(seed, log) {
-  const s = createMatch(seed)
+export function replay(seed, log, opts) {
+  const s = createMatch(seed, opts)
   let i = 0
   while (!s.ended) {
     for (; i < log.length && log[i].tick === s.tick; i++) applyInput(s, log[i].side, log[i].input)
@@ -209,7 +214,7 @@ export const totals = s => [0, 1].map(side => Math.round(s.swarms.reduce((a, c) 
 export function view(s, side) {
   const r = n => Math.round(n), t = totals(s)
   return {
-    tick: s.tick, secondsLeft: Math.max(0, Math.ceil((MATCH_TICKS - s.tick) / TPS)),
+    tick: s.tick, secondsLeft: Math.max(0, Math.ceil((s.endTick - s.tick) / TPS)),
     ended: s.ended && { reason: s.ended.reason, result: s.ended.winner === side ? 'won' : s.ended.winner === null ? 'draw' : 'lost' },
     totals: { you: t[side], enemy: t[1 - side] },
     swarms: s.swarms.filter(c => c.side === side).map(c => ({ id: c.id, x: r(c.x), y: r(c.y), n: r(c.n), tx: r(c.tx), ty: r(c.ty), manual: c.manual, rule: c.rule, fighting: c.eng })),
@@ -220,6 +225,7 @@ export function view(s, side) {
 }
 
 export const rules = () => ({
-  conditions: Object.fromEntries(Object.entries(CONDITIONS).map(([k, c]) => [k, `${c.doc}${c.p ? ` (default p ${c.p})` : ''}`])),
-  actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, a]) => [k, a.doc])),
+  conditions: Object.fromEntries(Object.entries(CONDITIONS).map(([k, c]) => [k, { doc: c.doc, p: c.p }])),
+  actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, a]) => [k, { doc: a.doc }])),
 })
+export const describe = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`

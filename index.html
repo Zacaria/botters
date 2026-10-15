@@ -2,49 +2,237 @@
 <meta charset="utf-8">
 <title>Botters</title>
 <style>
-  html, body { margin: 0; background: #050507; color: #b8b8c4; font: 13px ui-monospace, monospace; overflow: hidden }
+  html, body { margin: 0; background: #050507; color: #b8b8c4; font: 13px ui-monospace, monospace; overflow: hidden; height: 100% }
   canvas { position: fixed; cursor: crosshair }
+  a { color: #9fe8c0 }
   #hud { position: fixed; left: 14px; top: 10px; pointer-events: none; white-space: pre; line-height: 1.55; text-shadow: 0 0 4px #000 }
   aside { position: fixed; right: 0; top: 0; bottom: 0; width: 400px; padding: 10px 14px; box-sizing: border-box; background: #08080b; border-left: 1px solid #1c1c24; overflow: auto; line-height: 1.5 }
-  h3 { margin: 10px 0 4px; color: #fff; font-size: 13px }
+  h1 { color: #fff; font-size: 30px; letter-spacing: 6px; margin: 0 0 4px } h1 b { color: #ff2e88 } h1 i { color: #5b8cff; font-style: normal }
+  h3 { margin: 12px 0 4px; color: #fff; font-size: 13px }
   .g { padding: 3px 6px; border-left: 2px solid #333; cursor: pointer; margin-bottom: 2px; background: #0e0e13 }
   .g.off { opacity: .35; text-decoration: line-through } .g.hot { border-left-color: #ff2e88 } .g i { color: #ff2e88; font-style: normal; float: right }
+  .g.new { animation: flash 1.2s 3 }
+  @keyframes flash { 50% { background: #3a1430 } }
+  .by { padding: 4px 6px; margin: 4px 0; background: #0e0e13; border-left: 2px solid #9fe8c0 }
+  .by.flash { animation: flash 1.2s 3 }
   .call { border: 2px solid #ffd400; padding: 6px 8px; margin-bottom: 6px; background: #1d1900; animation: pulse 1s infinite }
   @keyframes pulse { 50% { background: #332c00 } }
-  button { font: inherit; padding: 3px 10px; margin: 4px 6px 0 0; background: #1a1a22; color: #ddd; border: 1px solid #444; cursor: pointer }
-  input { font: inherit; width: 100%; box-sizing: border-box; padding: 6px; background: #000; color: #ddd; border: 1px solid #333 }
-  .you { color: #ff2e88 } .foe { color: #5b8cff } .agent { color: #9fe8c0 } .dim { color: #6a6a7a }
+  button { font: inherit; padding: 4px 10px; margin: 4px 6px 0 0; background: #1a1a22; color: #ddd; border: 1px solid #444; cursor: pointer }
+  button:hover { border-color: #888 } button.main { background: #ff2e88; color: #000; border-color: #ff2e88; font-weight: bold; padding: 8px 22px; font-size: 15px }
+  button.on { border-color: #ff2e88; color: #fff; background: #2a0f1f } button:disabled { opacity: .35; cursor: default }
+  input, textarea, select { font: inherit; box-sizing: border-box; padding: 5px; background: #000; color: #ddd; border: 1px solid #333 }
+  textarea { width: 100%; height: 92px; resize: vertical } input.wide { width: 100% }
+  .you { color: #ff2e88 } .foe { color: #5b8cff } .agent { color: #9fe8c0 } .dim { color: #6a6a7a } .warn { color: #ffd400 }
   #feed div { margin-bottom: 2px }
-  #big { position: fixed; left: 0; right: 400px; top: 40%; text-align: center; font-size: 38px; color: #fff; pointer-events: none; text-shadow: 0 0 12px #000 }
+  #big { position: fixed; left: 0; right: 400px; top: 30%; text-align: center; font-size: 38px; color: #fff; text-shadow: 0 0 12px #000; pointer-events: none }
+  #big .box { display: inline-block; pointer-events: auto; background: #08080bee; border: 1px solid #333; padding: 18px 28px; font-size: 15px; line-height: 1.9; margin-top: 12px; text-align: left }
   #toast { min-height: 1.5em; margin-top: 6px }
+  .screen { position: fixed; inset: 0; overflow: auto; background: radial-gradient(ellipse at 30% 40%, #1a0a14 0, #050507 55%), #050507 }
+  .wrap { max-width: 980px; margin: 40px auto; padding: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px }
+  .card { background: #08080bcc; border: 1px solid #1c1c24; padding: 14px 16px }
+  .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 } .row > b { width: 110px; color: #ddd; font-weight: normal }
+  .ed { display: grid; grid-template-columns: 16px minmax(150px, 1fr) 50px 70px 18px 18px 18px; gap: 3px; align-items: center; margin-bottom: 3px }
+  .ed select, .ed input { padding: 2px; font-size: 12px; width: 100% } .ed button { margin: 0; padding: 0 4px }
+  .help { font-size: 12px; color: #6a6a7a; margin: 2px 0 6px } [hidden] { display: none !important }
+  table { border-collapse: collapse; width: 100% } td { padding: 2px 6px 2px 0 }
 </style>
-<canvas id="c"></canvas>
-<div id="hud">connecting…</div>
-<div id="big"></div>
-<aside>
-  <div id="calls"></div>
-  <h3>your gambits <span class="dim">(click or 1–0 to switch a rule on/off)</span></h3>
-  <div id="gambits"></div>
-  <h3>agent feed</h3>
-  <div id="feed"></div>
-  <form id="say"><input id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form>
-  <div id="toast"></div>
-  <p class="dim">
-    <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <b>Tab</b> next swarm · <b>Esc</b> drop<br>
-    <b>click the map with nothing grabbed</b>: ping your agent there<br>
-    first matching rule wins, every 0.5 s. Square law: bigger swarms win fights and lose little. Owned planets are eaten into particles. More particles at 5:00 wins.
-  </p>
-  <p class="dim" id="rules"></p>
-</aside>
-<script>
-const token = new URLSearchParams(location.search).get('t')
+
+<!-- start: no lobby yet -->
+<div id="start" class="screen" hidden>
+  <div class="wrap" style="grid-template-columns: 1fr">
+    <div>
+      <h1><b>BOT</b><i>TERS</i></h1>
+      <p>A real-time space strategy game you play <b>with your AI agent</b>. Swarms of particles conquer and eat planets.<br>
+      Your agent writes the rules every swarm follows. You set the strategy, edit the rules and grab a swarm when it matters.</p>
+    </div>
+    <div class="card">
+      <h3>Play with your agent</h3>
+      <p>Connect Claude Code, Codex or any MCP client in one command, then tell it "let's play botters". It opens your lobby here.</p>
+      <p><a href="/guide" target="_blank">How to plug your agent →</a></p>
+      <h3>Or play alone first</h3>
+      <div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo">Enter</button></div>
+      <p class="help">You can connect an agent later.</p>
+    </div>
+  </div>
+</div>
+
+<!-- lobby -->
+<div id="lobby" class="screen" hidden>
+  <div class="wrap">
+    <div>
+      <h1><b>BOT</b><i>TERS</i></h1>
+      <div class="row"><b>player</b><input id="name" maxlength="24"> <span class="dim" id="saved"></span></div>
+      <div class="row"><b>your agent</b><span id="agentState"></span></div>
+
+      <h3>Doctrine <span class="dim">· your strategy, in your words. Your agent turns it into gambits and follows it during the match.</span></h3>
+      <textarea id="doctrine" maxlength="500"></textarea>
+      <div class="help"><span id="dcount"></span>/500 · saved automatically · editable during the match too</div>
+
+      <h3>Opening gambits</h3>
+      <div class="row"><button id="openAgent">my agent writes them from the doctrine</button><button id="openMine">I write them</button></div>
+      <div id="openEditor" hidden></div>
+
+      <h3>Match</h3>
+      <div class="row"><b>opponent</b><span id="vs"></span></div>
+      <div class="row"><b>length</b><span id="minutes"></span></div>
+      <div class="row"><b>map</b><span id="planets"></span></div>
+      <div class="row"><b>planning</b><span id="planning"></span><span class="dim">countdown before the start</span></div>
+      <div class="row"><b>with agent</b><span id="withAgent"></span></div>
+      <div class="row" style="margin-top:14px"><button class="main" id="play">PLAY</button> <button id="cancel" hidden>cancel</button> <span id="lobbyMsg" class="warn"></span></div>
+    </div>
+    <div>
+      <div class="card">
+        <h3 style="margin-top:0">How it plays</h3>
+        <p>Every swarm follows your side's <b>gambits</b>: an ordered list of <b>IF condition → action</b> rules. The first rule that matches decides, every half second.</p>
+        <p>Your agent rewrites them as the match evolves. You can edit them too, switch a rule off, or grab one swarm and send it yourself.</p>
+        <p><b>Square law</b>: in a fight, each side loses in proportion to the other's size, so the bigger swarm wins and loses little. <b>Planets</b> you own are eaten into new particles. <b>Fog</b>: you only see near your swarms and planets.</p>
+        <p>Most particles at the end wins. No swarms and no planets left loses at once.</p>
+        <p><a href="/guide" target="_blank">Plug your own agent →</a></p>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3 style="margin-top:0">Your last matches</h3>
+        <div id="history" class="dim">none yet</div>
+        <h3>Leaderboard</h3>
+        <div id="board" class="dim">empty</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- match -->
+<div id="game" hidden>
+  <canvas id="c"></canvas>
+  <div id="hud"></div>
+  <div id="big"></div>
+  <aside>
+    <div id="calls"></div>
+    <h3>gambits <span class="dim">· click or 1–0: on/off</span></h3>
+    <div id="byline" class="by"></div>
+    <div id="gambits"></div>
+    <div id="gEditor" hidden></div>
+    <div class="row"><button id="editG">edit gambits</button><button id="applyG" hidden>apply</button><button id="cancelG" hidden>cancel</button></div>
+    <div id="agentBox">
+      <h3>agent feed</h3>
+      <div id="feed"></div>
+      <form id="say"><input class="wide" id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form>
+      <details style="margin-top:6px"><summary class="dim" style="cursor:pointer">doctrine</summary><textarea id="doctrine2" maxlength="500"></textarea><button id="sendDoctrine">send to agent</button></details>
+    </div>
+    <div id="toast"></div>
+    <p class="dim">
+      <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <b>Tab</b> next swarm · <b>Esc</b> drop<br>
+      <span id="pingHelp"><b>click the map with nothing grabbed</b>: ping your agent there<br></span>
+      <button id="leave">← menu</button>
+    </p>
+  </aside>
+</div>
+
+<script type="module">
+import { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, rad } from '/sim.js'
+const $ = id => document.getElementById(id)
+const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
+const n = c => Math.round(c).toLocaleString('en')
+const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+const show = id => { for (const s of ['start', 'lobby', 'game']) $(s).hidden = s !== id }
+let token = new URLSearchParams(location.search).get('s') || localStorage.getItem('botters.session')
+const api = (method, path, body) => fetch(`${path}${path.includes('?') ? '&' : '?'}token=${token}`, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) }))
+const toast = (t, ok = true) => { $('toast').textContent = t; $('toast').style.color = ok ? '#8f8' : '#f88' }
+
+// ---------- gambit editor (lobby opening + in match) ----------
+const label = r => `IF ${r.if.replaceAll('_', ' ')}${r.p !== undefined ? ` (${r.p})` : ''} → ${r.then}`
+function editor(el, list, onChange) {
+  let rows = list.map(r => ({ ...r, on: r.on !== false }))
+  const draw = () => {
+    el.innerHTML = rows.map((r, i) => `<div class="ed" data-i="${i}">
+      <input type="checkbox" data-k="on" ${r.on ? 'checked' : ''} title="on/off">
+      <select data-k="if" title="${esc(CONDITIONS[r.if].doc)}">${Object.keys(CONDITIONS).map(c => `<option ${c === r.if ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      <input data-k="p" type="number" step="any" placeholder="${CONDITIONS[r.if].p || '-'}" value="${r.p ?? ''}" title="p tunes the condition" ${CONDITIONS[r.if].p ? '' : 'disabled'}>
+      <select data-k="then" title="${esc(ACTIONS[r.then].doc)}">${Object.keys(ACTIONS).map(a => `<option ${a === r.then ? 'selected' : ''}>${a}</option>`).join('')}</select>
+      <button data-m="-1" title="up">↑</button><button data-m="1" title="down">↓</button><button data-x title="delete">✕</button></div>`).join('') +
+      `<button data-add ${rows.length >= MAX_GAMBITS ? 'disabled' : ''}>+ rule</button> <button data-reset>defaults</button>
+      <div class="help">${rows.map(r => `<b>${r.if}</b>: ${esc(CONDITIONS[r.if].doc)}`).filter((x, i, a) => a.indexOf(x) === i).join('<br>')}<br>${Object.entries(ACTIONS).map(([a, d]) => `<b>${a}</b>: ${esc(d.doc)}`).join('<br>')}</div>`
+  }
+  el.onchange = el.oninput = e => {
+    const i = +e.target.closest('[data-i]')?.dataset.i, k = e.target.dataset.k; if (!k) return
+    if (k === 'on') rows[i].on = e.target.checked
+    else if (k === 'p') { const v = parseFloat(e.target.value); if (Number.isFinite(v) && v > 0) rows[i].p = v; else delete rows[i].p }
+    else { rows[i][k] = e.target.value; if (k === 'if') { delete rows[i].p; draw() } }
+    onChange?.(get())
+  }
+  el.onclick = e => {
+    const b = e.target.closest('button'); if (!b) return
+    const i = +b.closest('[data-i]')?.dataset.i
+    if (b.dataset.m) { const j = i + +b.dataset.m; if (j >= 0 && j < rows.length) [rows[i], rows[j]] = [rows[j], rows[i]] }
+    if (b.dataset.x !== undefined && rows.length > 1) rows.splice(i, 1)
+    if (b.dataset.add !== undefined) rows.push({ if: 'always', then: 'hold', on: true })
+    if (b.dataset.reset !== undefined) rows = DEFAULT_GAMBITS.map(r => ({ ...r }))
+    draw(); onChange?.(get())
+  }
+  const get = () => rows.map(r => ({ if: r.if, ...(r.p !== undefined && { p: r.p }), then: r.then, on: r.on }))
+  draw()
+  return { get, set: l => { rows = l.map(r => ({ ...r, on: r.on !== false })); draw() } }
+}
+
+// ---------- start ----------
+$('startSolo').onclick = async () => {
+  const r = await fetch('/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: $('startName').value || 'you' }) }).then(r => r.json())
+  token = r.humanToken; localStorage.setItem('botters.session', token); history.replaceState(null, '', `/?s=${token}`); lobby()
+}
+$('startName').onkeydown = e => { if (e.key === 'Enter') $('startSolo').click() }
+
+// ---------- lobby ----------
+const prefs = Object.assign({ vs: 'normal', minutes: 5, planets: 28, planning: 20, withAgent: true, openingMine: false, opening: DEFAULT_GAMBITS }, JSON.parse(localStorage.getItem('botters.prefs') || '{}'))
+const savePrefs = () => localStorage.setItem('botters.prefs', JSON.stringify(prefs))
+const NAMES = { vs: { easy: 'house · easy', normal: 'house · normal', hard: 'house · hard', player: 'another player' }, minutes: { 3: '3 min', 5: '5 min', 8: '8 min' }, planets: { 16: 'small · 16 planets', 28: 'medium · 28', 40: 'large · 40' }, planning: { 10: '10 s', 20: '20 s', 30: '30 s' }, withAgent: { true: 'yes', false: 'no, I play alone' } }
+const pick = (id, values) => { $(id).innerHTML = values.map(v => `<button data-v="${v}" class="${String(prefs[id]) === String(v) ? 'on' : ''}">${NAMES[id][v]}</button>`).join(''); $(id).onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; prefs[id] = id === 'vs' ? v : id === 'withAgent' ? v === 'true' : +v; savePrefs(); pick(id, values); lobbyChoices() } }
+const openEd = editor($('openEditor'), prefs.opening, l => { prefs.opening = l; savePrefs() })
+let L = null, lobbyTimer = null, docTimer = null, agentOk = false
+function lobbyChoices() {
+  $('openAgent').className = prefs.openingMine ? '' : 'on'; $('openMine').className = prefs.openingMine ? 'on' : ''
+  $('openAgent').disabled = !(agentOk && prefs.withAgent)
+  $('openEditor').hidden = !(prefs.openingMine || !agentOk || !prefs.withAgent)
+  $('play').disabled = false
+}
+$('openAgent').onclick = () => { prefs.openingMine = false; savePrefs(); lobbyChoices() }
+$('openMine').onclick = () => { prefs.openingMine = true; savePrefs(); lobbyChoices() }
+$('doctrine').oninput = () => { $('dcount').textContent = $('doctrine').value.length; clearTimeout(docTimer); docTimer = setTimeout(() => api('POST', '/profile', { doctrine: $('doctrine').value }).then(() => { $('saved').textContent = 'doctrine saved' }), 500) }
+$('name').onchange = () => api('POST', '/profile', { name: $('name').value })
+
+async function lobby(auto = true) { // auto: jump into a live match (page load, Play); false when the player left it for the menu
+  show('lobby'); clearInterval(lobbyTimer)
+  const first = !L
+  L = await api('GET', '/lobby')
+  if (L.status === 401) { localStorage.removeItem('botters.session'); token = null; history.replaceState(null, '', '/'); return show('start') }
+  localStorage.setItem('botters.session', token)
+  if (first || document.activeElement !== $('name')) $('name').value = L.name
+  if (first || document.activeElement !== $('doctrine')) { $('doctrine').value = L.doctrine; $('dcount').textContent = L.doctrine.length }
+  for (const k of ['vs', 'minutes', 'planets', 'planning']) pick(k, L.choices[k])
+  agentOk = !!L.agent
+  pick('withAgent', agentOk ? [true, false] : [false])
+  if (!agentOk) prefs.withAgent = false
+  $('agentState').innerHTML = agentOk ? `<span class="agent">● ${esc(L.agent)} connected</span>` : `<span class="dim">○ none connected · <a href="/guide" target="_blank">plug your agent</a></span>`
+  $('history').innerHTML = L.history.length ? '<table>' + L.history.map(h => `<tr><td class="${h.actual.result === 'won' ? 'you' : 'dim'}">${h.actual.result.toUpperCase()}</td><td>vs ${esc(h.vs)}</td><td>${n(h.actual.you)}–${n(h.actual.enemy)}</td><td class="dim">without you: ${h.withoutHuman.result}</td></tr>`).join('') + '</table>' : 'none yet'
+  $('board').innerHTML = L.leaderboard.length ? '<table>' + L.leaderboard.map((b, i) => `<tr><td>${i + 1}.</td><td>${esc(b.name)}</td><td>${b.rating}</td></tr>`).join('') + '</table>' : 'empty'
+  $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? 'waiting for another player…' : ''
+  lobbyChoices()
+  $('play').textContent = L.live ? 'RESUME MATCH' : 'PLAY'
+  if (L.live && auto) return match()
+  lobbyTimer = setInterval(async () => { const r = await api('GET', '/lobby'); if (r.live && !L.live) { clearInterval(lobbyTimer); return lobby() } if (!!r.agent !== agentOk || r.queued !== L.queued || r.history.length !== L.history.length) lobby() }, 1500)
+}
+$('play').onclick = () => L?.live ? match() : startPlay()
+async function startPlay() {
+  const withAgent = agentOk && prefs.withAgent, opening = !withAgent || prefs.openingMine ? openEd.get() : null
+  const r = await api('POST', '/play', { vs: prefs.vs, minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent, opening })
+  $('lobbyMsg').textContent = r.ok ? '' : r.error
+  if (r.ok) lobby()
+}
+$('cancel').onclick = async () => { await api('POST', '/cancel'); lobby() }
+
+// ---------- match ----------
 const BUDGET = 60000, COLS = { you: 0xff882eff, enemy: 0xffff8c5b }, CSS = { you: '#ff2e88', enemy: '#5b8cff' }, WHITE = 0xffffffff
-const cv = document.getElementById('c'), g = cv.getContext('2d')
+const cv = $('c'), g = cv.getContext('2d')
 let W = 1200, H = 700, k = 1, ox = 0, oy = 0, img, px
 const TN = 1 << 17, TA = new Float32Array(TN), TR = new Float32Array(TN), TW = new Float32Array(TN)
 for (let i = 0; i < TN; i++) { TA[i] = Math.random() * 6.283; TR[i] = Math.sqrt(Math.random()); TW[i] = (Math.random() - 0.5) * 0.06 }
-const rad = n => 4 + Math.sqrt(n) * 0.32
-const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
 function fit() {
   const vw = innerWidth - 400; k = Math.min(vw / W, innerHeight / H)
   cv.width = W; cv.height = H; cv.style.width = W * k + 'px'; cv.style.height = H * k + 'px'
@@ -53,36 +241,34 @@ function fit() {
 }
 fit(); onresize = fit
 
-let v = null, report = null, calls = [], feed = [], startsIn = 0, hello = null, sel = null, frameAt = 0
+let F = null, v = null, sel = null, frameAt = 0, es = null, editing = null, lastBy = '', prevRules = []
 const pos = new Map() // id -> { x0, y0, x1, y1 } for smooth motion between server frames
-const post = (path, body) => fetch(`${path}?token=${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json())
-const toast = (t, ok = true) => { const el = document.getElementById('toast'); el.textContent = t; el.style.color = ok ? '#8f8' : '#f88' }
-const act = (body, label) => post('/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
-
-const es = new EventSource(`/stream?token=${token}`)
-es.addEventListener('hello', e => {
-  hello = JSON.parse(e.data); W = hello.W; H = hello.H; fit()
-  document.getElementById('rules').innerHTML = 'conditions: ' + Object.entries(hello.rules.conditions).map(([c, d]) => `<b>${c}</b> ${esc(d)}`).join(' · ') + '<br>actions: ' + Object.entries(hello.rules.actions).map(([a, d]) => `<b>${a}</b> ${esc(d)}`).join(' · ')
-})
-es.onmessage = e => {
-  const f = JSON.parse(e.data)
-  v = f.view; report = f.report; calls = f.calls; feed = f.feed; startsIn = f.startsIn
-  const live = new Set()
-  for (const c of [...v.swarms, ...v.enemies]) { // start from where the swarm is drawn now, before resetting the clock
-    live.add(c.id); const p = pos.get(c.id)
-    if (p) { const t = cur(p); p.x0 = t.x; p.y0 = t.y; p.x1 = c.x; p.y1 = c.y } else pos.set(c.id, { x0: c.x, y0: c.y, x1: c.x, y1: c.y })
-  }
-  frameAt = performance.now()
-  for (const id of pos.keys()) if (!live.has(id)) pos.delete(id)
-  if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
-  panel()
-}
-es.onerror = () => { if (!v) document.getElementById('hud').textContent = 'cannot connect: is the match link still valid?' }
 const cur = p => { const t = Math.min(1, (performance.now() - frameAt) / 100); return { x: p.x0 + (p.x1 - p.x0) * t, y: p.y0 + (p.y1 - p.y0) * t } }
+const act = (body, label) => api('POST', '/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
+
+function match() {
+  show('game'); fit(); v = null; F = null; pos.clear(); sel = null; lastBy = ''; stopEditing()
+  $('big').innerHTML = ''; $('feed').innerHTML = ''; $('toast').textContent = ''
+  es?.close(); es = new EventSource(`/stream?token=${token}`)
+  es.onmessage = e => {
+    F = JSON.parse(e.data); v = F.view
+    const live = new Set()
+    for (const c of [...v.swarms, ...v.enemies]) { // start from where the swarm is drawn now, before resetting the clock
+      live.add(c.id); const p = pos.get(c.id)
+      if (p) { const t = cur(p); p.x0 = t.x; p.y0 = t.y; p.x1 = c.x; p.y1 = c.y } else pos.set(c.id, { x0: c.x, y0: c.y, x1: c.x, y1: c.y })
+    }
+    frameAt = performance.now()
+    for (const id of pos.keys()) if (!live.has(id)) pos.delete(id)
+    if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
+    panel()
+    if (v.ended && F.report) es.close()
+  }
+}
+$('leave').onclick = () => { es?.close(); lobby(false) }
 
 function draw() {
   requestAnimationFrame(draw)
-  if (!v || !px) return
+  if (!v || !px || $('game').hidden) return
   for (let i = 0; i < px.length; i++) px[i] = ((px[i] >>> 1) & 0x7f7f7f7f) | 0xff000000 // trails
   const all = [...v.swarms.map(c => [c, 'you']), ...v.enemies.map(c => [c, 'enemy'])]
   const total = all.reduce((a, [c]) => a + c.n, 0), scale = Math.min(1, BUDGET / Math.max(1, total)), t = performance.now() * 0.06
@@ -112,7 +298,7 @@ function draw() {
     g.beginPath(); g.arc(a.x, a.y, rad(c.n) + 5, 0, 7); g.stroke()
     g.setLineDash([3, 4]); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(c.tx, c.ty); g.stroke(); g.setLineDash([])
   }
-  for (const c of calls) {
+  for (const c of F.calls) {
     const s = v.swarms.find(o => o.id === c.swarm), pulse = 6 + 4 * Math.sin(performance.now() / 150)
     g.strokeStyle = '#ffd400'; g.lineWidth = 2
     if (s) { const a = cur(pos.get(s.id)); g.beginPath(); g.arc(a.x, a.y, rad(s.n) + pulse, 0, 7); g.stroke(); if (c.x !== null) { g.setLineDash([6, 4]); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(c.x, c.y); g.stroke(); g.setLineDash([]) } }
@@ -123,59 +309,84 @@ function draw() {
 requestAnimationFrame(draw)
 
 let lastCalls = '', lastGambits = '', lastFeed = ''
+function endScreen() {
+  const R = F.report, line = (label, r) => `<tr><td>${label}</td><td class="${r.result === 'won' ? 'you' : 'dim'}"><b>${r.result.toUpperCase()}</b></td><td>${n(r.you)} vs ${n(r.enemy)}</td></tr>`
+  const verdict = R.withoutHuman.result === R.actual.result ? (R.humanInputs ? 'Your actions did not change the result.' : 'You did not act this match.') : R.actual.result === 'won' ? '<span class="you">Your actions won this match.</span>' : 'Your actions cost this match.'
+  return `${v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw'} <span class="dim" style="font-size:18px">(${v.ended.reason === 'wipe' ? 'wiped out' : 'time'})</span><br><div class="box">
+    <b>Same match replayed, same enemy:</b><table>${line('real match', R.actual)}${line(`without your ${R.humanInputs} action${R.humanInputs === 1 ? '' : 's'}`, R.withoutHuman)}${R.withoutAgent ? line(`without your agent's ${R.agentInputs} action${R.agentInputs === 1 ? '' : 's'}`, R.withoutAgent) : ''}</table>
+    ${verdict}<br><span class="dim" style="font-size:12px">In a replay, the other side's inputs are kept exactly as they were, without reacting.</span><br>
+    <button class="main" id="again">PLAY AGAIN</button> <button id="menu">menu</button></div>`
+}
 function panel() {
-  const n = c => c.toLocaleString(), mineP = v.planets.filter(p => p.owner === 'you' && p.massLeft > 0).length, theirP = v.planets.filter(p => p.owner === 'enemy' && p.massLeft > 0).length
-  const s = sel !== null && v.swarms.find(c => c.id === sel)
-  document.getElementById('hud').innerHTML =
-    `<b class="you">you ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP} planets      <b class="foe">enemy ${n(v.totals.enemy)}</b> · ${theirP} planets` +
-    (hello ? `   <span class="dim">${esc(hello.players[hello.side].name)} vs ${esc(hello.players[1 - hello.side].name)} (${esc(hello.players[1 - hello.side].setup)})</span>` : '') +
-    `\n${Math.floor(v.secondsLeft / 60)}:${String(v.secondsLeft % 60).padStart(2, '0')} left · more particles at 5:00 wins\n` +
+  if (!F) return
+  const mineP = v.planets.filter(p => p.owner === 'you' && p.massLeft > 0).length, theirP = v.planets.filter(p => p.owner === 'enemy' && p.massLeft > 0).length
+  const s = sel !== null && v.swarms.find(c => c.id === sel), agent = F.me.withAgent
+  $('agentBox').hidden = !agent; $('pingHelp').hidden = !agent
+  $('hud').innerHTML = `<b class="you">${esc(F.me.name)} ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP} planets      <b class="foe">${esc(F.opponent.name)} ${n(v.totals.enemy)}</b> · ${theirP} planets` +
+    `\n${clock(v.secondsLeft)} left · most particles at the end wins · ${agent ? (F.me.agentJoined ? `<span class="agent">agent: ${esc(F.me.setup)}</span>` : '<span class="warn">agent not joined yet</span>') : 'no agent'}\n` +
     (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
-  const line = (label, r) => `${label}: ${r.result.toUpperCase()} ${n(r.you)} vs ${n(r.enemy)}`
-  if (report) document.getElementById('big').innerHTML = `${v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw'} (${v.ended.reason})<div style="font-size:16px;margin-top:14px;line-height:1.8">` +
-    `same match replayed, same enemy:<br>${line('you + agent (real)', report.actual)}<br>${line(`without your ${report.humanInputs} actions`, report.withoutHuman)}<br>${line(`without your agent's ${report.agentInputs} actions`, report.withoutAgent)}</div>`
-  else document.getElementById('big').textContent = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw') + ` (${v.ended.reason})` : startsIn > 0 ? `starts in ${startsIn}s: your agent is writing the opening gambits` : ''
+  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('again').onclick = () => { show('lobby'); startPlay() }; $('menu').onclick = () => lobby(false) } }
+  else $('big').innerHTML = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : 'you lose') : F.startsIn > 0 ? `starts in ${F.startsIn}s<div style="font-size:15px">${agent && F.gambitsBy.who === 'default' ? 'your agent is writing the opening gambits' : 'edit your gambits now if you want'}</div>` : ''
 
+  const by = F.gambitsBy, byKey = JSON.stringify(by)
+  if (byKey !== lastBy) {
+    $('byline').innerHTML = by.who === 'default' ? '<span class="dim">default gambits</span>' : `<b class="${by.who === 'agent' ? 'agent' : 'you'}">${by.who === 'agent' ? '🤖 agent' : 'you'}</b> <span class="dim">${clock(by.t)}</span> ${esc(by.why)}`
+    if (lastBy) { $('byline').classList.remove('flash'); void $('byline').offsetWidth; $('byline').classList.add('flash') }
+    lastBy = byKey
+  }
   const counts = v.gambits.map(() => 0); for (const c of v.swarms) if (!c.manual && c.rule >= 0) counts[c.rule]++
   const gk = JSON.stringify(v.gambits) // rebuild only on change: rebuilding every frame swallows clicks
   if (gk !== lastGambits) {
+    const old = new Set(prevRules)
+    prevRules = v.gambits.map(label)
+    const isNew = lastGambits !== ''
     lastGambits = gk
-    document.getElementById('gambits').innerHTML = v.gambits.map((r, i) => `<div class="g${r.on ? '' : ' off'}" data-g="${i}"><b>${(i + 1) % 10}</b> IF ${r.if.replaceAll('_', ' ')}${r.p !== undefined ? ` (${r.p})` : ''} → ${r.then} <i></i></div>`).join('')
+    $('gambits').innerHTML = v.gambits.map((r, i) => `<div class="g${r.on ? '' : ' off'}${isNew && !old.has(label(r)) ? ' new' : ''}" data-g="${i}"><b>${(i + 1) % 10}</b> ${label(r)} <i></i></div>`).join('')
   }
   document.querySelectorAll('[data-g]').forEach(d => { const c = counts[d.dataset.g]; d.querySelector('i').textContent = c ? `${c} swarm${c > 1 ? 's' : ''}` : ''; d.classList.toggle('hot', c > 0) })
-  const ck = JSON.stringify(calls)
+  const ck = JSON.stringify(F.calls)
   if (ck !== lastCalls) {
     lastCalls = ck
-    document.getElementById('calls').innerHTML = calls.map((c, i) => `<div class="call">🤖 your agent asks: ${esc(c.message)}${c.swarm !== null ? `<br>swarm #${c.swarm}${c.x !== null ? ` → (${c.x},${c.y})` : ''}` : ''}<br>` +
+    $('calls').innerHTML = F.calls.map((c, i) => `<div class="call">🤖 your agent asks: ${esc(c.message)}${c.swarm !== null ? `<br>swarm #${c.swarm}${c.x !== null ? ` → (${c.x},${c.y})` : ''}` : ''}<br>` +
       (c.swarm !== null && c.x !== null ? `<button data-do="${i}">do it</button>` : c.swarm !== null ? `<button data-grab="${i}">grab it</button>` : '') + `<button data-no="${i}">dismiss</button></div>`).join('')
   }
-  const fk = JSON.stringify(feed)
+  const fk = JSON.stringify(F.feed)
   if (fk !== lastFeed) {
     lastFeed = fk
-    document.getElementById('feed').innerHTML = feed.slice().reverse().map(f => `<div><span class="dim">${Math.floor(f.t / 60)}:${String(f.t % 60).padStart(2, '0')}</span> <span class="${f.who === 'agent' ? 'agent' : 'you'}">${f.who === 'agent' ? '🤖' : 'you'}</span> ${esc(f.text)}</div>`).join('') || '<span class="dim">nothing yet</span>'
+    $('feed').innerHTML = F.feed.slice().reverse().map(f => `<div><span class="dim">${clock(f.t)}</span> <span class="${f.who === 'agent' ? 'agent' : 'you'}">${f.who === 'agent' ? '🤖' : 'you'}</span> ${esc(f.text)}</div>`).join('') || '<span class="dim">nothing yet</span>'
   }
 }
 
-const toggle = i => { if (v?.gambits[i]) act({ toggle: i }, `rule ${i + 1} ${v.gambits[i].on ? 'off' : 'on'}`) }
-document.getElementById('gambits').onclick = e => { const d = e.target.closest('[data-g]'); if (d) toggle(+d.dataset.g) }
-document.getElementById('calls').onclick = e => {
-  const b = e.target.dataset, c = calls[b.do ?? b.grab ?? b.no]; if (!c) return
+// in-match gambit editing
+let gEd = null
+function stopEditing() { editing = null; $('gEditor').hidden = true; $('gambits').hidden = false; $('editG').hidden = false; $('applyG').hidden = $('cancelG').hidden = true }
+$('editG').onclick = () => { if (!v) return; editing = true; gEd = editor($('gEditor'), v.gambits); $('gEditor').hidden = false; $('gambits').hidden = true; $('editG').hidden = true; $('applyG').hidden = $('cancelG').hidden = false }
+$('cancelG').onclick = stopEditing
+$('applyG').onclick = async () => { const r = await api('POST', '/input', { gambits: gEd.get(), why: 'edited by hand' }); toast(r.ok ? '✓ gambits applied' + (F.me.withAgent ? ', your agent was told' : '') : `✗ ${r.error}`, r.ok); if (r.ok) stopEditing() }
+$('sendDoctrine').onclick = async () => { await api('POST', '/profile', { doctrine: $('doctrine2').value }); $('doctrine').value = $('doctrine2').value; toast('✓ doctrine sent to your agent') }
+document.querySelector('#agentBox details').ontoggle = () => { $('doctrine2').value = $('doctrine').value }
+
+const toggle = i => { if (v?.gambits[i] && !v.ended) act({ toggle: i }, `rule ${i + 1} ${v.gambits[i].on ? 'off' : 'on'}`) }
+$('gambits').onclick = e => { const d = e.target.closest('[data-g]'); if (d) toggle(+d.dataset.g) }
+$('calls').onclick = e => {
+  const b = e.target.dataset, c = F.calls[b.do ?? b.grab ?? b.no]; if (!c) return
   if (b.do !== undefined) { act({ order: { swarm: c.swarm, x: c.x, y: c.y } }, `swarm #${c.swarm} sent`); sel = c.swarm }
   if (b.grab !== undefined) { sel = c.swarm; toast(`swarm #${c.swarm} grabbed: click the map to send it`) }
-  post('/dismiss', { index: +(b.do ?? b.grab ?? b.no) })
+  api('POST', '/dismiss', { index: +(b.do ?? b.grab ?? b.no) })
 }
 const at = e => ({ x: (e.clientX - ox) / k, y: (e.clientY - oy) / k })
 const pings = []
 cv.onmousedown = e => {
-  if (!v) return
+  if (!v || v.ended) return
   const p = at(e), hit = v.swarms.find(c => { const a = cur(pos.get(c.id)); return Math.hypot(a.x - p.x, a.y - p.y) < rad(c.n) + 8 })
   if (hit && hit.id !== sel) { sel = hit.id; return panel() }
   if (sel !== null) return act({ order: { swarm: sel, x: Math.round(p.x), y: Math.round(p.y) } }, `swarm #${sel} → (${Math.round(p.x)},${Math.round(p.y)})`)
-  post('/say', { text: 'look here', x: p.x, y: p.y }); pings.push({ ...p, until: Date.now() + 1500 }); toast('ping sent to your agent')
+  if (!F.me.withAgent) return
+  api('POST', '/say', { text: 'look here', x: p.x, y: p.y }); pings.push({ ...p, until: Date.now() + 1500 }); toast('ping sent to your agent')
 }
 oncontextmenu = e => e.preventDefault()
 onkeydown = e => {
-  if (e.target.tagName === 'INPUT' || !v) return
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || !v || $('game').hidden || editing) return
   const key = e.key.toLowerCase()
   if (key >= '0' && key <= '9') toggle((+key + 9) % 10)
   if (key === 'escape') sel = null
@@ -184,5 +395,7 @@ onkeydown = e => {
   if (key === 'tab') { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }
   panel()
 }
-document.getElementById('say').onsubmit = e => { e.preventDefault(); const m = document.getElementById('msg'); if (m.value) { post('/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
+$('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
+
+token ? lobby() : show('start')
 </script>

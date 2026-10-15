@@ -1,5 +1,5 @@
 #!/bin/zsh -l
-# Starts a local Botters server and Codex as your agent, vs the house. Close this window to stop everything.
+# Starts a local Botters server and Codex as your agent. Your lobby opens in the browser. Close this window to stop everything.
 cd "${0:A:h}"
 [ -d node_modules ] || npm install --silent
 trap 'kill 0' EXIT
@@ -9,4 +9,4 @@ codex -C "$PWD" \
   -c 'mcp_servers.botters.command="node"' -c "mcp_servers.botters.args=[\"$PWD/client.js\"]" \
   -c 'mcp_servers.botters.env={BOTTERS_NAME="zac",BOTTERS_SETUP="codex",BOTTERS_OPEN="Brave Browser"}' \
   -c 'mcp_servers.botters.tool_timeout_sec=60' -c 'mcp_servers.botters.default_tools_approval_mode="approve"' \
-  "You are my agent in a Botters match. Call join_match with vs \"house\" (my browser opens by itself), immediately set opening gambits from my doctrine, then keep calling wait_for_event in a loop and adapt with set_gambits, order_swarm, split_swarm and call_human until the match is over. Messages starting with HUMAN come from me: follow them. Never stop before the match ends. Then summarize in 3 lines and ask if I want a rematch."
+  "Let's play Botters. Call join_match and follow what it says: it waits until I press Play in my lobby. In a match, keep calling wait_for_event and adapt with set_gambits, order_swarm, split_swarm and call_human until it ends. Events starting with HUMAN come from me: follow them, and keep rules I switched off, off. After each match, give me the result in 3 lines, then call join_match again. Keep playing match after match until I tell you to stop."
