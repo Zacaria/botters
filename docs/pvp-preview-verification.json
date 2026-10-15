@@ -1,0 +1,42 @@
+{
+  "deployment": "dpl_4axEQvMWJTd5wxyfPiKdsh8GHXiY",
+  "url": "https://botters-18hrciezh-zacaria-chtatars-projects.vercel.app",
+  "sourceCommit": "08412b2413e80f165a2f3995c191f8b640717c9d",
+  "state": "READY",
+  "target": "preview",
+  "region": "iad1",
+  "match": "All assets match source after removing only the exact deployment-specific Vercel toolbar trailer on HTML.",
+  "assets": [
+    {
+      "file": "index.html",
+      "sourceSha256": "fc3795c8ff73ffe9bdf711898a0abf28a94fd668c02dd9f76096fa2fc5c283c4",
+      "deployedSha256": "c47c4d09746e5379382b4bcc2b016b3324ac8ab3952eb3366da442c37ae6dcde",
+      "sourceBytes": 37207,
+      "deployedBytes": 37370,
+      "vercelToolbarInjected": true
+    },
+    {
+      "file": "guide.html",
+      "sourceSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+      "deployedSha256": "e2f907c19f3cacb087972f32c2d619ecb227c5f3abe941b82917146ec4762381",
+      "sourceBytes": 6662,
+      "deployedBytes": 6825,
+      "vercelToolbarInjected": true
+    },
+    {
+      "file": "sim.js",
+      "sourceSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "deployedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "sourceBytes": 14356,
+      "deployedBytes": 14356,
+      "vercelToolbarInjected": false
+    }
+  ],
+  "sessionStatus": 503,
+  "session": { "error": "Online storage is not configured." },
+  "warnings": [
+    "Vercel warns that engines >=22 allows future major Node upgrades; project currently uses 24.x, preserving local Node 22+ compatibility.",
+    "npm reports an unknown injected cache-dir setting in the Vercel builder; install and build succeeded.",
+    "Deployment protection remains enabled. Full preview/production matches and live capacity SLA are not verified without the durable store."
+  ]
+}

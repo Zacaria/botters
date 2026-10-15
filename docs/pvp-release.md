@@ -31,7 +31,15 @@ Initial preview (before the final UI label/test-only changes):
 - Readback: READY; Node API in iad1; `/rules` returned the online protocol, `/r/ABCDEF` and `/guide` returned 200, `/session` returned 503 with `Online storage is not configured.` and no-store/no-referrer headers.
 - Deployment protection remains enabled. `vercel curl` used its supported project bypass for verification; no bypass credential is in this document or Git.
 
-The final source-pinned preview is recorded below after deployment. No preview full-match result is claimed without durable storage.
+Final source-pinned preview:
+
+- Source: signed `08412b2413e80f165a2f3995c191f8b640717c9d`, pushed/read back on `origin/pvp-online`.
+- URL: https://botters-18hrciezh-zacaria-chtatars-projects.vercel.app
+- ID: `dpl_4axEQvMWJTd5wxyfPiKdsh8GHXiY`; independently read back READY with the API in iad1.
+- All three public assets returned 200 and matched the candidate after removing only Vercel's exact deployment-specific toolbar trailer from HTML. `sim.js` matched byte-for-byte. Raw/deployed SHA-256 values and byte counts are in `pvp-preview-verification.json`; the initial raw HTML byte comparison failed because of that verified platform injection, not source drift.
+- `/session` again returned 503 because storage is unconfigured. No preview full-match result is claimed. Production remained the original guide.
+
+Build warnings: the existing `engines >=22` allows future major Node upgrades (Vercel currently runs 24.x), and Vercel's npm environment injects an unknown `cache-dir` setting. Both builds succeeded. Neither warning was suppressed.
 
 ## Exact continuation
 
