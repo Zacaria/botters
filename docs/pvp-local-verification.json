@@ -16,5 +16,5 @@
   ],
   "requestSamples": 36,
   "requestP95Ms": 29.450442000000066,
-  "note": "Same-host clients; not two physical machines/networks. 3-minute/40-planet functional test on MemoryStore, not the 8-minute/80-swarm capacity fixture. Real Redis Lua behavior verified separately by scripts/test-redis.js."
+  "note": "Same-host clients; not two physical machines/networks. 3-minute/40-planet functional test on MemoryStore, not the 8-minute/80-swarm capacity fixture. Historical pre-Convex run; not verification of the current durable adapter."
 }

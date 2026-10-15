@@ -1,52 +1,29 @@
 # PvP release state
 
-## Status: implementation candidate; production promotion blocked
+## Status: Convex replacement in progress; production not promoted
 
-Task: `t_65971d2d`, branch: `pvp-online`. Production https://botters.vercel.app still serves the original guide. It has not been promoted to the online game.
+Task `t_65971d2d`, branch `pvp-online`. Production https://botters.vercel.app still serves the original guide. The owner selected a new dedicated **free** Convex project `botters` on 2026-10-15. No paid plan, inference, or automatic upgrades are authorized. This document supersedes the old storage provisioning gate.
 
-The dedicated free Upstash store cannot yet be provisioned: the Vercel CLI returned `integration_terms_acceptance_required`. Owner acceptance is tracked separately on `t_c9683a14`:
+## Architecture and checks
 
-https://vercel.com/zacaria-chtatars-projects/~/integrations/accept-terms/upstash?source=cli
+Vercel serves the authoritative deterministic simulation. Convex stores checkpoints, role-scoped session capabilities, chunked canonical input logs, room/queue state, history and casual Elo. `ConvexStore` preserves the get/commit contract: one internal query reads an unexpired value and one internal mutation atomically compares all expected values before changing any. Missing configuration fails closed. Preview/production namespaces are separate. Convex TTL is checked synchronously on reads and commits; a bounded internal cron physically removes expired records.
 
-No terms were accepted by the builder, no paid plan selected, and no automatic upgrades enabled. Existing unrelated Neon resources were not changed. No credentials are committed. Missing Redis configuration returns 503 rather than using ephemeral state.
+`CONVEX_URL` and `CONVEX_DEPLOY_KEY` belong only in server-side Vercel environments and ignored local env files. No deploy credentials or bearer tokens belong in browser assets, Git, test artifacts, reports or logs. Backend functions are internal and require deployment-admin authorization. Local offline `sim.js` and `server.js` remain unchanged. No data migration is needed because the public online service has not launched.
 
-## Verified locally
+Run `npm test`, `npm run test:browser`, `npm run check`, `npm run build`, `npm audit --omit=dev`, `npm pack --dry-run --json`, and `git diff --check`. There is no separate lint/type/formatter setup; do not claim one. `node --env-file=.env.local scripts/test-convex.js` exercises the actual configured backend (not a mocked response): multi-key atomicity, concurrent matching, shared 5/s limits, exactly-once Elo/history and new-instance resume.
 
-Fresh verification after the final runtime edits: `npm test` **29 passed**, `npm run test:browser` **3 passed**, `npm run check` **21 JS files plus inline scripts/JSON passed**, `npm run build` **3 assets**, `npm audit --omit=dev` **0 vulnerabilities**, actual Redis integration **PASS**, and a fresh two-MCP match at local clock ×10 **PASS** (21,856.70 ms; streams 12.24/12.21 fps). The real-clock run below is separate evidence, not a claim that the accelerated run lasted three wall-clock minutes.
+## Historical evidence (not current Convex verification)
 
-- Deterministic simulation/offline server unchanged. Baseline and online tests cover fog, role capabilities, 5/s shared input limits, concurrent matchmaking/room admission, idempotent agent attachment, private openings, canonical bounded log chunks, exactly-once Elo/history, new-instance resume, sliding expiry, origin/body checks and request deadlines. An offline house match is exercised against the unchanged local server.
-- Three Brave scenarios use isolated contexts: matchmaking/cancel/full finish/disconnect/reload; room link/start/full finish/rematch; invite preserves an agent-connected player's saved solo/opening preferences. These use the explicitly accelerated local clock (×10), not two physical machines or networks.
-- Two actual `client.js` MCP processes completed a full three-minute/40-planet match at real clock speed, including planning: 201,906.94 ms wall time. Both reported a 20,232–20,232 draw. Two 40-frame streams measured 12.50 and 12.46 fps; 36 local HTTP samples gave p95 29.45 ms. Raw summary: `pvp-local-verification.json`. No inference was invoked.
-- `scripts/test-redis.js` passed against Redis 8.0.2 using a local redis-cli REST bridge: actual Lua multi-key CAS, concurrent matching, shared rate limiting, exactly-once result/Elo/history, new RedisStore-instance resume. This is not an Upstash latency measurement. Docker was unavailable to this user; Debian Redis binaries/libraries were extracted under ignored `.cache/redis`, without system installation.
-- Capacity CPU fixture: eight-minute/40-planet/80-swarm replay p95 3,542.86 ms; two-tick checkpoint decode/step/encode p95 2.88 ms. An additional 100-sample localhost HTTP capacity fixture at a synthetic 479.5-second checkpoint measured p95 14.15 ms using MemoryStore. Raw data: `pvp-benchmark.json`, `pvp-http-benchmark.json`. Neither fixture proves Vercel/Redis latency.
+Signed previous source `08412b2413e80f165a2f3995c191f8b640717c9d` and evidence-only `ae2cfe31d8c821b19b3ee348c6643f20b72fb82f` passed 29 unit tests and 3 isolated Brave scenarios. Two actual MCP processes completed a real-clock three-minute/40-planet local match in 201,906.94 ms at 12.50/12.46 fps. These were local tests, not two machines/networks or live Convex/Vercel measurements. Raw summaries: `pvp-local-verification.json`, `pvp-benchmark.json`, `pvp-http-benchmark.json`.
 
-`npm run check` syntax-checks JavaScript, inline browser scripts and JSON. The project has no separate lint, type or formatter configuration; none is claimed. `npm run build` emits only `index.html`, `guide.html`, and `sim.js`. `npm pack --dry-run --json` verifies the local npx package contains its runtime assets and excludes server credentials, online internals, fixtures and caches. `git diff --check` must pass before committing.
+Previous source-pinned preview: https://botters-18hrciezh-zacaria-chtatars-projects.vercel.app (`dpl_4axEQvMWJTd5wxyfPiKdsh8GHXiY`). It was READY but returned 503 for sessions because storage was absent. Static assets matched the previous candidate after removing Vercel's exact HTML toolbar trailer; `sim.js` matched byte-for-byte. See `pvp-preview-verification.json`. It is not the current release candidate.
 
-## Preview evidence
+## Continuation
 
-Initial preview (before the final UI label/test-only changes):
+1. Provision the dedicated free Convex project; deploy its schema/functions; configure and read back server-only preview/production Vercel environments. Confirm public assets exclude secrets.
+2. Deploy the signed candidate to preview. Run all local checks plus `BOTTERS_SERVER=https://PREVIEW npm run test:browser` and `BOTTERS_SERVER=https://PREVIEW npm run test:online`. Protected previews support privately injected `VERCEL_AUTOMATION_BYPASS_SECRET`; remote traces remain disabled.
+3. Measure live HTTP p95 and delivered stream cadence with an eight-minute/40-planet/40-swarms-per-side fixture. Local CPU/MemoryStore fixtures are not substitutes; require at least 10 delivered frames/s.
+4. Exercise two browsers on two machines/networks, room finish/rematch, disconnect/reload, both end reports and persisted Elo. Same-host isolated browser/MCP tests must not be called two-network acceptance.
+5. Promote only after preview checks pass, repeat production acceptance/readback, verify https://botters.vercel.app is the game home, and hand the exact signed commit/deployment to review.
 
-- URL: https://botters-1pufo92m4-zacaria-chtatars-projects.vercel.app
-- ID: `dpl_9Rpc3BARzcJLPbAGu3zgRC8Jdcv9`
-- Readback: READY; Node API in iad1; `/rules` returned the online protocol, `/r/ABCDEF` and `/guide` returned 200, `/session` returned 503 with `Online storage is not configured.` and no-store/no-referrer headers.
-- Deployment protection remains enabled. `vercel curl` used its supported project bypass for verification; no bypass credential is in this document or Git.
-
-Final source-pinned preview:
-
-- Source: signed `08412b2413e80f165a2f3995c191f8b640717c9d`, pushed/read back on `origin/pvp-online`.
-- URL: https://botters-18hrciezh-zacaria-chtatars-projects.vercel.app
-- ID: `dpl_4axEQvMWJTd5wxyfPiKdsh8GHXiY`; independently read back READY with the API in iad1.
-- All three public assets returned 200 and matched the candidate after removing only Vercel's exact deployment-specific toolbar trailer from HTML. `sim.js` matched byte-for-byte. Raw/deployed SHA-256 values and byte counts are in `pvp-preview-verification.json`; the initial raw HTML byte comparison failed because of that verified platform injection, not source drift.
-- `/session` again returned 503 because storage is unconfigured. No preview full-match result is claimed. Production remained the original guide.
-
-Build warnings: the existing `engines >=22` allows future major Node upgrades (Vercel currently runs 24.x), and Vercel's npm environment injects an unknown `cache-dir` setting. Both builds succeeded. Neither warning was suppressed.
-
-## Exact continuation
-
-1. After the owner accepts the Upstash terms, run the free-only provisioning command from `t_c9683a14`. Connect its server-only REST URL/token to this Vercel project's preview and production environments. Keep eviction and auto-upgrade disabled. Confirm credentials are not in browser artifacts. The adapter supports `UPSTASH_REDIS_REST_URL/TOKEN` and Vercel `KV_REST_API_URL/TOKEN`.
-2. Deploy the signed `pvp-online` source candidate as a preview. Run `npm test`, `npm run check`, `npm run build`, `BOTTERS_SERVER=https://PREVIEW npm run test:browser`, and `BOTTERS_SERVER=https://PREVIEW npm run test:online`. These test runners and the MCP process support `VERCEL_AUTOMATION_BYPASS_SECRET` for protected `*.vercel.app` previews; inject it privately into the test process, never public files. Remote browser traces are disabled to avoid persisting the bypass header. The protected full-match path has not been exercised yet.
-3. Measure live request p95 and streaming cadence at eight minutes/40 planets/40 swarms per side. Local CPU and MemoryStore measurements are not substitutes. Confirm the function/store budgets support at least 10 delivered frames/s.
-4. Exercise the two-machine/two-network acceptance flow. The same-host browser/MCP tests are not this acceptance. Verify both end reports, room finish/rematch, reload recovery, and persisted Elo.
-5. Only after preview checks pass, promote the exact preview, repeat production acceptance/readback, verify https://botters.vercel.app is the game home, then hand the card to review with exact signed commit/deployment IDs.
-
-There are no database migrations or deleted source files. The obsolete guide-only Vercel build command and guide's public-game-link hiding code were replaced. Generated assets, dependency caches and test traces are ignored, not committed.
+No source database was deleted or reset. The obsolete durable adapter and its provider-specific test are replaced, not retained as compatibility code. Build outputs, dependencies, credentials and traces stay ignored. Existing build warnings: Node `>=22` permits future major upgrades; Vercel injects an unknown npm `cache-dir` setting. Neither was suppressed.

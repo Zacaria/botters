@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 const files = []
-for (const dir of ['.', 'api', 'online', 'scripts', 'test', 'e2e']) for (const name of await readdir(dir)) if (name.endsWith('.js')) files.push(join(dir, name))
+for (const dir of ['.', 'api', 'online', 'convex', 'scripts', 'test', 'e2e']) for (const name of await readdir(dir)) if (name.endsWith('.js')) files.push(join(dir, name))
 for (const file of files) execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 const temp = await mkdtemp(join(tmpdir(), 'botters-check-'))
 try {

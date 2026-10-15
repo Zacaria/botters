@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import { createHandler } from '../online/http.js'
-import { MemoryStore, RedisStore } from '../online/store.js'
+import { MemoryStore, ConvexStore } from '../online/store.js'
 
 async function serve(t, store = new MemoryStore(), options = {}) {
   const server = http.createServer((req, res) => handler(req, res))
@@ -29,18 +29,18 @@ test('HTTP rejects cross-origin, invalid JSON/body, missing token and agent stre
   assert.deepEqual(next, { match: null })
 })
 
-test('unconfigured Redis fails closed without leaking credentials or an in-memory fallback', async t => {
-  const s = await serve(t, new RedisStore({}))
+test('unconfigured Convex fails closed without leaking credentials or an in-memory fallback', async t => {
+  const s = await serve(t, new ConvexStore({}))
   const res = await s.post('/session', {})
   assert.equal(res.status, 503)
   assert.deepEqual(await res.json(), { error: 'Online storage is not configured.' })
 })
 
-test('entry deadline aborts slow Redis calls before the function limit', async t => {
+test('entry deadline aborts slow Convex calls before the function limit', async t => {
   const slow = http.createServer((req, res) => { setTimeout(() => { res.setHeader('Content-Type', 'application/json'); res.end('{"result":null}') }, 2000).unref() })
   await new Promise(r => slow.listen(0, '127.0.0.1', r))
   t.after(async () => { slow.closeAllConnections(); await new Promise(r => slow.close(r)) })
-  const store = new RedisStore({ UPSTASH_REDIS_REST_URL: `http://127.0.0.1:${slow.address().port}`, UPSTASH_REDIS_REST_TOKEN: 'never-return-this-test-secret' })
+  const store = new ConvexStore({ CONVEX_URL: `http://127.0.0.1:${slow.address().port}`, CONVEX_DEPLOY_KEY: 'never-return-this-test-secret' })
   const s = await serve(t, store, { requestMs: 80 })
   const start = performance.now(), r = await s.fetch('/lobby?token=' + 'a'.repeat(32))
   assert.equal(r.status, 503)

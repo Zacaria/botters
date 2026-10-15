@@ -34,5 +34,5 @@ try {
     samples.push(performance.now() - start)
   }
   const sorted = [...samples].sort((a, b) => a - b)
-  console.log(JSON.stringify({ fixture: '8-minute/40-planet capacity fixture, 40 stationary swarms per side, merge deferred; synthetic checkpoint at 479.5s advanced by two ticks for each request', storage: 'MemoryStore, localhost HTTP, no Redis network; not Vercel latency', samples: samples.length, p95Ms: sorted[Math.ceil(sorted.length * .95) - 1], requestMs: samples }, null, 2))
+  console.log(JSON.stringify({ fixture: '8-minute/40-planet capacity fixture, 40 stationary swarms per side, merge deferred; synthetic checkpoint at 479.5s advanced by two ticks for each request', storage: 'MemoryStore, localhost HTTP, no durable-store network; not Vercel latency', samples: samples.length, p95Ms: sorted[Math.ceil(sorted.length * .95) - 1], requestMs: samples }, null, 2))
 } finally { server.closeAllConnections(); await new Promise(r => server.close(r)) }

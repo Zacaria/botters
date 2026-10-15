@@ -4,7 +4,7 @@ A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of p
 
 ## Play
 
-Online home: https://botters.vercel.app. Select **Play online** for matchmaking, or **Create room** and share its code/link. House modes still run locally without this server. The `pvp-online` candidate needs a configured Redis store before online play is available; see `docs/pvp-spec.md` and `docs/pvp-release.md` for the verified release state.
+Online home: https://botters.vercel.app. Select **Play online** for matchmaking, or **Create room** and share its code/link. House modes still run locally without this server. The `pvp-online` candidate needs a configured Convex store before online play is available; see `docs/pvp-spec.md` and `docs/pvp-release.md` for the verified release state.
 
 For online MCP play, point your agent to the public server and open the private lobby it returns:
 

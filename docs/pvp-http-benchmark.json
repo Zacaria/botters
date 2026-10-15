@@ -1,6 +1,6 @@
 {
   "fixture": "8-minute/40-planet capacity fixture, 40 stationary swarms per side, merge deferred; synthetic checkpoint at 479.5s advanced by two ticks for each request",
-  "storage": "MemoryStore, localhost HTTP, no Redis network; not Vercel latency",
+  "storage": "MemoryStore, localhost HTTP, no durable-store network; not Vercel latency",
   "samples": 100,
   "p95Ms": 14.150137999999998,
   "requestMs": [
