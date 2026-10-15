@@ -1,6 +1,7 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
 import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { transaction, checkDeadline } from './store.js'
+import { rankPairs } from './ratings.js'
 
 const token = () => randomBytes(24).toString('base64url')
 const hash = s => createHash('sha256').update(s).digest('hex')
@@ -86,9 +87,10 @@ export class OnlineGame {
         for (const [code, r] of Object.entries(idx.rooms)) if (now - r.updated > 86400000) delete idx.rooms[code]
         return idx
       }
+      const updatedRatings = new Map()
       const board = async () => {
-        const b = await tx.get('elo', { players: {} }, 0)
-        return Object.values(b.players).sort((a, b) => b.rating - a.rating || a.name.localeCompare(b.name)).slice(0, 10)
+        const pairs = new Map([...(await tx.get('leaderboard', [], 0)), ...updatedRatings])
+        return rankPairs([...pairs]).slice(0, 10).map(([, entry]) => entry)
       }
       const finish = async m => {
         if (!m.s.ended || m.report) return
@@ -100,18 +102,18 @@ export class OnlineGame {
         }
         const log = chunks.flat().slice(0, m.logCount)
         m.report = m.players.map(p => p.session ? whatIf(m, p, log, this.deadline) : null)
-        const elo = await tx.get('elo', { players: {} }, 0)
-        const ratings = m.players.map(p => {
+        const ratings = await Promise.all(m.players.map(async p => {
           const key = hash(JSON.stringify([p.name, p.setup]))
-          return { key, entry: elo.players[key] || { name: p.name, setup: p.setup, rating: 1000, games: 0 } }
-        })
+          return { key, entry: await tx.get(`elo:${key}`, { name: p.name, setup: p.setup, rating: 1000, games: 0 }, 0) }
+        }))
         const expected = 1 / (1 + 10 ** ((ratings[1].entry.rating - ratings[0].entry.rating) / 400))
         const got = m.s.ended.winner === 0 ? 1 : m.s.ended.winner === null ? .5 : 0
         const delta = Math.round(32 * (got - expected))
         // Same display identity cannot collect two Elo changes from one match.
-        if (ratings[0].key !== ratings[1].key) ratings.forEach(({ key, entry }, side) => {
-          elo.players[key] = { ...entry, rating: entry.rating + (side ? -delta : delta), games: entry.games + 1 }
-        })
+        if (ratings[0].key !== ratings[1].key) for (const [side, { key, entry }] of ratings.entries()) {
+          const value = { ...entry, rating: entry.rating + (side ? -delta : delta), games: entry.games + 1 }
+          await tx.set(`elo:${key}`, value, 0); updatedRatings.set(key, value)
+        }
         for (const p of m.players) if (p.session) {
           const s = await loadSession(p.session)
           if (s) s.history = [{ matchId: m.id, ...m.report[p.side], vs: opponent(m, p.side).name, reason: m.s.ended.reason }, ...s.history].slice(0, 10)

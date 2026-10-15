@@ -66,6 +66,7 @@ try {
   // Cold/repeated HTTP reads exercise the same match while both agent processes poll.
   for (let i = 0; i < 30; i++) await request(`/state?token=${humanTokens[i % 2]}`)
   const cadence = await streams
+  assert.ok(cadence.every(s => s.fps >= 10), `Streams below 10fps: ${cadence.map(s => s.fps.toFixed(2)).join(', ')}`)
   const deadline = Date.now() + 240000
   let states
   do {

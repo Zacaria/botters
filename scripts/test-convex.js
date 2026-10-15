@@ -1,7 +1,7 @@
 // Actual configured Convex backend. Isolated expiring fixtures; no inference or tokens in output.
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { ConvexStore } from '../online/store.js'
+import { ConvexStore, transaction } from '../online/store.js'
 import { OnlineGame } from '../online/game.js'
 const env = { ...process.env, BOTTERS_NAMESPACE: `integration-${randomUUID()}` }
 const store = new ConvexStore(env)
@@ -22,10 +22,24 @@ await store.commit([entry('guard', null, 'unchanged', .5)])
 await store.commit([entry('guard', 'unchanged', '', 100)])
 await new Promise(r => setTimeout(r, 550))
 assert.equal(await store.get('guard'), null, 'Read-only guard must not refresh TTL')
+await store.commit([entry('cache-expiry', null, '"expired"', .2)])
+const cached = new ConvexStore(env).scoped()
+await cached.get('cache-expiry'); await new Promise(r => setTimeout(r, 300))
+assert.equal(await transaction(cached, tx => tx.get('cache-expiry')), null, 'CAS rejects expired invocation-cache records')
 const isolated = new ConvexStore({ ...env, BOTTERS_NAMESPACE: `${env.BOTTERS_NAMESPACE}-other` })
 assert.equal(await isolated.get('a'), null)
+const boardStore = new ConvexStore({ ...env, BOTTERS_NAMESPACE: `${env.BOTTERS_NAMESPACE}-board` })
+const ratings = Array.from({ length: 14 }, (_, i) => entry(`elo:${i.toString(16).padStart(64, '0')}`, null, JSON.stringify({ name: `p${i}`, setup: 'fixture', rating: 1000 + i, games: 1 }), 0))
+assert.equal(await boardStore.commit(ratings), 1)
+const beforeBoard = await boardStore.get('leaderboard'), pairs = JSON.parse(beforeBoard)
+assert.equal(pairs.length, 12); assert.equal(pairs[0][1].rating, 1013)
+const top = ratings.at(-1), lower = JSON.stringify({ ...JSON.parse(top.value), rating: 900 })
+assert.equal(await boardStore.commit([entry(top.key, top.value, lower, 0)]), 1)
+assert.equal(await boardStore.commit([entry('leaderboard', beforeBoard, '', 0)]), 0, 'Indexed leaderboard participates in CAS')
+assert.equal(JSON.parse(await boardStore.get('leaderboard'))[0][1].rating, 1012)
+await boardStore.commit(ratings.map(e => entry(e.key, e === top ? lower : e.value, e === top ? lower : e.value, 1)))
 for (const kind of ['query', 'mutation']) {
-  const r = await fetch(`${store.url}/api/${kind}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: kind === 'query' ? 'store:get' : 'store:commit', args: kind === 'query' ? { key: store.prefix + 'a', now: Date.now() } : { entries: [] }, format: 'json' }) })
+  const r = await fetch(`${store.url}/api/${kind}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: kind === 'query' ? 'store:get' : 'store:commit', args: kind === 'query' ? { keys: [store.prefix + 'a'], now: Date.now() } : { entries: [] }, format: 'json' }) })
   assert.ok(!r.ok || (await r.json()).status === 'error', 'Internal store must reject anonymous invocation')
 }
 let now = Date.now()

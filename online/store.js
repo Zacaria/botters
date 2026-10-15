@@ -1,4 +1,5 @@
 // Atomic optimistic transactions. No application state is retained in a Vercel instance.
+import { boardNamespace, ratingKey, rankPairs } from './ratings.js'
 export function checkDeadline(deadline = Infinity) {
   if (performance.now() >= deadline) throw Object.assign(new Error('Request timed out. Retry shortly.'), { status: 503, code: 'DEADLINE' })
 }
@@ -25,24 +26,48 @@ export class ConvexStore {
       throw Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })
     }
   }
-  // Include time in the query arguments so a cached query cannot outlive its TTL.
-  get(key, options) { return this.call('query', 'store:get', { key: this.prefix + key, now: Date.now() }, options) }
-  commit(entries, options) {
-    return this.call('mutation', 'store:commit', { entries: entries.map(e => ({ ...e, key: this.prefix + e.key })) }, options)
+  // Cache is invocation-local and only speculative: every response must pass CAS.
+  scoped() { const store = Object.create(this); store.cache = new Map(); return store }
+  async get(key, options = {}) {
+    if (!options.fresh && this.cache?.has(key)) return this.cache.get(key)
+    const [value] = await this.call('query', 'store:get', { keys: [this.prefix + key], now: Date.now() }, options)
+    if (!options.fresh) this.cache?.set(key, value)
+    return value
+  }
+  async commit(entries, options) {
+    const ok = await this.call('mutation', 'store:commit', { entries: entries.map(e => ({ ...e, key: this.prefix + e.key })) }, options)
+    if (this.cache) {
+      if (ok) for (const e of entries) this.cache.set(e.key, e.value === '' ? e.raw : e.value)
+      else {
+        const values = await this.call('query', 'store:get', { keys: entries.map(e => this.prefix + e.key), now: Date.now() }, options)
+        entries.forEach((e, i) => this.cache.set(e.key, values[i]))
+      }
+    }
+    return ok
   }
 }
 
 // Test/development adapter only. Production always constructs ConvexStore.
 export class MemoryStore {
   constructor(now = Date.now) { this.data = new Map(); this.now = now }
-  async get(key) {
+  raw(key) {
+    const namespace = boardNamespace(key)
+    if (namespace !== null) {
+      const pairs = []
+      for (const [k, r] of this.data) {
+        const rating = ratingKey(k)
+        if (rating?.[1] === namespace && (!r.expires || r.expires > this.now())) pairs.push([rating[2], JSON.parse(r.value)])
+      }
+      return JSON.stringify(rankPairs(pairs).slice(0, 12))
+    }
     const r = this.data.get(key)
     return r && (!r.expires || r.expires > this.now()) ? r.value : null
   }
+  async get(key) { return this.raw(key) }
   async commit(entries) {
     // No awaits between the compare and write phases: same atomic boundary as Lua.
     for (const e of entries) {
-      const r = this.data.get(e.key), current = r && (!r.expires || r.expires > this.now()) ? r.value : null
+      const current = this.raw(e.key)
       if (current !== e.raw) return 0
     }
     for (const e of entries) if (e.value !== '') this.data.set(e.key, { value: e.value, expires: e.ttl ? this.now() + e.ttl * 1000 : 0 })
@@ -65,7 +90,7 @@ export async function transaction(store, fn, { deadline = Infinity } = {}) {
       },
       async set(key, value, ttl = 86400) { await this.get(key, null, ttl); records.get(key).object = value },
       // For append-only logs guarded by the checkpoint's logCount CAS.
-      async read(key) { const raw = await store.get(key, { deadline }); checkDeadline(deadline); return raw ? JSON.parse(raw) : null },
+      async read(key) { const raw = await store.get(key, { deadline, fresh: true }); checkDeadline(deadline); return raw ? JSON.parse(raw) : null },
     }
     let result, failure
     try { result = await fn(tx) } catch (e) { if (!e.status || e.code === 'DEADLINE') throw e; failure = e }

@@ -16,7 +16,7 @@ export function createHandler(store, options = {}) {
       const origin = options.origin || `https://${req.headers.host}`
       const url = new URL(req.url, origin), path = url.searchParams.get('route') || url.pathname
       if (req.headers.origin && req.headers.origin !== origin) return json(res, 403, { error: 'Use the game from its own site.' })
-      const game = new OnlineGame(store, { ...options, origin, deadline })
+      const game = new OnlineGame(store.scoped?.() || store, { ...options, origin, deadline })
       let body = {}
       if (req.method === 'POST') {
         // Node IncomingMessage in tests, Vercel may preparse req.body.

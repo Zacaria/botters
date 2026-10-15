@@ -16,13 +16,13 @@ async function backend(t, respond) {
 }
 
 test('Convex sends one internal query or atomic mutation, with server-only authorization and isolated keys', async t => {
-  const { calls, store } = await backend(t, (req, res) => res.end(JSON.stringify({ status: 'success', value: req.url === '/api/query' ? 'raw-value' : 1 })))
+  const { calls, store } = await backend(t, (req, res) => res.end(JSON.stringify({ status: 'success', value: req.url === '/api/query' ? ['raw-value'] : 1 })))
   assert.equal(await store.get('session:x'), 'raw-value')
   assert.equal(await store.commit([{ key: 'a', raw: null, value: 'new', ttl: 60 }, { key: 'b', raw: 'guard', value: '', ttl: 0 }]), 1)
   assert.equal(calls.length, 2)
   assert.equal(calls[0].path, '/api/query'); assert.equal(calls[0].body.path, 'store:get')
   assert.equal(calls[0].auth, 'Convex test-only-secret')
-  assert.equal(calls[0].body.args.key, 'botters:production:session:x')
+  assert.deepEqual(calls[0].body.args.keys, ['botters:production:session:x'])
   assert.ok(Number.isFinite(calls[0].body.args.now))
   assert.equal(calls[1].path, '/api/mutation'); assert.equal(calls[1].body.path, 'store:commit')
   assert.deepEqual(calls[1].body.args.entries, [{ key: 'botters:production:a', raw: null, value: 'new', ttl: 60 }, { key: 'botters:production:b', raw: 'guard', value: '', ttl: 0 }])

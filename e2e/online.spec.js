@@ -11,7 +11,16 @@ async function enter(page, name) {
   await page.locator('#startSolo').click()
   await expect(page.locator('#quick')).toBeVisible()
 }
-async function ended(page) { await expect(page.locator('#again')).toBeVisible({ timeout: endTimeout }) }
+async function ended(page) {
+  try { await expect(page.locator('#again')).toBeVisible({ timeout: endTimeout }) }
+  catch (e) {
+    console.error('End-report diagnostic:', await page.evaluate(async () => {
+      const state = await fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json())
+      return { options: state.options, startsIn: state.startsIn, tick: state.view?.tick, ended: state.view?.ended, report: !!state.report, error: state.error, connection: document.querySelector('#connection')?.textContent, screen: document.querySelector('#big')?.textContent?.slice(0, 300) }
+    }).catch(() => ({ error: 'Could not read final state' })))
+    throw e
+  }
+}
 
 test('two isolated browsers match, survive disconnect/reload, and see end reports', async ({ page, browser }) => {
   const other = await browser.newContext(), b = await other.newPage()
