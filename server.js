@@ -272,6 +272,7 @@ const srv = http.createServer(async (req, res) => {
     await route(req, res, u.searchParams)
   } catch (e) { console.error(e); if (res.headersSent) res.end(); else json(res, 400, { error: String(e.message || e) }) }
 }).listen(PORT, process.env.BOTTERS_HOST || '127.0.0.1', () => console.error(`botters server on ${ORIGIN}`))
+export const listening = new Promise((ok, ko) => srv.once('listening', ok).once('error', ko)) // importers handle EADDRINUSE
 if (process.env.BOTTERS_IDLE_EXIT) { // started by an agent: exit after ~90 s with no agent, no live match and no open game page
   let idle = 0
   setInterval(() => {

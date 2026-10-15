@@ -3,7 +3,8 @@
 // The agent writes the gambits; the game server runs them 20 times per second. No model in the real-time loop.
 // Flow: join_match opens your lobby in the browser, waits until you press Play, then the agent plays with you.
 import { spawn } from 'node:child_process'
-try { process.loadEnvFile(new URL('.env', import.meta.url).pathname) } catch {} // optional local settings
+import { fileURLToPath } from 'node:url'
+try { process.loadEnvFile(fileURLToPath(new URL('.env', import.meta.url))) } catch {} // optional local settings
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
@@ -12,9 +13,12 @@ const env = process.env
 const SERVER = (env.BOTTERS_SERVER || 'http://localhost:8787').replace(/\/$/, '')
 const up = () => fetch(SERVER + '/rules').then(r => r.ok, () => false)
 if (!env.BOTTERS_SERVER && !(await up())) {
-  if (process.stdin.isTTY) { env.PORT = '8787'; await import('./server.js') } // run from a terminal: host the game here until Ctrl+C
+  if (process.stdin.isTTY) { // run from a terminal: host the game here until Ctrl+C
+    env.PORT = '8787'; const srv = await import('./server.js')
+    try { await srv.listening } catch (e) { if (e.code !== 'EADDRINUSE' || !(await up())) throw e } // started twice at once: use the other one
+  }
   else { // agent: start the game as its own process, shared by every agent on this machine; it exits once idle
-    spawn(process.execPath, [new URL('server.js', import.meta.url).pathname], { detached: true, stdio: 'ignore', env: { ...env, PORT: '8787', BOTTERS_IDLE_EXIT: '1' } }).unref()
+    spawn(process.execPath, [fileURLToPath(new URL('server.js', import.meta.url))], { detached: true, stdio: 'ignore', env: { ...env, PORT: '8787', BOTTERS_IDLE_EXIT: '1' } }).unref()
     for (let i = 0; i < 50 && !(await up()); i++) await new Promise(r => setTimeout(r, 100)) // two agents racing: the loser's server exits on EADDRINUSE, both use the winner's
   }
 }
