@@ -76,6 +76,7 @@ GET  /rules                                             → every condition and 
 </table>
 </main>
 <script>
+if (!/^(localhost|127\.)/.test(location.hostname)) document.getElementById('back').hidden = true // public site: the game runs on the player's machine
 for (const pre of document.querySelectorAll('pre')) {
   const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'copy'
   b.onclick = () => navigator.clipboard.writeText(pre.firstChild.textContent).then(() => { b.textContent = 'copied' })
