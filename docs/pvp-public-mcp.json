@@ -1,0 +1,32 @@
+{
+  "server": "https://botters.vercel.app",
+  "matchId": "tQAtj_4bscKHidSl4dU4iGBkxpc0wEp8",
+  "clients": 2,
+  "transport": "real stdio MCP",
+  "elapsedMs": 204908.63922,
+  "results": [
+    {
+      "result": "draw",
+      "you": 20232,
+      "enemy": 20232
+    },
+    {
+      "result": "draw",
+      "you": 20232,
+      "enemy": 20232
+    }
+  ],
+  "streams": [
+    {
+      "frames": 40,
+      "fps": 12.846795704830392
+    },
+    {
+      "frames": 40,
+      "fps": 12.362230160128547
+    }
+  ],
+  "requestSamples": 36,
+  "requestP95Ms": 368.2799970000001,
+  "note": "Same-host clients; not two physical machines/networks. 3-minute/40-planet functional test, not the 8-minute/80-swarm capacity fixture."
+}

@@ -1,0 +1,145 @@
+{
+  "task": "t_ee4ad7df",
+  "result": "PASS",
+  "verifiedAt": "2026-10-15T22:51:17.041Z",
+  "candidate": "e0bb1b3578683886926c190e3a4cd96a78534526",
+  "deployment": "dpl_J8CDHXNBqZZZLf9eMAy49tQ2JL8y",
+  "previewUrl": "https://botters-bjufeb6ce-zacaria-chtatars-projects.vercel.app",
+  "hosts": [
+    {
+      "browser": "153.0.8010.37",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    {
+      "browser": "155.0.8059.80",
+      "platform": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "scope": "Actual physical Linux + Mac machines with shared network/public egress, explicitly accepted in current task. No independent-network claim.",
+  "checks": {
+    "candidateAssetParity": "PASS",
+    "twoPhysicalMachines": "PASS",
+    "quickMatchmakingBothReports": "PASS",
+    "disconnectReloadSameMatch": "PASS",
+    "quickHistoryAfterNewBrowserContexts": "PASS",
+    "privateRoomJoinHostStartBothReports": "PASS",
+    "sameRoomRematchNewMatchBothReports": "PASS",
+    "persistedEloHistoryFreshClient": "PASS",
+    "exactGameCountsNoDuplicateRatings": "PASS"
+  },
+  "durable": [
+    {
+      "label": "quick-and-first-room",
+      "matchId": "mTNUYzve1K7NaUlAf81U564Q_x8UStUE",
+      "roomCode": "G5CKM8",
+      "identities": [
+        {
+          "name": "QA Linux mva4b7xe",
+          "historyCount": 2,
+          "historyMatchIds": [
+            "mTNUYzve1K7NaUlAf81U564Q_x8UStUE",
+            "rlZg95O8P_KAKRupIkKeAmlh4sDh1MAk"
+          ],
+          "rating": {
+            "name": "QA Linux mva4b7xe",
+            "setup": "no agent",
+            "rating": 969,
+            "games": 2
+          }
+        },
+        {
+          "name": "QA Mac mva4b7xe",
+          "historyCount": 2,
+          "historyMatchIds": [
+            "mTNUYzve1K7NaUlAf81U564Q_x8UStUE",
+            "rlZg95O8P_KAKRupIkKeAmlh4sDh1MAk"
+          ],
+          "rating": {
+            "name": "QA Mac mva4b7xe",
+            "setup": "no agent",
+            "rating": 1031,
+            "games": 2
+          }
+        }
+      ],
+      "storedReportsMatchBothBrowserReports": true
+    },
+    {
+      "label": "room-rematch",
+      "matchId": "6Ua0Pst86LyCmJcDD6WLESB5Q6DgG9xR",
+      "roomCode": "D28WX6",
+      "identities": [
+        {
+          "name": "QA Linux mva4lhql",
+          "historyCount": 2,
+          "historyMatchIds": [
+            "6Ua0Pst86LyCmJcDD6WLESB5Q6DgG9xR",
+            "f_LOiesNZuvpUn4X1SHcNS9_mIW2aWTb"
+          ],
+          "rating": {
+            "name": "QA Linux mva4lhql",
+            "setup": "no agent",
+            "rating": 1001,
+            "games": 2
+          }
+        },
+        {
+          "name": "QA Mac mva4lhql",
+          "historyCount": 2,
+          "historyMatchIds": [
+            "6Ua0Pst86LyCmJcDD6WLESB5Q6DgG9xR",
+            "f_LOiesNZuvpUn4X1SHcNS9_mIW2aWTb"
+          ],
+          "rating": {
+            "name": "QA Mac mva4lhql",
+            "setup": "no agent",
+            "rating": 999,
+            "games": 2
+          }
+        }
+      ],
+      "storedReportsMatchBothBrowserReports": true
+    }
+  ],
+  "production": {
+    "url": "https://botters.vercel.app",
+    "status": 200,
+    "title": "Botters · plug your agent",
+    "promotionPerformed": false
+  },
+  "repository": {
+    "head": "9cbeb34dffc83eaeec731446945154919be3b845",
+    "trackedAndUntrackedStatus": "",
+    "runtimeDiffFromCandidate": "",
+    "evidenceOnlyHeadDrift": true
+  },
+  "harnessWarnings": [
+    {
+      "file": "two-machine-result.json",
+      "failure": "The expression evaluated to a falsy value:\n\n  assert.ok((await a('text',{selector:'#roomReady'})).includes('1/2 ready'))\n",
+      "resolution": "Immediate stale-text assertion replaced by awaited text condition. Follow-up verified 1/2 readiness, both rematch starts and both reports."
+    },
+    {
+      "file": "two-machine-room-result.json",
+      "failure": "Linux: locator.waitFor: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#quick') to be visible\n    44 × locator resolved to hidden <button disabled id=\"quick\" class=\"main\">Play online</button>\n",
+      "resolution": "Post-report waiter incorrectly required quick matchmaking UI inside a private room, where online controls are intentionally hidden. No gameplay replay performed. Fresh separate-process Convex client verified both session histories/reports and Elo against both browser readbacks."
+    }
+  ],
+  "unverified": [
+    "Independent-network behavior (not required by current authorization).",
+    "Private-room browser-context recreation after rematch (harness stopped at incorrect quick-control waiter); durable room/rematch persistence independently read from Convex instead.",
+    "Final browser pageerror/5xx aggregate was not collected because harness stopped; no provider quota refusal observed."
+  ],
+  "mutations": "Only disposable preview gameplay sessions, queue, room, match, history and Elo. No promotion, deployments, Git edits, DNS, protection changes, spending or unrelated data writes.",
+  "commands": [
+    "node verify-two-machines.mjs",
+    "node verify-two-machines.mjs --room-only",
+    "node reconcile-evidence.mjs"
+  ],
+  "rawEvidence": [
+    "two-machine-result.json",
+    "two-machine-room-result.json"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "verifiedAt": "2026-10-15T22:56:41.852Z",
+  "url": "https://botters.vercel.app",
+  "deploymentId": "dpl_8NGD6iBZSoiG5aq7msqJj2W4SjZJ",
+  "runtimeSource": "e0bb1b3578683886926c190e3a4cd96a78534526",
+  "assets": [
+    {
+      "file": "index.html",
+      "status": 200,
+      "sourceSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+      "deployedSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+      "bytes": 37666
+    },
+    {
+      "file": "guide.html",
+      "status": 200,
+      "sourceSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+      "deployedSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+      "bytes": 6662
+    },
+    {
+      "file": "sim.js",
+      "status": 200,
+      "sourceSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "deployedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "bytes": 14356
+    }
+  ],
+  "namespaceIsolation": "PASS: public-site bearer exists in botters:production: and not botters:preview:",
+  "home": {
+    "status": 200,
+    "title": "Botters",
+    "soloButton": "Enter"
+  },
+  "guide": {
+    "status": 200,
+    "publicUrlDocumented": true
+  },
+  "pageErrors": [],
+  "result": "PASS",
+  "completedAt": "2026-10-15T23:04:58.655439+00:00",
+  "deployedSource": "0bf8c077b1a8f405c49066d39d7dace2cf085dc9",
+  "promotion": "Existing production-target deployment promoted; exact public-domain Vercel inspection resolves to deploymentId",
+  "browser": {
+    "result": "PASS",
+    "scenarios": 4,
+    "duration": "9.6m",
+    "evidence": "pvp-public-browser.txt",
+    "physicalMachines": 1
+  },
+  "mcp": {
+    "result": "PASS",
+    "evidence": "pvp-public-mcp.json",
+    "physicalMachines": 1
+  },
+  "twoMachine": {
+    "result": "PASS",
+    "evidence": "pvp-two-machine-pass.json",
+    "target": "Pinned preview with identical runtime; Linux + Mac, shared egress accepted"
+  },
+  "checks": {
+    "unitTests": "37/37 PASS",
+    "localBrowser": "4/4 PASS",
+    "syntax": "PASS; 31 JS files, inline scripts and JSON",
+    "build": "PASS; three public assets",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "packageDryRun": "8 expected files; no secrets/backend persistence modules",
+    "diffCheck": "PASS"
+  },
+  "commands": [
+    "Cached vercel 64.2.0 inspect staged deployment; promote staged URL --yes; inspect https://botters.vercel.app",
+    "BOTTERS_SERVER=https://botters.vercel.app npm run test:online",
+    "BOTTERS_SERVER=https://botters.vercel.app npm run test:browser",
+    "npm test && npm run check && npm run build",
+    "npm run test:browser",
+    "npm audit --omit=dev",
+    "npm pack --dry-run --json",
+    "git diff --check"
+  ],
+  "limits": [
+    "No separate lint/type/formatter configuration.",
+    "Public physical-host and 8-minute capacity fixtures not repeated; prior pinned-runtime evidence retained.",
+    "Unpinned Vercel 64.3.1 dependency failed to resolve; cached 64.2.0 performed promotion.",
+    "Free Convex usage previously exceeded stated byte entitlement; no actual refusal observed, no paid plan selected.",
+    "Names/setup are unverified casual Elo identities; authentication is a separate card."
+  ],
+  "deletions": "None in this continuation; earlier Redis test/adapter removal is documented in pvp-release.md"
+}

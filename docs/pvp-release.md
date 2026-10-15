@@ -1,14 +1,14 @@
 # PvP release state
 
-## Status: preview verified; two-machine acceptance pending
+## Status: production verified; ready for independent review
 
-Task `t_65971d2d`, branch `pvp-online`. Production https://botters.vercel.app still serves **Botters · plug your agent**, the original guide (HTTP 200 read back). It has not been promoted to the game.
+Task `t_65971d2d`, branch `pvp-online`. **https://botters.vercel.app now serves the game**, title **Botters**, with HTTP 200 and unauthenticated Brave readback. The existing production-target deployment `dpl_8NGD6iBZSoiG5aq7msqJj2W4SjZJ` was promoted after release QA passed. Exact public-domain inspection resolves to that deployment; no rebuild or environment reassignment was needed.
 
 Runtime candidate: signed `e0bb1b3578683886926c190e3a4cd96a78534526`, pushed and read back on `origin/pvp-online`. Preview https://botters-bjufeb6ce-zacaria-chtatars-projects.vercel.app is READY, deployment `dpl_J8CDHXNBqZZZLf9eMAy49tQ2JL8y`, API in iad1. Later evidence-only commits do not change its runtime source.
 
-The owner-side scope correction on `t_ee4ad7df` requires **two physical machines, Linux + Mac**, not separate networks. Shared egress is a limitation to record, not a blocker. Same-host browser contexts still do not satisfy this gate. Release QA is assigned that existing host pair; no new infrastructure or spending is needed.
+The owner-side scope correction on `t_ee4ad7df` requires **two physical machines, Linux + Mac**, not separate networks. **Release QA passed** on the pinned preview/runtime: matchmaking/both reports, same-match disconnect/reload, private-room join/start, completed same-room rematch and fresh durable Elo/history with exact game counts. Evidence: `pvp-two-machine-pass.json` (copied from attachment 176), with raw secret-free archive attachment 177 on the QA card. Shared egress is disclosed and accepted; no independent-network claim. Room-browser context recreation and the final pageerror/5xx aggregate were not collected by that harness; fresh-process Convex readback reconciled its stale-text/incorrect quick-button waiters. Quick-match browser-context recreation passed.
 
-Staged production is also READY: https://botters-bzspc5sus-zacaria-chtatars-projects.vercel.app, `dpl_8NGD6iBZSoiG5aq7msqJj2W4SjZJ`, target Production, API iad1. It was built from signed evidence-only `0bf8c077b1a8f405c49066d39d7dace2cf085dc9` with identical runtime bytes to `e0bb1b3`, using `--prod --skip-domain`. Vercel assigned its generated team alias, but **botters.vercel.app still points to the old guide**. No public-domain promotion is claimed.
+Production is READY: https://botters-bzspc5sus-zacaria-chtatars-projects.vercel.app, `dpl_8NGD6iBZSoiG5aq7msqJj2W4SjZJ`, target Production, API iad1. It was built from signed evidence-only `0bf8c077b1a8f405c49066d39d7dace2cf085dc9` with identical runtime bytes to `e0bb1b3`, initially using `--prod --skip-domain`. The later successful promote operation assigned **botters.vercel.app** to this exact deployment; fresh public assets match source byte-for-byte.
 
 ## Dedicated free Convex resource
 
@@ -51,11 +51,16 @@ Permanent aggregate Elo could exceed Convex's 1 MiB document limit. It is now on
 
 No database was reset or deleted. `sim.js` and offline `server.js` are unchanged from baseline. Deleted `scripts/test-redis.js`; replaced it with `scripts/test-convex.js`. The old durable adapter/Lua and provider references were removed, not retained as compatibility code. Generated bindings, build outputs, dependency caches, credentials and traces remain ignored.
 
+## Production promotion and public verification
+
+The cached Vercel 64.2.0 CLI promoted the existing production-target deployment and inspected **https://botters.vercel.app** back to `dpl_8NGD6iBZSoiG5aq7msqJj2W4SjZJ`. Default unpinned `npx vercel` failed before any operation because its new 64.3.1 dependency `@vercel/build-utils@14.21.2` was unavailable; no project dependencies were changed to work around it.
+
+Public HTTP/Brave readback passes without a protection-bypass header: game home title `Botters`, usable `Enter` action, guide documents the exact public server URL, all three assets match the source hashes, configured server secrets are absent, and a freshly created public-site bearer exists only in `botters:production:`, not preview. Actual public-site two-MCP match completed in **204,908.64 ms**, both reports/history present, 20,232–20,232 draw, **12.85/12.36 fps**, 36 HTTP samples **p95 368.28 ms**. This is a real-clock three-minute/40-planet match from two Linux processes, not another two-physical-machine test or the eight-minute capacity fixture.
+
+Public Brave verification passed **4/4 in 9.6 minutes**, with real-clock matches: initial-stream 503 retry, quick matchmaking/cancel/disconnect/reload/both reports, private-room link/host start/both reports/completed same-room rematch/two-entry history, and saved opening/solo preference privacy. No page errors were observed by the suite. Secret-free evidence is preserved as `pvp-public-release.json`, `pvp-public-mcp.json`, and `pvp-public-browser.txt` alongside the copied QA result. Prior staged evidence retains its historical pre-promotion observations and intentionally cancelled duplicate browser suite; it is not a current domain-status claim. The eight-minute/80-swarm capacity fixture was not repeated on the public alias; its prior live Convex result remains the capacity evidence for the identical runtime.
+
 ## Exact continuation
 
-1. Finish the two-physical-machine acceptance on `t_ee4ad7df`, using Linux + Mac against the pinned preview. Exercise matchmaking/both reports, disconnect/reload of the same match, room finish/rematch and persisted Elo/history. Record shared egress, not a request for another network. Its earlier attachment 173 records the now-superseded network requirement, **not** a current failure of the two-machine scenario.
-2. Reuse the already verified production-target deployment above; no rebuild is needed. Its namespace, assets and complete two-MCP match have been verified. Keep the old guide serving until the actual two-machine gate passes.
-3. After that gate passes, run `npx vercel promote https://botters-bzspc5sus-zacaria-chtatars-projects.vercel.app --yes`, then read back the exact assignment of **botters.vercel.app** (current old guide deployment `dpl_4Xs8LQqFGcLSq6Ycw9EM1fXZVKWX`). Alternatively, promoting the preview triggers a production rebuild with production environment variables, so record the **new** production deployment ID and reverify it; never assume preview bytes/environment were simply re-aliased. Vercel reference: https://vercel.com/docs/deployments/promoting-a-deployment.
-4. Repeat acceptance/readback on https://botters.vercel.app, including both real MCP clients, reports/history and game-home routing. Confirm the production namespace is separate from preview, then hand the exact signed source/deployment to review.
+Independently review the runtime source `e0bb1b3578683886926c190e3a4cd96a78534526`, exact production deployment above, public evidence and the Linux+Mac QA attachment. The owning builder preserves this evidence-only increment as a signed commit on `origin/pvp-online`; its exact SHA is recorded in the Kanban review handoff. No new deployment, migration, paid plan, additional network gate or domain promotion is needed. Authentication/verified identity remains separately scoped on `t_d5e91f48`; current display-name Elo is explicitly casual and unverified.
 
 No separate lint/type/formatter configuration exists; syntax checks are reported instead. Vercel's Node `>=22` future-major warning and injected npm `cache-dir` warning remain unsuppressed. Convex deployment reported an optional CLI update, cross-filesystem temporary-directory advisory and optional AI-files notice; deployments succeeded. No paid inference was invoked.
