@@ -1,0 +1,56 @@
+{
+  "generatedAtUtc": "2026-10-15T22:31:14.056555+00:00",
+  "sourceCommit": "e0bb1b3578683886926c190e3a4cd96a78534526",
+  "sourceSignature": "G",
+  "deploymentId": "dpl_J8CDHXNBqZZZLf9eMAy49tQ2JL8y",
+  "url": "https://botters-bjufeb6ce-zacaria-chtatars-projects.vercel.app",
+  "convex": {
+    "team": "botters",
+    "teamId": 548276,
+    "project": "botters",
+    "projectId": 3220896,
+    "deployment": "fastidious-kookabura-364",
+    "region": "US East, Northern Virginia",
+    "freeTeamSubscriptionReadback": null,
+    "functions": "internal query get, internal mutation commit, internal mutation expire; exact backend metadata and real integration read back"
+  },
+  "checks": {
+    "unitTests": 37,
+    "localBraveScenarios": 4,
+    "localBrowserClockMultiplier": 10,
+    "remoteBraveScenarios": 4,
+    "remoteBrowserClockMultiplier": 1,
+    "remoteBrowserElapsed": "9.1 minutes",
+    "actualConvexIntegration": "PASS: CAS/no partial writes/concurrent winner, TTL including cache/guards, namespace isolation, indexed leaderboard CAS, anonymous denial, shared 5/s, exactly-once history/Elo, new-instance resume",
+    "syntax": "31 JS files plus inline scripts/JSON passed",
+    "build": "3 public assets",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "package": "8 intended files; no backend/credentials/fixtures/caches",
+    "deployInputs": "57 files scanned; no .env, cache, dependencies or actual deployment/bypass credentials",
+    "diffCheck": "PASS",
+    "independentReadOnlyAdversarialReview": "No concrete blocker verified; final 37 tests independently passed; not a substitute for external acceptance"
+  },
+  "productionReadback": {
+    "status": 200,
+    "title": "Botters \u00b7 plug your agent",
+    "onlineHome": false,
+    "promoted": false
+  },
+  "remainingGate": {
+    "task": "t_ee4ad7df",
+    "status": "READY_FOR_TWO_MACHINE_QA",
+    "requirement": "Two physical machines, Linux plus Mac; shared network/egress permitted by the owner-side scope correction. Same-host contexts do not count.",
+    "decisionSource": "default comment on t_ee4ad7df, 2026-10-15; delivered directly to builder mid-run",
+    "supersededNetworkProbe": {
+      "attachmentId": 173,
+      "evidenceSha256": "3a8ba7fe252f0b2ef7cd8786e5b0ffb5da95f572d98f80a4ae1e62e7e34281e1",
+      "finding": "Existing Linux, Mac and Windows hosts share egress. The second-network requirement was subsequently dropped; it is not a current blocker."
+    }
+  },
+  "artifacts": {
+    "pvp-convex-mcp.json": "44e937b243d89676f13d0b3b5ae93509eff3de40bf7c5a4ae337ec0586f3a097",
+    "pvp-convex-capacity.json": "da53ffec49732c5f6ea6ab2e1ea233ff3352084f97a0d841b4eb5e3c67f7d57d",
+    "pvp-convex-browser.txt": "8e70606ffb3bd0b3c1b12acc59f823b9bc6087ef0a98e089b59086ca3c6d1371",
+    "pvp-convex-assets.json": "d091ebc6b66f93ba67130ed81b23705dd63f5d75c19c2336592536edca55d412"
+  }
+}

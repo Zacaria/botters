@@ -49,7 +49,7 @@ The browser explicitly reopens an EventSource that permanently closes after an i
 
 ## Acceptance
 
-- Two real browsers on two machines/networks: matchmaking pairs them, a full match runs, both see the end report.
+- Two real browsers on two physical machines (Linux + Mac; shared network/egress permitted by the 2026-10-15 owner-side scope correction): matchmaking pairs them, a full match runs, both see the end report.
 - Custom room: create, share code, join, start, finish, rematch.
 - Two MCP agents (`client.js` with `BOTTERS_SERVER` set to production) play a full match online.
 - Disconnect and reload during a match resume the same match.

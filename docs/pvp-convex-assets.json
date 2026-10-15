@@ -1,0 +1,38 @@
+{
+  "sourceCommit": "e0bb1b3578683886926c190e3a4cd96a78534526",
+  "deployment": "dpl_J8CDHXNBqZZZLf9eMAy49tQ2JL8y",
+  "url": "https://botters-bjufeb6ce-zacaria-chtatars-projects.vercel.app",
+  "state": "READY",
+  "region": "iad1",
+  "match": "All three assets match source; only the exact deployment-specific Vercel toolbar trailer may follow HTML.",
+  "serverSecretsAbsentFromAssets": true,
+  "assets": [
+    {
+      "file": "index.html",
+      "status": 200,
+      "sourceSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+      "deployedSha256": "888f6e5a38057d95752f3e8f838114eda9295703dcb87403ccdd74bfaa5819a7",
+      "sourceBytes": 37666,
+      "deployedBytes": 37829,
+      "vercelToolbarInjected": true
+    },
+    {
+      "file": "guide.html",
+      "status": 200,
+      "sourceSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+      "deployedSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+      "sourceBytes": 6662,
+      "deployedBytes": 6662,
+      "vercelToolbarInjected": false
+    },
+    {
+      "file": "sim.js",
+      "status": 200,
+      "sourceSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "deployedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "sourceBytes": 14356,
+      "deployedBytes": 14356,
+      "vercelToolbarInjected": false
+    }
+  ]
+}

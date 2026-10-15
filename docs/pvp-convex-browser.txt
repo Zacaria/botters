@@ -1,0 +1,11 @@
+
+Running 4 tests using 1 worker
+
+  ✓  1 e2e/online.spec.js:25:1 › a transient initial stream 503 reopens the same match and receives frames (4.3s)
+  ✓  2 e2e/online.spec.js:35:1 › two isolated browsers match, survive disconnect/reload, and see end reports (3.3m)
+  ✓  3 e2e/online.spec.js:62:1 › room link joins, host starts, both finish and rematch in the same room (5.6m)
+  ✓  4 e2e/online.spec.js:90:1 › invite respects saved solo/opening preferences without disclosing host rules (6.0s)
+
+  Slow test file: e2e/online.spec.js (9.1m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  4 passed (9.1m)
