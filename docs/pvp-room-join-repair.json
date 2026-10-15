@@ -1,0 +1,163 @@
+{
+  "verifiedAt": "2026-10-15T23:22:04.480932+00:00",
+  "result": "PASS",
+  "runtimeSource": "4211338e69808ef7fdeace783d10273b10e2a41a",
+  "previewDeploymentId": "dpl_3m6sxR5vAfn8XgpTRJxsgmK6CTBS",
+  "productionDeploymentId": "dpl_Ar7aNQXBSbLJ4RZJ2yufZrqyVw1u",
+  "productionAlias": "https://botters.vercel.app",
+  "preservedCustomAlias": "https://botters.havesomecode.io",
+  "aliasReadback": "Both exact Vercel inspections resolve to productionDeploymentId; ordinary Linux custom-host DNS still fails to resolve.",
+  "regressionBeforeFix": "Unit test observed rejected membership insertion, cleared readiness and advanced timestamp; fixed test also asserts unchanged guest room/preferences and successful replacement join.",
+  "targetedRuns": [
+    {
+      "verifiedAt": "2026-10-15T23:19:25.996Z",
+      "result": "PASS",
+      "url": "https://botters-o4fppvwjx-zacaria-chtatars-projects.vercel.app",
+      "namespace": "preview",
+      "sourceCommit": "4211338e69808ef7fdeace783d10273b10e2a41a",
+      "checks": [
+        "400 preserves durable membership/readiness/timestamp and guest room/preferences",
+        "host and rejected guest HTTP views remain unchanged",
+        "different valid guest joins successfully; host sees both players"
+      ],
+      "cleanup": "Both fixture room members left normally; sessions expire by TTL. No match started.",
+      "limits": "Targeted room-join check, not a repeated full cloud gameplay/capacity or two-machine suite."
+    },
+    {
+      "verifiedAt": "2026-10-15T23:20:56.993Z",
+      "result": "PASS",
+      "url": "https://botters-i0a4vi7rm-zacaria-chtatars-projects.vercel.app",
+      "namespace": "production",
+      "sourceCommit": "4211338e69808ef7fdeace783d10273b10e2a41a",
+      "checks": [
+        "400 preserves durable membership/readiness/timestamp and guest room/preferences",
+        "host and rejected guest HTTP views remain unchanged",
+        "different valid guest joins successfully; host sees both players"
+      ],
+      "cleanup": "Both fixture room members left normally; sessions expire by TTL. No match started.",
+      "limits": "Targeted room-join check, not a repeated full cloud gameplay/capacity or two-machine suite."
+    },
+    {
+      "verifiedAt": "2026-10-15T23:21:31.986Z",
+      "result": "PASS",
+      "url": "https://botters.vercel.app",
+      "namespace": "production",
+      "sourceCommit": "4211338e69808ef7fdeace783d10273b10e2a41a",
+      "checks": [
+        "400 preserves durable membership/readiness/timestamp and guest room/preferences",
+        "host and rejected guest HTTP views remain unchanged",
+        "different valid guest joins successfully; host sees both players"
+      ],
+      "cleanup": "Both fixture room members left normally; sessions expire by TTL. No match started.",
+      "limits": "Targeted room-join check, not a repeated full cloud gameplay/capacity or two-machine suite."
+    }
+  ],
+  "assetsAndBrowser": [
+    {
+      "verifiedAt": "2026-10-15T23:20:29.272Z",
+      "url": "https://botters-o4fppvwjx-zacaria-chtatars-projects.vercel.app",
+      "sourceCommit": "4211338e69808ef7fdeace783d10273b10e2a41a",
+      "deploymentInputFiles": 69,
+      "inputSecretScan": "PASS",
+      "assets": [
+        {
+          "file": "index.html",
+          "status": 200,
+          "sourceSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+          "deployedSha256": "57a24ebe1c2fe215527f951437d58363b641f50cba9c4a401a668069ea99900e",
+          "normalizedSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+          "toolbarTrailerRemoved": true
+        },
+        {
+          "file": "guide.html",
+          "status": 200,
+          "sourceSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+          "deployedSha256": "c339c1ff6cfdebb0585176f528e8b8d6aa13aa265f5e730b34f08f16d9677645",
+          "normalizedSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+          "toolbarTrailerRemoved": true
+        },
+        {
+          "file": "sim.js",
+          "status": 200,
+          "sourceSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+          "deployedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+          "normalizedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+          "toolbarTrailerRemoved": false
+        }
+      ],
+      "browser": {
+        "title": "Botters",
+        "enterVisible": true,
+        "guidePublicServer": true,
+        "pageErrors": []
+      },
+      "result": "PASS"
+    },
+    {
+      "verifiedAt": "2026-10-15T23:21:32.633Z",
+      "url": "https://botters.vercel.app",
+      "sourceCommit": "4211338e69808ef7fdeace783d10273b10e2a41a",
+      "deploymentInputFiles": 69,
+      "inputSecretScan": "PASS",
+      "assets": [
+        {
+          "file": "index.html",
+          "status": 200,
+          "sourceSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+          "deployedSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+          "normalizedSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+          "toolbarTrailerRemoved": false
+        },
+        {
+          "file": "guide.html",
+          "status": 200,
+          "sourceSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+          "deployedSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+          "normalizedSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+          "toolbarTrailerRemoved": false
+        },
+        {
+          "file": "sim.js",
+          "status": 200,
+          "sourceSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+          "deployedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+          "normalizedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+          "toolbarTrailerRemoved": false
+        }
+      ],
+      "browser": {
+        "title": "Botters",
+        "enterVisible": true,
+        "guidePublicServer": true,
+        "pageErrors": []
+      },
+      "result": "PASS"
+    }
+  ],
+  "localChecks": {
+    "unitTests": "38/38 PASS",
+    "localBraveScenarios": "4/4 PASS",
+    "syntax": "32 JS files plus inline browser scripts and JSON",
+    "build": "Three public assets; no backend modules in public",
+    "productionAudit": "0 vulnerabilities",
+    "packageDryRun": "Eight expected files",
+    "diffCheck": "PASS"
+  },
+  "commands": [
+    "npm test && npm run check && npm run build",
+    "npm run test:browser",
+    "npm audit --omit=dev && npm pack --dry-run --json",
+    "Cached Vercel 64.2.0: deploy --yes; deploy --prod --skip-domain --yes; promote staged URL --yes; inspect each exact public alias",
+    "BOTTERS_SERVER=<URL> BOTTERS_NAMESPACE=<preview|production> node --env-file=<ignored server env> scripts/verify-room-join.js",
+    "git diff --check"
+  ],
+  "limits": [
+    "Full cloud gameplay, two-MCP, capacity and physical Linux+Mac suites were not repeated for this one-line ordering repair; original release evidence remains historical.",
+    "Existing free Convex bandwidth warning persists; only fixture rooms/sessions were created, no match started, normal leave cleanup with TTL expiry.",
+    "Preview HTML matches source after removing only the exact appended Vercel feedback script; public production bytes match without normalization.",
+    "No independent lint/type/format tool configured.",
+    "Build warned about Node >=22 auto-major, npm cache-dir and uncovered esbuild install script; build succeeded.",
+    "Custom-domain homepage/policy delta is separately prepared by the operator; this release preserves the alias but adds no policies or auth."
+  ],
+  "deletions": "None"
+}
