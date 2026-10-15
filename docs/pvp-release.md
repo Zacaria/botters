@@ -8,6 +8,8 @@ Runtime candidate: signed `e0bb1b3578683886926c190e3a4cd96a78534526`, pushed and
 
 The owner-side scope correction on `t_ee4ad7df` requires **two physical machines, Linux + Mac**, not separate networks. Shared egress is a limitation to record, not a blocker. Same-host browser contexts still do not satisfy this gate. Release QA is assigned that existing host pair; no new infrastructure or spending is needed.
 
+Staged production is also READY: https://botters-bzspc5sus-zacaria-chtatars-projects.vercel.app, `dpl_8NGD6iBZSoiG5aq7msqJj2W4SjZJ`, target Production, API iad1. It was built from signed evidence-only `0bf8c077b1a8f405c49066d39d7dace2cf085dc9` with identical runtime bytes to `e0bb1b3`, using `--prod --skip-domain`. Vercel assigned its generated team alias, but **botters.vercel.app still points to the old guide**. No public-domain promotion is claimed.
+
 ## Dedicated free Convex resource
 
 - Team `botters` (548276), project `botters` (3220896), deployment `fastidious-kookabura-364`, US East/Northern Virginia. Dashboard: https://dashboard.convex.dev/t/botters/botters/fastidious-kookabura-364.
@@ -31,9 +33,17 @@ The owner-side scope correction on `t_ee4ad7df` requires **two physical machines
 
 Raw evidence: `pvp-convex-verification.json`, `pvp-convex-assets.json`, `pvp-convex-mcp.json`, `pvp-convex-capacity.json`, `pvp-convex-browser.txt`. JSON summaries pin runtime source/deployment and artifact hashes. All live clients above ran on the Linux host; do not call them two-machine evidence.
 
+Staged-production evidence: `pvp-production-staged.json`, `pvp-production-mcp.json`. All three production-target assets matched byte-for-byte with no credential leakage. A newly created test bearer exists only in `botters:production:`; the production lobby accepted it with 200 and the preview lobby rejected it with 401. Two actual MCP processes completed a real-clock three-minute/40-planet match in 204,254.69 ms with both reports/history, streams 11.97/12.51 fps, 36 HTTP samples p95 448.89 ms. The staged browser's 503 recovery passed, then duplicate full-suite execution was intentionally cancelled to conserve the free allowance; it is **not** reported as a full staged browser pass.
+
+## Free-resource warning
+
+`pvp-convex-usage.json` records a partial usage readback of 73,026 calls and 1.3282 GB database I/O from verification traffic. Free entitlement readback is 1,000,000 calls and 1,073,741,824 bytes of database bandwidth per month. Historical usage is still loading and may understate totals. The provider currently reports `usageState: Default`, not an observed suspension; do not infer unlimited headroom from working endpoints. No paid plan or automatic upgrade was selected. Duplicate staged browser coverage was stopped, prioritizing the required two-machine test.
+
+This is a real free-tier capacity limitation, not another approval gate or a request to buy an upgrade. If the provider actually refuses calls, preserve that error and stop repeated load; do not bypass the quota, move unrelated resources, reset data or choose a paid plan. References: https://docs.convex.dev/production/state/limits and https://www.convex.dev/pricing.
+
 ## Reproduced findings and fixes
 
-The first cloud run completed an MCP match but delivered only 8.82/7.44 fps. A later 80-swarm run ended before both streams reached 40 frames, and an agent poll exhausted checkpoint CAS retries. Every-frame competing checkpoint writes were the cause. The final adapter reads bearer/session/checkpoint in one consistent Convex query, projects deterministic subsecond frames read-only, and persists checkpoints at least once per second. Inputs, refreshes and results still commit atomically; all read-only records must belong to the same fresh snapshot. Fresh report-log reads bypass speculative caches. Final live capacity and MCP tests pass above 10 fps.
+The first cloud run completed an MCP match but delivered only 8.82/7.44 fps. A later 80-swarm run ended before both streams reached 40 frames, and an agent poll exhausted checkpoint CAS retries. Every-frame competing checkpoint writes were the cause. The final adapter reads bearer/session/checkpoint in one consistent Convex query, projects deterministic subsecond frames read-only, and persists a checkpoint when it is at least one second behind. Inputs, refreshes and results still commit atomically; all read-only records must belong to the same fresh snapshot. Fresh report-log reads bypass speculative caches. Final live capacity and MCP tests pass above 10 fps.
 
 Cloud browser diagnostics found a finished, report-bearing match whose UI had stopped receiving frames. An initial HTTP 503 permanently closes EventSource; the prior label claimed reconnecting without reopening it. A regression test failed with exactly one stream attempt, then passed after adding an explicit same-match retry for permanently closed streams. Stale callbacks and reconnects after leaving/final report are ignored.
 
@@ -44,8 +54,8 @@ No database was reset or deleted. `sim.js` and offline `server.js` are unchanged
 ## Exact continuation
 
 1. Finish the two-physical-machine acceptance on `t_ee4ad7df`, using Linux + Mac against the pinned preview. Exercise matchmaking/both reports, disconnect/reload of the same match, room finish/rematch and persisted Elo/history. Record shared egress, not a request for another network. Its earlier attachment 173 records the now-superseded network requirement, **not** a current failure of the two-machine scenario.
-2. A production-target deployment may be prepared with `npx vercel deploy --prod --skip-domain --yes` from the same verified source. This does not move the public domain. Read back its target, source/assets and production namespace; keep the guide serving until the actual two-machine gate passes.
-3. After that gate passes, promote the verified production-target deployment with `npx vercel promote URL --yes`. Alternatively, promoting the preview triggers a production rebuild with production environment variables, so record the **new** production deployment ID and reverify it; never assume preview bytes/environment were simply re-aliased. Vercel reference: https://vercel.com/docs/deployments/promoting-a-deployment.
+2. Reuse the already verified production-target deployment above; no rebuild is needed. Its namespace, assets and complete two-MCP match have been verified. Keep the old guide serving until the actual two-machine gate passes.
+3. After that gate passes, run `npx vercel promote https://botters-bzspc5sus-zacaria-chtatars-projects.vercel.app --yes`, then read back the exact assignment of **botters.vercel.app** (current old guide deployment `dpl_4Xs8LQqFGcLSq6Ycw9EM1fXZVKWX`). Alternatively, promoting the preview triggers a production rebuild with production environment variables, so record the **new** production deployment ID and reverify it; never assume preview bytes/environment were simply re-aliased. Vercel reference: https://vercel.com/docs/deployments/promoting-a-deployment.
 4. Repeat acceptance/readback on https://botters.vercel.app, including both real MCP clients, reports/history and game-home routing. Confirm the production namespace is separate from preview, then hand the exact signed source/deployment to review.
 
 No separate lint/type/formatter configuration exists; syntax checks are reported instead. Vercel's Node `>=22` future-major warning and injected npm `cache-dir` warning remain unsuppressed. Convex deployment reported an optional CLI update, cross-filesystem temporary-directory advisory and optional AI-files notice; deployments succeeded. No paid inference was invoked.

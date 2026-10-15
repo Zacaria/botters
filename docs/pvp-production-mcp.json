@@ -1,0 +1,32 @@
+{
+  "server": "https://botters-bzspc5sus-zacaria-chtatars-projects.vercel.app",
+  "matchId": "25tEf6qSLhymLwiYMyiidVf1qqHoO1mV",
+  "clients": 2,
+  "transport": "real stdio MCP",
+  "elapsedMs": 204254.69015100002,
+  "results": [
+    {
+      "result": "draw",
+      "you": 20232,
+      "enemy": 20232
+    },
+    {
+      "result": "draw",
+      "you": 20232,
+      "enemy": 20232
+    }
+  ],
+  "streams": [
+    {
+      "frames": 40,
+      "fps": 11.969818757580526
+    },
+    {
+      "frames": 40,
+      "fps": 12.514551455147439
+    }
+  ],
+  "requestSamples": 36,
+  "requestP95Ms": 448.889357,
+  "note": "Same-host clients; not two physical machines/networks. 3-minute/40-planet functional test, not the 8-minute/80-swarm capacity fixture."
+}

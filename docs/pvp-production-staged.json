@@ -1,0 +1,60 @@
+{
+  "runtimeSource": "e0bb1b3578683886926c190e3a4cd96a78534526",
+  "deployedSource": "0bf8c077b1a8f405c49066d39d7dace2cf085dc9",
+  "deploymentId": "dpl_8NGD6iBZSoiG5aq7msqJj2W4SjZJ",
+  "url": "https://botters-bzspc5sus-zacaria-chtatars-projects.vercel.app",
+  "target": "production",
+  "state": "READY",
+  "region": "iad1",
+  "publicDomainStillGuide": true,
+  "automaticallyAssignedTeamAlias": "botters-zacaria-chtatars-projects.vercel.app",
+  "namespace": "botters:production:",
+  "namespaceIsolation": "PASS: created bearer exists only in production; preview lobby rejects it with 401; production lobby accepts with 200",
+  "serverSecretsAbsentFromAssets": true,
+  "assets": [
+    {
+      "file": "index.html",
+      "sourceSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+      "deployedSha256": "8910ce851931e30e51e536a8a10739c5d3398f2a7e9f33b8aea09aa402c99745",
+      "sourceBytes": 37666,
+      "deployedBytes": 37666,
+      "vercelToolbarInjected": false
+    },
+    {
+      "file": "guide.html",
+      "sourceSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+      "deployedSha256": "af6d1fddff840d7d73e5bcc336f5932d2ef830927ea820f7e9553c9b5448d85a",
+      "sourceBytes": 6662,
+      "deployedBytes": 6662,
+      "vercelToolbarInjected": false
+    },
+    {
+      "file": "sim.js",
+      "sourceSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "deployedSha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "sourceBytes": 14356,
+      "deployedBytes": 14356,
+      "vercelToolbarInjected": false
+    }
+  ],
+  "mcpEvidence": "pvp-production-mcp.json",
+  "mcpResult": {
+    "status": "PASS",
+    "elapsedMs": 204254.69015100002,
+    "streams": [
+      {
+        "frames": 40,
+        "fps": 11.969818757580526
+      },
+      {
+        "frames": 40,
+        "fps": 12.514551455147439
+      }
+    ],
+    "requestP95Ms": 448.889357
+  },
+  "browserCoverage": {
+    "transientInitial503": "PASS on staged production",
+    "fullStagedSuite": "Intentionally cancelled after 503 regression passed, conserving free allowance; identical runtime already passed all four real-clock preview scenarios. Not claimed as a full staged browser pass."
+  }
+}

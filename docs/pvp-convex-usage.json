@@ -1,0 +1,88 @@
+{
+  "checkedAtUtc": "2026-10-15T22:39:30.748112+00:00",
+  "team": "botters",
+  "project": "botters",
+  "subscriptionReadback": null,
+  "providerUsageState": {
+    "teamId": 548276,
+    "usageState": "Default"
+  },
+  "freeEntitlements": {
+    "teamMaxFunctionCalls": 1000000,
+    "teamMaxDatabaseStorage": 536870912,
+    "teamMaxDatabaseBandwidth": 1073741824
+  },
+  "deploymentUsageReadback": {
+    "metrics": {
+      "actionComputeConvexGbHours": {
+        "unit": "GB-hours",
+        "usage": {
+          "current_day": 0,
+          "current_month": 0
+        }
+      },
+      "actionComputeCpuGbHours": {
+        "unit": "GB-hours",
+        "usage": {
+          "current_day": 0,
+          "current_month": 0
+        }
+      },
+      "actionComputeNodeJsGbHours": {
+        "unit": "GB-hours",
+        "usage": {
+          "current_day": 0,
+          "current_month": 0
+        }
+      },
+      "aiGatewayCostDollars": {
+        "unit": "dollars",
+        "usage": {
+          "current_day": 0,
+          "current_month": 0
+        }
+      },
+      "dataEgressGb": {
+        "unit": "GB",
+        "usage": {
+          "current_day": 0,
+          "current_month": 0
+        }
+      },
+      "databaseIoGb": {
+        "unit": "GB",
+        "usage": {
+          "current_day": 1.3281990131363273,
+          "current_month": 1.3281990131363273
+        }
+      },
+      "functionCalls": {
+        "unit": "calls",
+        "usage": {
+          "current_day": 73026,
+          "current_month": 73026
+        }
+      },
+      "queryMutationComputeGbHours": {
+        "unit": "GB-hours",
+        "usage": {
+          "current_day": 0.013439479166666782,
+          "current_month": 0.013439479166668098
+        }
+      },
+      "searchQueryGb": {
+        "unit": "Query-GB",
+        "usage": {
+          "current_day": 0,
+          "current_month": 0
+        }
+      }
+    },
+    "seedStatus": "partial"
+  },
+  "warning": "Test traffic is around the free database-I/O allowance. Historical usage is partial and may understate totals; provider state remains Default, not observed suspended. No paid plan or automatic upgrade was selected. Duplicate staged browser coverage was stopped; required two-machine QA retains priority. Do not interpret a working endpoint as unlimited free capacity.",
+  "references": [
+    "https://docs.convex.dev/production/state/limits",
+    "https://www.convex.dev/pricing"
+  ]
+}
