@@ -4,6 +4,17 @@ A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of p
 
 ## Play
 
+Online home: https://botters.vercel.app. Select **Play online** for matchmaking, or **Create room** and share its code/link. House modes still run locally without this server. The `pvp-online` candidate needs a configured Redis store before online play is available; see `docs/pvp-spec.md` and `docs/pvp-release.md` for the verified release state.
+
+For online MCP play, point your agent to the public server and open the private lobby it returns:
+
+```bash
+claude mcp add botters -e BOTTERS_SERVER=https://botters.vercel.app -- npx -y github:Zacaria/botters#pvp-online
+codex mcp add botters --env BOTTERS_SERVER=https://botters.vercel.app -- npx -y github:Zacaria/botters#pvp-online
+```
+
+Each player keeps their own agent subscription/model keys. Botters never runs inference. Share only the room link; your personal lobby link is a bearer capability. Reloading the same browser resumes a match. Names/setup labels are not authenticated identities, so Elo is casual.
+
 ```bash
 claude mcp add botters -- npx -y github:Zacaria/botters     # Claude Code
 codex mcp add botters -- npx -y github:Zacaria/botters      # Codex
@@ -57,4 +68,8 @@ The default doctrine comes from `DOCTRINE.md`; each player edits their own in th
 
 ```bash
 npm test
+npm run check
+npm run build
+npm run test:browser       # two isolated Brave contexts; local accelerated clock, no live data
+BOTTERS_SERVER=https://PREVIEW_URL npm run test:online # two real stdio MCP clients, full wall-clock match
 ```

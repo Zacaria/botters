@@ -1,0 +1,36 @@
+{
+  "fixture": "8 minutes, 40 planets, 40 stationary swarms per side, merge deferred to retain worst-case count",
+  "node": "v24.21.0",
+  "samples": 8,
+  "replayMs": [
+    2466.0103609999996,
+    3304.8952770000005,
+    3542.3488209999996,
+    3101.3168540000006,
+    3542.8615050000008,
+    3475.377605999998,
+    3326.5713389999983,
+    3292.6153799999993
+  ],
+  "checkpointMs": [
+    2.878913999999895,
+    0.9202599999998711,
+    0.9681639999998879,
+    0.9051369999997405,
+    0.9503459999996267,
+    0.9731959999990067,
+    1.1051449999977194,
+    0.9704769999989367
+  ],
+  "replayP95Ms": 3542.8615050000008,
+  "checkpointP95Ms": 2.878913999999895,
+  "snapshotBytes": 13682,
+  "estimatesUSD": {
+    "replayCPU": 0.6046483635200001,
+    "checkpointCPU": 0.0004913346559999822,
+    "fluidMemory2GBOneInstance": 0.0028266666666666666,
+    "fluidMemory2GBTwoInstances": 0.005653333333333333,
+    "source": "https://vercel.com/docs/functions/usage-and-pricing (iad1: CPU $0.128/h, memory $0.0106/GB-h)"
+  },
+  "note": "Local CPU-only measurements. Live HTTP p95 and SSE throughput must be measured on preview; no network latency is included here."
+}

@@ -11,6 +11,8 @@ import { z } from 'zod'
 
 const env = process.env
 const SERVER = (env.BOTTERS_SERVER || 'http://localhost:8787').replace(/\/$/, '')
+const serverURL = new URL(SERVER)
+if (serverURL.protocol !== 'https:' && !(serverURL.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(serverURL.hostname))) throw new Error('BOTTERS_SERVER must use HTTPS (except localhost).')
 const up = () => fetch(SERVER + '/rules').then(r => r.ok, () => false)
 if (!env.BOTTERS_SERVER && !(await up())) {
   if (process.stdin.isTTY) { // run from a terminal: host the game here until Ctrl+C
@@ -31,10 +33,12 @@ if (process.stdin.isTTY) { openUrl(SERVER); console.error(`Botters is running: $
 const log = (...a) => console.error('[botters]', ...a) // stdout belongs to MCP
 
 const api = async (method, path, body) => {
-  const r = await fetch(SERVER + path, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) })
+  const headers = { 'content-type': 'application/json' }
+  if (serverURL.hostname.endsWith('.vercel.app') && env.VERCEL_AUTOMATION_BYPASS_SECRET) headers['x-vercel-protection-bypass'] = env.VERCEL_AUTOMATION_BYPASS_SECRET
+  const r = await fetch(SERVER + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
   return { status: r.status, ...(await r.json()) }
 }
-const S = { session: null, since: 0, opened: false, inMatch: false }
+const S = { session: null, since: 0, opened: false, inMatch: false, matchId: null }
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
@@ -53,6 +57,7 @@ const GAMBIT = z.object({ if: z.string(), p: z.number().optional(), then: z.stri
 async function session() {
   if (S.session) return S.session
   S.session = await api('POST', '/session', { name: env.BOTTERS_NAME || 'you', setup: env.BOTTERS_SETUP || 'agent' })
+  if (!S.session.agentToken) { const error = S.session.error || 'Could not create a lobby.'; S.session = null; throw new Error(error) }
   log(`lobby ${S.session.lobby}`)
   return S.session
 }
@@ -67,15 +72,18 @@ The result includes the rules, the match settings and your human's doctrine (the
   inputSchema: {
     vs: z.enum(['easy', 'normal', 'hard', 'player']).optional().describe('start a match now instead of waiting for the human: a house level or another player'),
     minutes: z.number().optional().describe('with vs: 3, 5 or 8'),
+    planets: z.number().optional().describe('with vs: 16, 28 or 40'),
+    planning: z.number().optional().describe('with vs: 10, 20 or 30 seconds'),
   },
-}, async ({ vs, minutes }) => {
+}, async ({ vs, minutes, planets, planning }) => {
   const s = await session()
-  if (vs) { const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes }); if (!r.ok && r.error !== 'already in a match') return text(r.error) }
+  if (vs) { const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning }); if (!r.ok && r.error !== 'already in a match') return text(r.error) }
   if (!S.opened) { S.opened = true; openUrl(s.lobby) }
   const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
   if (r.status === 401) { S.session = null; return text('The game server restarted. Call join_match again.') }
   if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
-  S.inMatch = true; S.since = 0
+  if (!r.match.id || r.match.id !== S.matchId) S.since = 0
+  S.inMatch = true; S.matchId = r.match.id || null
   const rules = await api('GET', '/rules'), m = r.match
   return text({
     opponent: m.opponent, settings: m.options, doctrine: m.doctrine,

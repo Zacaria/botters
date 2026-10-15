@@ -1,3 +1,9 @@
 node_modules/
 *.log
 .env
+.vercel
+.env*
+public/
+.cache/
+test-results/
+playwright-report/

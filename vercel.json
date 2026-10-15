@@ -1,6 +1,20 @@
 {
-  "buildCommand": "mkdir -p public && cp guide.html public/index.html",
+  "buildCommand": "npm run build",
   "outputDirectory": "public",
-  "installCommand": "true",
-  "framework": null
+  "framework": null,
+  "regions": ["iad1"],
+  "functions": { "api/index.js": { "maxDuration": 60 } },
+  "rewrites": [
+    { "source": "/:route(session|lobby|profile|play|cancel|next|rules|state|events|input|call|dismiss|say|stream|leaderboard|room|rooms)", "destination": "/api?route=/:route" },
+    { "source": "/rooms/:action", "destination": "/api?route=/rooms/:action" },
+    { "source": "/r/:code", "destination": "/index.html" },
+    { "source": "/guide", "destination": "/guide.html" }
+  ],
+  "headers": [
+    { "source": "/(.*)", "headers": [
+      { "key": "Referrer-Policy", "value": "no-referrer" },
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" }
+    ] }
+  ]
 }

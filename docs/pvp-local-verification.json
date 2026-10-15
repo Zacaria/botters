@@ -1,0 +1,20 @@
+{
+  "scope": "Local wall-clock functional evidence; not deployed acceptance",
+  "server": "http://127.0.0.1:8789",
+  "clockSpeed": 1,
+  "matchId": "gfMXiwH7fvjH9pUTkAH4TNF7zZOQwaN-",
+  "clients": 2,
+  "transport": "real stdio MCP",
+  "elapsedMs": 201906.937256,
+  "results": [
+    { "result": "draw", "you": 20232, "enemy": 20232 },
+    { "result": "draw", "you": 20232, "enemy": 20232 }
+  ],
+  "streams": [
+    { "frames": 40, "fps": 12.502770433599665 },
+    { "frames": 40, "fps": 12.46311174178547 }
+  ],
+  "requestSamples": 36,
+  "requestP95Ms": 29.450442000000066,
+  "note": "Same-host clients; not two physical machines/networks. 3-minute/40-planet functional test on MemoryStore, not the 8-minute/80-swarm capacity fixture. Real Redis Lua behavior verified separately by scripts/test-redis.js."
+}

@@ -2,8 +2,17 @@
   "name": "botters",
   "version": "0.1.0",
   "description": "Real-time space strategy you play with your AI agent, over MCP",
-  "files": ["client.js", "server.js", "sim.js", "index.html", "guide.html", "DOCTRINE.md"],
-  "engines": { "node": ">=22" },
+  "files": [
+    "client.js",
+    "server.js",
+    "sim.js",
+    "index.html",
+    "guide.html",
+    "DOCTRINE.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "private": true,
   "type": "module",
   "bin": {
@@ -11,10 +20,18 @@
   },
   "scripts": {
     "server": "node server.js",
-    "test": "node --test"
+    "server:online:dev": "node scripts/online-dev.js",
+    "build": "node scripts/build.js",
+    "check": "node scripts/check.js",
+    "test": "node --test test/*.test.js",
+    "test:browser": "playwright test",
+    "test:online": "node scripts/verify-online.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
   }
 }

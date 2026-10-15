@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Botters</title>
 <style>
   html, body { margin: 0; background: #050507; color: #b8b8c4; font: 13px ui-monospace, monospace; overflow: hidden; height: 100% }
@@ -35,6 +36,10 @@
   .ed select, .ed input { padding: 2px; font-size: 12px; width: 100% } .ed button { margin: 0; padding: 0 4px }
   .help { font-size: 12px; color: #6a6a7a; margin: 2px 0 6px } [hidden] { display: none !important }
   table { border-collapse: collapse; width: 100% } td { padding: 2px 6px 2px 0 }
+  #connection { position: fixed; left: 14px; bottom: 12px; padding: 8px 12px; background: #332900; color: #ffd400; z-index: 5 }
+  #online { margin-top: 16px } #roomPanel { border-color: #5b8cff; margin-top: 16px }
+  #roomCode { font-size: 24px; letter-spacing: 4px; color: #fff }
+  @media (max-width: 740px) { .wrap { grid-template-columns: 1fr; margin: 20px auto } }
 </style>
 
 <!-- start: no lobby yet -->
@@ -51,7 +56,8 @@
       <p><a href="/guide" target="_blank">How to plug your agent →</a></p>
       <h3>Or play alone first</h3>
       <div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo">Enter</button></div>
-      <p class="help">You can connect an agent later.</p>
+      <p class="help">To play with an agent, open the lobby link it gives you.</p>
+      <p id="startError" class="warn" role="alert"></p>
     </div>
   </div>
 </div>
@@ -78,7 +84,21 @@
       <div class="row"><b>map</b><span id="planets"></span></div>
       <div class="row"><b>planning</b><span id="planning"></span><span class="dim">countdown before the start</span></div>
       <div class="row"><b>with agent</b><span id="withAgent"></span></div>
-      <div class="row" style="margin-top:14px"><button class="main" id="play">PLAY</button> <button id="cancel" hidden>cancel</button> <span id="lobbyMsg" class="warn"></span></div>
+      <div class="row" style="margin-top:14px"><button class="main" id="play">PLAY</button> <button id="viewReport" hidden>View last report</button> <button id="cancel" hidden>cancel</button> <span id="lobbyMsg" class="warn" role="status"></span></div>
+      <div id="online" class="card" hidden>
+        <h3>Online</h3>
+        <button class="main" id="quick">Play online</button><button id="createRoom">Create room</button>
+        <div class="row"><input id="joinCode" aria-label="Room code" placeholder="room code" maxlength="6" autocomplete="off"><button id="joinRoom">Join by code</button></div>
+        <label><input type="checkbox" id="anySettings"> Match any length and map</label>
+        <p class="help">Quick play uses your match settings above. No inference runs on the server.</p>
+      </div>
+      <div id="roomPanel" class="card" hidden>
+        <h3>Your room · <span id="roomCode"></span></h3>
+        <p><a id="roomLink"></a> <button id="copyRoom">Copy link</button></p>
+        <div id="roomPlayers"></div><p id="roomSettings"></p>
+        <button id="saveRoom">Use my settings</button><button id="savePlayer">Save my opening</button><button class="main" id="startRoom">Start match</button><button id="rematchRoom">Rematch</button><button id="leaveRoom">Leave room</button>
+        <p class="help" id="roomReady"></p>
+      </div>
     </div>
     <div>
       <div class="card">
@@ -101,6 +121,7 @@
 
 <!-- match -->
 <div id="game" hidden>
+  <div id="connection" role="status" hidden></div>
   <canvas id="c"></canvas>
   <div id="hud"></div>
   <div id="big"></div>
@@ -134,7 +155,9 @@ const n = c => Math.round(c).toLocaleString('en')
 const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 const show = id => { for (const s of ['start', 'lobby', 'game']) $(s).hidden = s !== id }
 let token = new URLSearchParams(location.search).get('s') || localStorage.getItem('botters.session')
-const api = (method, path, body) => fetch(`${path}${path.includes('?') ? '&' : '?'}token=${token}`, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) }))
+const inviteCode = /^\/r\/([A-Z2-9]{6})$/i.exec(location.pathname)?.[1]?.toUpperCase()
+if (token) history.replaceState(null, '', location.pathname) // capabilities never remain in referrers or copied room links
+const api = (method, path, body) => fetch(`${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token || '')}`, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) })).catch(() => ({ status: 503, error: 'Connection lost. Retry when you are online.' }))
 const toast = (t, ok = true) => { $('toast').textContent = t; $('toast').style.color = ok ? '#8f8' : '#f88' }
 
 // ---------- gambit editor (lobby opening + in match) ----------
@@ -174,8 +197,9 @@ function editor(el, list, onChange) {
 
 // ---------- start ----------
 $('startSolo').onclick = async () => {
-  const r = await fetch('/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: $('startName').value || 'you' }) }).then(r => r.json())
-  token = r.humanToken; localStorage.setItem('botters.session', token); history.replaceState(null, '', `/?s=${token}`); lobby()
+  const r = await api('POST', '/session', { name: $('startName').value || 'you' })
+  if (!r.humanToken) { $('startError').textContent = r.error; return }
+  token = r.humanToken; localStorage.setItem('botters.session', token); lobby()
 }
 $('startName').onkeydown = e => { if (e.key === 'Enter') $('startSolo').click() }
 
@@ -183,17 +207,19 @@ $('startName').onkeydown = e => { if (e.key === 'Enter') $('startSolo').click() 
 const prefs = Object.assign({ vs: 'normal', minutes: 5, planets: 28, planning: 20, withAgent: true, openingMine: false, opening: DEFAULT_GAMBITS }, JSON.parse(localStorage.getItem('botters.prefs') || '{}'))
 const savePrefs = () => localStorage.setItem('botters.prefs', JSON.stringify(prefs))
 const NAMES = { vs: { easy: 'house · easy', normal: 'house · normal', hard: 'house · hard', player: 'another player' }, minutes: { 3: '3 min', 5: '5 min', 8: '8 min' }, planets: { 16: 'small · 16 planets', 28: 'medium · 28', 40: 'large · 40' }, planning: { 10: '10 s', 20: '20 s', 30: '30 s' }, withAgent: { true: 'yes', false: 'no, I play alone' } }
-const pick = (id, values) => { $(id).innerHTML = values.map(v => `<button data-v="${v}" class="${String(prefs[id]) === String(v) ? 'on' : ''}">${NAMES[id][v]}</button>`).join(''); $(id).onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; prefs[id] = id === 'vs' ? v : id === 'withAgent' ? v === 'true' : +v; savePrefs(); pick(id, values); lobbyChoices() } }
-const openEd = editor($('openEditor'), prefs.opening, l => { prefs.opening = l; savePrefs() })
-let L = null, lobbyTimer = null, docTimer = null, agentOk = false
+const pick = (id, values) => { $(id).innerHTML = values.map(v => `<button data-v="${v}" class="${String(prefs[id]) === String(v) ? 'on' : ''}">${NAMES[id][v]}</button>`).join(''); $(id).onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; prefs[id] = id === 'vs' ? v : id === 'withAgent' ? v === 'true' : +v; savePrefs(); pick(id, values); lobbyChoices(); syncRoomPlayer() } }
+const openEd = editor($('openEditor'), prefs.opening, l => { prefs.opening = l; savePrefs(); syncRoomPlayer() })
+let L = null, lobbyTimer = null, docTimer = null, agentOk = false, inviteUsed = false, lastFrame = 0, lobbyError = '', memberTimer = null
+function syncRoomPlayer() { clearTimeout(memberTimer); if (L?.room && !L.live) memberTimer = setTimeout(() => api('POST', '/rooms/player', playOptions()).then(r => { if (r.error) lobbyError = r.error }), 250) }
 function lobbyChoices() {
   $('openAgent').className = prefs.openingMine ? '' : 'on'; $('openMine').className = prefs.openingMine ? 'on' : ''
   $('openAgent').disabled = !(agentOk && prefs.withAgent)
   $('openEditor').hidden = !(prefs.openingMine || !agentOk || !prefs.withAgent)
-  $('play').disabled = false
+  $('play').disabled = !!L?.queued || !!L?.room
+  for (const id of ['quick', 'createRoom', 'joinRoom']) $(id).disabled = !!L?.queued || !!L?.room || !!L?.live
 }
-$('openAgent').onclick = () => { prefs.openingMine = false; savePrefs(); lobbyChoices() }
-$('openMine').onclick = () => { prefs.openingMine = true; savePrefs(); lobbyChoices() }
+$('openAgent').onclick = () => { prefs.openingMine = false; savePrefs(); lobbyChoices(); syncRoomPlayer() }
+$('openMine').onclick = () => { prefs.openingMine = true; savePrefs(); lobbyChoices(); syncRoomPlayer() }
 $('doctrine').oninput = () => { $('dcount').textContent = $('doctrine').value.length; clearTimeout(docTimer); docTimer = setTimeout(() => api('POST', '/profile', { doctrine: $('doctrine').value }).then(() => { $('saved').textContent = 'doctrine saved' }), 500) }
 $('name').onchange = () => api('POST', '/profile', { name: $('name').value })
 
@@ -202,26 +228,65 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   const first = !L
   L = await api('GET', '/lobby')
   if (L.status === 401) { localStorage.removeItem('botters.session'); token = null; history.replaceState(null, '', '/'); return show('start') }
+  if (L.error) { $('lobbyMsg').textContent = L.error; lobbyTimer = setTimeout(() => lobby(auto), 3000); return }
+
   localStorage.setItem('botters.session', token)
   if (first || document.activeElement !== $('name')) $('name').value = L.name
   if (first || document.activeElement !== $('doctrine')) { $('doctrine').value = L.doctrine; $('dcount').textContent = L.doctrine.length }
   for (const k of ['vs', 'minutes', 'planets', 'planning']) pick(k, L.choices[k])
+  $('online').hidden = !L.online || !!L.room
+  renderRoom(L.room)
   agentOk = !!L.agent
   pick('withAgent', agentOk ? [true, false] : [false])
   if (!agentOk) prefs.withAgent = false
+  if (inviteCode && !inviteUsed && !L.room && !L.live && !L.queued) {
+    inviteUsed = true; const joined = await api('POST', '/rooms/join', { ...playOptions(), code: inviteCode })
+    if (joined.error) lobbyError = joined.error; else return lobby()
+  }
   $('agentState').innerHTML = agentOk ? `<span class="agent">● ${esc(L.agent)} connected</span>` : `<span class="dim">○ none connected · <a href="/guide" target="_blank">plug your agent</a></span>`
   $('history').innerHTML = L.history.length ? '<table>' + L.history.map(h => `<tr><td class="${h.actual.result === 'won' ? 'you' : 'dim'}">${h.actual.result.toUpperCase()}</td><td>vs ${esc(h.vs)}</td><td>${n(h.actual.you)}–${n(h.actual.enemy)}</td><td class="dim">without you: ${h.withoutHuman.result}</td></tr>`).join('') + '</table>' : 'none yet'
-  $('board').innerHTML = L.leaderboard.length ? '<table>' + L.leaderboard.map((b, i) => `<tr><td>${i + 1}.</td><td>${esc(b.name)}</td><td>${b.rating}</td></tr>`).join('') + '</table>' : 'empty'
-  $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? 'waiting for another player…' : ''
+  $('board').innerHTML = L.leaderboard.length ? '<table>' + L.leaderboard.map((b, i) => `<tr><td>${i + 1}.</td><td>${esc(b.name)} <span class="dim">${esc(b.setup || '')}</span></td><td>${b.rating}</td></tr>`).join('') + '</table>' : 'empty'
+  $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError
+  $('viewReport').hidden = !L.inMatch || L.live
   lobbyChoices()
-  $('play').textContent = L.live ? 'RESUME MATCH' : 'PLAY'
+  $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? 'PLAY HOUSE' : 'PLAY'
+  if (L.live) $('play').disabled = false
   if (L.live && auto) return match()
-  lobbyTimer = setInterval(async () => { const r = await api('GET', '/lobby'); if (r.live && !L.live) { clearInterval(lobbyTimer); return lobby() } if (!!r.agent !== agentOk || r.queued !== L.queued || r.history.length !== L.history.length) lobby() }, 1500)
+  lobbyTimer = setTimeout(() => lobby(auto), 1000)
 }
+function renderRoom(room) {
+  $('roomPanel').hidden = !room
+  if (!room) return
+  $('roomCode').textContent = room.code; $('roomLink').textContent = room.link; $('roomLink').href = room.link
+  $('roomPlayers').textContent = room.players.map(p => `${p.you ? 'you: ' : ''}${p.name} · ${p.agent ? p.setup + ' connected' : 'no agent connected'}`).join(' / ')
+  $('roomSettings').textContent = `${room.settings.minutes} minutes · ${room.settings.planets} planets · ${room.settings.planning}s planning`
+  $('saveRoom').hidden = !room.host; $('startRoom').hidden = !room.host || !!room.matchId
+  $('startRoom').disabled = room.players.length < 2 || room.live
+  $('rematchRoom').hidden = !room.matchId; $('rematchRoom').disabled = room.live
+  $('roomReady').textContent = room.live ? 'Match running. Resume from above.' : room.ready.length ? `${room.ready.length}/${room.players.length} ready for a rematch` : room.host ? 'Share the link. Start when your opponent has joined.' : 'Waiting for the host to start.'
+}
+const playOptions = () => ({ minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent: agentOk && prefs.withAgent, opening: !agentOk || !prefs.withAgent || prefs.openingMine ? openEd.get() : null })
+async function roomAction(path, body = {}) {
+  const r = await api('POST', path, body)
+  if (r.error) { lobbyError = r.error; $('lobbyMsg').textContent = r.error; return }
+  lobbyError = ''
+  return lobby()
+}
+$('quick').onclick = async () => { const r = await api('POST', '/play', { ...playOptions(), vs: 'player', ...($('anySettings').checked ? { minutes: 'any', planets: 'any' } : {}) }); if (r.error) { lobbyError = r.error; $('lobbyMsg').textContent = r.error } else { lobbyError = ''; lobby() } }
+$('createRoom').onclick = () => roomAction('/rooms', playOptions())
+$('joinRoom').onclick = () => roomAction('/rooms/join', { ...playOptions(), code: $('joinCode').value.trim() })
+$('joinCode').onkeydown = e => { if (e.key === 'Enter') $('joinRoom').click() }
+$('copyRoom').onclick = () => navigator.clipboard.writeText(L.room.link).then(() => { $('copyRoom').textContent = 'Copied' }, () => { $('lobbyMsg').textContent = 'Copy the room link above.' })
+$('saveRoom').onclick = () => roomAction('/rooms/settings', playOptions())
+$('savePlayer').onclick = () => roomAction('/rooms/player', playOptions())
+$('startRoom').onclick = () => roomAction('/rooms/start', playOptions())
+$('rematchRoom').onclick = () => roomAction('/rooms/rematch', playOptions())
+$('leaveRoom').onclick = () => roomAction('/rooms/leave')
+$('viewReport').onclick = () => { clearTimeout(lobbyTimer); match() }
 $('play').onclick = () => L?.live ? match() : startPlay()
 async function startPlay() {
   const withAgent = agentOk && prefs.withAgent, opening = !withAgent || prefs.openingMine ? openEd.get() : null
-  const r = await api('POST', '/play', { vs: prefs.vs, minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent, opening })
+  const r = await api('POST', '/play', { vs: L?.online ? (prefs.vs === 'player' ? 'normal' : prefs.vs) : prefs.vs, minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent, opening })
   $('lobbyMsg').textContent = r.ok ? '' : r.error
   if (r.ok) lobby()
 }
@@ -247,10 +312,12 @@ const cur = p => { const t = Math.min(1, (performance.now() - frameAt) / 100); r
 const act = (body, label) => api('POST', '/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
 
 function match() {
+  clearTimeout(lobbyTimer); lastFrame = Date.now(); $('connection').hidden = true
   show('game'); fit(); v = null; F = null; pos.clear(); sel = null; lastBy = ''; stopEditing()
   $('big').innerHTML = ''; $('feed').innerHTML = ''; $('toast').textContent = ''
   es?.close(); es = new EventSource(`/stream?token=${token}`)
   es.onmessage = e => {
+    lastFrame = Date.now(); if (navigator.onLine) $('connection').hidden = true
     F = JSON.parse(e.data); v = F.view
     const live = new Set()
     for (const c of [...v.swarms, ...v.enemies]) { // start from where the swarm is drawn now, before resetting the clock
@@ -263,7 +330,10 @@ function match() {
     panel()
     if (v.ended && F.report) es.close()
   }
+  es.onerror = () => { if (!v?.ended) { $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…' } }
 }
+setInterval(() => { if (!$('game').hidden && !v?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
+window.addEventListener('offline', () => { if (!$('game').hidden && !v?.ended) { $('connection').hidden = false; $('connection').textContent = 'You are offline. The match continues; reconnecting when your connection returns…' } })
 $('leave').onclick = () => { es?.close(); lobby(false) }
 
 function draw() {
@@ -322,10 +392,10 @@ function panel() {
   const mineP = v.planets.filter(p => p.owner === 'you' && p.massLeft > 0).length, theirP = v.planets.filter(p => p.owner === 'enemy' && p.massLeft > 0).length
   const s = sel !== null && v.swarms.find(c => c.id === sel), agent = F.me.withAgent
   $('agentBox').hidden = !agent; $('pingHelp').hidden = !agent
-  $('hud').innerHTML = `<b class="you">${esc(F.me.name)} ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP} planets      <b class="foe">${esc(F.opponent.name)} ${n(v.totals.enemy)}</b> · ${theirP} planets` +
+  $('hud').innerHTML = `<b class="you">${esc(F.me.name)} ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP} planets      <b class="foe">${esc(F.opponent.name)} ${n(v.totals.enemy)}</b> · ${theirP} planets · ${esc(F.opponent.setup || '')}${F.opponent.connected === false ? ' · reconnecting' : ''}` +
     `\n${clock(v.secondsLeft)} left · most particles at the end wins · ${agent ? (F.me.agentJoined ? `<span class="agent">agent: ${esc(F.me.setup)}</span>` : '<span class="warn">agent not joined yet</span>') : 'no agent'}\n` +
     (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
-  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('again').onclick = () => { show('lobby'); startPlay() }; $('menu').onclick = () => lobby(false) } }
+  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode) { show('lobby'); roomAction('/rooms/rematch', playOptions()) } else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
   else $('big').innerHTML = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : 'you lose') : F.startsIn > 0 ? `starts in ${F.startsIn}s<div style="font-size:15px">${agent && F.gambitsBy.who === 'default' ? 'your agent is writing the opening gambits' : 'edit your gambits now if you want'}</div>` : ''
 
   const by = F.gambitsBy, byKey = JSON.stringify(by)
