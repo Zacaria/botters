@@ -39,11 +39,13 @@
   #connection { position: fixed; left: 14px; bottom: 12px; padding: 8px 12px; background: #332900; color: #ffd400; z-index: 5 }
   #online { margin-top: 16px } #roomPanel { border-color: #5b8cff; margin-top: 16px }
   #roomCode { font-size: 24px; letter-spacing: 4px; color: #fff }
+  .policy-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 18px 0 24px; font-size: 12px }
+  .policy-links a:focus-visible { outline: 2px solid #ff2e88; outline-offset: 4px }
   @media (max-width: 740px) { .wrap { grid-template-columns: 1fr; margin: 20px auto } }
 </style>
 
 <!-- start: no lobby yet -->
-<div id="start" class="screen" hidden>
+<div id="start" class="screen">
   <div class="wrap" style="grid-template-columns: 1fr">
     <div>
       <h1><b>BOT</b><i>TERS</i></h1>
@@ -58,7 +60,9 @@
       <div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo">Enter</button></div>
       <p class="help">To play with an agent, open the lobby link it gives you.</p>
       <p id="startError" class="warn" role="alert"></p>
+      <noscript><p>JavaScript is needed to play. The agent guide and policies are available without it.</p></noscript>
     </div>
+    <nav class="policy-links" aria-label="Policies"><a href="/privacy">Privacy policy</a><a href="/terms">Terms of service</a><a href="mailto:z@havesomecode.io">Contact</a></nav>
   </div>
 </div>
 
@@ -108,6 +112,7 @@
         <p><b>Square law</b>: in a fight, each side loses in proportion to the other's size, so the bigger swarm wins and loses little. <b>Planets</b> you own are eaten into new particles. <b>Fog</b>: you only see near your swarms and planets.</p>
         <p>Most particles at the end wins. No swarms and no planets left loses at once.</p>
         <p><a href="/guide" target="_blank">Plug your own agent →</a></p>
+        <nav class="policy-links" aria-label="Policies"><a href="/privacy">Privacy policy</a><a href="/terms">Terms of service</a></nav>
       </div>
       <div class="card" style="margin-top:14px">
         <h3 style="margin-top:0">Your last matches</h3>

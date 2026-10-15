@@ -8,7 +8,7 @@ const speed = Number(process.env.BOTTERS_TEST_SPEED || 1), start = Date.now()
 const now = () => start + (Date.now() - start) * speed
 const store = process.env.BOTTERS_DEV_CONVEX ? new ConvexStore() : new MemoryStore(now)
 const handler = createHandler(store, { origin, now })
-const staticFiles = { '/': ['index.html', 'text/html'], '/guide': ['guide.html', 'text/html'], '/guide.html': ['guide.html', 'text/html'], '/sim.js': ['sim.js', 'text/javascript'] }
+const staticFiles = { '/': ['index.html', 'text/html'], '/guide': ['guide.html', 'text/html'], '/guide.html': ['guide.html', 'text/html'], '/sim.js': ['sim.js', 'text/javascript'], '/privacy': ['privacy.html', 'text/html'], '/privacy.html': ['privacy.html', 'text/html'], '/terms': ['terms.html', 'text/html'], '/terms.html': ['terms.html', 'text/html'] }
 http.createServer(async (req, res) => {
   const url = new URL(req.url, origin), file = staticFiles[url.pathname] || (/^\/r\/[A-Z2-9]{6}$/i.test(url.pathname) ? staticFiles['/'] : null)
   if (!file) return handler(req, res)
