@@ -11,10 +11,12 @@ import { z } from 'zod'
 const env = process.env
 const SERVER = (env.BOTTERS_SERVER || 'http://localhost:8787').replace(/\/$/, '')
 const up = () => fetch(SERVER + '/rules').then(r => r.ok, () => false)
-let host = null // the game server, when this process hosts it
-if (!env.BOTTERS_SERVER && !(await up())) { // no game running: host it in this process
-  env.PORT = '8787'; const srv = await import('./server.js')
-  try { await srv.listening; host = srv } catch (e) { if (e.code !== 'EADDRINUSE' || !(await up())) throw e } // another agent started it first: use theirs
+if (!env.BOTTERS_SERVER && !(await up())) {
+  if (process.stdin.isTTY) { env.PORT = '8787'; await import('./server.js') } // run from a terminal: host the game here until Ctrl+C
+  else { // agent: start the game as its own process, shared by every agent on this machine; it exits once idle
+    spawn(process.execPath, [new URL('server.js', import.meta.url).pathname], { detached: true, stdio: 'ignore', env: { ...env, PORT: '8787', BOTTERS_IDLE_EXIT: '1' } }).unref()
+    for (let i = 0; i < 50 && !(await up()); i++) await new Promise(r => setTimeout(r, 100)) // two agents racing: the loser's server exits on EADDRINUSE, both use the winner's
+  }
 }
 const openUrl = url => { // BOTTERS_OPEN: unset = default browser, 0 = never, else a macOS app name
   if (env.BOTTERS_OPEN === '0') return
@@ -23,11 +25,6 @@ const openUrl = url => { // BOTTERS_OPEN: unset = default browser, 0 = never, el
 }
 if (process.stdin.isTTY) { openUrl(SERVER); console.error(`Botters is running: ${SERVER}  (Ctrl+C to stop)`) } // run from a terminal: just play
 const log = (...a) => console.error('[botters]', ...a) // stdout belongs to MCP
-function stop() { // our agent left. If we host the game and other agents still play on it, keep it up until they leave
-  if (!host) process.exit(0)
-  S.session = null
-  setInterval(() => host.agentsActive() || process.exit(0), 10000)
-}
 
 const api = async (method, path, body) => {
   const r = await fetch(SERVER + path, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) })
@@ -123,4 +120,5 @@ mcp.registerTool('call_human', {
   inputSchema: { message: z.string().max(140), swarm: z.number().optional(), x: z.number().optional(), y: z.number().optional() },
 }, async args => need() || text(await api('POST', `/call?token=${S.session.agentToken}`, args)))
 
-if (!process.stdin.isTTY) { process.stdin.on('close', stop); await mcp.connect(new StdioServerTransport()); log(`MCP ready. server ${SERVER}`) } // agent gone: stop the game it hosted
+if (!process.stdin.isTTY) { process.stdin.on('close', () => process.exit(0)); await mcp.connect(new StdioServerTransport()); log(`MCP ready. server ${SERVER}`) 
+ }
