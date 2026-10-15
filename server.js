@@ -83,7 +83,7 @@ function finish(m) {
   m.report = m.players.map(p => p.session && whatIf(m, p))
   for (const p of m.players) if (p.session) p.session.history = [{ ...m.report[p.side], reason: m.s.ended.reason, at: Math.round(m.s.tick / TPS), vs: m.players[1 - p.side].name, withAgent: p.withAgent }, ...p.session.history].slice(0, 10)
   setTimeout(() => { for (const p of m.players) if (p.session?.match === m) p.session.match = null }, FINISHED_TTL)
-  console.log(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${b.name} (${b.setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0] }))
+  console.error(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${b.name} (${b.setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0] }))
 }
 
 // Who won it? Replay the match without this side's human inputs, then without its agent's. Same seed, same opponent inputs.
@@ -259,11 +259,11 @@ const routes = {
   'GET /leaderboard': (req, res) => json(res, 200, leaderboard()),
   'GET /': page('index.html'),
   'GET /sim.js': page('sim.js'),
-  'GET /guide': page('guide.html', { ORIGIN, CLIENT: new URL('client.js', import.meta.url).pathname }),
+  'GET /guide': page('guide.html'),
 }
 
 http.createServer(async (req, res) => {
   const u = new URL(req.url, ORIGIN), route = routes[`${req.method} ${u.pathname}`]
   if (!route) return json(res, 404, { error: 'not found' })
   try { await route(req, res, u.searchParams) } catch (e) { console.error(e); if (res.headersSent) res.end(); else json(res, 400, { error: String(e.message || e) }) }
-}).listen(PORT, () => console.log(`botters server on ${ORIGIN}`))
+}).listen(PORT, () => console.error(`botters server on ${ORIGIN}`)) // stderr: stdout belongs to MCP when client.js embeds the server

@@ -2,7 +2,16 @@
 
 A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of particles conquer and eat planets. Your agent (Claude Code, Codex, any MCP client) writes the **gambits**, the `IF condition → action` rules every swarm follows. You write the doctrine, edit the gambits, switch rules on and off, and grab one swarm by hand when it matters. No model runs in the real-time loop: a match costs only your agent's tool calls.
 
-## Play on a Mac
+## Play
+
+```bash
+claude mcp add botters -- npx -y github:Zacaria/botters     # Claude Code
+codex mcp add botters -- npx -y github:Zacaria/botters      # Codex
+```
+
+Then tell your agent "let's play Botters". It starts the game on your machine and opens your lobby. No agent yet? `npx -y github:Zacaria/botters` opens the game to play alone. Requires Node 22+. Other MCP clients: see `/guide`.
+
+## Play on a Mac (dev checkout)
 
 Double-click `play.command`. It starts the server and Codex, and your lobby opens in the browser. Write your doctrine, pick a mode, press **Play**.
 
@@ -13,7 +22,7 @@ npm install
 npm run server          # http://localhost:8787: start screen, or play alone
 ```
 
-Then plug your agent. The full guide is at `http://localhost:8787/guide` (Claude Code, Codex, any MCP client, or a plain HTTP script).
+Then plug your agent. The full guide is at `http://localhost:8787/guide`.
 
 ## Flow
 
@@ -37,10 +46,10 @@ Then plug your agent. The full guide is at `http://localhost:8787/guide` (Claude
 
 | Var | Default |
 |---|---|
-| `BOTTERS_SERVER` | `http://localhost:8787` |
+| `BOTTERS_SERVER` | unset: reuse `http://localhost:8787` if running, else host the game in-process |
 | `BOTTERS_NAME` | `you` |
 | `BOTTERS_SETUP` | `agent` (shown to your opponent, e.g. `codex`) |
-| `BOTTERS_OPEN` | unset; `1` or an app name opens the lobby in a browser (macOS) |
+| `BOTTERS_OPEN` | default browser; `0` never opens it, an app name picks one (macOS) |
 
 The default doctrine comes from `DOCTRINE.md`; each player edits their own in the lobby.
 

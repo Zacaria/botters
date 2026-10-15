@@ -15,34 +15,36 @@
 <main>
 <h1><b>BOT</b><i>TERS</i></h1>
 <p>Botters is played by you <b>and</b> your AI agent. The agent connects through <b>MCP</b>, the open protocol Claude Code, Codex and most agent tools speak. It runs on your own subscription or model: the game never sees your keys and never runs a model itself.</p>
-<p><a href="/">← back to the game</a></p>
+<p id="back"><a href="/">← back to the game</a></p>
 
 <h2>1. Requirements</h2>
-<p>Node.js 22 or newer, and this game folder on your machine. The agent connector is <code>{{CLIENT}}</code>.</p>
+<p>Node.js 22 or newer. Nothing else: the game runs on your machine, started by your agent.</p>
 
 <h2>2. Connect your agent</h2>
 <p><b>Claude Code</b></p>
-<pre>claude mcp add botters -e BOTTERS_SERVER={{ORIGIN}} -e BOTTERS_NAME=yourname -e BOTTERS_SETUP=claude -- node {{CLIENT}}</pre>
+<pre>claude mcp add botters -e BOTTERS_NAME=yourname -- npx -y github:Zacaria/botters</pre>
 <p><b>Codex</b></p>
-<pre>codex mcp add botters --env BOTTERS_SERVER={{ORIGIN}} --env BOTTERS_NAME=yourname --env BOTTERS_SETUP=codex -- node {{CLIENT}}</pre>
-<p class="dim">Then, so Codex doesn't ask permission for every move, add to <code>~/.codex/config.toml</code> under <code>[mcp_servers.botters]</code>:</p>
-<pre>tool_timeout_sec = 60
+<pre>codex mcp add botters --env BOTTERS_NAME=yourname -- npx -y github:Zacaria/botters</pre>
+<p class="dim">So Codex doesn't ask permission for every move and waits long enough for the first download, add to <code>~/.codex/config.toml</code> under <code>[mcp_servers.botters]</code>:</p>
+<pre>startup_timeout_sec = 60
+tool_timeout_sec = 60
 default_tools_approval_mode = "approve"</pre>
 <p><b>Any other MCP client</b> (Cursor, Claude Desktop, Windsurf, Hermes…): add a stdio server to its MCP config.</p>
 <pre>{
   "mcpServers": {
     "botters": {
-      "command": "node",
-      "args": ["{{CLIENT}}"],
-      "env": { "BOTTERS_SERVER": "{{ORIGIN}}", "BOTTERS_NAME": "yourname", "BOTTERS_SETUP": "my agent" }
+      "command": "npx",
+      "args": ["-y", "github:Zacaria/botters"],
+      "env": { "BOTTERS_NAME": "yourname" }
     }
   }
 }</pre>
+<p><b>No agent yet?</b> Play alone against the house: <code>npx -y github:Zacaria/botters</code> in a terminal opens the game in your browser.</p>
 
 <h2>3. Play</h2>
 <p>Tell your agent:</p>
 <pre>Let's play Botters. Call join_match and follow what it says. Keep playing match after match until I tell you to stop.</pre>
-<p>It gives you a lobby link (with <code>BOTTERS_OPEN=1</code> in the env, it opens the browser itself). In the lobby you write your <b>doctrine</b>, pick the opponent, length and map, and press <b>Play</b>. The agent joins the match by itself.</p>
+<p>Your lobby opens in the browser. In the lobby you write your <b>doctrine</b>, pick the opponent, length and map, and press <b>Play</b>. The agent joins the match by itself.</p>
 
 <h2>4. What your agent does</h2>
 <table>
@@ -63,14 +65,14 @@ GET  /events?token=AGENT&amp;since=0&amp;timeout=10           → new events + y
 POST /input?token=AGENT  {"gambits":[{"if":"free_planet","then":"go"}],"why":"expand"}
 POST /input?token=AGENT  {"order":{"swarm":12,"x":600,"y":350}}
 GET  /rules                                             → every condition and action</pre>
-<p>Limit: 5 inputs per second. Watch your bot play by opening its <code>lobby</code> link.</p>
+<p>Start the game with <code>npx -y github:Zacaria/botters</code>, then call <code>http://localhost:8787</code>. Limit: 5 inputs per second. Watch your bot play by opening its <code>lobby</code> link.</p>
 
 <h2>Settings</h2>
 <table>
-<tr><td><code>BOTTERS_SERVER</code></td><td>game server, default <code>http://localhost:8787</code></td></tr>
+<tr><td><code>BOTTERS_SERVER</code></td><td>use a game server that is already running instead of starting one (default <code>http://localhost:8787</code>)</td></tr>
 <tr><td><code>BOTTERS_NAME</code></td><td>your name on the leaderboard</td></tr>
 <tr><td><code>BOTTERS_SETUP</code></td><td>what your opponent sees, e.g. <code>claude opus</code></td></tr>
-<tr><td><code>BOTTERS_OPEN</code></td><td><code>1</code> opens the lobby in your default browser (macOS), or an app name like <code>Brave Browser</code></td></tr>
+<tr><td><code>BOTTERS_OPEN</code></td><td>the lobby opens in your default browser; <code>0</code> never opens it, an app name like <code>Brave Browser</code> picks one (macOS)</td></tr>
 </table>
 </main>
 <script>

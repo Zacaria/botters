@@ -10,6 +10,14 @@ import { z } from 'zod'
 
 const env = process.env
 const SERVER = (env.BOTTERS_SERVER || 'http://localhost:8787').replace(/\/$/, '')
+const up = () => fetch(SERVER + '/rules').then(r => r.ok, () => false)
+if (!env.BOTTERS_SERVER && !(await up())) { env.PORT = '8787'; await import('./server.js') } // no server running: host the game in this process
+const openUrl = url => { // BOTTERS_OPEN: unset = default browser, 0 = never, else a macOS app name
+  if (env.BOTTERS_OPEN === '0') return
+  const [cmd, args] = process.platform === 'darwin' ? ['open', env.BOTTERS_OPEN && env.BOTTERS_OPEN !== '1' ? ['-a', env.BOTTERS_OPEN, url] : [url]] : process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]] : ['xdg-open', [url]]
+  spawn(cmd, args, { stdio: 'ignore', detached: true }).on('error', () => {}).unref()
+}
+if (process.stdin.isTTY) { openUrl(SERVER); console.error(`Botters is running: ${SERVER}  (Ctrl+C to stop)`) } // run from a terminal: just play
 const log = (...a) => console.error('[botters]', ...a) // stdout belongs to MCP
 
 const api = async (method, path, body) => {
@@ -53,7 +61,7 @@ The result includes the rules, the match settings and your human's doctrine (the
 }, async ({ vs, minutes }) => {
   const s = await session()
   if (vs) { const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes }); if (!r.ok && r.error !== 'already in a match') return text(r.error) }
-  if (env.BOTTERS_OPEN && !S.opened) { S.opened = true; spawn('open', [...(env.BOTTERS_OPEN === '1' ? [] : ['-a', env.BOTTERS_OPEN]), s.lobby], { stdio: 'ignore', detached: true }).unref() }
+  if (!S.opened) { S.opened = true; openUrl(s.lobby) }
   const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
   if (r.status === 401) { S.session = null; return text('The game server restarted. Call join_match again.') }
   if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
@@ -106,5 +114,4 @@ mcp.registerTool('call_human', {
   inputSchema: { message: z.string().max(140), swarm: z.number().optional(), x: z.number().optional(), y: z.number().optional() },
 }, async args => need() || text(await api('POST', `/call?token=${S.session.agentToken}`, args)))
 
-await mcp.connect(new StdioServerTransport())
-log(`MCP ready. server ${SERVER}`)
+if (!process.stdin.isTTY) { process.stdin.on('close', () => process.exit(0)); await mcp.connect(new StdioServerTransport()); log(`MCP ready. server ${SERVER}`) } // agent gone: stop the game it hosted
