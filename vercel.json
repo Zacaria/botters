@@ -1,0 +1,6 @@
+{
+  "buildCommand": "mkdir -p public && cp guide.html public/index.html",
+  "outputDirectory": "public",
+  "installCommand": "true",
+  "framework": null
+}

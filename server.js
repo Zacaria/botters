@@ -262,8 +262,15 @@ const routes = {
   'GET /guide': page('guide.html'),
 }
 
-http.createServer(async (req, res) => {
-  const u = new URL(req.url, ORIGIN), route = routes[`${req.method} ${u.pathname}`]
-  if (!route) return json(res, 404, { error: 'not found' })
-  try { await route(req, res, u.searchParams) } catch (e) { console.error(e); if (res.headersSent) res.end(); else json(res, 400, { error: String(e.message || e) }) }
-}).listen(PORT, () => console.error(`botters server on ${ORIGIN}`)) // stderr: stdout belongs to MCP when client.js embeds the server
+// Local server on the player's machine: loopback only, and only pages served from itself may call it (no LAN peers, no DNS rebinding, no other web pages).
+const HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`, new URL(ORIGIN).host])
+const srv = http.createServer(async (req, res) => {
+  if (!HOSTS.has(req.headers.host) || (req.headers.origin && !HOSTS.has(req.headers.origin.replace(/^https?:\/\//, '')))) return json(res, 403, { error: 'forbidden host or origin' })
+  try {
+    const u = new URL(req.url, ORIGIN), route = routes[`${req.method} ${u.pathname}`]
+    if (!route) return json(res, 404, { error: 'not found' })
+    await route(req, res, u.searchParams)
+  } catch (e) { console.error(e); if (res.headersSent) res.end(); else json(res, 400, { error: String(e.message || e) }) }
+}).listen(PORT, process.env.BOTTERS_HOST || '127.0.0.1', () => console.error(`botters server on ${ORIGIN}`))
+export const listening = new Promise((ok, ko) => srv.once('listening', ok).once('error', ko)) // rejects on EADDRINUSE: crashes `node server.js`, lets client.js reuse the running game
+export const agentsActive = () => [...tokens.values()].some(a => a.role === 'agent' && agentConnected(a.s)) // any agent still playing on this server // stderr: stdout belongs to MCP when client.js embeds the server

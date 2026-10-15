@@ -50,8 +50,8 @@ export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes
 export function checkGambits(list) {
   if (!Array.isArray(list) || !list.length || list.length > MAX_GAMBITS) return `send 1 to ${MAX_GAMBITS} gambits`
   for (const r of list) {
-    if (!CONDITIONS[r?.if]) return `unknown condition "${r?.if}". Known: ${Object.keys(CONDITIONS).join(', ')}`
-    if (!ACTIONS[r.then]) return `unknown action "${r.then}". Known: ${Object.keys(ACTIONS).join(', ')}`
+    if (typeof r?.if !== 'string' || !Object.hasOwn(CONDITIONS, r.if)) return `unknown condition "${r?.if}". Known: ${Object.keys(CONDITIONS).join(', ')}`
+    if (typeof r.then !== 'string' || !Object.hasOwn(ACTIONS, r.then)) return `unknown action "${r.then}". Known: ${Object.keys(ACTIONS).join(', ')}`
     if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) return 'p must be a number in (0, 100000]'
   }
   return null

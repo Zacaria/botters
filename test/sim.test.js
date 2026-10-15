@@ -170,3 +170,10 @@ test('house levels are ordered: easy loses more often than hard against the defa
   const wins = list => { let w = 0; for (let seed = 1; seed <= 6; seed++) { const s = createMatch(seed, { minutes: 3 }); only(s, 1, list); run(s, s.endTick); if (s.ended.winner === 0) w++ } return w }
   assert.ok(wins(HOUSE.easy) > wins(HOUSE.hard))
 })
+
+test('gambits naming inherited properties are rejected, not run', () => {
+  const s = createMatch(3)
+  for (const bad of [{ if: 'constructor', then: 'hold' }, { if: 'always', then: 'toString' }, { if: '__proto__', then: 'go' }])
+    assert.equal(applyInput(s, 0, { gambits: [bad] }).ok, false)
+  run(s, 40)
+})
