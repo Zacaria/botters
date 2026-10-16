@@ -1,6 +1,6 @@
 # Installer integration receipt — t_4c200b64
 
-Status: integration verified; default-ref change and website publication are blocked on owner authorization. This is not a completed production release.
+Status: historical integration checkpoint. The owner-authorized default-ref correction, literal public-command acceptance and guide publication are now complete; see `install-public-release-t_4c200b64.md` and its adjacent JSON for the final PASS. Sections below retain the initial pre-publication evidence and blocker as recorded.
 
 ## Exact integration
 

@@ -1,0 +1,490 @@
+{
+  "recordedAt": "2026-10-16T15:26:01.597015+00:00",
+  "approvedInstaller": "8871d4842eaf900362052ea1ed3879027a1fa5aa",
+  "guideReleaseCommit": "fee0fabd6d88c3b0757955f14598c72831219125",
+  "priorProduction": "5f34d62cd2dbbe55d98da5f83b7194b962c12230",
+  "changedDeploymentPaths": [
+    "guide.html"
+  ],
+  "evidence": {
+    "release-default-install-verification.json": {
+      "baseCommit": "3c0ef25fab9143c851ad841148942bd2e46aac39",
+      "node": "v24.21.0",
+      "claude": "2.1.285 (Claude Code)",
+      "codex": "codex-cli 0.159.0",
+      "sourceHashes": {
+        "install.js": "c34d0847f88af774bcd645cf3dd3f6b96bfc209947951d6580f3fcc8d3210463",
+        "client.js": "9041f4be64b22ee4b43f52059b326841b02ffa2f14b23c6b1bd457c60cf1012e",
+        "guide.html": "cd9482effb5c659abf0b147f309bb24678764d578db54520419b9229cc34cf31",
+        "README.md": "f104881362ac4b018ec7eaba6afdc78eccb37e495b41f812081359a8a0ae192d",
+        "package.json": "3762177611da46ea2ea76d14e93ca0c70f24eb16056bab43ccd60cfadfc34b2a",
+        "package-lock.json": "b452d5452f8428fe2e014c264674f0c02caa3a2a48387a428314dab74e0ef83f",
+        "test/install.test.js": "17969e1f34f8b8f0d803d5cbe5afccf2af5a7dccfbdef1d7ab93729ce3fbff67",
+        "scripts/verify-install.js": "eaae471af694327bf62f540cb7d11a2cdad8a3d3c9a08ae1422515290740ddcb",
+        "e2e/install.spec.js": "94f20100f72295fda62954559ecd0eb37efda72b5608fb21417d69f13b9c3e23",
+        "docs/install.md": "4e2682850b0c416ecae122a9161204439d601bb661fbded58be03b69e627fa66"
+      },
+      "steps": [
+        {
+          "step": "literal npx -y github:Zacaria/botters install --yes in fresh HOME",
+          "passed": true,
+          "output": "Botters setup: https://botters.havesomecode.io\n  Claude Code: install \u2014 <TEMP>/home/.claude/.claude.json (client CLI + config merge)\n  Codex: install \u2014 <TEMP>/home/.codex/config.toml (client CLI + config merge)\nCodex: 60-second startup/tool timeouts; automatically approve Botters tools only.\nClaude Code: configured \u2014 <TEMP>/home/.claude/.claude.json\nCodex: configured \u2014 <TEMP>/home/.codex/config.toml\nRestart your agent, then say: Let\u2019s play Botters."
+        },
+        {
+          "step": "both real client CLIs read the registration",
+          "passed": true
+        },
+        {
+          "step": "rerun: byte-identical files and no backups",
+          "passed": true
+        },
+        {
+          "step": "real CLI update to offline-only",
+          "passed": true
+        },
+        {
+          "step": "real CLI uninstall and repeat uninstall",
+          "passed": true
+        }
+      ],
+      "tools": {
+        "claude": [
+          "call_human",
+          "join_match",
+          "order_swarm",
+          "release_swarm",
+          "set_gambits",
+          "split_swarm",
+          "wait_for_event"
+        ],
+        "codex": [
+          "call_human",
+          "join_match",
+          "order_swarm",
+          "release_swarm",
+          "set_gambits",
+          "split_swarm",
+          "wait_for_event"
+        ],
+        "packed": [
+          "call_human",
+          "join_match",
+          "order_swarm",
+          "release_swarm",
+          "set_gambits",
+          "split_swarm",
+          "wait_for_event"
+        ]
+      },
+      "codexApprovalReadback": "config.toml; installed CLI JSON omits approval policy",
+      "package": {
+        "files": [
+          "DOCTRINE.md",
+          "README.md",
+          "client.js",
+          "guide.html",
+          "index.html",
+          "install.js",
+          "package.json",
+          "privacy.html",
+          "server.js",
+          "sim.js",
+          "terms.html"
+        ],
+        "shasum": "cf1364cd58466237c5d1be5cb52808ee115dcbda",
+        "integrity": "sha512-TV/Jcce50bqeHB/njMESTt+pVLAcjjGgnxa6akQP/0+ZSuX41cj4yZV5uDDj9HES3RaI8RVf6mRjIghrwcpr7g=="
+      }
+    },
+    "guide-staged-verification.json": {
+      "at": "2026-10-16T15:22:41.898071+00:00",
+      "mode": "staged",
+      "deployment": "dpl_9HK6CKcZTjSsRegbCN5LXUT4sQ31",
+      "origins": [
+        {
+          "origin": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app",
+          "id": "dpl_9HK6CKcZTjSsRegbCN5LXUT4sQ31",
+          "meta": {
+            "gitCommitAuthorName": "Zacaria Chtatar",
+            "gitCommitAuthorEmail": "5860751+Zacaria@users.noreply.github.com",
+            "gitCommitMessage": "docs: publish reviewed one-command installer guide",
+            "gitCommitRef": "release/install-guide-t_4c200b64",
+            "gitCommitSha": "fee0fabd6d88c3b0757955f14598c72831219125",
+            "gitRootDirectory": "",
+            "bottersInstallerCandidate": "8871d4842eaf900362052ea1ed3879027a1fa5aa",
+            "actor": "hermes-agent",
+            "lambdaRuntimeStats": "{\"nodejs\":1}"
+          },
+          "assets": [
+            {
+              "url": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app/",
+              "status": 200,
+              "sha256": "1c604ff08528599657d8b57b136c5078626114f7b2baf2cbd8a6428bc0230898",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app/guide",
+              "status": 200,
+              "sha256": "cd9482effb5c659abf0b147f309bb24678764d578db54520419b9229cc34cf31",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app/sim.js",
+              "status": 200,
+              "sha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app/privacy",
+              "status": 200,
+              "sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app/terms",
+              "status": 200,
+              "sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app/live-client.js",
+              "status": 200,
+              "sha256": "5382a990ccf1131995d22181eee6c5095f8f57b313ad0e402e7bdc5a7bbb4366",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app/live-config.json",
+              "status": 200,
+              "sha256": "bfa2ab94513765fb09ccef2e4a067bb05e2a0edbb4fa21f6d099fafcd6aa3781",
+              "exactMatch": true
+            }
+          ],
+          "routes": [
+            {
+              "path": "/session",
+              "status": 401
+            },
+            {
+              "path": "/play",
+              "status": 410
+            },
+            {
+              "path": "/rooms",
+              "status": 410
+            },
+            {
+              "path": "/lobby",
+              "status": 410
+            },
+            {
+              "path": "/account",
+              "status": 200,
+              "required": true
+            },
+            {
+              "path": "/missing-installer-release-route",
+              "status": 404
+            }
+          ]
+        }
+      ],
+      "liveHealth": {
+        "status": "ok",
+        "build": "5f34d62cd2dbbe55d98da5f83b7194b962c12230",
+        "transport": "colyseus",
+        "activeMatches": 0,
+        "convex": {
+          "query": 60,
+          "mutation": 9,
+          "subscription": 10,
+          "updates": 18
+        },
+        "memory": 107634688
+      },
+      "uploadedSourceFilesMatched": 114
+    },
+    "guide-staged-browser.json": {
+      "at": "2026-10-16T15:23:37.969Z",
+      "mode": "staged",
+      "browser": "Brave",
+      "cases": [
+        {
+          "origin": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app",
+          "javaScriptEnabled": true,
+          "status": 200,
+          "copy": "exact public command",
+          "fallback": "opens",
+          "errors": [],
+          "passed": true
+        },
+        {
+          "origin": "https://botters-ej1s464lq-zacaria-chtatars-projects.vercel.app",
+          "javaScriptEnabled": false,
+          "status": 200,
+          "copy": "readable without JavaScript",
+          "fallback": "opens",
+          "errors": [],
+          "passed": true
+        }
+      ]
+    },
+    "guide-gate-verification.json": {
+      "at": "2026-10-16T15:25:21.926039+00:00",
+      "mode": "gate",
+      "deployment": "dpl_9HK6CKcZTjSsRegbCN5LXUT4sQ31",
+      "legacyActivity": {
+        "activeMatches": 0,
+        "complete": true,
+        "latestActiveEndAt": 0,
+        "scanned": 9
+      },
+      "liveHealth": {
+        "status": "ok",
+        "build": "5f34d62cd2dbbe55d98da5f83b7194b962c12230",
+        "transport": "colyseus",
+        "activeMatches": 0,
+        "convex": {
+          "query": 60,
+          "mutation": 9,
+          "subscription": 10,
+          "updates": 18
+        },
+        "memory": 107634688
+      }
+    },
+    "guide-public-verification.json": {
+      "at": "2026-10-16T15:25:33.225405+00:00",
+      "mode": "public",
+      "deployment": "dpl_9HK6CKcZTjSsRegbCN5LXUT4sQ31",
+      "origins": [
+        {
+          "origin": "https://botters.havesomecode.io",
+          "id": "dpl_9HK6CKcZTjSsRegbCN5LXUT4sQ31",
+          "meta": {
+            "gitCommitAuthorName": "Zacaria Chtatar",
+            "gitCommitAuthorEmail": "5860751+Zacaria@users.noreply.github.com",
+            "gitCommitMessage": "docs: publish reviewed one-command installer guide",
+            "gitCommitRef": "release/install-guide-t_4c200b64",
+            "gitCommitSha": "fee0fabd6d88c3b0757955f14598c72831219125",
+            "gitRootDirectory": "",
+            "bottersInstallerCandidate": "8871d4842eaf900362052ea1ed3879027a1fa5aa",
+            "actor": "hermes-agent",
+            "lambdaRuntimeStats": "{\"nodejs\":1}"
+          },
+          "assets": [
+            {
+              "url": "https://botters.havesomecode.io/",
+              "status": 200,
+              "sha256": "1c604ff08528599657d8b57b136c5078626114f7b2baf2cbd8a6428bc0230898",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.havesomecode.io/guide",
+              "status": 200,
+              "sha256": "cd9482effb5c659abf0b147f309bb24678764d578db54520419b9229cc34cf31",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.havesomecode.io/sim.js",
+              "status": 200,
+              "sha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.havesomecode.io/privacy",
+              "status": 200,
+              "sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.havesomecode.io/terms",
+              "status": 200,
+              "sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.havesomecode.io/live-client.js",
+              "status": 200,
+              "sha256": "5382a990ccf1131995d22181eee6c5095f8f57b313ad0e402e7bdc5a7bbb4366",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.havesomecode.io/live-config.json",
+              "status": 200,
+              "sha256": "bfa2ab94513765fb09ccef2e4a067bb05e2a0edbb4fa21f6d099fafcd6aa3781",
+              "exactMatch": true
+            }
+          ],
+          "routes": [
+            {
+              "path": "/session",
+              "status": 401
+            },
+            {
+              "path": "/play",
+              "status": 410
+            },
+            {
+              "path": "/rooms",
+              "status": 410
+            },
+            {
+              "path": "/lobby",
+              "status": 410
+            },
+            {
+              "path": "/account",
+              "status": 200,
+              "required": true
+            },
+            {
+              "path": "/missing-installer-release-route",
+              "status": 404
+            }
+          ]
+        },
+        {
+          "origin": "https://botters.vercel.app",
+          "id": "dpl_9HK6CKcZTjSsRegbCN5LXUT4sQ31",
+          "meta": {
+            "gitCommitAuthorName": "Zacaria Chtatar",
+            "gitCommitAuthorEmail": "5860751+Zacaria@users.noreply.github.com",
+            "gitCommitMessage": "docs: publish reviewed one-command installer guide",
+            "gitCommitRef": "release/install-guide-t_4c200b64",
+            "gitCommitSha": "fee0fabd6d88c3b0757955f14598c72831219125",
+            "gitRootDirectory": "",
+            "bottersInstallerCandidate": "8871d4842eaf900362052ea1ed3879027a1fa5aa",
+            "actor": "hermes-agent",
+            "lambdaRuntimeStats": "{\"nodejs\":1}"
+          },
+          "assets": [
+            {
+              "url": "https://botters.vercel.app/",
+              "status": 200,
+              "sha256": "1c604ff08528599657d8b57b136c5078626114f7b2baf2cbd8a6428bc0230898",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.vercel.app/guide",
+              "status": 200,
+              "sha256": "cd9482effb5c659abf0b147f309bb24678764d578db54520419b9229cc34cf31",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.vercel.app/sim.js",
+              "status": 200,
+              "sha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.vercel.app/privacy",
+              "status": 200,
+              "sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.vercel.app/terms",
+              "status": 200,
+              "sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.vercel.app/live-client.js",
+              "status": 200,
+              "sha256": "5382a990ccf1131995d22181eee6c5095f8f57b313ad0e402e7bdc5a7bbb4366",
+              "exactMatch": true
+            },
+            {
+              "url": "https://botters.vercel.app/live-config.json",
+              "status": 200,
+              "sha256": "bfa2ab94513765fb09ccef2e4a067bb05e2a0edbb4fa21f6d099fafcd6aa3781",
+              "exactMatch": true
+            }
+          ],
+          "routes": [
+            {
+              "path": "/session",
+              "status": 401
+            },
+            {
+              "path": "/play",
+              "status": 410
+            },
+            {
+              "path": "/rooms",
+              "status": 410
+            },
+            {
+              "path": "/lobby",
+              "status": 410
+            },
+            {
+              "path": "/account",
+              "status": 200,
+              "required": true
+            },
+            {
+              "path": "/missing-installer-release-route",
+              "status": 404
+            }
+          ]
+        }
+      ],
+      "liveHealth": {
+        "status": "ok",
+        "build": "5f34d62cd2dbbe55d98da5f83b7194b962c12230",
+        "transport": "colyseus",
+        "activeMatches": 0,
+        "convex": {
+          "query": 60,
+          "mutation": 9,
+          "subscription": 10,
+          "updates": 18
+        },
+        "memory": 107634688
+      }
+    },
+    "guide-public-browser.json": {
+      "at": "2026-10-16T15:25:38.132Z",
+      "mode": "public",
+      "browser": "Brave",
+      "cases": [
+        {
+          "origin": "https://botters.havesomecode.io",
+          "javaScriptEnabled": true,
+          "status": 200,
+          "copy": "exact public command",
+          "fallback": "opens",
+          "errors": [],
+          "passed": true
+        },
+        {
+          "origin": "https://botters.havesomecode.io",
+          "javaScriptEnabled": false,
+          "status": 200,
+          "copy": "readable without JavaScript",
+          "fallback": "opens",
+          "errors": [],
+          "passed": true
+        },
+        {
+          "origin": "https://botters.vercel.app",
+          "javaScriptEnabled": true,
+          "status": 200,
+          "copy": "exact public command",
+          "fallback": "opens",
+          "errors": [],
+          "passed": true
+        },
+        {
+          "origin": "https://botters.vercel.app",
+          "javaScriptEnabled": false,
+          "status": 200,
+          "copy": "readable without JavaScript",
+          "fallback": "opens",
+          "errors": [],
+          "passed": true
+        }
+      ]
+    }
+  }
+}
