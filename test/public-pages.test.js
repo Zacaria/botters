@@ -52,7 +52,7 @@ test('clean build includes the two policies and only intended public files', asy
   try {
     for (const file of assets) await copyFile(new URL(`../${file}`, import.meta.url), join(dir, file))
     execFileSync(process.execPath, [new URL('../scripts/build.js', import.meta.url).pathname], { cwd: dir })
-    assert.deepEqual((await readdir(join(dir, 'public'))).sort(), assets.toSorted())
+    assert.deepEqual((await readdir(join(dir, 'public'))).sort(), [...assets, 'live-client.js', 'live-config.json'].toSorted())
     for (const file of assets) assert.equal(await readFile(join(dir, 'public', file), 'utf8'), await source(file))
   } finally { await rm(dir, { recursive: true }) }
 })

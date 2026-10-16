@@ -24,7 +24,7 @@ test('HTTP rejects cross-origin, invalid JSON/body, missing token and agent stre
   const r = await s.post('/session', { name: 'http' }), session = await r.json()
   assert.equal(r.headers.get('cache-control'), 'no-store')
   assert.equal(r.headers.get('referrer-policy'), 'no-referrer')
-  assert.equal((await s.fetch(`/stream?token=${session.agentToken}`)).status, 401)
+  assert.equal((await s.fetch(`/stream?token=${session.agentToken}`)).status, 410)
   const next = await s.fetch(`/next?token=${session.agentToken}&timeout=0`).then(r => r.json())
   assert.deepEqual(next, { match: null })
 })
@@ -48,22 +48,9 @@ test('entry deadline aborts slow Convex calls before the function limit', async 
   assert.ok(!(await r.text()).includes('never-return-this-test-secret'))
 })
 
-test('SSE emits side-filtered frames at >=10Hz and ends on its bounded budget', async t => {
-  const s = await serve(t, new MemoryStore(), { streamMs: 1100 })
-  const session = await s.post('/session', { name: 'stream' }).then(r => r.json())
-  await s.post(`/play?token=${session.humanToken}`, { vs: 'easy', withAgent: false })
-  const r = await s.fetch(`/stream?token=${session.humanToken}`), times = []
-  let buf = ''
-  for await (const chunk of r.body) {
-    buf += new TextDecoder().decode(chunk)
-    let i
-    while ((i = buf.indexOf('\n\n')) >= 0) {
-      const event = buf.slice(0, i); buf = buf.slice(i + 2)
-      if (!event.startsWith('data: ')) continue
-      const frame = JSON.parse(event.slice(6)); assert.ok(frame.view); assert.equal(frame.s, undefined); assert.equal(frame.log, undefined)
-      assert.equal(frame.view.enemies.length, 0); times.push(performance.now())
-    }
-  }
-  assert.ok(times.length >= 11, `Only ${times.length} frames`)
-  assert.ok((times.length - 1) * 1000 / (times.at(-1) - times[0]) >= 10)
+test('retired SSE route never opens a Convex-backed match stream', async t => {
+  const s = await serve(t)
+  const r = await s.fetch('/stream')
+  assert.equal(r.status, 410)
+  assert.match((await r.json()).error, /WebSockets/)
 })

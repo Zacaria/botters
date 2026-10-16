@@ -25,7 +25,7 @@ async function ended(page) {
 test('a transient initial stream 503 reopens the same match and receives frames', async ({ page }) => {
   await enter(page, 'Stream retry')
   let attempts = 0
-  await page.route('**/stream?**', route => ++attempts === 1 ? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Retry shortly."}' }) : route.continue())
+  await page.route('**/socket?**', route => ++attempts === 1 ? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Retry shortly."}' }) : route.continue())
   await page.locator('#play').click()
   await expect.poll(() => attempts, { timeout: 8000 }).toBeGreaterThanOrEqual(2)
   await expect(page.locator('#hud')).toContainText('swarms')

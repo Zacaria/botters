@@ -49,6 +49,19 @@ export const watch = internalQueryGeneric({
   },
 })
 
+// Capability-only subscription for the long-lived service. Never follows a match.
+export const authorize = internalQueryGeneric({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const now = Date.now(), row = await record(ctx, key), token = unexpired(row, now)
+    const auth = token && JSON.parse(token), namespace = /^(.*)token:[a-f0-9]{64}$/.exec(key)?.[1]
+    const owner = auth && namespace ? await record(ctx, `${namespace}session:${auth.id}`) : null
+    const session = unexpired(owner, now)
+    const expiries = [row?.expiresAt, owner?.expiresAt, auth?.expires].filter(e => e > 0)
+    return { token, session, expiresAt: expiries.length ? Math.min(...expiries) : now + 60000 }
+  },
+})
+
 export const commit = internalMutationGeneric({
   args: { entries: v.array(v.object({ key: v.string(), raw: v.union(v.string(), v.null()), value: v.string(), ttl: v.number() })) },
   handler: async (ctx, { entries }) => {

@@ -32,6 +32,9 @@
     "test:online": "node scripts/verify-online.js"
   },
   "dependencies": {
+    "@colyseus/core": "^0.17.52",
+    "@colyseus/sdk": "^0.17.43",
+    "@colyseus/ws-transport": "^0.17.13",
     "@convex-dev/better-auth": "^0.12.5",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "better-auth": "^1.6.33",
@@ -41,6 +44,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "convex-test": "^0.0.62",
+    "esbuild": "^0.28.2",
     "vitest": "^4.1.12"
   }
 }

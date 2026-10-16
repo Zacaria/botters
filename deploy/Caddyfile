@@ -1,0 +1,13 @@
+play.botters.havesomecode.io {
+    # No access log: query strings carry short private game capabilities.
+    request_body {
+        max_size 16KB
+    }
+    header {
+        Referrer-Policy no-referrer
+        X-Content-Type-Options nosniff
+        Cache-Control no-store
+        -Server
+    }
+    reverse_proxy game:2567
+}

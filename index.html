@@ -188,7 +188,9 @@ let accountRequired = false, authMode = resetToken ? 'reset' : 'signin'
 let token = authQuery.get('s') || localStorage.getItem('botters.session')
 const inviteCode = /^\/r\/([A-Z2-9]{6})$/i.exec(location.pathname)?.[1]?.toUpperCase()
 if (token || resetToken || pendingPair) history.replaceState(null, '', location.pathname) // capabilities never remain in referrers or copied room links
-const api = (method, path, body) => fetch(`${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token || '')}`, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) })).catch(() => ({ status: 503, error: 'Connection lost. Retry when you are online.' }))
+let liveOrigin = ''
+try { liveOrigin = (await fetch('/live-config.json').then(r => r.ok ? r.json() : {})).url || '' } catch {}
+const api = (method, path, body) => fetch(`${accountRequired && (path === '/session' || path.startsWith('/agent/')) ? '' : liveOrigin}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token || '')}`, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) })).catch(() => ({ status: 503, error: 'Connection lost. Retry when you are online.' }))
 const toast = (t, ok = true) => { $('toast').textContent = t; $('toast').style.color = ok ? '#8f8' : '#f88' }
 
 // ---------- gambit editor (lobby opening + in match) ----------
@@ -427,14 +429,14 @@ function match() {
   $('big').innerHTML = ''; $('feed').innerHTML = ''; $('toast').textContent = ''
   connectStream()
 }
-function connectStream() {
+async function connectStream() {
   clearTimeout(streamRetry); es?.close()
   if ($('game').hidden || (v?.ended && F?.report)) return
-  const stream = es = new EventSource(`/stream?token=${token}`)
-  stream.onmessage = e => {
+  const { connectLive } = await import('/live-client.js')
+  const stream = es = connectLive(liveOrigin || location.origin, token, frame => {
     if (es !== stream) return
     lastFrame = Date.now(); if (navigator.onLine) $('connection').hidden = true
-    F = JSON.parse(e.data); v = F.view
+    F = frame; v = F.view
     const live = new Set()
     for (const c of [...v.swarms, ...v.enemies]) { // start from where the swarm is drawn now, before resetting the clock
       live.add(c.id); const p = pos.get(c.id)
@@ -445,13 +447,10 @@ function connectStream() {
     if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
     panel()
     if (v.ended && F.report) stream.close()
-  }
-  stream.onerror = () => {
+  }, () => {
     if (es !== stream || $('game').hidden || (v?.ended && F?.report)) return
     $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…'
-    // HTTP errors can permanently close EventSource instead of invoking its retry loop.
-    if (stream.readyState === EventSource.CLOSED) streamRetry = setTimeout(connectStream, 1000)
-  }
+  })
 }
 setInterval(() => { if (!$('game').hidden && !v?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
 window.addEventListener('offline', () => { if (!$('game').hidden && !v?.ended) { $('connection').hidden = false; $('connection').textContent = 'You are offline. The match continues; reconnecting when your connection returns…' } })
