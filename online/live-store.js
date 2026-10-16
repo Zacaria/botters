@@ -17,7 +17,9 @@ export class LiveStore extends MemoryStore {
   }
   async commit(entries) {
     if (entries.some(e => this.raw(e.key) !== e.raw)) return 0
-    if (!this.remote) return super.commit(entries)
+    // Durable account sessions are non-expiring, but process-owned state is not.
+    const commitLocal = () => super.commit(entries.map(e => e.key.startsWith('session:') && e.ttl === 0 ? { ...e, ttl: 86400 } : e))
+    if (!this.remote) return commitLocal()
     const boundaries = entries.filter(e => e.key.startsWith('match:') && e.value).map(e => {
       const m = JSON.parse(e.value), old = e.raw && JSON.parse(e.raw)
       return { e, m, start: !old, finish: m.report && !old?.report }
@@ -25,7 +27,7 @@ export class LiveStore extends MemoryStore {
     const sessionChanged = e => e.key.startsWith('session:') && (!e.raw || ['name', 'setup', 'doctrine', 'agentVersion', 'agentGranted'].some(k => JSON.parse(e.raw)[k] !== JSON.parse(e.value)[k]))
     const selected = new Map(entries.filter(e => e.value && (e.key.startsWith('token:') && !e.raw || sessionChanged(e) || /^(pair|pending|account):/.test(e.key))).map(e => [e.key, e]))
     if (boundaries.length) for (const e of entries) if (e.value && (e.key.startsWith('session:') || ratingKey(e.key))) selected.set(e.key, e)
-    if (!boundaries.length && !selected.size) return super.commit(entries)
+    if (!boundaries.length && !selected.size) return commitLocal()
     const markers = boundaries.map(b => `${b.finish ? 'result' : 'live'}:${b.m.id}`)
     const keys = [...selected.keys(), ...markers], values = await this.remote.read(keys); this.boundaryCalls++
     const raws = new Map(keys.map((k, i) => [k, values[i]]))
@@ -45,7 +47,7 @@ export class LiveStore extends MemoryStore {
           e.value = JSON.stringify(local)
         }
       }
-      return super.commit(entries)
+      return commitLocal()
     }
     for (const e of selected.values()) if (ratingKey(e.key) && raws.get(e.key) !== e.raw) { this.put(e.key, raws.get(e.key), 0); return 0 }
     const writes = [...selected.values()].map(e => {
@@ -62,7 +64,7 @@ export class LiveStore extends MemoryStore {
     this.boundaryCalls++
     if (!await this.remote.commit(writes)) return 0
     // All callers and subscription adoption serialize around this local commit.
-    const ok = await super.commit(entries)
+    const ok = await commitLocal()
     if (ok && finishes.length) for (const key of [...this.data.keys()]) if (boardNamespace(key) !== null) this.data.delete(key)
     return ok
   }

@@ -75,7 +75,8 @@ export class LiveRuntime {
       const remote = JSON.parse(session), local = JSON.parse(this.store.raw(`session:${remote.id}`) || 'null')
       const own = local ? { match: local.match, side: local.side, room: local.room, roomPrefs: local.roomPrefs, queued: local.queued, history: local.history, name: local.name, doctrine: local.doctrine } : { match: null, room: null, queued: null }
       if (local && local.agentVersion === remote.agentVersion) own.agentSeen = local.agentSeen
-      this.store.put(`session:${remote.id}`, JSON.stringify({ ...remote, ...own }), Math.max(1, (expiresAt - Date.now()) / 1000))
+      // Game state is shared by independent leases; only the token uses expiresAt.
+      this.store.put(`session:${remote.id}`, JSON.stringify({ ...remote, ...own }))
     })
   }
   async request(method, path, q = new URLSearchParams(), body = {}, proof) {

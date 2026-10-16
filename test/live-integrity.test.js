@@ -19,7 +19,7 @@ test('durable revocation, owner deletion, expiry and disconnected authorization 
     return { checkedAt: Date.now(), expiresAt: Date.now() + 600000, connected: () => connected, close: async () => { closed++ } }
   }
   await runtime.authorize(a.humanToken)
-  assert.ok(store.data.get(sessionKey).expires > 0 && store.data.get(sessionKey).expires <= Date.now() + 600000, 'Imported sessions must not become immortal process cache entries')
+  assert.ok(store.data.get(sessionKey).expires > Date.now() + 600000 && store.data.get(sessionKey).expires <= Date.now() + 86400000, 'Shared session retention is bounded independently of the short capability lease')
   assert.equal(runtime.canFrame(a.humanToken, matchId, 0), true)
   let release
   const blocker = runtime.serialize(() => new Promise(resolve => { release = resolve }))
