@@ -76,6 +76,22 @@ Better Auth component. A disposable tooling overlay captures email locally;
 self-signed loopback HTTPS transports replace the external hosts. It is not a
 production mail, public TLS or deployed cross-host acceptance test.
 
+## Cold-start approval repair
+
+The first post-approval MCP confirmation currently performs two separate
+`store:get` queries (grant and owner) and a read-only `store:commit` CAS per
+client. These six executions can be two: use the existing `store:get`
+`followToken` facility to read the grant, pending request and owner in one
+consistent database snapshot. Approval polling changes no state, so it needs
+no commit. Do not fetch the owner's match in this capability-only snapshot.
+
+Keep token-format checks, pending-request expiry, grant expiry, owner existence
+and agent-version revocation checks. Every poll obtains a fresh snapshot;
+there is no process-wide approval cache. All mutating game operations retain
+CAS. Human authentication, live cookies, ticket exchange and the 90-second
+live-authority refresh are unchanged. The expected cold count is 49, pending
+actual full-duration backend measurement; no hosted result is claimed.
+
 ## Source and security checks
 
 The new actual-component regression fails on the original handler because
