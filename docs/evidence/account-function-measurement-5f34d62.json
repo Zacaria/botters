@@ -1,0 +1,77 @@
+{
+  "start": "2026-10-16T14:03:18.461Z",
+  "end": "2026-10-16T14:11:30.396Z",
+  "matchId": "MsvwJA5GmdpDttS66119qFOs_aM7plhz",
+  "adapterCalls": 40,
+  "adapterDelta": {
+    "query": 24,
+    "mutation": 3,
+    "subscription": 4,
+    "updates": 13
+  },
+  "hostedCompletionsIncludingComponentsAndHousekeeping": 67,
+  "hostedUncachedCompletions": 63,
+  "appCompletions": 57,
+  "componentCompletions": 10,
+  "scheduledHousekeepingCompletions": 8,
+  "successfulCompletions": 67,
+  "failedCompletions": 0,
+  "uncachedNonHousekeepingCompletions": 55,
+  "functions": [
+    {
+      "component": "app",
+      "function": "GET /api/auth/*",
+      "cached": false,
+      "calls": 2
+    },
+    {
+      "component": "app",
+      "function": "liveAuth:exchange",
+      "cached": false,
+      "calls": 1
+    },
+    {
+      "component": "app",
+      "function": "store:authorize",
+      "cached": false,
+      "calls": 33
+    },
+    {
+      "component": "app",
+      "function": "store:commit",
+      "cached": false,
+      "calls": 4
+    },
+    {
+      "component": "app",
+      "function": "store:expire",
+      "cached": false,
+      "calls": 8
+    },
+    {
+      "component": "app",
+      "function": "store:get",
+      "cached": false,
+      "calls": 9
+    },
+    {
+      "component": "betterAuth",
+      "function": "adapter:findMany",
+      "cached": false,
+      "calls": 4
+    },
+    {
+      "component": "betterAuth",
+      "function": "adapter:findOne",
+      "cached": true,
+      "calls": 4
+    },
+    {
+      "component": "betterAuth",
+      "function": "adapter:updateMany",
+      "cached": false,
+      "calls": 2
+    }
+  ],
+  "scope": "Actual provider completion stream for the full wall-clock rematch from immediately before both rematch votes through both persisted reports, including one browser reload, two active human sockets and two real stdio MCP clients polling events. Provider component executions and scheduled store expiry are separately visible; log bodies, credentials, auth URLs and identities are excluded."
+}
