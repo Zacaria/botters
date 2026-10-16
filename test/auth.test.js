@@ -100,5 +100,5 @@ test('server identity ignores request JSON/headers and accepts only a live verif
   assert.equal(await resolveAccount(request, env, fetcher(null)), null)
   assert.equal(await resolveAccount(request, env, fetcher({ user: { id: 'a', emailVerified: false }, session: { expiresAt: '2099-01-01' } })), null)
   assert.equal(await resolveAccount(request, env, fetcher({ user: { id: 'a', emailVerified: true }, session: { expiresAt: '2000-01-01' } })), null)
-  assert.deepEqual(await resolveAccount(request, env, fetcher({ user: { id: 'a', name: 'Alice', emailVerified: true }, session: { expiresAt: '2099-01-01' } })), { id: 'a', name: 'Alice', emailVerified: true })
+  assert.deepEqual(await resolveAccount(request, env, fetcher({ user: { id: 'a', name: 'Alice', emailVerified: true }, session: { id: 'real-session', expiresAt: '2099-01-01' } })), { id: 'a', name: 'Alice', emailVerified: true, authSessionId: 'real-session', authExpires: Date.parse('2099-01-01') })
 })

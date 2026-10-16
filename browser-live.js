@@ -8,7 +8,7 @@ export function connectLive(origin, token, onFrame, onDisconnect) {
     if (closed || connecting) return
     connecting = true
     try {
-      const response = await fetch(`${origin}/socket?token=${encodeURIComponent(token)}`)
+      const response = await fetch(`${origin}/socket?token=${encodeURIComponent(token)}`, { credentials: 'include' })
       if (!response.ok) throw new Error('Live connection unavailable')
       const { roomId } = await response.json()
       const next = await client.joinById(roomId, { token })

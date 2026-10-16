@@ -19,7 +19,7 @@ test('Colyseus sends filtered >=10Hz frames, rejects third-party reservations an
   assert.equal((await fetch(`${origin}/socket?token=${a.agentToken}`)).status, 401)
   assert.equal((await post(`/agent/revoke?token=${a.humanToken}`, {})).status, 404)
   assert.equal((await post('/?route=/auth/sign-up/email', {})).status, 400)
-  await assert.rejects(createLiveServer({ requireAccount: true }), /reviewed live-session exchange/)
+  await assert.rejects(createLiveServer({ requireAccount: true }), /durable live-session exchange/)
   assert.equal((await fetch(`${origin}/socket?token=${a.humanToken}`, { headers: { Origin: 'https://evil.example' } })).status, 403)
   const client = new Client(origin)
   let room = await client.joinById(roomId, { token: a.humanToken })

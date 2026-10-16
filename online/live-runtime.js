@@ -18,12 +18,11 @@ export class LiveRuntime {
     const e = this.authorities.get(key)
     return !!e && !e.error && e.connected() && Date.now() < e.expiresAt && Date.now() - e.checkedAt < 90000
   }
-  canFrame(bearer, matchId, side) {
+  canFrame(bearer, matchId, side, proof) {
     if (!this.ready(bearer)) return false
-    const auth = JSON.parse(this.store.raw(`token:${hash(bearer)}`) || 'null'), s = auth && JSON.parse(this.store.raw(`session:${auth.id}`) || 'null')
-    return auth?.role === 'human' && !!s && !s.accountId && s.match === matchId && s.side === side
+    try { const { auth, session } = this.check(bearer, proof); return auth.role === 'human' && session.match === matchId && session.side === side } catch { return false }
   }
-  async authorize(bearer) {
+  async authorize(bearer, proof) {
     if (!/^[\w-]{32}$/.test(bearer || '')) throw Object.assign(new Error('Unknown session. Open a new lobby.'), { status: 401 })
     const key = `token:${hash(bearer)}`
     if (this.options.authority) {
@@ -49,12 +48,20 @@ export class LiveRuntime {
       if (Date.now() - entry.checkedAt >= 90000) await entry.refresh()
       if (!entry.connected() || entry.error) throw unavailable()
     }
+    try { return this.check(bearer, proof) }
+    catch (e) {
+      if (e.status === 401 && e.code !== 'cookie') { const entry = this.authorities.get(key); this.authorities.delete(key); this.generations.delete(key); await entry?.close() }
+      throw e
+    }
+  }
+  check(bearer, proof) {
+    const key = `token:${hash(bearer || '')}`
     const auth = JSON.parse(this.store.raw(key) || 'null'), session = auth && JSON.parse(this.store.raw(`session:${auth.id}`) || 'null')
     if (session?.accountId && !this.options.requireAccount) throw Object.assign(new Error('Account online play is not active.'), { status: 401 })
     if (!session || auth.expires !== undefined && auth.expires <= this.now() || auth.role === 'agent' && auth.version !== undefined && auth.version !== session.agentVersion || this.options.requireAccount && (!session.accountId || !auth.expires || auth.role === 'human' && auth.accountId !== session.accountId)) {
-      const entry = this.authorities.get(key); this.authorities.delete(key); this.generations.delete(key); await entry?.close()
       throw Object.assign(new Error('Access expired or revoked. Open a new lobby.'), { status: 401 })
     }
+    if (session.accountId && auth.role === 'human' && (!proof || auth.liveCookieHash !== proof || !auth.authSessionId)) throw Object.assign(new Error('Sign in again to connect to live play.'), { status: 401, code: 'cookie' })
     const entry = this.authorities.get(key)
     if (entry && Date.now() >= entry.expiresAt) throw Object.assign(new Error('Access expired. Open a new lobby.'), { status: 401 })
     return { auth, session }
@@ -66,22 +73,24 @@ export class LiveRuntime {
       this.store.put(key, token && session ? token : null, Math.max(1, (expiresAt - Date.now()) / 1000))
       if (!session) return
       const remote = JSON.parse(session), local = JSON.parse(this.store.raw(`session:${remote.id}`) || 'null')
-      const own = local ? { match: local.match, side: local.side, room: local.room, roomPrefs: local.roomPrefs, queued: local.queued, history: local.history, agentSeen: local.agentSeen, name: local.name, doctrine: local.doctrine } : { match: null, room: null, queued: null }
+      const own = local ? { match: local.match, side: local.side, room: local.room, roomPrefs: local.roomPrefs, queued: local.queued, history: local.history, name: local.name, doctrine: local.doctrine } : { match: null, room: null, queued: null }
+      if (local && local.agentVersion === remote.agentVersion) own.agentSeen = local.agentSeen
       this.store.put(`session:${remote.id}`, JSON.stringify({ ...remote, ...own }), Math.max(1, (expiresAt - Date.now()) / 1000))
     })
   }
-  async request(method, path, q = new URLSearchParams(), body = {}) {
+  async request(method, path, q = new URLSearchParams(), body = {}, proof) {
     if (path.startsWith('/agent/')) throw Object.assign(new Error('Agent approvals belong on the website.'), { status: 404 })
     let identity = null
-    const publicPath = path === '/rules' || path === '/session' || method === 'GET' && path === '/leaderboard'
+    const publicPath = path === '/rules' || path === '/session' || !this.options.requireAccount && method === 'GET' && path === '/leaderboard'
     if (!publicPath) {
-      const { session } = await this.authorize(q.get('token'))
+      const { session } = await this.authorize(q.get('token'), proof)
       identity = session.accountId ? { id: session.accountId, emailVerified: true } : null
     }
     if (this.options.requireAccount && (path === '/session' || path.startsWith('/agent/'))) throw Object.assign(new Error('Use the website to sign in or approve your agent.'), { status: 401 })
     const startId = randomBytes(24).toString('base64url')
     return this.serialize(async () => {
       if (!publicPath && this.options.authority && !this.ready(q.get('token'))) throw unavailable()
+      if (!publicPath) this.check(q.get('token'), proof)
       if (['/play', '/rooms/start', '/rooms/rematch'].includes(path) && this.rooms.size >= 24) throw Object.assign(new Error('All matches are occupied. Retry shortly.'), { status: 503 })
       const result = await new OnlineGame(this.store, { ...this.options, identity, startId }).request(method, path, q, body)
       if (this.createRoom) for (const [key, record] of this.store.data) if (key.startsWith('match:')) {

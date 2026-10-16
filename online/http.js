@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { OnlineGame } from './game.js'
 import { transaction } from './store.js'
 import { proxyAuth, resolveAccount, consumeAuthLimit } from './auth.js'
+import { liveCookieProof } from './live-cookie.js'
 const delay = ms => new Promise(r => setTimeout(r, ms))
 const json = (res, code, data) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)) }
 
@@ -35,7 +36,7 @@ export function createHandler(store, options = {}) {
         return await proxyAuth(req, res, path.slice(5), body, options.env)
       }
       const identity = options.requireAccount ? await (options.resolveAccount || resolveAccount)(req, options.env) : null
-      if (req.method === 'GET' && path === '/account') return json(res, 200, { required: !!options.requireAccount, origin: options.env?.BOTTERS_AUTH_ORIGIN || process.env.BOTTERS_AUTH_ORIGIN || 'https://botters.havesomecode.io', user: identity })
+      if (req.method === 'GET' && path === '/account') return json(res, 200, { required: !!options.requireAccount, origin: options.env?.BOTTERS_AUTH_ORIGIN || process.env.BOTTERS_AUTH_ORIGIN || 'https://botters.havesomecode.io', user: identity ? { id: identity.id, name: identity.name, emailVerified: true } : null })
       const gameOrigin = options.requireAccount ? options.env?.BOTTERS_AUTH_ORIGIN || process.env.BOTTERS_AUTH_ORIGIN || 'https://botters.havesomecode.io' : origin
       game = options.runtime || new OnlineGame(store.scoped?.() || store, { ...options, identity, origin: gameOrigin, deadline })
       if (req.method === 'POST' && ['/session', '/agent/pair'].includes(path)) {
@@ -53,7 +54,7 @@ export function createHandler(store, options = {}) {
       const pollDeadline = Math.min(deadline - 1000, entered + timeout)
       let result
       do {
-        result = await game.request(req.method, path, url.searchParams, body)
+        result = await game.request(req.method, path, url.searchParams, body, options.runtime ? liveCookieProof(req.headers.cookie, options.liveCookieName) : undefined)
         const waiting = req.method === 'GET' && (path === '/agent/poll' ? !result.approved : path === '/next' ? !result.match : path === '/events' ? result.state && !result.state.ended && !result.events.length : false)
         if (!waiting || performance.now() >= pollDeadline || closed) break
         await delay(Math.min(500, Math.max(0, pollDeadline - performance.now())))

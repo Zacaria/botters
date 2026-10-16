@@ -77,7 +77,7 @@ function matchFrame(m, side, now) {
 }
 
 export class OnlineGame {
-  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, identity = null, startId } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId }
+  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId }
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
@@ -200,9 +200,14 @@ export class OnlineGame {
             await tx.set(`session:${s.id}`, s, 0)
             await tx.set(accountKey, { id: s.id }, 0)
           }
-          const humanToken = token()
-          await tx.set(`token:${hash(humanToken)}`, { id: s.id, role: 'human', accountId: s.accountId, expires: now + SESSION_TTL * 1000 }, SESSION_TTL)
-          return { humanToken, sessionId: s.id }
+          const humanToken = token(), expires = this.liveExchange ? Math.min(this.identity.authExpires, now + SESSION_TTL * 1000) : now + SESSION_TTL * 1000
+          if (this.liveExchange && (!this.identity.authSessionId || !Number.isFinite(expires) || expires <= now)) fail(401, 'Sign in again to connect to live play.')
+          const key = `token:${hash(humanToken)}`
+          await tx.set(key, { id: s.id, role: 'human', accountId: s.accountId, expires, ...(this.liveExchange ? { authSessionId: this.identity.authSessionId } : {}) }, Math.ceil((expires - now) / 1000))
+          if (!this.liveExchange) return { humanToken, sessionId: s.id }
+          const liveTicket = token()
+          await tx.set(`live-ticket:${hash(liveTicket)}`, { tokenKey: key }, 60)
+          return { humanToken, sessionId: s.id, liveTicket }
         }
         // Isolated development fixture compatibility only; production requires accounts.
         const humanToken = token(), agentToken = token(), id = token()

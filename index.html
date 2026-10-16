@@ -88,7 +88,7 @@
 <!-- lobby -->
 <div id="lobby" class="screen" hidden>
   <div class="row" id="accountControls" hidden><span id="accountName"></span> <button id="signout">Sign out</button> <button id="revokeAgent">Disconnect agent</button></div>
-  <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. It can read your side of the match and send game instructions. It cannot change your account or control other players. Connecting replaces any currently authorized agent.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
+  <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. The agent can read your match view, rewrite your gambits and send instructions to your swarms. It cannot manage your account or command an opponent's swarms. Connecting replaces any currently authorized agent.</p><p>Access lasts up to seven days, including while you are signed out. Use Disconnect agent in the lobby to revoke access.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
   <div class="wrap">
     <div>
       <h1><b>BOT</b><i>TERS</i></h1>
@@ -190,7 +190,7 @@ const inviteCode = /^\/r\/([A-Z2-9]{6})$/i.exec(location.pathname)?.[1]?.toUpper
 if (token || resetToken || pendingPair) history.replaceState(null, '', location.pathname) // capabilities never remain in referrers or copied room links
 let liveOrigin = ''
 try { liveOrigin = (await fetch('/live-config.json').then(r => r.ok ? r.json() : {})).url || '' } catch {}
-const api = (method, path, body) => fetch(`${accountRequired && (path === '/session' || path.startsWith('/agent/')) ? '' : liveOrigin}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token || '')}`, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) })).catch(() => ({ status: 503, error: 'Connection lost. Retry when you are online.' }))
+const api = (method, path, body) => fetch(`${accountRequired && (path === '/session' || path.startsWith('/agent/')) ? '' : liveOrigin}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token || '')}`, { method, credentials: 'include', headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) })).catch(() => ({ status: 503, error: 'Connection lost. Retry when you are online.' }))
 const toast = (t, ok = true) => { $('toast').textContent = t; $('toast').style.color = ok ? '#8f8' : '#f88' }
 
 // ---------- gambit editor (lobby opening + in match) ----------
@@ -299,10 +299,16 @@ async function bootAccount() {
   $('accountName').textContent = account.user.name
   const session = await api('POST', '/session', {})
   if (!session.humanToken) { $('authMessage').textContent = session.error; return show('start') }
+  if (liveOrigin) {
+    try {
+      const r = await fetch(`${liveOrigin}/exchange`, { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ticket: session.liveTicket }) })
+      if (!r.ok) throw new Error('exchange')
+    } catch { $('authMessage').textContent = 'Live connection unavailable. Reload to reconnect.'; return show('start') }
+  }
   token = session.humanToken; localStorage.setItem('botters.session', token)
   if (pendingPair) {
     const pair = await api('GET', '/agent/request?id=' + encodeURIComponent(pendingPair))
-    $('pairApproval').hidden = false; $('pairDescription').textContent = pair.error || `Agent setup: ${pair.setup}`; $('approveAgent').disabled = !!pair.error
+    $('pairApproval').hidden = false; $('pairDescription').textContent = pair.error || `Setup name supplied by the agent: ${pair.setup}`; $('approveAgent').disabled = !!pair.error
   }
   return lobby(!pendingPair)
 }

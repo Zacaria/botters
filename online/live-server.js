@@ -5,15 +5,15 @@ import { WebSocketTransport } from '@colyseus/ws-transport'
 import { createHandler } from './http.js'
 import { LiveStore } from './live-store.js'
 import { LiveRuntime } from './live-runtime.js'
+import { liveCookieName, testCookieName, liveCookieValue, liveCookieProof } from './live-cookie.js'
 
-export async function createLiveServer({ remote = null, authority, origins, origin, now = Date.now, requireAccount = false, staticHandler, buildId = 'development' } = {}) {
-  // The account rollout is separately gated. Do not silently turn its
-  // cookie-bound human tokens into cross-origin bearer-only credentials.
-  if (requireAccount) throw new Error('Account activation requires a reviewed live-session exchange; this release keeps anonymous production mode.')
+export async function createLiveServer({ remote = null, authority, origins, origin, now = Date.now, requireAccount = false, staticHandler, buildId = 'development', loopbackTest = false } = {}) {
+  if (requireAccount && (!remote?.exchange || !authority || !origin?.startsWith('https://') && !loopbackTest)) throw new Error('Account activation requires a durable live-session exchange and HTTPS.')
   if (!origins?.length || origins.some(s => new URL(s).origin !== s)) throw new Error('Set exact PLAYER_ORIGINS')
   const permitted = value => !value || origins.includes(value)
   const store = new LiveStore(remote, { now }), runtime = new LiveRuntime(store, { now, origin, requireAccount, authority })
-  const handler = createHandler(store, { origin, origins, now, runtime })
+  const cookieName = loopbackTest ? testCookieName : liveCookieName
+  const handler = createHandler(store, { origin, origins, now, runtime, liveCookieName: cookieName })
   const roomSecret = randomBytes(24).toString('hex'), admission = new Map(), reservations = new Map()
   let draining = false
   const readBody = async req => {
@@ -44,7 +44,7 @@ export async function createLiveServer({ remote = null, authority, origins, orig
           await Promise.all(this.clients.map(async c => {
             c.auth.valid = false
             try {
-              const { auth, session } = await runtime.authorize(c.auth.token)
+              const { auth, session } = await runtime.authorize(c.auth.token, c.auth.proof)
               if (auth.role !== 'human' || session.match !== matchId || session.side !== c.auth.side) return c.leave(4003)
               c.auth.valid = true; sides.push(session.side)
             } catch { c.leave(4003) }
@@ -61,14 +61,15 @@ export async function createLiveServer({ remote = null, authority, origins, orig
       this.patchRate = null
       this.clock.setInterval(() => {
         if (!this.frames) return
-        for (const c of this.clients) if (c.auth.valid && runtime.canFrame(c.auth.token, this.matchId, c.auth.side)) c.send('frame', this.frames[c.auth.side])
+        for (const c of this.clients) if (c.auth.valid && runtime.canFrame(c.auth.token, this.matchId, c.auth.side, c.auth.proof)) c.send('frame', this.frames[c.auth.side])
       }, 80)
     }
     async onAuth(_client, options, context) {
       if (!permitted(context.headers.get('origin'))) throw new ServerError(403, 'origin')
-      const { auth, session } = await runtime.authorize(options?.token)
+      const proof = liveCookieProof(context.headers.get('cookie'), cookieName)
+      const { auth, session } = await runtime.authorize(options?.token, proof)
       if (auth.role !== 'human' || session.match !== this.matchId) throw new ServerError(403, 'match')
-      return { side: session.side, token: options.token, valid: true }
+      return { side: session.side, token: options.token, proof, valid: true }
     }
     onJoin(client) { reservations.delete(client.auth.token) }
     onDispose() { runtime.rooms.delete(this.matchId); this.frames = null }
@@ -87,7 +88,7 @@ export async function createLiveServer({ remote = null, authority, origins, orig
         res.set('Cache-Control', 'no-store'); res.set('Referrer-Policy', 'no-referrer'); res.set('X-Content-Type-Options', 'nosniff')
         const requested = req.headers.origin
         if (!permitted(requested)) return res.status(403).json({ error: 'Use the game from its own site.' })
-        if (requested) { res.set('Access-Control-Allow-Origin', requested); res.set('Vary', 'Origin') }
+        if (requested) { res.set('Access-Control-Allow-Origin', requested); res.set('Access-Control-Allow-Credentials', 'true'); res.set('Vary', 'Origin') }
         if (req.method === 'OPTIONS') { res.set('Access-Control-Allow-Headers', 'Content-Type'); res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'); return res.sendStatus(204) }
         if (new URL(req.url, origin).searchParams.has('route')) return res.status(400).json({ error: 'Use the live endpoint path directly.' })
         if (req.path.startsWith('/auth/') || req.path.startsWith('/api/auth/')) return res.status(404).json({ error: 'Sign in on the website.' })
@@ -103,6 +104,21 @@ export async function createLiveServer({ remote = null, authority, origins, orig
         if (used >= 2400 || admission.size >= 4096) return res.status(429).json({ error: 'Too many requests. Retry shortly.' })
         admission.set(key, used + 1)
         req.headers['x-vercel-forwarded-for'] = ip // Never trust a caller-supplied Vercel-only header on Lightsail.
+        if (req.path === '/exchange') {
+          if (!requireAccount || req.method !== 'POST' || !origins.includes(requested)) return res.status(403).json({ error: 'Connect from the signed-in website.' })
+          const limitKey = `${ip}:exchange:${minute}`, attempts = admission.get(limitKey) || 0
+          if (attempts >= 20) return res.status(429).json({ error: 'Too many connections. Retry shortly.' })
+          admission.set(limitKey, attempts + 1)
+          try {
+            const { ticket } = await readBody(req)
+            if (!/^[\w-]{32}$/.test(ticket || '')) return res.status(401).json({ error: 'Connection expired. Reload to sign in again.' })
+            const cookie = liveCookieValue(req.headers.cookie, cookieName) || randomBytes(24).toString('base64url')
+            const { expiresAt } = await remote.exchange(createHash('sha256').update(ticket).digest('hex'), createHash('sha256').update(cookie).digest('hex'))
+            if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) throw new Error('expired')
+            res.set('Set-Cookie', `${cookieName}=${cookie}; Path=/; HttpOnly; ${loopbackTest ? '' : 'Secure; '}SameSite=Strict; Max-Age=604800`)
+            return res.json({ connected: true })
+          } catch { return res.status(401).json({ error: 'Connection expired. Reload to sign in again.' }) }
+        }
         for (const [token, until] of reservations) if (until <= Date.now()) reservations.delete(token)
         const admitToken = bearer => {
           if (!/^[\w-]{32}$/.test(bearer || '') || store.raw(`token:${createHash('sha256').update(bearer).digest('hex')}`)) return true
@@ -117,7 +133,7 @@ export async function createLiveServer({ remote = null, authority, origins, orig
             const body = match ? await readBody(req) : null
             const bearer = body?.token || new URL(req.url, origin).searchParams.get('token')
             if (!admitToken(bearer)) return res.status(429).json({ error: 'Too many new connections. Retry shortly.' })
-            const { auth, session } = await runtime.authorize(bearer)
+            const { auth, session } = await runtime.authorize(bearer, liveCookieProof(req.headers.cookie, cookieName))
             if (auth.role !== 'human') return res.status(401).json({ error: 'Human token required.' })
             const roomId = runtime.rooms.get(session.match)
             if (!roomId || match && match[1] !== roomId) return res.status(409).json({ error: 'Match connection is unavailable. Return to the lobby.' })
@@ -147,7 +163,7 @@ export async function createLiveServer({ remote = null, authority, origins, orig
   })
   runtime.createRoom = async id => (await matchMaker.createRoom('match', { matchId: id, secret: roomSecret })).roomId
   return { server, httpServer, runtime, store,
-    listen: (port = 0, host = '127.0.0.1') => new Promise(resolve => httpServer.listen(port, host, () => resolve(httpServer.address()))),
+    listen: (port = 0, host = '127.0.0.1') => { if (loopbackTest && host !== '127.0.0.1') throw new Error('Test cookies require loopback binding'); return new Promise(resolve => httpServer.listen(port, host, () => resolve(httpServer.address()))) },
     async close() { draining = true; await server.gracefullyShutdown(false); await runtime.close() },
   }
 }

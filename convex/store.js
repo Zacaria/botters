@@ -1,6 +1,7 @@
 import { internalQueryGeneric, internalMutationGeneric } from 'convex/server'
 import { v } from 'convex/values'
 import { boardNamespace, ratingKey } from '../online/ratings.js'
+import { liveAuthExpiry } from './liveAuth.js'
 
 const record = (ctx, key) => ctx.db.query('records').withIndex('by_key', q => q.eq('key', key)).unique()
 const unexpired = (r, now) => r && (!r.expiresAt || r.expiresAt > now) ? r.value : null
@@ -77,6 +78,11 @@ export const authorize = internalQueryGeneric({
     const owner = auth && namespace ? await record(ctx, `${namespace}session:${auth.id}`) : null
     const session = unexpired(owner, now)
     const expiries = [row?.expiresAt, owner?.expiresAt, auth?.expires].filter(e => e > 0)
+    if (auth?.role === 'human' && auth.accountId) {
+      const expires = await liveAuthExpiry(ctx, auth, now)
+      if (!auth.liveCookieHash || expires <= now) return { token: null, session: null, expiresAt: now }
+      expiries.push(expires)
+    }
     return { token, session, expiresAt: expiries.length ? Math.min(...expiries) : now + 60000 }
   },
 })

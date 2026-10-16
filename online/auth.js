@@ -43,7 +43,7 @@ export async function resolveAccount(req, env = process.env, fetcher = fetch) {
   const data = await r.json(), user = data?.user
   const expires = new Date(data?.session?.expiresAt).getTime()
   if (!user || typeof user.id !== 'string' || user.emailVerified !== true || !Number.isFinite(expires) || expires <= Date.now()) return null
-  return { id: user.id, name: user.name, emailVerified: true }
+  return { id: user.id, name: user.name, emailVerified: true, authSessionId: data.session.id, authExpires: expires }
 }
 export async function proxyAuth(req, res, path, body, env = process.env, fetcher = fetch) {
   const config = authBackend(env), external = new URL(req.url, config.origin)

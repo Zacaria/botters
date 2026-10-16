@@ -8,6 +8,7 @@ export class LiveDurable {
   get(key) { this.calls.query++; return this.store.get(key) }
   read(keys) { this.calls.query++; return this.store.call('query', 'store:get', { keys: keys.map(k => this.store.prefix + k), now: Date.now() }) }
   commit(entries) { this.calls.mutation++; return this.store.commit(entries) }
+  exchange(ticketHash, cookieHash) { this.calls.mutation++; return this.store.call('mutation', 'liveAuth:exchange', { ticketKey: this.store.prefix + 'live-ticket:' + ticketHash, cookieHash }) }
   async authority(key, adopt) {
     const client = new ConvexClient(this.store.url, { unsavedChangesWarning: false, logger: false })
     client.setAdminAuth(this.store.token)

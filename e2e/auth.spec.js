@@ -1,5 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, request } from '@playwright/test'
+import { Client } from '@colyseus/sdk'
 const password = 'isolated-browser-password-326!'
+const live = 'http://127.0.0.1:8790'
 async function signup(page, email, name) {
   await page.goto('/'); await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await page.locator('#signupName').fill(name); await page.locator('#authEmail').fill(email); await page.locator('#authPassword').fill(password)
@@ -19,7 +21,7 @@ test('signup verification, wrong password, reset/replay, account resume and logo
   await page.reload(); await expect(page.locator('#name')).toHaveValue('Renamed Alice')
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(page.locator('#authPanel')).toBeVisible()
-  expect((await page.request.get(`/lobby?token=${token}`)).status()).toBe(401)
+  expect((await page.request.get(`${live}/lobby?token=${token}`)).status()).toBe(401)
   await page.locator('#authEmail').fill('auth-browser-one@example.test'); await page.locator('#authPassword').fill('a-wrong-password-123')
   await page.locator('#authSubmit').click(); await expect(page.locator('#authMessage')).toContainText('Invalid email or password')
   await page.getByRole('button', { name: 'Forgot password?' }).click(); await page.locator('#authSubmit').click()
@@ -42,26 +44,64 @@ test('two verified players pair an agent, play, reconnect, retain history and re
     const pair = await p.request.post('/agent/pair', { data: { setup: 'browser-test-agent' } }).then(r => r.json())
     await p.goto(pair.approvalUrl); await expect(p.locator('#pairApproval')).toBeVisible()
     await p.screenshot({ path: '.cache/auth-pair-approval.png', fullPage: true })
-    expect((await p.request.get(`/next?token=${pair.agentToken}`)).status()).toBe(401)
+    expect((await p.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
     await p.getByRole('button', { name: 'Connect agent', exact: true }).click(); await expect(p.locator('#pairMessage')).toContainText('Agent connected')
     await expect(p.locator('#agentState')).toContainText('browser-test-agent')
     await p.locator('#withAgent [data-v="true"]').click()
     expect((await p.request.get(`/agent/poll?token=${pair.agentToken}`).then(r => r.json())).approved).toBe(true)
-    expect((await p.request.post(`/profile?token=${pair.agentToken}`, { data: { name: 'stolen' } })).status()).toBe(401)
+    expect((await p.request.post(`${live}/profile?token=${pair.agentToken}`, { data: { name: 'stolen' } })).status()).toBe(401)
     const tokenA = await p.evaluate(() => localStorage.getItem('botters.session'))
-    expect((await q.request.get(`/lobby?token=${tokenA}`)).status()).toBe(401)
+    expect((await q.request.get(`${live}/lobby?token=${tokenA}`)).status()).toBe(401)
     await p.locator('#minutes [data-v="3"]').click(); await p.locator('#planning [data-v="10"]').click()
     await p.locator('#createRoom').click(); await expect(p.locator('#roomCode')).not.toBeEmpty()
     const code = await p.locator('#roomCode').textContent(); await q.goto('/r/' + code)
     await expect(q.locator('#roomCode')).toHaveText(code)
     await p.locator('#startRoom').click(); await expect(p.locator('#hud')).toBeVisible(); await expect(q.locator('#hud')).toBeVisible()
-    const next = await p.request.get(`/next?token=${pair.agentToken}`).then(r => r.json()); expect(next.match.id).toBeTruthy()
+    const next = await p.request.get(`${live}/next?token=${pair.agentToken}`).then(r => r.json()); expect(next.match.id).toBeTruthy()
     await q.reload(); await expect(q.locator('#hud')).toBeVisible()
     await expect(p.locator('#viewReport')).toBeHidden()
     await expect(p.locator('#again')).toBeVisible({ timeout: 55000 }); await expect(q.locator('#again')).toBeVisible({ timeout: 55000 })
     await p.locator('#leave').click(); await expect(p.locator('#history')).toContainText('Shared name')
-    await p.locator('#revokeAgent').click(); expect((await p.request.get(`/next?token=${pair.agentToken}`)).status()).toBe(401)
+    await p.locator('#revokeAgent').click(); expect((await p.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
     await p.reload(); await expect(p.locator('#history')).toContainText('Shared name')
-    const board = await p.request.get('/leaderboard').then(r => r.json()); expect(board.leaderboard).toHaveLength(2)
+    const current = await p.evaluate(() => localStorage.getItem('botters.session'))
+    const board = await p.request.get(`${live}/leaderboard?token=${current}`).then(r => r.json()); expect(board.leaderboard).toHaveLength(2)
   } finally { await a.close(); await b.close() }
+})
+
+test('cross-origin live cookie, one-use tickets, stolen reservations and logout protect a running socket', async ({ page, context }) => {
+  await signup(page, 'auth-browser-boundary@example.test', 'Boundary')
+  const account = await page.request.get('/account').then(r => r.json())
+  expect(account.user.authSessionId).toBeUndefined(); expect(account.user.authExpires).toBeUndefined()
+  const issued = await page.request.post('/session', { data: {} }).then(r => r.json())
+  const endpoint = live + '/exchange', website = 'http://127.0.0.1:8789'
+  expect((await page.request.post(endpoint, { headers: { Origin: 'https://evil.example' }, data: { ticket: issued.liveTicket } })).status()).toBe(403)
+  const exchanged = await page.request.post(endpoint, { headers: { Origin: website }, data: { ticket: issued.liveTicket } })
+  expect(exchanged.status()).toBe(200)
+  expect(exchanged.headers()['access-control-allow-origin']).toBe(website)
+  expect(exchanged.headers()['access-control-allow-credentials']).toBe('true')
+  expect((await page.request.post(endpoint, { headers: { Origin: website }, data: { ticket: issued.liveTicket } })).status()).toBe(401)
+  const cookie = (await context.cookies(live)).find(c => c.name === 'botters-live-loopback')
+  expect(cookie.httpOnly).toBe(true); expect(cookie.sameSite).toBe('Strict')
+  expect(await page.evaluate(() => document.cookie.includes('botters-live'))).toBe(false)
+  const empty = await request.newContext()
+  try {
+    expect((await empty.get(`${live}/lobby?token=${issued.humanToken}`)).status()).toBe(401)
+    expect((await empty.post(`${live}/profile?token=${issued.humanToken}`, { data: { name: 'stolen' } })).status()).toBe(401)
+    expect((await empty.get(`${live}/leaderboard?token=${issued.humanToken}`)).status()).toBe(401)
+  } finally { await empty.dispose() }
+  let received = 0, closed = false
+  page.on('websocket', socket => { socket.on('framereceived', () => received++); socket.on('close', () => { closed = true }) })
+  await page.locator('#play').click(); await expect(page.locator('#hud')).toBeVisible()
+  await expect.poll(() => received).toBeGreaterThan(3)
+  const bearer = await page.evaluate(() => localStorage.getItem('botters.session'))
+  const { roomId } = await page.request.get(`${live}/socket?token=${bearer}`).then(r => r.json())
+  const reservation = await page.request.post(`${live}/matchmake/joinById/${roomId}`, { data: { token: bearer } }).then(r => r.json())
+  // A stolen valid seat reservation still needs the HttpOnly live cookie at WS admission.
+  const attacker = new Client(live)
+  await expect(attacker.consumeSeatReservation(reservation)).rejects.toThrow()
+  expect((await page.request.post('/api/auth/sign-out', { headers: { Origin: website }, data: {} })).status()).toBe(200)
+  await expect.poll(async () => (await page.request.get(`${live}/lobby?token=${bearer}`)).status()).toBe(401)
+  await expect.poll(() => closed).toBe(true)
+  const stopped = received; await page.waitForTimeout(400); expect(received).toBe(stopped)
 })
