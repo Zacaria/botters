@@ -39,7 +39,7 @@ try {
     const frame = JSON.parse(message.slice(6)); assert.ok(frame.view && !frame.s && !frame.log); frames++
   }
   assert.ok(buffer.includes('event: unavailable'))
-  assert.ok(performance.now() - start < 8000)
+  assert.ok(performance.now() - start < 8000, `Expiry closure took ${performance.now() - start} ms`)
   const end = Date.now() + 2000
   while (closed < opened && Date.now() < end) await new Promise(r => setTimeout(r, 20))
   assert.equal(opened, 1); assert.equal(closed, 1)

@@ -86,8 +86,12 @@ export class OnlineGame {
     const read = key => { const raw = this.store.cache?.get(key); return raw ? JSON.parse(raw) : null }
     const now = this.now(), auth = read(`token:${hash(bearer)}`), s = auth && read(`session:${auth.id}`)
     if (!s || auth.role !== 'human' || auth.expires !== undefined && auth.expires <= now) return null
-    const m = s.match && read(`match:${s.match}`)
-    if (!m || !m.players[s.side]) return null
+    if (this.store.watchSnapshot && (this.store.watchError || !this.store.watchConnected() || Date.now() >= this.store.watchSnapshot.expiresAt || Date.now() - this.store.watchValidatedAt >= 5000)) return null
+    const raw = s.match && this.store.cache?.get(`match:${s.match}`)
+    if (!raw) return null
+    if (this.projectedRaw !== raw) { this.projectedRaw = raw; this.projectedMatch = JSON.parse(raw) }
+    const m = this.projectedMatch
+    if (!m.players[s.side]) return null
     const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
     while (m.s.tick < target && !m.s.ended) {
       if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
@@ -154,7 +158,7 @@ export class OnlineGame {
         const m = await tx.get(`match:${id}`)
         if (!m) return null
         const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
-        if (target - m.s.tick >= TPS * (this.store.watchSnapshot ? 5 : 1)) persist = true
+        if (target - m.s.tick >= TPS * (this.store.watchSnapshot ? 10 : 1)) persist = true
         const sequences = m.players.map(p => p.seq)
         while (m.s.tick < target && !m.s.ended) {
           if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
@@ -203,7 +207,7 @@ export class OnlineGame {
       const agent = () => { if (auth.role !== 'agent') fail(401, 'An agent session token is required.') }
       if (auth.role === 'agent' && (!s.agentSeen || now - s.agentSeen >= 15000)) { s.agentSeen = now; persist = true }
       const m = await loadMatch(s.match), p = m?.players[s.side]
-      if (p && now - p.seen >= 5000) { p.seen = now; persist = true }
+      if (p && now - p.seen >= (this.store.watchSnapshot ? 10000 : 5000)) { p.seen = now; persist = true }
       const requireMatch = () => { if (!m) fail(409, 'Not in a match.') }
       const roomInfo = async idx => {
         const room = idx.rooms[s.room]

@@ -69,7 +69,7 @@ export class ConvexStore {
     if (this.watchConnected && !this.watchConnected()) throw Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })
     if (this.watchSnapshot && (Date.now() >= this.watchSnapshot.expiresAt || Date.now() - (this.watchValidatedAt || 0) >= 5000)) {
       // Bound stale authority even if a half-open socket has not been detected.
-      this.watchSnapshot = await this.call('query', 'store:watch', { key: this.prefix + tokenKey }, options)
+      this.watchSnapshot = await this.call('query', 'store:watch', { key: this.prefix + tokenKey, now: Date.now() }, options)
       this.watchValidatedAt = Date.now()
     }
     const data = this.watchSnapshot || await this.call('query', 'store:get', { keys: [this.prefix + tokenKey], now: Date.now(), followToken: true }, options)

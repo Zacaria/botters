@@ -30,7 +30,7 @@ export const get = internalQueryGeneric({
 // Internal server subscription: expiry is explicit so cached reads never extend
 // a capability past a document's TTL, even without a database invalidation.
 export const watch = internalQueryGeneric({
-  args: { key: v.string() },
+  args: { key: v.string(), now: v.optional(v.number()) },
   handler: async (ctx, { key }) => {
     const keys = [], values = [], expiries = [], now = Date.now()
     const add = async key => {
