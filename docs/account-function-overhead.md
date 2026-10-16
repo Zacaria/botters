@@ -89,10 +89,58 @@ Keep token-format checks, pending-request expiry, grant expiry, owner existence
 and agent-version revocation checks. Every poll obtains a fresh snapshot;
 there is no process-wide approval cache. All mutating game operations retain
 CAS. Human authentication, live cookies, ticket exchange and the 90-second
-live-authority refresh are unchanged. The expected cold count is 49, pending
-actual full-duration backend measurement; no hosted result is claimed.
+live-authority refresh are unchanged. The four-call reduction gives an
+estimate of 49 if other execution counts remain equal; the actual cold result
+below is 50. No hosted result is claimed.
 
-## Source and security checks
+### Actual repair results
+
+Signed source `be33d84df11b4d9c2292018f0e614fbe585e1c93` was exercised with
+the same isolated tooling and real wall clock. Both runs used two actual stdio
+MCP clients, a human reload, tick 9600 and both durable reports/histories.
+
+| Window (UTC, 2026-10-16) | All completions | Cached | Scheduled expiry | Uncached non-housekeeping |
+| --- | ---: | ---: | ---: | ---: |
+| Cold 15:16:26.745–15:24:37.721 | 62 | 4 | 8 | **50** |
+| Warm 15:25:50.456–15:34:01.318 | 60 | 4 | 8 | **48** |
+
+The cold window includes post-approval MCP confirmation during startup. It
+lasted 490.976 seconds. Its 50 are 30 `store:authorize`, 13 `store:get`, 4
+`store:commit`, 2 auth HTTP actions and 1 ticket exchange. The four cached
+component lookups are Better Auth `adapter:findOne`; no uncached component
+operation or failed completion occurred. Compared with the retained cold-53
+stream, two reads and two commits disappeared, while one additional authority
+execution occurred. The focused regression proves the four-call reduction;
+do not attribute the entire between-run change to it.
+
+The warm window lasted 490.862 seconds. Its 48 are 32 `store:authorize`, 9
+`store:get`, 4 `store:commit`, 2 auth HTTP actions and 1 ticket exchange. It
+also has four cached Better Auth lookups and no failed or uncached component
+execution. It meets the target but does not reproduce the producer's exact
+44: authority executions are 32 rather than 27, with one fewer uncached
+component lookup. Its non-authority app-function counts are unchanged. The
+90-second refresh and subscription implementation were not modified.
+
+Evidence: `evidence/account-overhead/local-cold-start-repair.json` and
+`local-warm-start-repair.json`, each with its sanitized `.jsonl` stream.
+Adapter-only totals are 39 and 38, respectively, not acceptance totals. Cold
+passes exactly at the ceiling; these are measured windows, not a universal
+maximum or hosted-production claim. No production or provider operation ran.
+
+The new actual-component regression checks one fresh read-only query per poll,
+no match read, pending and grant expiry, owner expiry/version revocation,
+malformed bearer rejection, repeated scoped reads and storage-failure denial.
+Final repair gates pass 69 Node, 5 component, 3 account-browser and 7 ordinary
+browser tests, syntax/JSON checks, production build and runtime dependency
+audit. No separate lint/type/format command is configured. Deleted code is the
+old transactional poll branch and unused follow-token match read; no whole
+files or runtime dependencies were deleted or added.
+
+Integration remains a separate step after independent review. Reconcile the
+installer head `8871d4842eaf900362052ea1ed3879027a1fa5aa` before assembling a
+release candidate; this offline task does not authorize deployment.
+
+## Producer source and security checks
 
 The new actual-component regression fails on the original handler because
 private identity lookup writes a rate-limit bucket. It passes on the native
