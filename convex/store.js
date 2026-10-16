@@ -50,8 +50,9 @@ export const watch = internalQueryGeneric({
 })
 
 // Read-only release gate: never returns player data or replays/writes a match.
+// `now` is a cache-busting nonce; only server time decides whether play is live.
 export const legacyActivity = internalQueryGeneric({
-  args: { prefix: v.string() },
+  args: { prefix: v.string(), now: v.optional(v.number()) },
   handler: async (ctx, { prefix }) => {
     const rows = await ctx.db.query('records').withIndex('by_key', q => q.gte('key', `${prefix}match:`).lt('key', `${prefix}match;`)).take(257)
     const now = Date.now(); let activeMatches = 0, latestActiveEndAt = 0, complete = rows.length < 257

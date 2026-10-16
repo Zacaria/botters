@@ -13,7 +13,7 @@ test('cutover checks aggregate active legacy matches without returning player re
     await add('expired', now, null, now - 1000)
     await add('other', now, null, now + 86400000, 'botters:preview:')
   })
-  const r = await t.query(internal.store.legacyActivity, { prefix: 'botters:production:' })
+  const r = await t.query(internal.store.legacyActivity, { prefix: 'botters:production:', now: -1 })
   expect(r.complete).toBe(true); expect(r.activeMatches).toBe(1); expect(r.scanned).toBe(4)
   expect(r.latestActiveEndAt).toBeGreaterThan(now)
   expect(JSON.stringify(r)).not.toContain('private fixture')

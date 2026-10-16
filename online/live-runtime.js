@@ -57,7 +57,7 @@ export class LiveRuntime {
       if (!session) return
       const remote = JSON.parse(session), local = JSON.parse(this.store.raw(`session:${remote.id}`) || 'null')
       const own = local ? { match: local.match, side: local.side, room: local.room, queued: local.queued, history: local.history, agentSeen: local.agentSeen, name: local.name, doctrine: local.doctrine } : { match: null, room: null, queued: null }
-      this.store.put(`session:${remote.id}`, JSON.stringify({ ...remote, ...own }), 0)
+      this.store.put(`session:${remote.id}`, JSON.stringify({ ...remote, ...own }), Math.max(1, (expiresAt - Date.now()) / 1000))
     })
   }
   async request(method, path, q = new URLSearchParams(), body = {}) {
