@@ -1,12 +1,12 @@
 {
   "task": "t_9444a1a4",
-  "verifiedAtUTC": "2026-10-16T09:50:25.649708+00:00",
+  "verifiedAtUTC": "2026-10-16T10:26:18Z",
   "state": "production-promoted",
   "sources": {
-    "canonicalCodeCommit": "3e28f902463e8ff3bd7e33ad6d770a8f46e41a7d",
-    "runtimeCommit": "91f2c2ad185e9bf486b04521810b9194d79155a9",
-    "runtimeImage": "sha256:fb3dbd5ff68fc7d56bb74ef9e95b8787628b3b4b14a3916f55b5661b77d51aa6",
-    "runtimeArchiveSHA256": "65926bf85160164eabd59ed27ee7c5419e3b2f25f86016f01febfa189a613188",
+    "canonicalCodeCommit": "c674ac79e5c5e3defc402387df4b87a39b017a51",
+    "runtimeCommit": "c674ac79e5c5e3defc402387df4b87a39b017a51",
+    "runtimeImage": "sha256:48eb5b7ef10373947edb8b15d7c1bf536ec7099a9e27fe46c9169597c4c3c8c7",
+    "runtimeArchiveSHA256": "f002e75c6ce3280e72a5dd87d54313d2630c3a36829bad6060964cf562f3049e",
     "websiteCommit": "ce4485f11d326d12d89dca227d5ffa826748e99f",
     "websiteBranch": "release/colyseus-t_9444a1a4",
     "deploymentId": "dpl_995XKfnLi9JfoKi8xrFPLfuqnz3H",
@@ -15,7 +15,7 @@
     "accountActivation": false
   },
   "verification": {
-    "unitTests": 60,
+    "unitTests": 62,
     "convexIntegrationTests": 2,
     "localBrowserScenarios": 7,
     "syntaxCheckedJSFiles": 62,
@@ -23,6 +23,10 @@
     "gitDiffCheck": true,
     "offlineBrowserSSEAndReload": true,
     "publicBrowserScenariosPerOrigin": 4,
+    "publicBrowserScope": "Retained website verification from a1303c9; website ce4485f is unchanged. Correction reran all local browser scenarios, the production MCP match, and exact public asset readback, not these public browser scenarios.",
+    "runtimeSourceFilesMatched": 14,
+    "freshPublicAssetHashesMatched": 14,
+    "productionDependencyVulnerabilities": 0,
     "publicOrigins": ["https://botters.havesomecode.io", "https://botters.vercel.app"],
     "publicUnauthenticated": true,
     "publicAssets": [
@@ -40,23 +44,23 @@
     "coldEntryRegressionPassedOnFinalDeployment": true
   },
   "fullProductionMatch": {
-    "server": "https://botters-csga46k4w-zacaria-chtatars-projects.vercel.app",
+    "server": "https://botters.havesomecode.io",
     "liveServer": "https://play.botters.havesomecode.io",
-    "matchId": "ImcUE0QghHvFtDlO63hDnP0sJSy1u-Vk",
+    "matchId": "uUBzwunh63ZKcCbmlcLdc1OrUeG_1F7f",
     "minutes": 8,
     "planets": 40,
     "clients": 2,
     "transport": "two real stdio MCP agents + Colyseus WebSockets",
-    "elapsedMs": 494284.236724,
+    "elapsedMs": 494198.93919099995,
     "results": [
       {"result": "draw", "you": 24000, "enemy": 24000},
       {"result": "draw", "you": 24000, "enemy": 24000}
     ],
     "streams": [
-      {"frames": 100, "fps": 12.510388732636414},
-      {"frames": 100, "fps": 12.508999798912141}
+      {"frames": 100, "fps": 12.532868012874717},
+      {"frames": 100, "fps": 12.51708188463873}
     ],
-    "framesReceived": [6101, 6115],
+    "framesReceived": [6105, 6114],
     "reconnectSameMatch": true,
     "historyExactlyOnce": true,
     "convex": {
@@ -67,12 +71,12 @@
       "total": 41,
       "counting": "query REST + mutation REST + delivered authorization query results (includes initial/reconnect results); subscription initiations are not double-counted"
     },
-    "requestP95Ms": 407.63243599999987,
+    "requestP95Ms": 405.81706299999996,
     "events": 6,
     "note": "Same-host scripted clients, not model inference or two physical networks. Full duration with hold gambits avoids an early wipe."
   },
   "durableReadback": {
-    "matchId": "ImcUE0QghHvFtDlO63hDnP0sJSy1u-Vk",
+    "matchId": "uUBzwunh63ZKcCbmlcLdc1OrUeG_1F7f",
     "players": 2,
     "eloGamesEach": 1,
     "eloRatingEach": 1000,
@@ -86,16 +90,16 @@
     "swarmsPerMatch": 80,
     "planets": 40,
     "views": 32,
-    "elapsedMs": 30439.53124,
-    "inputs": 832,
-    "peakRss": 117444608,
-    "cpuPercentOneCore": 107.24788349270257,
-    "eventLoopP95Ms": 50.626559,
-    "minimumFps": 12.493715570414473,
-    "maximumFrameP95Ms": 139.8297300000013,
+    "elapsedMs": 32641.394471,
+    "inputs": 896,
+    "peakRss": 118124544,
+    "cpuPercentOneCore": 107.82033234293313,
+    "eventLoopP95Ms": 50.298879,
+    "minimumFps": 11.723035390519234,
+    "maximumFrameP95Ms": 151.63252699999975,
     "passed": true,
     "inputTargetPerAgentPerSecond": 1,
-    "observedInputsPerAgentPerSecond": 0.8541524439060317,
+    "observedInputsPerAgentPerSecond": 0.8578064893911438,
     "notFullMatchOrWAN": true
   },
   "operations": {
@@ -127,7 +131,28 @@
     "Account activation remains gated; the existing account card must review a cookie-authenticated live-session exchange.",
     "The existing internal legacy subscription query is retained only for rollback during independent review; no new live client uses it."
   ],
+  "reviewCorrection": {
+    "previousEvidenceCommit": "a1303c9355257c0de0d8488bf87871f5f4e8e133",
+    "previousRuntimeCommit": "91f2c2ad185e9bf486b04521810b9194d79155a9",
+    "previousRuntimeImage": "sha256:fb3dbd5ff68fc7d56bb74ef9e95b8787628b3b4b14a3916f55b5661b77d51aa6",
+    "runtimeLinesChanged": 2,
+    "regressionsFailedBeforeFix": 2,
+    "focusedIntegrityTestsPassed": 6,
+    "evidenceSource": "Full-match values use the persisted verifier JSON. Its stdout printed one later frame per stream because the open sockets continued receiving while writeFile awaited; the persisted counts are 6105/6114.",
+    "coverage": [
+      "Durable-authority 90-second refresh and newly opened/reopened agent channels preserve private solo and opening choices through start and rematch; connected agents cannot override solo, and peer room data exposes no openings.",
+      "At 24 rooms, play/start/rematch return 503 without changing any local store records or creating a room; existing rematch votes survive rejection and a two-player retry succeeds when capacity frees."
+    ],
+    "deploymentIdleGate": {"activeMatches": 0, "buildBefore": "91f2c2ad185e9bf486b04521810b9194d79155a9"},
+    "deploymentWarnings": [
+      "Compose used its default Docker builder because buildx is absent; build succeeded.",
+      "HTTPS returned one transient 502 during container replacement, then the retry and exact-build health readback passed."
+    ],
+    "scope": "Runtime-only correction; website, Convex backend, account activation, DNS and public SSH unchanged. Fresh full-match, durable readback and capacity measurements above supersede prior-runtime values; prior values remain in the previous evidence commit."
+  },
   "resolvedIssues": [
+    "Authorization adoption now preserves process-local private-room preferences.",
+    "The 24-room admission ceiling now includes the actual rematch route before readiness mutation.",
     "An already-left SDK room caused verifier cleanup to wait forever; cleanup now skips closed rooms.",
     "Playwright promise-based DNS still used the runner cached NXDOMAIN; the verification-only resolver pin now covers callback and promise paths.",
     "An actual offline browser check exposed an unintended dependency on the online bundle; local SSE and same-match reload now pass without it.",
