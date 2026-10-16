@@ -5,7 +5,7 @@ const unavailable = () => Object.assign(new Error('Online service is unavailable
 
 export class LiveRuntime {
   constructor(store, options = {}) {
-    this.store = store; this.options = options; this.tail = Promise.resolve(); this.rooms = new Map(); this.authorities = new Map(); this.pending = new Map()
+    this.store = store; this.options = options; this.tail = Promise.resolve(); this.rooms = new Map(); this.authorities = new Map(); this.pending = new Map(); this.generations = new Map()
     this.now = options.now || Date.now
     this.sweeper = setInterval(() => this.sweep(), 30000); this.sweeper.unref()
   }
@@ -29,29 +29,39 @@ export class LiveRuntime {
     if (this.options.authority) {
       if (!this.authorities.has(key)) {
         if (this.authorities.size + this.pending.size >= 256) throw unavailable()
-        if (!this.pending.has(key)) this.pending.set(key, this.options.authority(key, data => this.adopt(key, data)).then(entry => {
-          this.authorities.set(key, entry); return entry
-        }).finally(() => this.pending.delete(key)))
+        if (!this.pending.has(key)) {
+          const generation = Symbol(); this.generations.set(key, generation)
+          this.pending.set(key, this.options.authority(key, data => this.adopt(key, data, generation)).then(async entry => {
+            if (this.generations.get(key) !== generation) { await entry.close(); throw unavailable() }
+            this.authorities.set(key, entry); return entry
+          }).catch(e => { if (this.generations.get(key) === generation) this.generations.delete(key); throw e }).finally(() => this.pending.delete(key)))
+        }
         await this.pending.get(key)
       }
       const entry = this.authorities.get(key)
+      if (!entry) throw unavailable()
+      if (entry.error) {
+        if (this.authorities.get(key) === entry) { this.authorities.delete(key); this.generations.delete(key) }
+        await entry.close(); throw unavailable() // Next retry acquires fresh authority, never a permanently poisoned cache.
+      }
+      if (!entry.connected()) throw unavailable()
       entry.usedAt = Date.now()
-      if (!entry.connected() || entry.error) throw unavailable()
       if (Date.now() - entry.checkedAt >= 90000) await entry.refresh()
       if (!entry.connected() || entry.error) throw unavailable()
     }
     const auth = JSON.parse(this.store.raw(key) || 'null'), session = auth && JSON.parse(this.store.raw(`session:${auth.id}`) || 'null')
     if (session?.accountId && !this.options.requireAccount) throw Object.assign(new Error('Account online play is not active.'), { status: 401 })
     if (!session || auth.expires !== undefined && auth.expires <= this.now() || auth.role === 'agent' && auth.version !== undefined && auth.version !== session.agentVersion || this.options.requireAccount && (!session.accountId || !auth.expires || auth.role === 'human' && auth.accountId !== session.accountId)) {
-      const entry = this.authorities.get(key); this.authorities.delete(key); await entry?.close()
+      const entry = this.authorities.get(key); this.authorities.delete(key); this.generations.delete(key); await entry?.close()
       throw Object.assign(new Error('Access expired or revoked. Open a new lobby.'), { status: 401 })
     }
     const entry = this.authorities.get(key)
     if (entry && Date.now() >= entry.expiresAt) throw Object.assign(new Error('Access expired. Open a new lobby.'), { status: 401 })
     return { auth, session }
   }
-  adopt(key, { token, session, expiresAt }) {
+  adopt(key, { token, session, expiresAt }, generation) {
     return this.serialize(() => {
+      if (generation && this.generations.get(key) !== generation) return
       // Never retain a capability whose durable owner disappeared.
       this.store.put(key, token && session ? token : null, Math.max(1, (expiresAt - Date.now()) / 1000))
       if (!session) return
@@ -92,7 +102,7 @@ export class LiveRuntime {
     })
   }
   sweep() {
-    for (const [key, entry] of this.authorities) if (Date.now() - (entry.usedAt || entry.checkedAt) > 120000 || Date.now() >= entry.expiresAt) { this.authorities.delete(key); void entry.close() }
+    for (const [key, entry] of this.authorities) if (Date.now() - (entry.usedAt || entry.checkedAt) > 120000 || Date.now() >= entry.expiresAt) { this.authorities.delete(key); this.generations.delete(key); void entry.close() }
     void this.serialize(() => {
       for (const [key, record] of this.store.data) {
         if (record.expires && record.expires <= this.now()) { this.store.data.delete(key); continue }
@@ -108,5 +118,5 @@ export class LiveRuntime {
       }
     })
   }
-  async close() { clearInterval(this.sweeper); await Promise.all([...this.authorities.values()].map(entry => entry.close())); this.authorities.clear() }
+  async close() { clearInterval(this.sweeper); this.generations.clear(); await Promise.all([...this.authorities.values()].map(entry => entry.close())); this.authorities.clear() }
 }

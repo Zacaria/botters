@@ -44,6 +44,26 @@ test('durable revocation, owner deletion, expiry and disconnected authorization 
   assert.equal(runtime.authorities.size, 0)
 })
 
+test('failed authorization channels recover on retry and retired callbacks cannot overwrite the new lease', async t => {
+  const store = new LiveStore(), runtime = new LiveRuntime(store); t.after(() => runtime.close())
+  const a = await runtime.request('POST', '/session', undefined, { name: 'recovery' }), key = keyFor(a.humanToken)
+  const token = store.raw(key), session = store.raw(`session:${JSON.parse(token).id}`), updates = []
+  let created = 0, closed = 0
+  runtime.options.authority = async (_key, adopt) => {
+    created++; updates.push(adopt)
+    await adopt({ token, session, expiresAt: Date.now() + 600000 })
+    return { checkedAt: Date.now(), expiresAt: Date.now() + 600000, connected: () => true, close: async () => { closed++ } }
+  }
+  await runtime.authorize(a.humanToken)
+  runtime.authorities.get(key).error = new Error('temporary provider failure')
+  assert.equal(runtime.ready(a.humanToken), false)
+  await assert.rejects(runtime.authorize(a.humanToken), e => e.status === 503)
+  await runtime.authorize(a.humanToken)
+  assert.equal(created, 2); assert.equal(closed, 1); assert.equal(runtime.ready(a.humanToken), true)
+  await updates[0]({ token: null, session: null, expiresAt: Date.now() - 1 })
+  assert.equal(runtime.ready(a.humanToken), true, 'Late callbacks from the retired socket are fenced')
+})
+
 test('a committed result with a lost response is recovered without double Elo or history', async t => {
   let now = Date.now(), lose = false
   const durable = new MemoryStore(() => now)
