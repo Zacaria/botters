@@ -5,3 +5,12 @@ public
 test-results
 playwright-report
 .env*
+online
+convex
+test
+e2e
+docs
+scripts/verify*.js
+scripts/benchmark*.js
+scripts/test-convex.js
+scripts/online-dev.js
