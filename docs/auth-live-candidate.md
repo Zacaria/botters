@@ -1,5 +1,7 @@
 # Account-to-live activation candidate
 
+Historical source-candidate report. The reviewed `5f34d62` continuation and current production activation are recorded in [`auth-production-activation.md`](auth-production-activation.md); the anonymous production observations below describe the earlier state, not the current service.
+
 ## Boundary
 
 This is the account/Colyseus integration delta above signed base `0ba1f2366c963e04b6098c765878b8dee0855c6f` on `pvp-online`. The source candidate is the signed commit containing this report. The previously approved account source is `e860cfa`; its approval did not cover this new live-session exchange. No production deployment, provider configuration, email sending, alias change or customer-data mutation occurred in this increment.
