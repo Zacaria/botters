@@ -41,3 +41,13 @@ test('subscribed snapshots are invocation-local, expire closed and stop on conne
   await assert.rejects(store.snapshot('token:x'), e => e.status === 503)
   assert.equal(reads, 2, 'A disconnected subscription must not serve cached authority')
 })
+
+test('subscribed CAS uses the same ordered connection and preserves request deadlines', async () => {
+  const store = new ConvexStore({ CONVEX_URL: 'https://example.convex.cloud', CONVEX_DEPLOY_KEY: 'fixture' })
+  const calls = []
+  store.watchClient = { mutation: async (path, args) => { calls.push([path, args]); return 1 } }
+  assert.equal(await store.commit([]), 1)
+  assert.deepEqual(calls, [['store:commit', { entries: [] }]])
+  store.watchClient.mutation = () => new Promise(() => {})
+  await assert.rejects(store.call('mutation', 'store:commit', { entries: [] }, { deadline: performance.now() + 20 }), e => e.status === 503)
+})
