@@ -1,0 +1,493 @@
+{
+  "task": "t_669bb4f5",
+  "productionBaselineDeployment": "dpl_3DJ62FpRQzy1MgKjDdTyk4XddrvC",
+  "baselineRef": "50018f8d38e9726bdb822443a9ed078d5e356148",
+  "implementationRef": "434d535a7078752ee3da1604f855e5b149a14120",
+  "releaseRef": "2b4695d388df795792eebad05767704527cffad8",
+  "baseline": {
+    "source": "/srv/hermes-ssd/workspaces/botters/pvp/.cache/usage-baseline",
+    "namespace": "usage-mvalaw0g",
+    "durationMs": 316827,
+    "fixture": "Real 5-minute/28-planet match; two isolated Brave browsers plus two real stdio MCP agents on local HTTP preview backed by actual free-plan Convex; no clock acceleration",
+    "byteDefinition": "Exact UTF-8 stored JSON value payloads returned by queries and supplied as CAS guards/writes; excludes document/index metadata, auth component and billing overhead; not provider-billed bytes",
+    "calls": 6576,
+    "queries": 4957,
+    "mutations": 1619,
+    "readValueBytes": 71640561,
+    "writtenValueBytes": 8140310,
+    "streams": [
+      {
+        "frames": 1897,
+        "first": 2184.199999809265,
+        "last": 310926.40000009537,
+        "unsafe": 0,
+        "reports": 1,
+        "fps": 6.141045830463873
+      },
+      {
+        "frames": 1899,
+        "first": 2844.4000000953674,
+        "last": 310409.59999990463,
+        "unsafe": 0,
+        "reports": 1,
+        "fps": 6.1710492604533185
+      }
+    ],
+    "reports": [
+      {
+        "result": "draw",
+        "you": 28900,
+        "enemy": 28900
+      },
+      {
+        "result": "draw",
+        "you": 28900,
+        "enemy": 28900
+      }
+    ]
+  },
+  "optimized": {
+    "source": "/srv/hermes-ssd/workspaces/botters/pvp/.cache/usage-release",
+    "sourceHashes": {
+      "online/game.js": "c69e41274d99dab580d254f058f27ce624a2630f727a2782446805f47558593e",
+      "online/http.js": "be4c19a50a32d79ffc6fe9067df922c76185a9c1812c86518314b63b4373a3e7",
+      "online/store.js": "71d266801f7fd39ab1601e216cf5e3e79d1f9c8107184660efcec38d51b5eaed",
+      "sim.js": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+      "index.html": "c4733c922ecd045d7085524d86e1a93137089de97ab6f172fd1841381ebaf5ee",
+      "client.js": "52ce6542592da892a465a016b4603a3569de68cd5859d15ad466b4ac2795ca99"
+    },
+    "namespace": "usage-mvamv9ij",
+    "durationMs": 314802,
+    "fixture": "Real 5-minute/28-planet match; two isolated Brave browsers plus two real stdio MCP agents on local HTTP preview backed by actual free-plan Convex; no clock acceleration; both agents hold throughout (storage benchmark, not combat capacity)",
+    "byteDefinition": "Exact UTF-8 stored JSON value payloads returned by queries and supplied as CAS guards/writes; excludes document/index metadata, auth component and billing overhead; not provider-billed bytes",
+    "calls": 1177,
+    "queries": 934,
+    "mutations": 243,
+    "committedMutations": 166,
+    "conflicts": 77,
+    "reactiveSnapshots": 574,
+    "readValueBytes": 11785641,
+    "writtenValueBytes": 1663931,
+    "streams": [
+      {
+        "frames": 4829,
+        "first": 1926.8000001907349,
+        "last": 309994.2000002861,
+        "unsafe": 0,
+        "reports": 1,
+        "fps": 15.67189517618062
+      },
+      {
+        "frames": 4767,
+        "first": 2039.5,
+        "last": 309910.19999980927,
+        "unsafe": 0,
+        "reports": 1,
+        "fps": 15.480524778755992
+      }
+    ],
+    "reports": [
+      {
+        "result": "draw",
+        "you": 24000,
+        "enemy": 24000
+      },
+      {
+        "result": "draw",
+        "you": 24000,
+        "enemy": 24000
+      }
+    ]
+  },
+  "reductionFactors": {
+    "calls": 5.587085811384877,
+    "queries": 5.30728051391863,
+    "mutations": 6.662551440329218,
+    "readValueBytes": 6.078630852577302,
+    "writtenValueBytes": 4.892216083479423,
+    "combinedValueBytes": 5.931852032168756
+  },
+  "baselineArchiveHashes": {
+    "online/game.js": "94fc06ceb18fdca7e3f96b74ee00606d6309b5f370c940abe9416cd9b98e1a14",
+    "online/http.js": "1cb5bdf2d24836050738b5cbd86fbafd38c151fffd3bb64374585fce892a3b5c",
+    "online/store.js": "d9abf5fff5ffa70aaf7d7297780d3547d401b14ddfddde4aca01772abb47357d",
+    "sim.js": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+    "index.html": "588dced2870d69315adc76c695558c3ccbd67690245e1f634390af86843593f3",
+    "client.js": "52ce6542592da892a465a016b4603a3569de68cd5859d15ad466b4ac2795ca99"
+  },
+  "measuredRuntimeMatchesRelease": {
+    "online/game.js": true,
+    "online/http.js": true,
+    "online/store.js": true,
+    "sim.js": true,
+    "index.html": true,
+    "client.js": true
+  },
+  "limitations": [
+    "Application-level operations and JSON value traffic, not provider-billed DB bytes or all unchanged reactive executions.",
+    "Two independent random-seed matches; both hold throughout. Active moving/human+agent input behavior is covered by canonical replay tests; this is not a combat-capacity claim.",
+    "Local HTTP preview with actual free-plan Convex, two isolated Brave contexts, two real stdio MCP clients; not two physical machines."
+  ],
+  "release": {
+    "status": "promoted; independent board review pending",
+    "previewId": "dpl_1364zwXua42jznHyk3ib97CKkwbh",
+    "previewUrl": "https://botters-270b5adh1-zacaria-chtatars-projects.vercel.app",
+    "productionId": "dpl_2jgSvxq1sep1Jgfd55ehVKfXoQsL",
+    "productionDeploymentUrl": "https://botters-oqoy85aax-zacaria-chtatars-projects.vercel.app",
+    "publicUrls": [
+      "https://botters.havesomecode.io",
+      "https://botters.vercel.app"
+    ],
+    "sourceRef": "2b4695d388df795792eebad05767704527cffad8",
+    "authActivationExcluded": true,
+    "convexTeam": "botters",
+    "convexProject": "botters",
+    "convexUrl": "https://fastidious-kookabura-364.convex.cloud",
+    "convexPlanChanged": false,
+    "backendSourceRef": "434d535a7078752ee3da1604f855e5b149a14120",
+    "backendDeploymentInstructions": "Use canonical pvp-online backend source; the release branch is a Vercel-only no-auth-activation build snapshot, not a backend rollback."
+  },
+  "previewVerification": {
+    "source": {
+      "deploymentId": "dpl_1364zwXua42jznHyk3ib97CKkwbh",
+      "releaseRef": "2b4695d388df795792eebad05767704527cffad8",
+      "sourceMatches": {
+        "api/index.js": true,
+        "online/game.js": true,
+        "online/http.js": true,
+        "online/store.js": true,
+        "online/ratings.js": true,
+        "convex/store.js": true,
+        "sim.js": true,
+        "client.js": true,
+        "index.html": true,
+        "guide.html": true,
+        "privacy.html": true,
+        "terms.html": true,
+        "package.json": true,
+        "package-lock.json": true,
+        "vercel.json": true
+      },
+      "secretOrDependencySourcePaths": []
+    },
+    "assets": {
+      "base": "https://botters-270b5adh1-zacaria-chtatars-projects.vercel.app",
+      "assets": [
+        {
+          "file": "index.html",
+          "status": 200,
+          "sourceExact": true,
+          "feedbackTrailer": true
+        },
+        {
+          "file": "guide.html",
+          "status": 200,
+          "sourceExact": true,
+          "feedbackTrailer": true
+        },
+        {
+          "file": "sim.js",
+          "status": 200,
+          "sourceExact": true,
+          "feedbackTrailer": false
+        },
+        {
+          "file": "privacy.html",
+          "status": 200,
+          "sourceExact": true,
+          "feedbackTrailer": true
+        },
+        {
+          "file": "terms.html",
+          "status": 200,
+          "sourceExact": true,
+          "feedbackTrailer": true
+        }
+      ],
+      "serverFilesDenied": true
+    },
+    "mcp": {
+      "server": "https://botters-270b5adh1-zacaria-chtatars-projects.vercel.app",
+      "matchId": "P55f_mKlwhGgA0JR5OP2StQ9bynTH49W",
+      "clients": 2,
+      "transport": "real stdio MCP",
+      "elapsedMs": 204174.991979,
+      "results": [
+        {
+          "result": "draw",
+          "you": 20232,
+          "enemy": 20232
+        },
+        {
+          "result": "draw",
+          "you": 20232,
+          "enemy": 20232
+        }
+      ],
+      "streams": [
+        {
+          "frames": 40,
+          "fps": 16.833576723472788
+        },
+        {
+          "frames": 40,
+          "fps": 16.880876586177212
+        }
+      ],
+      "requestSamples": 36,
+      "requestP95Ms": 302.08947999999964,
+      "note": "Same-host clients; not two physical machines/networks. 3-minute/40-planet functional test, not the 8-minute/80-swarm capacity fixture."
+    },
+    "capacity": {
+      "server": "https://botters-270b5adh1-zacaria-chtatars-projects.vercel.app",
+      "fixture": "actual Vercel iad1 + free Convex US East; 8-minute/40-planet settings, 40 stationary swarms per side; synthetic 470-second checkpoint reset before each HTTP sample, then two simultaneous 40-frame streams; not a wall-clock 8-minute match",
+      "samples": 50,
+      "requestP95Ms": 240.82020199999988,
+      "streams": [
+        {
+          "frames": 40,
+          "fps": 16.744892514425466,
+          "firstTick": 9414,
+          "lastTick": 9460
+        },
+        {
+          "frames": 40,
+          "fps": 16.791590322068746,
+          "firstTick": 9415,
+          "lastTick": 9461
+        }
+      ],
+      "passes10Fps": true,
+      "requestMs": [
+        227.32141500000034,
+        171.60740399999986,
+        198.14202699999987,
+        157.75578799999994,
+        183.78360799999973,
+        164.0932159999993,
+        165.26686400000017,
+        175.99395699999968,
+        182.63602600000013,
+        240.82020199999988,
+        298.6092749999998,
+        213.41759899999943,
+        210.84427799999958,
+        213.0638739999995,
+        196.07447499999944,
+        202.9451399999998,
+        209.2874499999998,
+        209.51815499999975,
+        201.3725940000004,
+        191.6850140000006,
+        222.76903400000083,
+        212.1718149999997,
+        219.11664999999994,
+        202.35102899999947,
+        209.00952599999982,
+        187.39985100000013,
+        195.9623019999999,
+        234.94086700000116,
+        214.20996800000103,
+        213.46575100000155,
+        222.46312899999975,
+        204.6407029999973,
+        200.7520799999984,
+        196.39376400000037,
+        203.1900910000004,
+        214.00974700000006,
+        200.3893339999995,
+        203.87208900000041,
+        193.4442919999965,
+        189.25971600000048,
+        234.31811599999855,
+        232.80741099999796,
+        193.14051299999846,
+        234.28581300000224,
+        199.88077599999815,
+        213.95762100000138,
+        206.3661890000003,
+        296.28807400000005,
+        213.76859499999773,
+        205.0386839999992
+      ]
+    },
+    "publicBraveTests": 2
+  },
+  "productionVerification": {
+    "source": {
+      "deploymentId": "dpl_2jgSvxq1sep1Jgfd55ehVKfXoQsL",
+      "releaseRef": "2b4695d388df795792eebad05767704527cffad8",
+      "sourceMatches": {
+        "api/index.js": true,
+        "online/game.js": true,
+        "online/http.js": true,
+        "online/store.js": true,
+        "online/ratings.js": true,
+        "convex/store.js": true,
+        "sim.js": true,
+        "client.js": true,
+        "index.html": true,
+        "guide.html": true,
+        "privacy.html": true,
+        "terms.html": true,
+        "package.json": true,
+        "package-lock.json": true,
+        "vercel.json": true
+      },
+      "target": "production",
+      "readyState": "READY",
+      "regions": [
+        "iad1"
+      ]
+    },
+    "staged": {
+      "base": "https://botters-oqoy85aax-zacaria-chtatars-projects.vercel.app",
+      "assets": [
+        {
+          "file": "index.html",
+          "status": 200,
+          "sourceExact": true
+        },
+        {
+          "file": "guide.html",
+          "status": 200,
+          "sourceExact": true
+        },
+        {
+          "file": "sim.js",
+          "status": 200,
+          "sourceExact": true
+        },
+        {
+          "file": "privacy.html",
+          "status": 200,
+          "sourceExact": true
+        },
+        {
+          "file": "terms.html",
+          "status": 200,
+          "sourceExact": true
+        }
+      ],
+      "unallocatedCapabilityStorageProbe": 401,
+      "serverFilesDenied": true
+    },
+    "public": {
+      "deploymentId": "dpl_2jgSvxq1sep1Jgfd55ehVKfXoQsL",
+      "checks": [
+        {
+          "base": "https://botters.havesomecode.io",
+          "authenticated": false,
+          "assets": [
+            {
+              "file": "index.html",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "guide.html",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "sim.js",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "privacy.html",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "terms.html",
+              "status": 200,
+              "sourceExact": true
+            }
+          ],
+          "unallocatedCapabilityStorageProbe": 401
+        },
+        {
+          "base": "https://botters.vercel.app",
+          "authenticated": false,
+          "assets": [
+            {
+              "file": "index.html",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "guide.html",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "sim.js",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "privacy.html",
+              "status": 200,
+              "sourceExact": true
+            },
+            {
+              "file": "terms.html",
+              "status": 200,
+              "sourceExact": true
+            }
+          ],
+          "unallocatedCapabilityStorageProbe": 401
+        }
+      ]
+    },
+    "publicBraveTests": 2
+  },
+  "verification": {
+    "implementationUnitTests": 62,
+    "releaseUnitTests": 51,
+    "implementationBraveTests": 6,
+    "releaseBraveTests": 6,
+    "convexAuthComponentIntegrationTests": 1,
+    "implementationSyntaxFiles": 52,
+    "releaseSyntaxFiles": 38,
+    "productionDependencyVulnerabilities": 0,
+    "canonicalChecks": [
+      "npm test",
+      "npm run check",
+      "npm run build",
+      "npm run test:browser",
+      "npm run test:auth:convex",
+      "npm audit --omit=dev",
+      "git diff --check"
+    ],
+    "actualSubscriptionExpiry": {
+      "result": "PASS",
+      "opened": 1,
+      "closed": 1,
+      "expiredCapabilityClosedStreamMs": 484.53874199999973
+    },
+    "orderedSubscribedMutation": {
+      "subscriptionUpdatedBeforeMutationResolved": true
+    }
+  },
+  "changedFiles": [
+    "convex/store.js",
+    "docs/pvp-release.md",
+    "index.html",
+    "online/game.js",
+    "online/http.js",
+    "online/store.js",
+    "package-lock.json",
+    "package.json",
+    "scripts/measure-usage.js",
+    "scripts/verify-subscription.js",
+    "test/convex-watch.test.js",
+    "test/stream-cache.test.js"
+  ],
+  "warnings": [
+    "Counters are application-level traffic, not provider-billed database usage; unchanged reactive re-executions are not observable here.",
+    "Existing unbounded Node >=22 engine, npm cache-dir deprecation and esbuild install-script coverage warnings; all builds succeed without changing installer permissions.",
+    "No full production-timed match was repeated; public verification uses source readback, exact assets, public Brave policies and an unallocated-capability read-only storage probe."
+  ]
+}

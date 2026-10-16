@@ -1,8 +1,8 @@
 # PvP release state
 
-## Convex usage reduction (t_669bb4f5, in progress)
+## Convex usage reduction deployed (t_669bb4f5)
 
-The live baseline is the policy-only production release `dpl_3DJ62FpRQzy1MgKjDdTyk4XddrvC` (source baseline `50018f8`). The authentication candidate on `pvp-online` remains separately gated; this optimization must not activate it. Prepare the production release from that live baseline plus the scoped usage patch, retaining the auth-capable implementation on `pvp-online`.
+The measured pre-change production baseline was the policy-only release `dpl_3DJ62FpRQzy1MgKjDdTyk4XddrvC` (source `50018f8`). The separately gated authentication candidate on `pvp-online` is **not activated** by this release. Production uses the isolated Vercel source `2b4695d388df795792eebad05767704527cffad8`, retained on `release/convex-usage-t_669bb4f5`; canonical implementation/backend source is signed `434d535a7078752ee3da1604f855e5b149a14120` on `pvp-online`. The release branch is a **Vercel-only build snapshot**, not a backend rollback: use canonical `pvp-online` for future Convex deployment so existing dormant auth components are not removed.
 
 Measurement: `scripts/measure-usage.js` runs an unaccelerated five-minute/28-planet match, two isolated Brave contexts and two actual stdio MCP agents, using a local HTTP preview backed by actual free-plan Convex in a unique expiring namespace. Instrumented `ConvexStore.call` counts successful REST operations and ordered WebSocket mutations; `onWatchSnapshot` additionally counts every delivered reactive query snapshot (including initial/reconnect results). Byte counters sum UTF-8 JSON value payloads returned by those queries and supplied as CAS guards/writes. They exclude document/index metadata, authentication-component usage, unchanged reactive re-executions and provider billing overhead; a conflicting CAS guard's submitted payload need not equal the current stored value. These are disclosed application-level storage-traffic measurements, not provider-billed database bytes. No plan/team/project changes or customer-record access.
 
@@ -14,9 +14,27 @@ Connections close on response completion/disconnect. Agent event waiting keeps i
 
 The first polling-only candidate sustained 13.67/14.26 FPS but still used 2,292 calls: it did not meet the fivefold target. It was not deployed/promoted. The reactive candidate replaces those residual stream/event polling reads rather than accepting a weaker threshold.
 
-Baseline and optimized results, fresh verification and release handles will be appended after execution.
+### Measured result and production readback
 
-## Status: room-join repair deployed; ready for independent review
+| Metric | Baseline | Optimized | Reduction |
+| --- | ---: | ---: | ---: |
+| Operations | 6,576 | 1,177 | 5.59× |
+| Query results / REST queries | 4,957 | 934 | 5.31× |
+| Read JSON value bytes | 71,640,561 | 11,785,641 | 6.08× |
+| Written JSON value bytes | 8,140,310 | 1,663,931 | 4.89× |
+| Combined JSON value bytes | 79,780,871 | 13,449,572 | 5.93× |
+
+The optimized full-match streams delivered **15.67 and 15.48 FPS**, fog-filtered, with both final reports received. These are two independent random-seed hold fixtures, not a controlled same-seed combat benchmark. The old implementation delivered 6.14/6.17 FPS over this local-HTTP/cloud-storage measurement path; that is not a claim about the old Vercel-hosted cadence. Canonical replay tests cover moving states and concurrent human/agent inputs; `sim.js` and the production MCP client are byte-unchanged from baseline.
+
+**Live:** https://botters.havesomecode.io and https://botters.vercel.app both resolve through Vercel to promoted **`dpl_2jgSvxq1sep1Jgfd55ehVKfXoQsL`**, deployment https://botters-oqoy85aax-zacaria-chtatars-projects.vercel.app, API in iad1. Unauthenticated normal-DNS HTTP readback returned 200 and exact source bytes for all five public assets on both domains; unallocated-capability probes returned 401 with working production storage and no record writes. Public Brave policy/homepage checks passed. The previous custom-host DNS caveat below is historical, not current.
+
+Preview **`dpl_1364zwXua42jznHyk3ib97CKkwbh`**, https://botters-270b5adh1-zacaria-chtatars-projects.vercel.app, passed a real three-minute two-stdio-MCP match, both final reports/history, two 40-frame streams at 16.83/16.88 FPS, and the synthetic 80-swarm late-checkpoint capacity fixture at 16.74/16.79 FPS (50 HTTP samples, p95 241 ms). That fixture is not an eight-minute wall-clock match. Fifteen critical uploaded source/config files were SHA-1 matched through the Vercel API for both preview and production, including server modules and the no-auth-activation entrypoint. Preview public assets differ only by the exact known appended Vercel feedback script; production assets match exactly. Server source, measurement scripts and ignored environment paths return 404.
+
+Fresh verification: **62 implementation unit tests, 51 isolated release unit tests, six Brave scenarios on each source tree, one actual Convex auth-component integration, syntax/build, zero production dependency audit findings and `git diff --check`**. No separate lint/type/formatter is configured. Builds retain existing Node `>=22` auto-upgrade, npm cache-dir deprecation and uncovered esbuild install-script warnings; no installer permissions were changed. A full timed production match was deliberately not repeated: actual-cloud matches run in isolated preview fixtures, and public production readback is non-customer-data verification.
+
+Evidence: [`pvp-convex-reduction.json`](pvp-convex-reduction.json) contains before/after raw measurements, source hashes, release refs, cloud MCP/capacity results, staged/public readback and limitations. Reproduce with `BOTTERS_MEASURE_SOURCE=<baseline-or-release-checkout> BOTTERS_MEASURE_OUTPUT=<ignored-output.json> node --env-file=<ignored-server-env> scripts/measure-usage.js`; set `BOTTERS_MEASURE_BASELINE=1` only for the old baseline, whose FPS is recorded rather than required to pass. `scripts/verify-subscription.js` exercises a real newly created capability's expiry and connection cleanup. No plan/team/project migration, DNS change, real-player-data operation, inference, email or payment was performed. The obsolete nested frame formatter was replaced by a shared formatter; no source files were deleted.
+
+## Historical room-join release state
 
 Independent review of signed `b91d54c` found a rejected room join could still occupy a slot because status-bearing failures intentionally commit checkpoint/rate-limit state. Signed runtime `4211338e69808ef7fdeace783d10273b10e2a41a` validates join preferences before changing membership, readiness, timestamps or guest room/preferences; transaction error semantics remain unchanged. The regression failed before the fix and passed after it. README now directs players to public production rather than a protected preview.
 
