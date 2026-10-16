@@ -24,6 +24,18 @@ async function ended(page) {
   }
 }
 
+test('entry remains disabled until its connection settings are ready', async ({ page }) => {
+  let release
+  const gate = new Promise(resolve => { release = resolve })
+  await page.route('**/live-config.json', async route => { await gate; await route.continue() })
+  try {
+    await page.goto('/', { waitUntil: 'commit' })
+    await expect(page.locator('#startSolo')).toBeAttached()
+    await expect(page.locator('#startSolo')).toBeDisabled({ timeout: 500 })
+  } finally { release() }
+  await expect(page.locator('#startSolo')).toBeEnabled()
+})
+
 test('a transient initial stream 503 reopens the same match and receives frames', async ({ page }) => {
   await enter(page, 'Stream retry')
   let attempts = 0
