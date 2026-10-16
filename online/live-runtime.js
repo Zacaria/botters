@@ -66,7 +66,7 @@ export class LiveRuntime {
       this.store.put(key, token && session ? token : null, Math.max(1, (expiresAt - Date.now()) / 1000))
       if (!session) return
       const remote = JSON.parse(session), local = JSON.parse(this.store.raw(`session:${remote.id}`) || 'null')
-      const own = local ? { match: local.match, side: local.side, room: local.room, queued: local.queued, history: local.history, agentSeen: local.agentSeen, name: local.name, doctrine: local.doctrine } : { match: null, room: null, queued: null }
+      const own = local ? { match: local.match, side: local.side, room: local.room, roomPrefs: local.roomPrefs, queued: local.queued, history: local.history, agentSeen: local.agentSeen, name: local.name, doctrine: local.doctrine } : { match: null, room: null, queued: null }
       this.store.put(`session:${remote.id}`, JSON.stringify({ ...remote, ...own }), Math.max(1, (expiresAt - Date.now()) / 1000))
     })
   }
@@ -82,7 +82,7 @@ export class LiveRuntime {
     const startId = randomBytes(24).toString('base64url')
     return this.serialize(async () => {
       if (!publicPath && this.options.authority && !this.ready(q.get('token'))) throw unavailable()
-      if (['/play', '/rooms/start', '/rooms/ready'].includes(path) && this.rooms.size >= 24) throw Object.assign(new Error('All matches are occupied. Retry shortly.'), { status: 503 })
+      if (['/play', '/rooms/start', '/rooms/rematch'].includes(path) && this.rooms.size >= 24) throw Object.assign(new Error('All matches are occupied. Retry shortly.'), { status: 503 })
       const result = await new OnlineGame(this.store, { ...this.options, identity, startId }).request(method, path, q, body)
       if (this.createRoom) for (const [key, record] of this.store.data) if (key.startsWith('match:')) {
         const m = JSON.parse(record.value)
