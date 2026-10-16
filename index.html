@@ -57,7 +57,7 @@
       <p>Connect Claude Code, Codex or any MCP client in one command, then tell it "let's play botters". It opens your lobby here.</p>
       <p><a href="/guide" target="_blank">How to plug your agent →</a></p>
       <h3>Or play alone first</h3>
-      <div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo">Enter</button></div>
+      <div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo" disabled>Enter</button></div>
       <p class="help">To play with an agent, open the lobby link it gives you.</p>
       <p id="startError" class="warn" role="alert"></p>
       <noscript><p>JavaScript is needed to play. The agent guide and policies are available without it.</p></noscript>
@@ -483,4 +483,5 @@ onkeydown = e => {
 $('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
 
 token ? lobby() : show('start')
+$('startSolo').disabled = false
 </script>
