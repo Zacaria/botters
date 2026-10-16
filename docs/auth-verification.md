@@ -1,6 +1,20 @@
 # Authentication candidate verification
 
-## Retained boundary
+## Session-validation repair (t_9fd16360)
+
+The original `1dced593` runtime below is **rejected** by source review t_c57e9135: the default Better Auth HTTP limit also covered internal `/get-session`, so normal polling exhausted 100 validations per shared IP in ten minutes. This repair branches from signed evidence-only `c790d40f28605483b34a010141932760eede890b`; the exact replacement SHA is recorded in the repair/review Kanban handoff and signed Git history.
+
+Only `/get-session` is exempted from the secondary Better Auth limiter. Cookie caching remains disabled; production `resolveAccount` still requests a live session without refreshing it. The proxy-secret gate, public route allowlist, verified owner checks and all password/email limits are unchanged. No backend, frontend, API or provider configuration was deployed by this repair.
+
+`integration/auth-polling.test.js` runs the production HTTP handler on a real loopback server, forwarding its auth/session HTTP requests to the actual official Convex component. Two verified accounts share the loopback client IP. The regression initially failed with 503 on Alice's 50th lobby poll (the 101st shared-IP validation, including session creation). With the repair, 120 polls per account (240 total in a fixed ten-minute window) pass. The same test denies cross-account, missing-cookie, revoked and expired sessions; refuses unauthenticated/forged direct-backend access and public session-lookup proxying; and checks exact atomic password and reset/verification-email limits after polling. External email is captured, never sent.
+
+Fresh checks: 53/53 Node tests, 2/2 actual-component integration cases, 2/2 auth Brave scenarios and 6/6 ordinary Brave scenarios pass. Syntax checks cover 50 JS files plus inline scripts/JSON. Build contains exactly five intended public assets; package dry-run contains ten offline entries without auth server modules, fixtures or credentials. Production dependency audit reports zero known vulnerabilities; `git diff --check` passes. No separate lint/type/format tooling is configured.
+
+Clean-checkout component tests no longer need copied generated artifacts: Vitest's test-only global setup creates generic references in ignored `convex/_generated/api.js` only when absent, preserving existing real codegen. These references are test scaffolding, not a deployed schema binding; production deployment still uses Convex codegen. No tracked source, data or records were deleted. All provider and activation prerequisites below remain open; the next step is independent replacement-SHA review, not publication.
+
+## Original candidate evidence (historical)
+
+### Retained boundary
 
 Runtime candidate: signed/pushed `1dced5930f85f9a51e993492b6d3e6fabcdddaee` on `origin/pvp-online`, verified by `git verify-commit` and exact remote ref readback. Compare against `50018f8` (reviewed public-policy baseline). Thirty changed paths are listed by `git diff --name-only 50018f8..1dced593`; this includes docs/tests and the lockfile. No files, databases, legacy ratings or user records were deleted or migrated. Name-only online access is replaced in the candidate, not adopted into accounts. Offline code remains login-free.
 

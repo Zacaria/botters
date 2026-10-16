@@ -19,7 +19,9 @@ export function authOptions(env, sendEmail) {
     } : {},
     account: { accountLinking: { enabled: false }, storeAccountCookie: false, encryptOAuthTokens: true },
     session: { expiresIn: 604800, updateAge: 86400, cookieCache: { enabled: false } },
-    rateLimit: { enabled: true, storage: 'database', window: 600, max: 100, customRules: { '/sign-in/email': { window: 60, max: 5 }, '/sign-up/email': { window: 600, max: 5 }, '/request-password-reset': { window: 600, max: 3 }, '/send-verification-email': { window: 600, max: 3 } } },
+    // Every game request checks the live cookie through this proxy-secret-protected
+    // endpoint. Polling must not consume the credential/email request budget.
+    rateLimit: { enabled: true, storage: 'database', window: 600, max: 100, customRules: { '/get-session': false, '/sign-in/email': { window: 60, max: 5 }, '/sign-up/email': { window: 600, max: 5 }, '/request-password-reset': { window: 600, max: 3 }, '/send-verification-email': { window: 600, max: 3 } } },
     advanced: { useSecureCookies: baseURL.startsWith('https:'), defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure: baseURL.startsWith('https:') }, ipAddress: { ipAddressHeaders: ['x-botters-client-ip'] } },
   }
 }
