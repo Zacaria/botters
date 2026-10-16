@@ -40,3 +40,53 @@ rate-limited. Re-run repository checks and exercise a full eight-minute match
 with two stdio MCP clients, human reload, and durable reports on an isolated
 loopback backend. Keep completion-stream accounting separate from adapter
 counters and distinguish local proof from hosted acceptance.
+
+## Actual isolated-backend results
+
+The matching warm-rematch run on 2026-10-16, 14:56:27.507–15:04:38.310 UTC,
+completed tick 9600 after 490.803 wall-clock seconds (eight minutes plus the
+planning countdown). Two actual stdio MCP clients stayed active; one human
+reloaded and resumed the same match, and both histories/reports persisted.
+
+Its real completion stream contains 55 completions: 8 scheduled expiry jobs,
+3 cached component lookups, and **44 actual uncached non-housekeeping
+executions**, including one uncached Better Auth `findOne`. Adapter-only
+counters report 34, which is not the acceptance total. The 44 are 27
+`store:authorize`, 9 `store:get`, 4 `store:commit`, 2 auth HTTP actions,
+1 exchange and 1 component query. No rate-limit component operations occur
+inside this window. Evidence: `evidence/account-overhead/local-rematch.json`
+and its sibling `.jsonl` completion stream.
+
+Do not attribute the entire hosted-55/local-44 difference to the code change:
+the local run has six fewer authorization executions and one additional
+uncached component lookup. The focused regression establishes removal of the
+redundant limiter operations; it is not a same-host production counterfactual.
+A new hosted result remains unmeasured and requires existing release authority.
+
+A separate cold first-match run at 14:41:08.846–14:49:20.585 UTC also completed
+tick 9600 with reload and both durable histories, but measured **53**, above
+the target. It includes post-approval MCP confirmation/startup work not present
+in the original warm-rematch baseline. Keep this miss visible: this candidate
+meets the measured warm-rematch workload, not a universal 50-execution ceiling
+for cold startup. Its full accounting is retained in
+`evidence/account-overhead/local-cold-match.json` and sibling `.jsonl`.
+
+The isolated deployment uses the real disk-backed Convex backend and real
+Better Auth component. A disposable tooling overlay captures email locally;
+self-signed loopback HTTPS transports replace the external hosts. It is not a
+production mail, public TLS or deployed cross-host acceptance test.
+
+## Source and security checks
+
+The new actual-component regression fails on the original handler because
+private identity lookup writes a rate-limit bucket. It passes on the native
+server-API candidate: wrong/missing proxy secrets reach no component functions,
+session/user reads remain, public sign-in still reaches HTTP 429, and password
+reset/logout revoke stored sessions. The bounded independent precommit source
+review returned PASS for the handler and test hashes.
+
+Final repository gates: 69 Node tests, 4 actual-component tests, 3 account
+browser tests and 7 ordinary browser tests pass; syntax checks, build and
+runtime dependency audit pass. No files or dependencies were deleted or added
+to runtime. No production deployment or Git remote push was performed; the
+signed source and evidence bundle are preserved for independent review.
