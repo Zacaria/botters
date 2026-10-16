@@ -38,7 +38,7 @@ const api = async (method, path, body) => {
   const r = await fetch(SERVER + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
   return { status: r.status, ...(await r.json()) }
 }
-const S = { session: null, since: 0, opened: false, inMatch: false, matchId: null }
+const S = { session: env.BOTTERS_AGENT_TOKEN ? { agentToken: env.BOTTERS_AGENT_TOKEN, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null }
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
@@ -57,8 +57,12 @@ const GAMBIT = z.object({ if: z.string(), p: z.number().optional(), then: z.stri
 async function session() {
   if (S.session) return S.session
   S.session = await api('POST', '/session', { name: env.BOTTERS_NAME || 'you', setup: env.BOTTERS_SETUP || 'agent' })
+  if (S.session.status === 401) {
+    const pair = await api('POST', '/agent/pair', { setup: env.BOTTERS_SETUP || 'agent' })
+    S.session = pair.agentToken ? { ...pair, lobby: pair.approvalUrl, online: true, pairing: true } : pair
+  }
   if (!S.session.agentToken) { const error = S.session.error || 'Could not create a lobby.'; S.session = null; throw new Error(error) }
-  log(`lobby ${S.session.lobby}`)
+  log(S.session.online ? 'Waiting for your signed-in player to approve this agent.' : `lobby ${S.session.lobby}`)
   return S.session
 }
 
@@ -77,10 +81,17 @@ The result includes the rules, the match settings and your human's doctrine (the
   },
 }, async ({ vs, minutes, planets, planning }) => {
   const s = await session()
-  if (vs) { const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning }); if (!r.ok && r.error !== 'already in a match') return text(r.error) }
   if (!S.opened) { S.opened = true; openUrl(s.lobby) }
+  if (s.pairing) {
+    const pair = await api('GET', `/agent/poll?token=${s.agentToken}&timeout=20`)
+    if (pair.status === 401 || pair.status === 410) { S.session = null; S.opened = false; return text('Agent approval expired or was revoked. Call join_match to request fresh approval.') }
+    if (!pair.approved) return text({ waiting: true, tell_the_human: `Sign in and explicitly connect this agent: ${s.approvalUrl}`, next: 'Call join_match again after approval. Never request the human’s password or browser token.' })
+    s.pairing = false; s.lobby = SERVER
+  }
+  if (vs && s.online) return text('Your signed-in human starts online matches in the lobby. Do not use the headless vs option online; call join_match without vs.')
+  if (vs) { const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning }); if (!r.ok && r.error !== 'already in a match') return text(r.error) }
   const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
-  if (r.status === 401) { S.session = null; return text('The game server restarted. Call join_match again.') }
+  if (r.status === 401) { S.session = null; S.opened = false; return text('Agent access expired or was revoked. Call join_match for a fresh connection.') }
   if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
   if (!r.match.id || r.match.id !== S.matchId) S.since = 0
   S.inMatch = true; S.matchId = r.match.id || null

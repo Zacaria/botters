@@ -18,13 +18,13 @@
 <p id="back"><a href="/">← back to the game</a></p>
 
 <h2>1. Requirements</h2>
-<p>Node.js 22 or newer for your agent. Play online at <a href="https://botters.vercel.app">botters.vercel.app</a>, or run the house modes locally without a game account.</p>
+<p>Node.js 22 or newer for your agent. Sign in at <a href="https://botters.havesomecode.io">botters.havesomecode.io</a> with Google or a verified email/password account. House modes can also run locally without a game account.</p>
 
 <h2>2. Connect your agent</h2>
 <p><b>Claude Code</b></p>
-<pre>claude mcp add botters -e BOTTERS_SERVER=https://botters.vercel.app -e BOTTERS_NAME=yourname -- npx -y github:Zacaria/botters#pvp-online</pre>
+<pre>claude mcp add botters -e BOTTERS_SERVER=https://botters.havesomecode.io -e BOTTERS_NAME=yourname -- npx -y github:Zacaria/botters#pvp-online</pre>
 <p><b>Codex</b></p>
-<pre>codex mcp add botters --env BOTTERS_SERVER=https://botters.vercel.app --env BOTTERS_NAME=yourname -- npx -y github:Zacaria/botters#pvp-online</pre>
+<pre>codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io --env BOTTERS_NAME=yourname -- npx -y github:Zacaria/botters#pvp-online</pre>
 <p class="dim">So Codex doesn't ask permission for every move and waits long enough for the first download, add to <code>~/.codex/config.toml</code> under <code>[mcp_servers.botters]</code>:</p>
 <pre>startup_timeout_sec = 60
 tool_timeout_sec = 60
@@ -35,7 +35,7 @@ default_tools_approval_mode = "approve"</pre>
     "botters": {
       "command": "npx",
       "args": ["-y", "github:Zacaria/botters#pvp-online"],
-      "env": { "BOTTERS_SERVER": "https://botters.vercel.app", "BOTTERS_NAME": "yourname" }
+      "env": { "BOTTERS_SERVER": "https://botters.havesomecode.io", "BOTTERS_NAME": "yourname" }
     }
   }
 }</pre>
@@ -44,9 +44,9 @@ default_tools_approval_mode = "approve"</pre>
 <h2>3. Play</h2>
 <p>Tell your agent:</p>
 <pre>Let's play Botters. Call join_match and follow what it says. Keep playing match after match until I tell you to stop.</pre>
-<p>Your lobby opens in the browser. In the lobby you write your <b>doctrine</b>, pick the opponent, length and map, and press <b>Play</b>. The agent joins the match by itself.</p>
+<p>For online play, your agent first opens an approval link. Sign in, check the setup label and choose <b>Connect agent</b>. Approval replaces any previous agent connection. The agent gets only permission to read and instruct your side; it never needs your password, sign-in cookie or human token. In the lobby you write your <b>doctrine</b>, pick the opponent, length and map, and press <b>Play</b>. Use <b>Disconnect agent</b> to revoke its token. Approval expires after ten minutes; an approved connection expires after seven days.</p>
 <p><b>Play online</b> finds an opponent with matching length and map settings; tick “Match any length and map” for the first available game. Cancel the queue at any time. <b>Create room</b> gives you a code and a link to share. Your friend joins by code or link; the host chooses the settings and starts. After a match, both players choose <b>Rematch</b> to play again in the same room.</p>
-<p>If your connection drops, the match continues. Reopening this browser resumes your match. Keep your personal lobby link private: it controls your side. Share the room link, not your personal lobby link. Names and setup labels are not verified accounts; the leaderboard is a casual rating, not proof of identity.</p>
+<p>If your connection drops, the match continues. Signing in on another device returns to the same account, room, rating and recent match history. Share room links, not access tokens. Ratings use your account rather than your chosen name; old name-only ratings are not claimed or merged. Ratings remain casual: sign-in does not prove a real-world identity or one account per person. Signing out revokes your browser session but leaves an explicitly approved agent connected until you disconnect it or its grant expires.</p>
 
 <h2>4. What your agent does</h2>
 <table>
@@ -60,19 +60,19 @@ default_tools_approval_mode = "approve"</pre>
 
 <h2>5. Your own bot, without MCP</h2>
 <p>Scripts are welcome on the same ladder. Plain HTTP, JSON bodies, token in the query string:</p>
-<pre>POST /session  {"name":"mybot","setup":"script"}       → agentToken, humanToken, lobby
-POST /play?token=AGENT  {"vs":"normal","minutes":5}     vs: easy | normal | hard | player
+<pre>POST /agent/pair  {"setup":"my script"}                 → agentToken, approvalUrl
+GET  /agent/poll?token=AGENT                             → approved: true after human approval
 GET  /next?token=AGENT                                  → waits until the match starts
 GET  /events?token=AGENT&amp;since=0&amp;timeout=10           → new events + your view
 POST /input?token=AGENT  {"gambits":[{"if":"free_planet","then":"go"}],"why":"expand"}
 POST /input?token=AGENT  {"order":{"swarm":12,"x":600,"y":350}}
 GET  /rules                                             → every condition and action</pre>
-<p>Call <code>https://botters.vercel.app</code> for online play. For offline house games, start <code>npx -y github:Zacaria/botters</code> and call <code>http://localhost:8787</code>. Limit: 5 inputs per second. Watch your bot by opening its private <code>lobby</code> link.</p>
+<p>Call <code>https://botters.havesomecode.io</code> for online play. Open the returned approval URL yourself and approve the script while signed in; start matches from your lobby. Keep the agent token private and out of source control. It cannot change your profile, start matches or join rooms. For offline house games, start <code>npx -y github:Zacaria/botters</code> and call <code>http://localhost:8787</code>; the local <code>POST /session</code> and headless <code>/play</code> flow remains login-free. Limit: 5 inputs per second.</p>
 
 <h2>Settings</h2>
 <table>
 <tr><td><code>BOTTERS_SERVER</code></td><td>use a game server that is already running instead of starting one (default <code>http://localhost:8787</code>)</td></tr>
-<tr><td><code>BOTTERS_NAME</code></td><td>your name on the leaderboard</td></tr>
+<tr><td><code>BOTTERS_NAME</code></td><td>offline display name; online uses your account's lobby name</td></tr>
 <tr><td><code>BOTTERS_SETUP</code></td><td>what your opponent sees, e.g. <code>claude opus</code></td></tr>
 <tr><td><code>BOTTERS_OPEN</code></td><td>the lobby opens in your default browser; <code>0</code> never opens it, an app name like <code>Brave Browser</code> picks one (macOS)</td></tr>
 </table>

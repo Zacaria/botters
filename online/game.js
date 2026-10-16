@@ -70,7 +70,7 @@ function whatIf(m, p, log, deadline) {
 }
 
 export class OnlineGame {
-  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline }
+  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, identity = null } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.identity = identity?.emailVerified === true ? identity : null }
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
@@ -79,7 +79,8 @@ export class OnlineGame {
     return transaction(this.store, async tx => {
       let persist = false
       const now = this.now()
-      const loadSession = id => tx.get(`session:${id}`, null, SESSION_TTL)
+      const loadSession = id => tx.get(`session:${id}`, null, this.requireAccount ? 0 : SESSION_TTL)
+      const ratingPrefix = this.requireAccount ? 'verified:' : ''
       const appendLog = async (m, entry) => {
         const chunk = await tx.get(`log:${m.id}:${Math.floor(m.logCount / 64)}`, [])
         chunk.push(entry); m.logCount++
@@ -92,7 +93,7 @@ export class OnlineGame {
       }
       const updatedRatings = new Map()
       const board = async () => {
-        const pairs = new Map([...(await tx.get('leaderboard', [], 0)), ...updatedRatings])
+        const pairs = new Map([...(await tx.get(`${ratingPrefix}leaderboard`, [], 0)), ...updatedRatings])
         return rankPairs([...pairs]).slice(0, 10).map(([, entry]) => entry)
       }
       const finish = async m => {
@@ -106,17 +107,19 @@ export class OnlineGame {
         }
         const log = chunks.flat().slice(0, m.logCount)
         m.report = m.players.map(p => p.session ? whatIf(m, p, log, this.deadline) : null)
-        const ratings = await Promise.all(m.players.map(async p => {
-          const key = hash(JSON.stringify([p.name, p.setup]))
-          return { key, entry: await tx.get(`elo:${key}`, { name: p.name, setup: p.setup, rating: 1000, games: 0 }, 0) }
-        }))
-        const expected = 1 / (1 + 10 ** ((ratings[1].entry.rating - ratings[0].entry.rating) / 400))
-        const got = m.s.ended.winner === 0 ? 1 : m.s.ended.winner === null ? .5 : 0
-        const delta = Math.round(32 * (got - expected))
-        // Same display identity cannot collect two Elo changes from one match.
-        if (ratings[0].key !== ratings[1].key) for (const [side, { key, entry }] of ratings.entries()) {
-          const value = { ...entry, rating: entry.rating + (side ? -delta : delta), games: entry.games + 1 }
-          await tx.set(`elo:${key}`, value, 0); updatedRatings.set(key, value)
+        const rated = !this.requireAccount || m.players.every(p => p.accountId) && m.players[0].accountId !== m.players[1].accountId
+        if (rated) {
+          const ratings = await Promise.all(m.players.map(async p => {
+            const key = hash(JSON.stringify([this.requireAccount ? p.accountId : p.name, p.setup]))
+            return { key, entry: await tx.get(`${ratingPrefix}elo:${key}`, { name: p.name, setup: p.setup, rating: 1000, games: 0 }, 0) }
+          }))
+          const expected = 1 / (1 + 10 ** ((ratings[1].entry.rating - ratings[0].entry.rating) / 400))
+          const got = m.s.ended.winner === 0 ? 1 : m.s.ended.winner === null ? .5 : 0
+          const delta = Math.round(32 * (got - expected))
+          if (ratings[0].key !== ratings[1].key) for (const [side, { key, entry }] of ratings.entries()) {
+            const value = { ...entry, name: m.players[side].name, rating: entry.rating + (side ? -delta : delta), games: entry.games + 1 }
+            await tx.set(`${ratingPrefix}elo:${key}`, value, 0); updatedRatings.set(key, value)
+          }
         }
         for (const p of m.players) if (p.session) {
           const s = await loadSession(p.session)
@@ -147,7 +150,7 @@ export class OnlineGame {
       const start = async (entries, req, roomCode = null) => {
         const m = { id: token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, startsAt: now + req.planning * 1000 }
         for (const [side, e] of entries.entries()) {
-          const p = { side, session: e?.s.id || null, name: e?.s.name || `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
+          const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
             agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', events: [], seq: 0, sent: [], humanSent: [], calls: [], feed: [], prev: null, seen: now,
             gambitsBy: { who: e ? 'default' : 'house', t: 0, why: '' } }
           m.players.push(p)
@@ -159,9 +162,44 @@ export class OnlineGame {
         await tx.set(`match:${m.id}`, m)
         return m
       }
-      if (method === 'GET' && path === '/leaderboard') return { leaderboard: await board() }
+      if (method === 'POST' && path === '/agent/pair' && this.requireAccount) {
+        const agentToken = token(), id = token(), setup = text(body.setup, 40, 'agent')
+        await tx.set(`pair:${id}`, { secretHash: hash(agentToken), setup, expires: now + 600000 }, 600)
+        await tx.set(`pending:${hash(agentToken)}`, { id, expires: now + 600000 }, 600)
+        return { id, agentToken, approvalUrl: `${this.origin}/?pair=${id}`, expiresIn: 600 }
+      }
+      if (method === 'GET' && path === '/agent/poll' && this.requireAccount) {
+        const bearer = q.get('token') || ''
+        if (!/^[\w-]{32}$/.test(bearer)) fail(401, 'Invalid pairing token.')
+        const grant = await tx.get(`token:${hash(bearer)}`)
+        if (grant?.role === 'agent') {
+          const owner = await loadSession(grant.id)
+          if (!owner || owner.agentVersion !== grant.version || grant.expires <= now) fail(401, 'Agent access was revoked or expired.')
+          return { approved: true }
+        }
+        const pending = await tx.get(`pending:${hash(bearer)}`)
+        if (!pending || pending.expires <= now) fail(410, 'Pairing expired. Start a new request.')
+        return { approved: false }
+      }
+      if (method === 'GET' && path === '/leaderboard') {
+        if (this.requireAccount && !this.identity) fail(401, 'Sign in to play online.')
+        return { leaderboard: await board() }
+      }
       if (method === 'POST' && path === '/session') {
-        // Public session creation is bounded per caller IP by the HTTP adapter.
+        if (this.requireAccount) {
+          if (!this.identity) fail(401, 'Sign in and verify your email to play online.')
+          const accountKey = `account:${hash(this.identity.id)}`, account = await tx.get(accountKey, null, 0)
+          let s = account && await tx.get(`session:${account.id}`, null, 0)
+          if (!s) {
+            s = { id: token(), accountId: this.identity.id, agentVersion: 0, name: text(this.identity.name, 24, 'you'), setup: 'no agent', doctrine: DEFAULT_DOCTRINE, agentSeen: 0, match: null, side: 0, queued: null, room: null, history: [] }
+            await tx.set(`session:${s.id}`, s, 0)
+            await tx.set(accountKey, { id: s.id }, 0)
+          }
+          const humanToken = token()
+          await tx.set(`token:${hash(humanToken)}`, { id: s.id, role: 'human', accountId: s.accountId, expires: now + SESSION_TTL * 1000 }, SESSION_TTL)
+          return { humanToken, sessionId: s.id }
+        }
+        // Isolated development fixture compatibility only; production requires accounts.
         const humanToken = token(), agentToken = token(), id = token()
         const s = { id, name: text(body.name, 24, 'you'), setup: text(body.setup, 40, 'no agent'), doctrine: DEFAULT_DOCTRINE, agentSeen: body.setup ? now : 0, match: null, side: 0, queued: null, room: null, history: [] }
         await tx.set(`session:${id}`, s, SESSION_TTL)
@@ -174,10 +212,32 @@ export class OnlineGame {
       const auth = await tx.get(`token:${hash(bearer)}`, null, SESSION_TTL)
       const s = auth && await loadSession(auth.id)
       if (!s) fail(401, 'Unknown session. Open a new lobby.')
+      if (this.requireAccount) {
+        if (!s.accountId || auth.expires <= now || !auth.expires) fail(401, 'Access expired. Sign in or pair your agent again.')
+        if (auth.role === 'human' && (!this.identity || this.identity.id !== s.accountId || auth.accountId !== s.accountId)) fail(401, 'Sign in to your own account.')
+        if (auth.role === 'agent' && auth.version !== s.agentVersion) fail(401, 'Agent access was revoked.')
+        if (auth.role === 'agent' && !(method === 'GET' && ['/next', '/events', '/state'].includes(path) || method === 'POST' && ['/input', '/call'].includes(path))) fail(401, 'Agent access cannot perform human actions.')
+      }
       if (!auth.touched || now - auth.touched >= 60000) { auth.touched = now; persist = true }
       if (!s.touched || now - s.touched >= 60000) { s.touched = now; persist = true }
-      const human = () => { if (auth.role !== 'human') fail(401, 'A human session token is required.') }
-      const agent = () => { if (auth.role !== 'agent') fail(401, 'An agent session token is required.') }
+      const human = () => { if (auth.role !== 'human') fail(401, 'Human token required.') }
+      const agent = () => { if (auth.role !== 'agent') fail(401, 'Agent token required.') }
+      if (path.startsWith('/agent/')) {
+        human()
+        if (method === 'POST' && path === '/agent/revoke') { s.agentVersion++; s.agentGranted = false; s.agentSeen = 0; s.setup = 'no agent'; return { ok: true } }
+        const id = method === 'GET' ? q.get('id') : body.id
+        if (!/^[\w-]{32}$/.test(id || '')) fail(400, 'Invalid pairing request.')
+        const pair = await tx.get(`pair:${id}`)
+        if (!pair || pair.expires <= now) fail(410, 'Pairing expired. Ask your agent to start again.')
+        if (pair.used) fail(409, 'Pairing already approved.')
+        if (method === 'GET' && path === '/agent/request') return { setup: pair.setup }
+        if (method === 'POST' && path === '/agent/approve') {
+          s.agentVersion++; s.agentGranted = true; s.setup = pair.setup; s.agentSeen = now; pair.used = true
+          await tx.set(`token:${pair.secretHash}`, { id: s.id, role: 'agent', version: s.agentVersion, expires: now + SESSION_TTL * 1000 }, SESSION_TTL)
+          return { ok: true }
+        }
+        fail(404, 'Unknown agent action.')
+      }
       if (auth.role === 'agent') { s.agentSeen = now; persist = true }
       const m = await loadMatch(s.match), p = m?.players[s.side]
       if (p && now - p.seen >= 5000) { p.seen = now; persist = true }
@@ -194,7 +254,7 @@ export class OnlineGame {
         const idx = await index(), queued = idx.queue.find(e => e.id === s.id)
         if (queued) queued.seen = now
         s.queued = queued ? queued.at : null
-        return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, doctrine: s.doctrine, history: s.history, live: active(m), inMatch: !!m,
+        return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, agentGranted: !!s.agentGranted, doctrine: s.doctrine, history: s.history, live: active(m), inMatch: !!m,
           queued: !!queued, queuedAt: s.queued, room: await roomInfo(idx), leaderboard: await board(), doctrineMax: 500,
           choices: { vs: Object.keys(HOUSE), ...OPTIONS, planning: PLANNING } }
       }
@@ -276,7 +336,7 @@ export class OnlineGame {
         const entry = idx.queue.find(e => (e.req.anyMinutes || req.anyMinutes || e.req.minutes === req.minutes) && (e.req.anyPlanets || req.anyPlanets || e.req.planets === req.planets))
         if (entry) {
           const other = await loadSession(entry.id)
-          if (other && !active(await loadMatch(other.match)) && !other.room) {
+          if (other && (!this.requireAccount || other.accountId && other.accountId !== s.accountId) && !active(await loadMatch(other.match)) && !other.room) {
             idx.queue = idx.queue.filter(e => e.id !== entry.id)
             const chosen = { ...entry.req, minutes: entry.req.anyMinutes ? req.minutes : entry.req.minutes, planets: entry.req.anyPlanets ? req.planets : entry.req.planets }
             await start([{ s: other, req: entry.req }, { s, req }], chosen)
@@ -294,7 +354,7 @@ export class OnlineGame {
         return { match: { id: m.id, side: s.side, opponent: `${opponent(m, s.side).name} (${opponent(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
           startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), state: view(m.s, s.side) } }
       }
-      if (frameRead) { requireMatch(); if (!persist) tx.readOnly(); return frame(m, s.side) }
+      if (frameRead) { requireMatch(); if (this.requireAccount && auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.'); if (!persist) tx.readOnly(); return frame(m, s.side) }
       if (method === 'GET' && path === '/events') {
         agent()
         if (!m || !p.agentJoined) return { events: [], state: null, next: m && !p.withAgent ? 'solo' : 'join' }

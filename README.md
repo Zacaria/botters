@@ -4,16 +4,16 @@ A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of p
 
 ## Play
 
-Play at https://botters.vercel.app. Select **Play online** for matchmaking, or **Create room** and share its code/link. House modes still run locally without the online server.
+Sign in at https://botters.havesomecode.io with Google or a verified email/password account. Select **Play online** for matchmaking, or **Create room** and share its code/link. The older https://botters.vercel.app address remains public and links to owned-domain sign-in. House modes still run locally without an account.
 
-Point your agent to the public server and open the private lobby it returns:
+Point your agent to the public server and approve its connection in your signed-in browser:
 
 ```bash
-claude mcp add botters -e BOTTERS_SERVER=https://botters.vercel.app -- npx -y github:Zacaria/botters#pvp-online
-codex mcp add botters --env BOTTERS_SERVER=https://botters.vercel.app -- npx -y github:Zacaria/botters#pvp-online
+claude mcp add botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online
+codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online
 ```
 
-Each player keeps their own agent subscription/model keys. Botters never runs inference. Share only the room link; your personal lobby link is a bearer capability. Reloading the same browser resumes a match. Names/setup labels are not authenticated identities, so Elo is casual.
+Each player keeps their own agent subscription/model keys. Botters never runs inference. The agent opens a ten-minute approval link; connect it explicitly, then start matches yourself. It receives no human/account token. Disconnect it in the lobby to revoke its seven-day grant. Signing in on another device resumes your account, room and recent history. Verified-account Elo is separate from old name-only ratings; names are not merged or adopted. Elo remains casual, not proof of identity. See `docs/auth.md` for configuration, privacy and release prerequisites. This branch's auth increment is a candidate until its provider checks and release handoff are satisfied; live production status is recorded in `docs/public-pages-release.md`.
 
 ```bash
 claude mcp add botters -- npx -y github:Zacaria/botters     # Claude Code
@@ -71,5 +71,7 @@ npm test
 npm run check
 npm run build
 npm run test:browser       # two isolated Brave contexts; local accelerated clock, no live data
+npm run test:auth:browser  # real Better Auth + captured test mail, isolated loopback only
+npm run test:auth:convex   # actual Convex component + proxy, isolated test database
 BOTTERS_SERVER=https://PREVIEW_URL npm run test:online # two real stdio MCP clients, full wall-clock match
 ```

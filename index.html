@@ -41,6 +41,8 @@
   #roomCode { font-size: 24px; letter-spacing: 4px; color: #fff }
   .policy-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 18px 0 24px; font-size: 12px }
   .policy-links a:focus-visible { outline: 2px solid #ff2e88; outline-offset: 4px }
+  #authForm label { display: grid; gap: 6px; max-width: 300px }
+  #authForm input { box-sizing: border-box; width: 100%; min-height: 36px; border-color: #686875 }
   @media (max-width: 740px) { .wrap { grid-template-columns: 1fr; margin: 20px auto } }
 </style>
 
@@ -56,9 +58,26 @@
       <h3>Play with your agent</h3>
       <p>Connect Claude Code, Codex or any MCP client in one command, then tell it "let's play botters". It opens your lobby here.</p>
       <p><a href="/guide" target="_blank">How to plug your agent →</a></p>
-      <h3>Or play alone first</h3>
-      <div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo">Enter</button></div>
-      <p class="help">To play with an agent, open the lobby link it gives you.</p>
+      <div id="offlineEntry" hidden><h3>Or play alone first</h3><div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo">Enter</button></div>
+      <p class="help">To play with an agent locally, open the lobby link it gives you.</p></div>
+      <section id="authPanel" aria-labelledby="authTitle">
+        <h2 id="authTitle">Sign in to play online</h2>
+        <p>Keep your player name, matches and rating across devices. Play online with or without an agent.</p>
+        <p class="help">For login-free local house games, run <code>npx -y github:Zacaria/botters</code> on your computer.</p>
+        <p id="canonicalLogin" hidden><a id="canonicalLink" href="https://botters.havesomecode.io">Continue to Botters sign-in →</a></p>
+        <div id="authControls">
+          <button id="googleLogin" type="button">Continue with Google</button>
+          <form id="authForm">
+            <p id="signupNameRow" hidden><label>Player name <input id="signupName" maxlength="24" autocomplete="nickname"></label></p>
+            <p id="emailRow"><label>Email <input id="authEmail" type="email" autocomplete="email" required maxlength="254"></label></p>
+            <p id="passwordRow"><label>Password <input id="authPassword" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label></p>
+            <button class="main" id="authSubmit">Sign in</button>
+          </form>
+          <p><button id="signinMode" type="button" hidden>Back to sign in</button> <button id="signupMode" type="button">Create account</button> <button id="forgotMode" type="button">Forgot password?</button></p>
+          <button id="resendVerify" type="button" hidden>Resend verification email</button>
+        </div>
+        <p id="authMessage" role="status"></p>
+      </section>
       <p id="startError" class="warn" role="alert"></p>
       <noscript><p>JavaScript is needed to play. The agent guide and policies are available without it.</p></noscript>
     </div>
@@ -68,6 +87,8 @@
 
 <!-- lobby -->
 <div id="lobby" class="screen" hidden>
+  <div class="row" id="accountControls" hidden><span id="accountName"></span> <button id="signout">Sign out</button> <button id="revokeAgent">Disconnect agent</button></div>
+  <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. It can read your side of the match and send game instructions. It cannot change your account or control other players. Connecting replaces any currently authorized agent.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
   <div class="wrap">
     <div>
       <h1><b>BOT</b><i>TERS</i></h1>
@@ -159,9 +180,14 @@ const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', 
 const n = c => Math.round(c).toLocaleString('en')
 const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 const show = id => { for (const s of ['start', 'lobby', 'game']) $(s).hidden = s !== id }
-let token = new URLSearchParams(location.search).get('s') || localStorage.getItem('botters.session')
+const authQuery = new URLSearchParams(location.search)
+let resetToken = authQuery.get('token')
+let pendingPair = authQuery.get('pair') || sessionStorage.getItem('botters.pair')
+if (pendingPair && /^[\w-]{32}$/.test(pendingPair)) sessionStorage.setItem('botters.pair', pendingPair); else pendingPair = null
+let accountRequired = false, authMode = resetToken ? 'reset' : 'signin'
+let token = authQuery.get('s') || localStorage.getItem('botters.session')
 const inviteCode = /^\/r\/([A-Z2-9]{6})$/i.exec(location.pathname)?.[1]?.toUpperCase()
-if (token) history.replaceState(null, '', location.pathname) // capabilities never remain in referrers or copied room links
+if (token || resetToken || pendingPair) history.replaceState(null, '', location.pathname) // capabilities never remain in referrers or copied room links
 const api = (method, path, body) => fetch(`${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token || '')}`, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) })).catch(() => ({ status: 503, error: 'Connection lost. Retry when you are online.' }))
 const toast = (t, ok = true) => { $('toast').textContent = t; $('toast').style.color = ok ? '#8f8' : '#f88' }
 
@@ -200,6 +226,84 @@ function editor(el, list, onChange) {
   return { get, set: l => { rows = l.map(r => ({ ...r, on: r.on !== false })); draw() } }
 }
 
+// ---------- account sign-in (online only) ----------
+const authPost = async (path, body) => {
+  try { const r = await fetch('/api/auth' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const data = await r.json(); return { ...data, status: r.status, ok: r.ok } }
+  catch { return { ok: false, message: 'Sign-in is unavailable. Retry shortly.' } }
+}
+function setAuthMode(mode) {
+  authMode = mode
+  $('authTitle').textContent = { signin: 'Sign in to play online', signup: 'Create your player account', forgot: 'Reset your password', reset: 'Choose a new password' }[mode]
+  $('authSubmit').textContent = { signin: 'Sign in', signup: 'Create account', forgot: 'Send reset email', reset: 'Save password' }[mode]
+  $('signupNameRow').hidden = mode !== 'signup'; $('signupName').required = mode === 'signup'
+  $('emailRow').hidden = mode === 'reset'; $('authEmail').required = mode !== 'reset'
+  $('passwordRow').hidden = mode === 'forgot'; $('authPassword').required = mode !== 'forgot'
+  $('authPassword').autocomplete = mode === 'signin' ? 'current-password' : 'new-password'
+  $('signinMode').hidden = mode === 'signin'; $('signupMode').hidden = mode === 'signup'; $('forgotMode').hidden = mode === 'forgot'
+  $('authPassword').value = ''; $('authMessage').textContent = ''; $('resendVerify').hidden = true
+}
+for (const [id, mode] of [['signinMode', 'signin'], ['signupMode', 'signup'], ['forgotMode', 'forgot']]) $(id).onclick = () => setAuthMode(mode)
+$('authForm').onsubmit = async e => {
+  e.preventDefault(); $('authSubmit').disabled = true; $('authMessage').textContent = ''
+  const mode = authMode, email = $('authEmail').value, password = $('authPassword').value
+  const path = { signin: '/sign-in/email', signup: '/sign-up/email', forgot: '/request-password-reset', reset: '/reset-password' }[mode]
+  const body = mode === 'reset' ? { token: resetToken, newPassword: password } : mode === 'forgot' ? { email, redirectTo: '/' } : { email, password, callbackURL: '/', ...(mode === 'signup' ? { name: $('signupName').value } : {}) }
+  const r = await authPost(path, body); $('authSubmit').disabled = false; $('authPassword').value = ''
+  if (!r.ok) { $('authMessage').textContent = r.message || r.error || 'Sign-in failed. Retry.'; $('resendVerify').hidden = mode !== 'signin' || r.status !== 403; return }
+  if (mode === 'signin') return bootAccount()
+  if (mode === 'reset') { resetToken = null; setAuthMode('signin'); $('authMessage').textContent = 'Password saved. Sign in with your new password.'; return }
+  $('authMessage').textContent = mode === 'signup' ? 'Check your email to verify your account, then return here.' : 'If this email has an account, a reset link is on its way.'
+}
+$('googleLogin').onclick = async () => {
+  $('googleLogin').disabled = true
+  const r = await authPost('/sign-in/social', { provider: 'google', callbackURL: '/' })
+  if (r.ok && r.url && new URL(r.url).origin === 'https://accounts.google.com') location.assign(r.url)
+  else { $('authMessage').textContent = r.message || 'Google sign-in is unavailable. Try email sign-in.'; $('googleLogin').disabled = false }
+}
+$('resendVerify').onclick = async () => {
+  const r = await authPost('/send-verification-email', { email: $('authEmail').value, callbackURL: '/' })
+  $('authMessage').textContent = r.ok ? 'If your account needs verification, check your email for a new link.' : r.message || 'Verification email is unavailable.'
+}
+$('signout').onclick = async () => {
+  const r = await authPost('/sign-out', {})
+  if (!r.ok) { $('lobbyMsg').textContent = r.message || 'Sign-out failed. Retry.'; return }
+  clearTimeout(lobbyTimer); clearTimeout(memberTimer); clearTimeout(docTimer); clearTimeout(streamRetry); es?.close()
+  localStorage.removeItem('botters.session'); token = null; L = null; show('start'); setAuthMode('signin')
+}
+$('revokeAgent').onclick = async () => { const r = await api('POST', '/agent/revoke', {}); $('lobbyMsg').textContent = r.error || 'Agent disconnected. Its token no longer works.' }
+$('approveAgent').onclick = async () => {
+  $('approveAgent').disabled = true
+  const r = await api('POST', '/agent/approve', { id: pendingPair })
+  $('pairMessage').textContent = r.error || 'Agent connected. You can disconnect it from this lobby.'
+  if (!r.error) { pendingPair = null; sessionStorage.removeItem('botters.pair') }
+  else $('approveAgent').disabled = false
+}
+$('declineAgent').onclick = () => { pendingPair = null; sessionStorage.removeItem('botters.pair'); $('pairApproval').hidden = true }
+async function bootAccount() {
+  let account
+  try { const r = await fetch('/account'); account = r.status === 404 ? { required: false } : await r.json() }
+  catch { $('authMessage').textContent = 'Connection lost. Reload when you are online.'; return }
+  if (account.error) { $('authMessage').textContent = account.error; return }
+  accountRequired = account.required
+  $('authPanel').hidden = !accountRequired; $('offlineEntry').hidden = accountRequired
+  $('accountControls').hidden = !accountRequired
+  if (!accountRequired) return token ? lobby() : show('start')
+  if (location.origin !== account.origin) {
+    $('authControls').hidden = true; $('canonicalLogin').hidden = false
+    const target = new URL(location.pathname, account.origin); if (pendingPair) target.searchParams.set('pair', pendingPair)
+    $('canonicalLink').href = target.href; return show('start')
+  }
+  if (resetToken || !account.user) { token = null; localStorage.removeItem('botters.session'); show('start'); setAuthMode(resetToken ? 'reset' : 'signin'); if (authQuery.get('error')) $('authMessage').textContent = 'That sign-in or reset link is invalid or expired. Request a new one.'; return }
+  $('accountName').textContent = account.user.name
+  const session = await api('POST', '/session', {})
+  if (!session.humanToken) { $('authMessage').textContent = session.error; return show('start') }
+  token = session.humanToken; localStorage.setItem('botters.session', token)
+  if (pendingPair) {
+    const pair = await api('GET', '/agent/request?id=' + encodeURIComponent(pendingPair))
+    $('pairApproval').hidden = false; $('pairDescription').textContent = pair.error || `Agent setup: ${pair.setup}`; $('approveAgent').disabled = !!pair.error
+  }
+  return lobby(!pendingPair)
+}
 // ---------- start ----------
 $('startSolo').onclick = async () => {
   const r = await api('POST', '/session', { name: $('startName').value || 'you' })
@@ -242,6 +346,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   $('online').hidden = !L.online || !!L.room
   renderRoom(L.room)
   agentOk = !!L.agent
+  if (accountRequired) $('revokeAgent').disabled = !L.agentGranted
   pick('withAgent', agentOk ? [true, false] : [false])
   if (!agentOk) prefs.withAgent = false
   if (inviteCode && !inviteUsed && !L.room && !L.live && !L.queued) {
@@ -483,5 +588,5 @@ onkeydown = e => {
 }
 $('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
 
-token ? lobby() : show('start')
+bootAccount()
 </script>

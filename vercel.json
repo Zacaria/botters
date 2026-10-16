@@ -5,6 +5,9 @@
   "regions": ["iad1"],
   "functions": { "api/index.js": { "maxDuration": 60 } },
   "rewrites": [
+    { "source": "/api/auth/:path*", "destination": "/api?route=/auth/:path*" },
+    { "source": "/account", "destination": "/api?route=/account" },
+    { "source": "/agent/:action", "destination": "/api?route=/agent/:action" },
     { "source": "/:route(session|lobby|profile|play|cancel|next|rules|state|events|input|call|dismiss|say|stream|leaderboard|room|rooms)", "destination": "/api?route=/:route" },
     { "source": "/rooms/:action", "destination": "/api?route=/rooms/:action" },
     { "source": "/r/:code", "destination": "/index.html" },

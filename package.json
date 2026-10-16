@@ -27,14 +27,20 @@
     "check": "node scripts/check.js",
     "test": "node --test test/*.test.js",
     "test:browser": "playwright test",
+    "test:auth:browser": "playwright test --config=playwright.auth.config.js",
+    "test:auth:convex": "vitest run --config vitest.config.js",
     "test:online": "node scripts/verify-online.js"
   },
   "dependencies": {
+    "@convex-dev/better-auth": "^0.12.5",
     "@modelcontextprotocol/sdk": "^1.32.1",
+    "better-auth": "^1.6.33",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "convex": "^1.46.0"
+    "convex": "^1.46.0",
+    "convex-test": "^0.0.62",
+    "vitest": "^4.1.12"
   }
 }

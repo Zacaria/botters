@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { OnlineGame } from './game.js'
 import { transaction } from './store.js'
+import { proxyAuth, resolveAccount, consumeAuthLimit } from './auth.js'
 const delay = ms => new Promise(r => setTimeout(r, ms))
 const json = (res, code, data) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)) }
 
@@ -16,7 +17,6 @@ export function createHandler(store, options = {}) {
       const origin = options.origin || `https://${req.headers.host}`
       const url = new URL(req.url, origin), path = url.searchParams.get('route') || url.pathname
       if (req.headers.origin && req.headers.origin !== origin) return json(res, 403, { error: 'Use the game from its own site.' })
-      const game = new OnlineGame(store.scoped?.() || store, { ...options, origin, deadline })
       let body = {}
       if (req.method === 'POST') {
         // Node IncomingMessage in tests, Vercel may preparse req.body.
@@ -29,7 +29,15 @@ export function createHandler(store, options = {}) {
           body = raw ? JSON.parse(raw) : {}
         }
       }
-      if (req.method === 'POST' && path === '/session') {
+      if (path.startsWith('/auth/')) {
+        await consumeAuthLimit(store, req, path.slice(5), { deadline })
+        return await proxyAuth(req, res, path.slice(5), body, options.env)
+      }
+      const identity = options.requireAccount ? await (options.resolveAccount || resolveAccount)(req, options.env) : null
+      if (req.method === 'GET' && path === '/account') return json(res, 200, { required: !!options.requireAccount, origin: options.env?.BOTTERS_AUTH_ORIGIN || process.env.BOTTERS_AUTH_ORIGIN || 'https://botters.havesomecode.io', user: identity })
+      const gameOrigin = options.requireAccount ? options.env?.BOTTERS_AUTH_ORIGIN || process.env.BOTTERS_AUTH_ORIGIN || 'https://botters.havesomecode.io' : origin
+      const game = new OnlineGame(store.scoped?.() || store, { ...options, identity, origin: gameOrigin, deadline })
+      if (req.method === 'POST' && ['/session', '/agent/pair'].includes(path)) {
         const ip = req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown'
         const key = `session-limit:${createHash('sha256').update(String(ip)).digest('hex')}:${Math.floor(Date.now() / 600000)}`
         await transaction(store, async tx => {
@@ -61,7 +69,7 @@ export function createHandler(store, options = {}) {
       let result
       do {
         result = await game.request(req.method, path, url.searchParams, body)
-        const waiting = req.method === 'GET' && (path === '/next' ? !result.match : path === '/events' ? result.state && !result.state.ended && !result.events.length : false)
+        const waiting = req.method === 'GET' && (path === '/agent/poll' ? !result.approved : path === '/next' ? !result.match : path === '/events' ? result.state && !result.state.ended && !result.events.length : false)
         if (!waiting || performance.now() >= pollDeadline || closed) break
         await delay(Math.min(500, Math.max(0, pollDeadline - performance.now())))
       } while (!closed)
