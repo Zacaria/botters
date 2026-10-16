@@ -1,0 +1,88 @@
+{
+  "baseCommit": "8840ddb9b77557c430abea27c9a22d312646e8c5",
+  "node": "v24.21.0",
+  "claude": "2.1.285 (Claude Code)",
+  "codex": "codex-cli 0.159.0",
+  "sourceHashes": {
+    "install.js": "c34d0847f88af774bcd645cf3dd3f6b96bfc209947951d6580f3fcc8d3210463",
+    "client.js": "9041f4be64b22ee4b43f52059b326841b02ffa2f14b23c6b1bd457c60cf1012e",
+    "guide.html": "cd9482effb5c659abf0b147f309bb24678764d578db54520419b9229cc34cf31",
+    "README.md": "f104881362ac4b018ec7eaba6afdc78eccb37e495b41f812081359a8a0ae192d",
+    "package.json": "3762177611da46ea2ea76d14e93ca0c70f24eb16056bab43ccd60cfadfc34b2a",
+    "package-lock.json": "b452d5452f8428fe2e014c264674f0c02caa3a2a48387a428314dab74e0ef83f",
+    "test/install.test.js": "17969e1f34f8b8f0d803d5cbe5afccf2af5a7dccfbdef1d7ab93729ce3fbff67",
+    "scripts/verify-install.js": "eaae471af694327bf62f540cb7d11a2cdad8a3d3c9a08ae1422515290740ddcb",
+    "e2e/install.spec.js": "94f20100f72295fda62954559ecd0eb37efda72b5608fb21417d69f13b9c3e23",
+    "docs/install.md": "4e2682850b0c416ecae122a9161204439d601bb661fbded58be03b69e627fa66"
+  },
+  "steps": [
+    {
+      "step": "packed npx install in fresh HOME",
+      "passed": true,
+      "output": "Botters setup: https://botters.havesomecode.io\n  Claude Code: install — <TEMP>/home/.claude/.claude.json (client CLI + config merge)\n  Codex: install — <TEMP>/home/.codex/config.toml (client CLI + config merge)\nCodex: 60-second startup/tool timeouts; automatically approve Botters tools only.\nClaude Code: configured — <TEMP>/home/.claude/.claude.json\nCodex: configured — <TEMP>/home/.codex/config.toml\nRestart your agent, then say: Let’s play Botters."
+    },
+    {
+      "step": "both real client CLIs read the registration",
+      "passed": true
+    },
+    {
+      "step": "rerun: byte-identical files and no backups",
+      "passed": true
+    },
+    {
+      "step": "real CLI update to offline-only",
+      "passed": true
+    },
+    {
+      "step": "real CLI uninstall and repeat uninstall",
+      "passed": true
+    }
+  ],
+  "tools": {
+    "claude": [
+      "call_human",
+      "join_match",
+      "order_swarm",
+      "release_swarm",
+      "set_gambits",
+      "split_swarm",
+      "wait_for_event"
+    ],
+    "codex": [
+      "call_human",
+      "join_match",
+      "order_swarm",
+      "release_swarm",
+      "set_gambits",
+      "split_swarm",
+      "wait_for_event"
+    ],
+    "packed": [
+      "call_human",
+      "join_match",
+      "order_swarm",
+      "release_swarm",
+      "set_gambits",
+      "split_swarm",
+      "wait_for_event"
+    ]
+  },
+  "codexApprovalReadback": "config.toml; installed CLI JSON omits approval policy",
+  "package": {
+    "files": [
+      "DOCTRINE.md",
+      "README.md",
+      "client.js",
+      "guide.html",
+      "index.html",
+      "install.js",
+      "package.json",
+      "privacy.html",
+      "server.js",
+      "sim.js",
+      "terms.html"
+    ],
+    "shasum": "565fbabfc53f2104bc8fe55860516390a6f54bd6",
+    "integrity": "sha512-O2tXIXIEXwzKF2fs91as/YZwceaogH6qoupkiET/ZxWzRpOIcMd8pPnKpAcluUIqmOHCqiEUylJEC6ErH8Px6A=="
+  }
+}

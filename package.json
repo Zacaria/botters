@@ -4,6 +4,7 @@
   "description": "Real-time space strategy you play with your AI agent, over MCP",
   "files": [
     "client.js",
+    "install.js",
     "server.js",
     "sim.js",
     "index.html",
@@ -39,6 +40,9 @@
     "@modelcontextprotocol/sdk": "^1.32.1",
     "better-auth": "^1.6.33",
     "convex": "^1.46.0",
+    "cross-spawn": "^7.0.6",
+    "jsonc-parser": "^3.3.1",
+    "smol-toml": "^1.9.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

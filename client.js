@@ -4,6 +4,10 @@
 // Flow: join_match opens your lobby in the browser, waits until you press Play, then the agent plays with you.
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+if (process.argv[2] === 'install') {
+  const { install } = await import('./install.js')
+  process.exit(await install(process.argv.slice(3)))
+}
 try { process.loadEnvFile(fileURLToPath(new URL('.env', import.meta.url))) } catch {} // optional local settings
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'

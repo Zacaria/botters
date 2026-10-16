@@ -6,21 +6,32 @@ A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of p
 
 Sign in at https://botters.havesomecode.io with Google or a verified email/password account. Select **Play online** for matchmaking, or **Create room** and share its code/link. The older https://botters.vercel.app address remains public and links to owned-domain sign-in. House modes still run locally without an account.
 
-Point your agent to the public server and approve its connection in your signed-in browser:
+Requires Node 22+. Connect your installed agents with one command:
 
 ```bash
-claude mcp add botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online
+npx -y github:Zacaria/botters install
+```
+
+It detects Claude Code, Codex, Claude Desktop, Cursor and Windsurf, shows the changes and asks before writing. Existing config files are backed up; other MCP servers are kept. Codex gets 60-second startup/tool timeouts and automatic approval for Botters tools only. Restart your agent, then tell it "let's play Botters".
+
+Each player keeps their own agent subscription/model keys. Botters never runs inference. The agent opens a ten-minute approval link; connect it explicitly in your signed-in browser, then start matches yourself. It receives no human/account token. Disconnect it in the lobby to revoke its seven-day grant. Signing in on another device resumes your account, room and recent history. Verified-account Elo is separate from old name-only ratings; names are not merged or adopted. Elo remains casual, not proof of identity. See `docs/auth.md` for configuration and privacy; live release status is recorded in `docs/public-pages-release.md`.
+
+Use `install --local` for offline-only house games, `install --yes` for noninteractive setup, or `install --uninstall` to remove the Botters registrations. Rerunning an unchanged setup does nothing. Custom config locations and project overrides: see `docs/install.md`.
+
+No agent yet? `npx -y github:Zacaria/botters` opens the game locally to play alone, without an account.
+
+<details>
+<summary>Manual setup fallback</summary>
+
+If your client was not detected, register the stdio server yourself:
+
+```bash
+claude mcp add --scope user botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online
 codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online
 ```
 
-Each player keeps their own agent subscription/model keys. Botters never runs inference. The agent opens a ten-minute approval link; connect it explicitly, then start matches yourself. It receives no human/account token. Disconnect it in the lobby to revoke its seven-day grant. Signing in on another device resumes your account, room and recent history. Verified-account Elo is separate from old name-only ratings; names are not merged or adopted. Elo remains casual, not proof of identity. See `docs/auth.md` for configuration, privacy and release prerequisites. This branch's auth increment is a candidate until its provider checks and release handoff are satisfied; live production status is recorded in `docs/public-pages-release.md`.
-
-```bash
-claude mcp add botters -- npx -y github:Zacaria/botters     # Claude Code
-codex mcp add botters -- npx -y github:Zacaria/botters      # Codex
-```
-
-Then tell your agent "let's play Botters". It starts the game on your machine and opens your lobby. No agent yet? `npx -y github:Zacaria/botters` opens the game to play alone. Requires Node 22+. Other MCP clients: see `/guide`.
+For Codex, add `startup_timeout_sec = 60`, `tool_timeout_sec = 60` and `default_tools_approval_mode = "approve"` under `[mcp_servers.botters]` in `~/.codex/config.toml`. Other clients: see the manual fallback at `/guide`.
+</details>
 
 ## Play on a Mac (dev checkout)
 
@@ -70,6 +81,7 @@ The default doctrine comes from `DOCTRINE.md`; each player edits their own in th
 npm test
 npm run check
 npm run build
+node scripts/verify-install.js # real Claude/Codex, isolated HOME, packed npx + MCP tools/list only
 npm run test:browser       # two isolated Brave contexts; local accelerated clock, no live data
 npm run test:auth:browser  # real Better Auth + captured test mail, isolated loopback only
 npm run test:auth:convex   # actual Convex component + proxy, isolated test database
