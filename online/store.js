@@ -16,6 +16,14 @@ export class ConvexStore {
     checkDeadline(deadline)
     if (!this.url || !this.token) throw Object.assign(new Error('Online storage is not configured.'), { status: 503 })
     try {
+      if (kind === 'mutation' && this.watchClient) {
+        let timer
+        try {
+          const value = await Promise.race([this.watchClient.mutation(path, args), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Unavailable')), Math.max(1, Math.min(8000, deadline - performance.now()))) })])
+          checkDeadline(deadline)
+          return value
+        } finally { clearTimeout(timer) }
+      }
       const res = await fetch(`${this.url}/api/${kind}`, { method: 'POST', headers: { Authorization: `Convex ${this.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path, args, format: 'json' }), signal: AbortSignal.timeout(Math.max(1, Math.min(8000, Math.floor(deadline - performance.now())))) })
       if (!res.ok) throw new Error('Unavailable')
       const body = await res.json()
@@ -34,6 +42,7 @@ export class ConvexStore {
   async watchToken(tokenKey, { deadline = Infinity } = {}) {
     checkDeadline(deadline)
     const client = new ConvexClient(this.url, { unsavedChangesWarning: false, logger: false })
+    this.watchClient = client // mutation completion synchronizes subscribed query results
     client.setAdminAuth(this.token)
     this.watchConnected = () => client.connectionState().isWebSocketConnected
     const unavailable = () => Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })
