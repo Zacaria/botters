@@ -54,6 +54,7 @@ test('stream projects deterministic fogged frames without calls, mutation or sta
 test('new input is adopted on refresh; end requires canonical finalization; expired tokens fail closed', async () => {
   const f = fixture(), { q, session } = await match(f), game = f.game()
   await game.request('GET', '/state', q)
+  assert.ok(game.projectFrame(q), 'Prime the incremental rendering cache before a concurrent input')
   await f.game().request('POST', '/input', q, { gambits: [{ if: 'always', then: 'hold' }] })
   await game.request('GET', '/state', q)
   assert.equal(game.projectFrame(q).view.gambits[0].then, 'hold')

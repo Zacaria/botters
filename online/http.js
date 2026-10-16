@@ -55,16 +55,16 @@ export function createHandler(store, options = {}) {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', 'X-Accel-Buffering': 'no' })
         res.flushHeaders?.()
         res.write('retry: 100\n\n')
-        let refreshedAt = performance.now()
+        let refreshedAt = performance.now(), observedSnapshot = game.store.watchSnapshot
         const streamDeadline = Math.min(deadline - 1000, entered + (options.streamMs || 50000))
         while (!closed) {
           const started = performance.now()
           if (!res.write(`data: ${JSON.stringify(frame)}\n\n`)) break // slow client reconnects; no unbounded buffering
           if (frame.view.ended && frame.report || performance.now() >= streamDeadline) break
-          frame = game.store.watchSnapshot ? await game.request('GET', '/state', url.searchParams) : performance.now() - refreshedAt < 1250 ? game.projectFrame(url.searchParams) : null
+          frame = game.store.watchSnapshot === observedSnapshot && performance.now() - refreshedAt < (observedSnapshot ? 500 : 1250) ? game.projectFrame(url.searchParams) : null
           if (!frame) {
             frame = await game.request('GET', '/state', url.searchParams)
-            refreshedAt = performance.now()
+            refreshedAt = performance.now(); observedSnapshot = game.store.watchSnapshot
           }
           await delay(Math.max(0, 60 - (performance.now() - started)))
           if (closed) break
