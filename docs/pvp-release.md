@@ -1,5 +1,15 @@
 # PvP release state
 
+## Convex usage reduction (t_669bb4f5, in progress)
+
+The live baseline is the policy-only production release `dpl_3DJ62FpRQzy1MgKjDdTyk4XddrvC` (source baseline `50018f8`). The authentication candidate on `pvp-online` remains separately gated; this optimization must not activate it. Prepare the production release from that live baseline plus the scoped usage patch, retaining the auth-capable implementation on `pvp-online`.
+
+Measurement: `scripts/measure-usage.js` runs an unaccelerated five-minute/28-planet match, two isolated Brave contexts and two actual stdio MCP agents, using a local HTTP preview backed by actual free-plan Convex in a unique expiring namespace. Instrumented `ConvexStore.call` counts successful calls and exact UTF-8 JSON value bytes returned by queries and compared/written by CAS. It does not report document/index metadata, authentication-component usage or provider-billed database bytes. This distinction must remain visible in the results. No plan/team/project changes or customer-record access.
+
+Design: refresh a stream's authoritative snapshot every 1.25 seconds, simulate intervening 60 ms frames on the server from immutable request-local snapshots, and refresh immediately at match end to obtain the authoritative report. No simulation state/log or enemy fog information is sent to clients. Inputs still commit through the same CAS authority; snapshots converge on the next refresh (1.25 seconds plus storage latency), including after reconnect. Agent event reads use one batched snapshot, poll once per second only while waiting for new events, and avoid rewriting unchanged presence every poll. New event cursors commit before delivery. Idle lobby polling slows to five seconds; queued/room lobbies remain responsive. Live account-cookie validation is not replaced with a cross-request cache.
+
+Baseline and optimized results, fresh verification and release handles will be appended after execution.
+
 ## Status: room-join repair deployed; ready for independent review
 
 Independent review of signed `b91d54c` found a rejected room join could still occupy a slot because status-bearing failures intentionally commit checkpoint/rate-limit state. Signed runtime `4211338e69808ef7fdeace783d10273b10e2a41a` validates join preferences before changing membership, readiness, timestamps or guest room/preferences; transaction error semantics remain unchanged. The regression failed before the fix and passed after it. README now directs players to public production rather than a protected preview.
