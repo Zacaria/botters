@@ -432,8 +432,8 @@ function match() {
 async function connectStream() {
   clearTimeout(streamRetry); es?.close()
   if ($('game').hidden || (v?.ended && F?.report)) return
-  const { connectLive } = await import('/live-client.js')
-  const stream = es = connectLive(liveOrigin || location.origin, token, frame => {
+  let stream
+  const receive = frame => {
     if (es !== stream) return
     lastFrame = Date.now(); if (navigator.onLine) $('connection').hidden = true
     F = frame; v = F.view
@@ -447,10 +447,22 @@ async function connectStream() {
     if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
     panel()
     if (v.ended && F.report) stream.close()
-  }, () => {
+  }
+  const disconnected = () => {
     if (es !== stream || $('game').hidden || (v?.ended && F?.report)) return
     $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…'
-  })
+  }
+  if (!liveOrigin && !L?.online) {
+    stream = es = new EventSource(`/stream?token=${encodeURIComponent(token)}`)
+    stream.onmessage = e => receive(JSON.parse(e.data))
+    stream.onerror = () => {
+      disconnected()
+      if (es === stream && stream.readyState === EventSource.CLOSED) streamRetry = setTimeout(connectStream, 1000)
+    }
+  } else {
+    const { connectLive } = await import('/live-client.js')
+    stream = es = connectLive(liveOrigin || location.origin, token, receive, disconnected)
+  }
 }
 setInterval(() => { if (!$('game').hidden && !v?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
 window.addEventListener('offline', () => { if (!$('game').hidden && !v?.ended) { $('connection').hidden = false; $('connection').textContent = 'You are offline. The match continues; reconnecting when your connection returns…' } })
