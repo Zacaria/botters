@@ -49,6 +49,24 @@ export const watch = internalQueryGeneric({
   },
 })
 
+// Read-only release gate: never returns player data or replays/writes a match.
+export const legacyActivity = internalQueryGeneric({
+  args: { prefix: v.string() },
+  handler: async (ctx, { prefix }) => {
+    const rows = await ctx.db.query('records').withIndex('by_key', q => q.gte('key', `${prefix}match:`).lt('key', `${prefix}match;`)).take(257)
+    const now = Date.now(); let activeMatches = 0, latestActiveEndAt = 0, complete = rows.length < 257
+    for (const row of rows) {
+      if (row.expiresAt && row.expiresAt <= now) continue
+      let m
+      try { m = JSON.parse(row.value) } catch { complete = false; continue }
+      if (!m || !Number.isFinite(m.startsAt) || !Number.isFinite(m.s?.endTick)) { complete = false; continue }
+      const endAt = m.startsAt + m.s.endTick / 20 * 1000
+      if (!m.s.ended && endAt > now) { activeMatches++; latestActiveEndAt = Math.max(latestActiveEndAt, endAt) }
+    }
+    return { activeMatches, latestActiveEndAt, complete, scanned: rows.length }
+  },
+})
+
 // Capability-only subscription for the long-lived service. Never follows a match.
 export const authorize = internalQueryGeneric({
   args: { key: v.string() },
