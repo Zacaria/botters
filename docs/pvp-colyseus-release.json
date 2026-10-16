@@ -1,0 +1,136 @@
+{
+  "task": "t_9444a1a4",
+  "verifiedAtUTC": "2026-10-16T09:50:25.649708+00:00",
+  "state": "production-promoted",
+  "sources": {
+    "canonicalCodeCommit": "3e28f902463e8ff3bd7e33ad6d770a8f46e41a7d",
+    "runtimeCommit": "91f2c2ad185e9bf486b04521810b9194d79155a9",
+    "runtimeImage": "sha256:fb3dbd5ff68fc7d56bb74ef9e95b8787628b3b4b14a3916f55b5661b77d51aa6",
+    "runtimeArchiveSHA256": "65926bf85160164eabd59ed27ee7c5419e3b2f25f86016f01febfa189a613188",
+    "websiteCommit": "ce4485f11d326d12d89dca227d5ffa826748e99f",
+    "websiteBranch": "release/colyseus-t_9444a1a4",
+    "deploymentId": "dpl_995XKfnLi9JfoKi8xrFPLfuqnz3H",
+    "deploymentURL": "https://botters-o9omcxuwq-zacaria-chtatars-projects.vercel.app",
+    "signedAndPushed": true,
+    "accountActivation": false
+  },
+  "verification": {
+    "unitTests": 60,
+    "convexIntegrationTests": 2,
+    "localBrowserScenarios": 7,
+    "syntaxCheckedJSFiles": 62,
+    "productionBuild": true,
+    "gitDiffCheck": true,
+    "offlineBrowserSSEAndReload": true,
+    "publicBrowserScenariosPerOrigin": 4,
+    "publicOrigins": ["https://botters.havesomecode.io", "https://botters.vercel.app"],
+    "publicUnauthenticated": true,
+    "publicAssets": [
+      {"file": "index.html", "sha256": "a83717c742d5537dd52472f10db8f12f801e4da38554cb108c87126fdf847563"},
+      {"file": "guide.html", "sha256": "e3ee79be2f305f57b06d3d080273d7ba337a45555ceecf2983d7a013fb68eca4"},
+      {"file": "privacy.html", "sha256": "bec332fbcb0c2b6ca7f23e2d297958b2d6eac3527652088d69a22fa5b75771aa"},
+      {"file": "terms.html", "sha256": "eac2638702b79ecf43fe5326dd2db7747d6e27dc5957f527b7f92e6d44ab45af"},
+      {"file": "sim.js", "sha256": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651"},
+      {"file": "live-client.js", "sha256": "2d6a80fa1c4a7443d48e9652fa1156f60b2f305abcccbd89303d39baf047bf4b"},
+      {"file": "live-config.json", "sha256": "cf57153ee4d7bfbdfc69b006ee5a24a5f1ade36159f761e63c42dbba938b6231"}
+    ],
+    "legacyAPIStatus": 410,
+    "stagedFullBrowserCases": 6,
+    "stagedDNSCasePassedOnTargetedRetry": true,
+    "coldEntryRegressionPassedOnFinalDeployment": true
+  },
+  "fullProductionMatch": {
+    "server": "https://botters-csga46k4w-zacaria-chtatars-projects.vercel.app",
+    "liveServer": "https://play.botters.havesomecode.io",
+    "matchId": "ImcUE0QghHvFtDlO63hDnP0sJSy1u-Vk",
+    "minutes": 8,
+    "planets": 40,
+    "clients": 2,
+    "transport": "two real stdio MCP agents + Colyseus WebSockets",
+    "elapsedMs": 494284.236724,
+    "results": [
+      {"result": "draw", "you": 24000, "enemy": 24000},
+      {"result": "draw", "you": 24000, "enemy": 24000}
+    ],
+    "streams": [
+      {"frames": 100, "fps": 12.510388732636414},
+      {"frames": 100, "fps": 12.508999798912141}
+    ],
+    "framesReceived": [6101, 6115],
+    "reconnectSameMatch": true,
+    "historyExactlyOnce": true,
+    "convex": {
+      "query": 27,
+      "mutation": 4,
+      "subscription": 4,
+      "updates": 10,
+      "total": 41,
+      "counting": "query REST + mutation REST + delivered authorization query results (includes initial/reconnect results); subscription initiations are not double-counted"
+    },
+    "requestP95Ms": 407.63243599999987,
+    "events": 6,
+    "note": "Same-host scripted clients, not model inference or two physical networks. Full duration with hold gambits avoids an early wipe."
+  },
+  "durableReadback": {
+    "matchId": "ImcUE0QghHvFtDlO63hDnP0sJSy1u-Vk",
+    "players": 2,
+    "eloGamesEach": 1,
+    "eloRatingEach": 1000,
+    "historyEntriesPerPlayerForMatch": 1,
+    "resultPersisted": true,
+    "simulationCheckpointAbsent": true
+  },
+  "capacity": {
+    "node": "v22.23.3",
+    "matches": 16,
+    "swarmsPerMatch": 80,
+    "planets": 40,
+    "views": 32,
+    "elapsedMs": 30439.53124,
+    "inputs": 832,
+    "peakRss": 117444608,
+    "cpuPercentOneCore": 107.24788349270257,
+    "eventLoopP95Ms": 50.626559,
+    "minimumFps": 12.493715570414473,
+    "maximumFrameP95Ms": 139.8297300000013,
+    "passed": true,
+    "inputTargetPerAgentPerSecond": 1,
+    "observedInputsPerAgentPerSecond": 0.8541524439060317,
+    "notFullMatchOrWAN": true
+  },
+  "operations": {
+    "host": "51.44.31.107",
+    "sshUser": "ubuntu",
+    "path": "/opt/stacks/botters",
+    "node": "v22.23.3",
+    "gameMemoryBytes": 805306368,
+    "gameCPUQuota": 1.5,
+    "gamePIDs": 128,
+    "gameUser": "node",
+    "gameReadOnly": true,
+    "gamePublicPortBindings": {},
+    "caddyPublicTCPPorts": [80, 443],
+    "sshPublicPortKept": 22,
+    "sshPasswordAuthentication": false,
+    "sshKeyboardInteractiveAuthentication": false,
+    "environmentFileMode": "0600",
+    "environmentKeys": ["CONVEX_URL", "CONVEX_DEPLOY_KEY"],
+    "legacyPrePromotion": {"activeMatches": 0, "complete": true, "latestActiveEndAt": 0, "scanned": 9},
+    "publicDNSResolversVerified": ["dns.google", "cloudflare-dns.com"],
+    "tlsHostnameValidation": true,
+    "temporaryPreviewOriginRemoved": true
+  },
+  "limitations": [
+    "MCP agents use scripted policies and real stdio tools; no model inference or new two-machine/network test.",
+    "Capacity is a roughly 30-second stationary 80-swarm loopback fixture, not full-length concurrent WAN matches, maximum-rate inputs or simultaneous replay reports.",
+    "Unfinished matches are process-local and interrupted by server loss; completed reports, Elo and history are durable.",
+    "Account activation remains gated; the existing account card must review a cookie-authenticated live-session exchange.",
+    "The existing internal legacy subscription query is retained only for rollback during independent review; no new live client uses it."
+  ],
+  "resolvedIssues": [
+    "An already-left SDK room caused verifier cleanup to wait forever; cleanup now skips closed rooms.",
+    "Playwright promise-based DNS still used the runner cached NXDOMAIN; the verification-only resolver pin now covers callback and promise paths.",
+    "An actual offline browser check exposed an unintended dependency on the online bundle; local SSE and same-match reload now pass without it.",
+    "Public cold entry could be clicked before asynchronous configuration installed its handler; final website keeps it disabled until ready."
+  ]
+}
