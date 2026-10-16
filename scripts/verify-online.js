@@ -6,6 +6,7 @@ import { Client as ColyseusClient } from '@colyseus/sdk'
 import { writeFile } from 'node:fs/promises'
 const base = process.env.BOTTERS_SERVER
 if (!base) throw new Error('Set BOTTERS_SERVER to the live server (or the local Colyseus harness).')
+const live = process.env.BOTTERS_LIVE_SERVER || base
 const minutes = Number(process.env.BOTTERS_MINUTES || 8)
 const started = performance.now(), run = Date.now().toString(36), clients = [], humans = [], latency = [], sockets = []
 const parse = result => {
@@ -15,7 +16,7 @@ const parse = result => {
 }
 const tool = async (c, name, args = {}) => parse(await c.callTool({ name, arguments: args }, undefined, { timeout: 60000 }))
 const request = async (path, body) => {
-  const at = performance.now(), r = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
+  const at = performance.now(), r = await fetch(live + path, { method: body ? 'POST' : 'GET', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
   const data = await r.json(); assert.equal(r.status, 200, data.error); latency.push(performance.now() - at); return data
 }
 try {
@@ -35,7 +36,7 @@ try {
   const initial = await Promise.all(humans.map(t => request(`/state?token=${t}`)))
   assert.equal(initial[0].matchId, initial[1].matchId)
   assert.ok(initial.every(s => !s.s && !s.log && !s.report))
-  const cadence = [], totals = [0, 0], socketClient = new ColyseusClient(base)
+  const cadence = [], totals = [0, 0], socketClient = new ColyseusClient(live)
   const open = async (side, collect = true) => {
     const { roomId } = await request(`/socket?token=${humans[side]}`), room = await socketClient.joinById(roomId, { token: humans[side] }), times = []
     sockets.push(room)
@@ -71,7 +72,10 @@ try {
   const elapsedMs = performance.now() - started
   if (process.env.BOTTERS_UNACCELERATED) assert.ok(elapsedMs >= minutes * 60000)
   latency.sort((a, b) => a - b)
-  const result = { server: base, matchId: initial[0].matchId, minutes, planets: 40, clients: 2, transport: 'two real stdio MCP agents + Colyseus WebSockets', elapsedMs, results: final.map(f => f.report.actual), streams: cadence, framesReceived: totals, reconnectSameMatch: true, historyExactlyOnce: true, convex: counts && { ...counts, total: calls, counting: 'query REST + mutation REST + delivered authorization query results (includes initial/reconnect results); subscription initiations are not double-counted' }, requestP95Ms: latency[Math.ceil(latency.length * .95) - 1], events, note: 'Same-host scripted clients, not model inference or two physical networks. Full duration with hold gambits avoids an early wipe.' }
+  const result = { server: base, liveServer: live, matchId: initial[0].matchId, minutes, planets: 40, clients: 2, transport: 'two real stdio MCP agents + Colyseus WebSockets', elapsedMs, results: final.map(f => f.report.actual), streams: cadence, framesReceived: totals, reconnectSameMatch: true, historyExactlyOnce: true, convex: counts && { ...counts, total: calls, counting: 'query REST + mutation REST + delivered authorization query results (includes initial/reconnect results); subscription initiations are not double-counted' }, requestP95Ms: latency[Math.ceil(latency.length * .95) - 1], events, note: 'Same-host scripted clients, not model inference or two physical networks. Full duration with hold gambits avoids an early wipe.' }
   if (process.env.BOTTERS_VERIFY_OUTPUT) await writeFile(process.env.BOTTERS_VERIFY_OUTPUT, JSON.stringify(result, null, 2) + '\n')
   console.log(JSON.stringify(result, null, 2))
-} finally { await Promise.allSettled(sockets.map(r => r.leave())); await Promise.allSettled(clients.map(c => c.close())) }
+} finally {
+  await Promise.allSettled(sockets.filter(r => r.connection?.isOpen).map(r => r.leave()))
+  await Promise.allSettled(clients.map(c => c.close()))
+}

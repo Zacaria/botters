@@ -10,6 +10,19 @@ export class LiveRuntime {
     this.sweeper = setInterval(() => this.sweep(), 30000); this.sweeper.unref()
   }
   serialize(work) { const result = this.tail.then(work); this.tail = result.catch(() => {}); return result }
+  ready(bearer) {
+    if (!/^[\w-]{32}$/.test(bearer || '')) return false
+    const key = `token:${hash(bearer)}`
+    if (!this.store.raw(key)) return false
+    if (!this.options.authority) return true
+    const e = this.authorities.get(key)
+    return !!e && !e.error && e.connected() && Date.now() < e.expiresAt && Date.now() - e.checkedAt < 90000
+  }
+  canFrame(bearer, matchId, side) {
+    if (!this.ready(bearer)) return false
+    const auth = JSON.parse(this.store.raw(`token:${hash(bearer)}`) || 'null'), s = auth && JSON.parse(this.store.raw(`session:${auth.id}`) || 'null')
+    return auth?.role === 'human' && !!s && !s.accountId && s.match === matchId && s.side === side
+  }
   async authorize(bearer) {
     if (!/^[\w-]{32}$/.test(bearer || '')) throw Object.assign(new Error('Unknown session. Open a new lobby.'), { status: 401 })
     const key = `token:${hash(bearer)}`
@@ -48,8 +61,9 @@ export class LiveRuntime {
     })
   }
   async request(method, path, q = new URLSearchParams(), body = {}) {
+    if (path.startsWith('/agent/')) throw Object.assign(new Error('Agent approvals belong on the website.'), { status: 404 })
     let identity = null
-    const publicPath = path === '/rules' || path === '/session'
+    const publicPath = path === '/rules' || path === '/session' || method === 'GET' && path === '/leaderboard'
     if (!publicPath) {
       const { session } = await this.authorize(q.get('token'))
       identity = session.accountId ? { id: session.accountId, emailVerified: true } : null
@@ -57,6 +71,7 @@ export class LiveRuntime {
     if (this.options.requireAccount && (path === '/session' || path.startsWith('/agent/'))) throw Object.assign(new Error('Use the website to sign in or approve your agent.'), { status: 401 })
     const startId = randomBytes(24).toString('base64url')
     return this.serialize(async () => {
+      if (!publicPath && this.options.authority && !this.ready(q.get('token'))) throw unavailable()
       if (['/play', '/rooms/start', '/rooms/ready'].includes(path) && this.rooms.size >= 24) throw Object.assign(new Error('All matches are occupied. Retry shortly.'), { status: 503 })
       const result = await new OnlineGame(this.store, { ...this.options, identity, startId }).request(method, path, q, body)
       if (this.createRoom) for (const [key, record] of this.store.data) if (key.startsWith('match:')) {

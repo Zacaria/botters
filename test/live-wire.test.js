@@ -9,6 +9,7 @@ test('Colyseus sends filtered >=10Hz frames, rejects third-party reservations an
   const address = await service.listen(), origin = `http://127.0.0.1:${address.port}`
   t.after(() => service.close())
   const post = (path, body) => fetch(origin + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  assert.equal((await fetch(`${origin}/leaderboard`)).status, 200)
   const a = await post('/session', { name: 'wire' }).then(r => r.json())
   const b = await post('/session', { name: 'outsider' }).then(r => r.json())
   assert.equal((await post('/play?token=' + a.humanToken, { vs: 'easy', withAgent: false })).status, 200)
@@ -16,6 +17,9 @@ test('Colyseus sends filtered >=10Hz frames, rejects third-party reservations an
   assert.equal((await post('/matchmake/create/match', { matchId: 'arbitrary' })).status, 403)
   assert.equal((await post(`/matchmake/joinById/${roomId}`, { token: b.humanToken })).status, 409)
   assert.equal((await fetch(`${origin}/socket?token=${a.agentToken}`)).status, 401)
+  assert.equal((await post(`/agent/revoke?token=${a.humanToken}`, {})).status, 404)
+  assert.equal((await post('/?route=/auth/sign-up/email', {})).status, 400)
+  await assert.rejects(createLiveServer({ requireAccount: true }), /reviewed live-session exchange/)
   assert.equal((await fetch(`${origin}/socket?token=${a.humanToken}`, { headers: { Origin: 'https://evil.example' } })).status, 403)
   const client = new Client(origin)
   let room = await client.joinById(roomId, { token: a.humanToken })
@@ -31,4 +35,15 @@ test('Colyseus sends filtered >=10Hz frames, rejects third-party reservations an
   assert.equal(frame.matchId, id)
   await room.leave()
   assert.equal(service.runtime.rooms.size, 1)
+  let unknownLookups = 0
+  service.runtime.options.authority = async (_key, adopt) => {
+    unknownLookups++
+    await adopt({ token: null, session: null, expiresAt: Date.now() + 60000 })
+    return { checkedAt: Date.now(), expiresAt: Date.now() + 60000, connected: () => true, close: async () => {} }
+  }
+  for (let i = 0; i < 41; i++) {
+    const r = await fetch(`${origin}/lobby?token=${'x'.repeat(32)}`)
+    assert.equal(r.status, i < 40 ? 401 : 429)
+  }
+  assert.equal(unknownLookups, 40, 'Unknown capabilities cannot open unbounded Convex authorization channels')
 })

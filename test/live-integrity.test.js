@@ -10,6 +10,8 @@ const keyFor = token => `token:${createHash('sha256').update(token).digest('hex'
 test('durable revocation, owner deletion, expiry and disconnected authorization fail closed', async t => {
   const store = new LiveStore(), runtime = new LiveRuntime(store); t.after(() => runtime.close())
   const a = await runtime.request('POST', '/session', undefined, { name: 'auth' })
+  await runtime.request('POST', '/play', q(a.humanToken), { minutes: 3, planning: 10 })
+  const matchId = (await runtime.request('GET', '/state', q(a.humanToken))).matchId
   const key = keyFor(a.humanToken), token = store.raw(key), sessionKey = `session:${JSON.parse(token).id}`, session = store.raw(sessionKey)
   let update, connected = true, closed = 0
   runtime.options.authority = async (_, adopt) => {
@@ -17,7 +19,16 @@ test('durable revocation, owner deletion, expiry and disconnected authorization 
     return { checkedAt: Date.now(), expiresAt: Date.now() + 600000, connected: () => connected, close: async () => { closed++ } }
   }
   await runtime.authorize(a.humanToken)
+  assert.equal(runtime.canFrame(a.humanToken, matchId, 0), true)
+  let release
+  const blocker = runtime.serialize(() => new Promise(resolve => { release = resolve }))
+  const queued = runtime.request('POST', '/profile', q(a.humanToken), { name: 'must not apply' })
+  await new Promise(resolve => setImmediate(resolve))
   connected = false
+  assert.equal(runtime.canFrame(a.humanToken, matchId, 0), false, 'Stop frames immediately, not at the next tick')
+  release(); await blocker
+  await assert.rejects(queued, e => e.status === 503)
+  assert.equal(JSON.parse(store.raw(sessionKey)).name, 'auth')
   await assert.rejects(runtime.authorize(a.humanToken), e => e.status === 503)
   connected = true
   await update({ token, session: null, expiresAt: Date.now() + 600000 })

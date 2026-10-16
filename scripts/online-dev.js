@@ -10,7 +10,7 @@ const staticFiles = { '/': ['index.html', 'text/html'], '/guide': ['guide.html',
 const service = await createLiveServer({ remote, now, origin, origins: [origin], authority: remote?.authority.bind(remote),
   staticHandler: async (req, res) => {
     const url = new URL(req.url, origin)
-    if (url.pathname === '/live-config.json') { res.json({ url: origin }); return true }
+    if (url.pathname === '/live-config.json') { res.json({ url: origin, accountRequired: false }); return true }
     const file = staticFiles[url.pathname] || (/^\/r\/[A-Z2-9]{6}$/i.test(url.pathname) ? staticFiles['/'] : null)
     if (!file) return false
     res.type(file[1]); res.end(await readFile(new URL(`../${file[0]}`, import.meta.url))); return true

@@ -1,5 +1,5 @@
 import http from 'node:http'
-import { randomBytes } from 'node:crypto'
+import { randomBytes, createHash } from 'node:crypto'
 import { Room, Server, ServerError, matchMaker } from '@colyseus/core'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { createHandler } from './http.js'
@@ -61,7 +61,7 @@ export async function createLiveServer({ remote = null, authority, origins, orig
       this.patchRate = null
       this.clock.setInterval(() => {
         if (!this.frames) return
-        for (const c of this.clients) if (c.auth.valid) c.send('frame', this.frames[c.auth.side])
+        for (const c of this.clients) if (c.auth.valid && runtime.canFrame(c.auth.token, this.matchId, c.auth.side)) c.send('frame', this.frames[c.auth.side])
       }, 80)
     }
     async onAuth(_client, options, context) {
@@ -89,6 +89,7 @@ export async function createLiveServer({ remote = null, authority, origins, orig
         if (!permitted(requested)) return res.status(403).json({ error: 'Use the game from its own site.' })
         if (requested) { res.set('Access-Control-Allow-Origin', requested); res.set('Vary', 'Origin') }
         if (req.method === 'OPTIONS') { res.set('Access-Control-Allow-Headers', 'Content-Type'); res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'); return res.sendStatus(204) }
+        if (new URL(req.url, origin).searchParams.has('route')) return res.status(400).json({ error: 'Use the live endpoint path directly.' })
         if (req.path.startsWith('/auth/') || req.path.startsWith('/api/auth/')) return res.status(404).json({ error: 'Sign in on the website.' })
         if (req.path === '/health') return res.json({ status: draining ? 'draining' : 'ok', build: buildId, transport: 'colyseus', activeMatches: runtime.rooms.size, convex: remote?.calls || null, memory: process.memoryUsage().rss })
         if (draining) return res.status(503).json({ error: 'Server is restarting. Retry shortly.' })
@@ -103,16 +104,23 @@ export async function createLiveServer({ remote = null, authority, origins, orig
         admission.set(key, used + 1)
         req.headers['x-vercel-forwarded-for'] = ip // Never trust a caller-supplied Vercel-only header on Lightsail.
         for (const [token, until] of reservations) if (until <= Date.now()) reservations.delete(token)
+        const admitToken = bearer => {
+          if (!/^[\w-]{32}$/.test(bearer || '') || store.raw(`token:${createHash('sha256').update(bearer).digest('hex')}`)) return true
+          const unknown = `${ip}:auth:${minute}`, attempts = admission.get(unknown) || 0
+          if (attempts >= 40) return false
+          admission.set(unknown, attempts + 1); return true
+        }
         if (req.path === '/socket' || req.path.startsWith('/matchmake')) {
           try {
             const match = /^\/matchmake\/joinById\/([\w-]+)$/.exec(req.path)
             if (req.path !== '/socket' && (!match || req.method !== 'POST')) return res.status(403).json({ error: 'Use your own match connection.' })
             const body = match ? await readBody(req) : null
             const bearer = body?.token || new URL(req.url, origin).searchParams.get('token')
+            if (!admitToken(bearer)) return res.status(429).json({ error: 'Too many new connections. Retry shortly.' })
             const { auth, session } = await runtime.authorize(bearer)
             if (auth.role !== 'human') return res.status(401).json({ error: 'Human token required.' })
             const roomId = runtime.rooms.get(session.match)
-            if (!roomId || match && match[1] !== roomId) return res.status(409).json({ error: 'Match is no longer running. Return to the lobby.' })
+            if (!roomId || match && match[1] !== roomId) return res.status(409).json({ error: 'Match connection is unavailable. Return to the lobby.' })
             if (!match) return res.json({ roomId })
             const room = matchMaker.getLocalRoomById(roomId)
             if ((reservations.get(bearer) || 0) > Date.now() || room.clients.filter(c => c.auth.side === session.side).length >= 2) return res.status(429).json({ error: 'A connection is already opening. Retry shortly.' })
@@ -120,6 +128,7 @@ export async function createLiveServer({ remote = null, authority, origins, orig
             return res.json(await matchMaker.joinById(roomId, { token: bearer }, { headers: new Headers(req.headers) }))
           } catch (e) { return res.status(e.status || (e instanceof SyntaxError ? 400 : 503)).json({ error: e.status ? e.message : 'Live connection unavailable.' }) }
         }
+        if (!admitToken(new URL(req.url, origin).searchParams.get('token'))) return res.status(429).json({ error: 'Too many new connections. Retry shortly.' })
         return handler(req, res)
       })
     },

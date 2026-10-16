@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test'
+import { authorizePreview } from './preview.js'
+test.beforeEach(async ({ context }) => authorizePreview(context))
 
 test.use({ javaScriptEnabled: false })
 
@@ -31,7 +33,7 @@ test('policy routes return their documents and remain readable on a narrow scree
     await page.getByRole('link', { name: 'Botters home', exact: true }).scrollIntoViewIfNeeded()
     await expect(page.getByRole('link', { name: 'Botters home', exact: true })).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath(`${route}-mobile.png`), fullPage: true })
-    const html = await request.get(`/${route}.html`)
+    const html = await page.request.get(`/${route}.html`)
     expect(html.status()).toBe(200)
     expect(await html.text()).toContain(`<h1>${heading}</h1>`)
   }

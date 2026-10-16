@@ -32,14 +32,14 @@ const openUrl = url => { // BOTTERS_OPEN: unset = default browser, 0 = never, el
 if (process.stdin.isTTY) { openUrl(SERVER); console.error(`Botters is running: ${SERVER}  (Ctrl+C to stop)`) } // run from a terminal: just play
 const log = (...a) => console.error('[botters]', ...a) // stdout belongs to MCP
 
-let liveServer = SERVER
+let liveServer = SERVER, liveAccounts = true
 try {
-  const config = await fetch(`${SERVER}/live-config.json`, { signal: AbortSignal.timeout(5000) }).then(r => r.ok ? r.json() : {})
-  if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) liveServer = new URL(config.url).origin
+  const config = await fetch(`${SERVER}/live-config.json`, { headers: serverURL.hostname.endsWith('.vercel.app') && env.VERCEL_AUTOMATION_BYPASS_SECRET ? { 'x-vercel-protection-bypass': env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}, signal: AbortSignal.timeout(5000) }).then(r => r.ok ? r.json() : {})
+  if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false }
 } catch { /* Offline servers do not advertise a live endpoint. */ }
 const api = async (method, path, body) => {
   const headers = { 'content-type': 'application/json' }
-  const target = path === '/session' || path.startsWith('/agent/') ? SERVER : liveServer
+  const target = path === '/session' && liveAccounts || path.startsWith('/agent/') ? SERVER : liveServer
   if (new URL(target).hostname.endsWith('.vercel.app') && env.VERCEL_AUTOMATION_BYPASS_SECRET) headers['x-vercel-protection-bypass'] = env.VERCEL_AUTOMATION_BYPASS_SECRET
   const r = await fetch(target + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
   return { status: r.status, ...(await r.json()) }
