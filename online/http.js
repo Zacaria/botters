@@ -45,13 +45,19 @@ export function createHandler(store, options = {}) {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', 'X-Accel-Buffering': 'no' })
         res.flushHeaders?.()
         res.write('retry: 100\n\n')
+        let refreshedAt = performance.now()
         const streamDeadline = Math.min(deadline - 1000, entered + (options.streamMs || 50000))
         while (!closed) {
           const started = performance.now()
           if (!res.write(`data: ${JSON.stringify(frame)}\n\n`)) break // slow client reconnects; no unbounded buffering
           if (frame.view.ended && frame.report || performance.now() >= streamDeadline) break
-          frame = await game.request('GET', '/state', url.searchParams)
-          await delay(Math.max(0, 80 - (performance.now() - started)))
+          frame = performance.now() - refreshedAt < 1250 ? game.projectFrame(url.searchParams) : null
+          if (!frame) {
+            frame = await game.request('GET', '/state', url.searchParams)
+            refreshedAt = performance.now()
+          }
+          await delay(Math.max(0, 60 - (performance.now() - started)))
+          if (closed) break
         }
         return res.end()
       }
@@ -63,7 +69,7 @@ export function createHandler(store, options = {}) {
         result = await game.request(req.method, path, url.searchParams, body)
         const waiting = req.method === 'GET' && (path === '/next' ? !result.match : path === '/events' ? result.state && !result.state.ended && !result.events.length : false)
         if (!waiting || performance.now() >= pollDeadline || closed) break
-        await delay(Math.min(500, Math.max(0, pollDeadline - performance.now())))
+        await delay(Math.min(path === '/events' ? 1000 : 500, Math.max(0, pollDeadline - performance.now())))
       } while (!closed)
       if (!closed) json(res, 200, result)
     } catch (e) {

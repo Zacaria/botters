@@ -257,7 +257,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? 'PLAY HOUSE' : 'PLAY'
   if (L.live) $('play').disabled = false
   if (L.live && auto) return match()
-  lobbyTimer = setTimeout(() => lobby(auto), 1000)
+  lobbyTimer = setTimeout(() => lobby(auto), L.queued ? 1000 : L.room ? 2000 : 5000)
 }
 function renderRoom(room) {
   $('roomPanel').hidden = !room

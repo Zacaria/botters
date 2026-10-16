@@ -69,13 +69,38 @@ function whatIf(m, p, log, deadline) {
   return { actual: result(m.s), humanInputs: count('human'), agentInputs: count('agent'), withoutHuman: without('human'), withoutAgent: p.withAgent ? without('agent') : null }
 }
 
+function matchFrame(m, side, now) {
+  const p = m.players[side], foe = opponent(m, side)
+  return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy,
+    startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
+    opponent: { name: foe.name, setup: foe.setup, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
+}
+
 export class OnlineGame {
   constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline }
+  // Server-only, request-local projection. Never writes checkpoints or sends full
+  // state/logs to the browser. The HTTP stream refreshes authority every 1.25 s.
+  projectFrame(q) {
+    const bearer = q.get('token') || ''
+    if (!/^[\w-]{32}$/.test(bearer)) return null
+    const read = key => { const raw = this.store.cache?.get(key); return raw ? JSON.parse(raw) : null }
+    const now = this.now(), auth = read(`token:${hash(bearer)}`), s = auth && read(`session:${auth.id}`)
+    if (!s || auth.role !== 'human' || auth.expires !== undefined && auth.expires <= now) return null
+    const m = s.match && read(`match:${s.match}`)
+    if (!m || !m.players[s.side]) return null
+    const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
+    while (m.s.tick < target && !m.s.ended) {
+      if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
+      step(m.s)
+    }
+    if (m.s.ended) return null // reports/history/Elo require the normal CAS path
+    return matchFrame(m, s.side, now)
+  }
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
     const frameRead = method === 'GET' && path === '/state'
-    if (frameRead && /^[\w-]{32}$/.test(q.get('token') || '')) await this.store.snapshot?.(`token:${hash(q.get('token'))}`, { deadline: this.deadline })
+    if (method === 'GET' && ['/state', '/events', '/next'].includes(path) && /^[\w-]{32}$/.test(q.get('token') || '')) await this.store.snapshot?.(`token:${hash(q.get('token'))}`, { deadline: this.deadline })
     return transaction(this.store, async tx => {
       let persist = false
       const now = this.now()
@@ -130,19 +155,17 @@ export class OnlineGame {
         if (!m) return null
         const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
         if (target - m.s.tick >= TPS) persist = true
+        const sequences = m.players.map(p => p.seq)
         while (m.s.tick < target && !m.s.ended) {
           if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
           step(m.s)
           if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
         }
+        // Event cursors must be durable before an agent can acknowledge them.
+        // A partial-second projection can cross an event boundary too.
+        if (m.players.some((p, i) => p.seq !== sequences[i])) persist = true
         await finish(m)
         return m
-      }
-      const frame = (m, side) => {
-        const p = m.players[side], foe = opponent(m, side)
-        return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy,
-          startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
-          opponent: { name: foe.name, setup: foe.setup, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
       }
       const start = async (entries, req, roomCode = null) => {
         const m = { id: token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, startsAt: now + req.planning * 1000 }
@@ -178,7 +201,7 @@ export class OnlineGame {
       if (!s.touched || now - s.touched >= 60000) { s.touched = now; persist = true }
       const human = () => { if (auth.role !== 'human') fail(401, 'A human session token is required.') }
       const agent = () => { if (auth.role !== 'agent') fail(401, 'An agent session token is required.') }
-      if (auth.role === 'agent') { s.agentSeen = now; persist = true }
+      if (auth.role === 'agent' && (!s.agentSeen || now - s.agentSeen >= 15000)) { s.agentSeen = now; persist = true }
       const m = await loadMatch(s.match), p = m?.players[s.side]
       if (p && now - p.seen >= 5000) { p.seen = now; persist = true }
       const requireMatch = () => { if (!m) fail(409, 'Not in a match.') }
@@ -290,15 +313,17 @@ export class OnlineGame {
       if (method === 'GET' && path === '/next') {
         agent()
         if (!active(m) || !p.withAgent) return { match: null }
-        p.agentJoined = true
+        if (!p.agentJoined) { p.agentJoined = true; persist = true }
+        if (!persist) tx.readOnly()
         return { match: { id: m.id, side: s.side, opponent: `${opponent(m, s.side).name} (${opponent(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
           startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), state: view(m.s, s.side) } }
       }
-      if (frameRead) { requireMatch(); if (!persist) tx.readOnly(); return frame(m, s.side) }
+      if (frameRead) { requireMatch(); if (!persist) tx.readOnly(); return matchFrame(m, s.side, now) }
       if (method === 'GET' && path === '/events') {
         agent()
         if (!m || !p.agentJoined) return { events: [], state: null, next: m && !p.withAgent ? 'solo' : 'join' }
         const since = Number(q.get('since')) || 0
+        if (!persist) tx.readOnly()
         return { events: p.events.filter(e => e.seq > since), state: view(m.s, s.side), startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)) }
       }
       if (method === 'POST' && path === '/input') {
