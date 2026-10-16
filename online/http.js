@@ -10,13 +10,12 @@ export function createHandler(store, options = {}) {
     res.setHeader('Cache-Control', 'no-store')
     res.setHeader('Referrer-Policy', 'no-referrer')
     res.setHeader('X-Content-Type-Options', 'nosniff')
-    let closed = false
+    let closed = false, game
     res.on('close', () => { closed = true })
     try {
       const origin = options.origin || `https://${req.headers.host}`
       const url = new URL(req.url, origin), path = url.searchParams.get('route') || url.pathname
       if (req.headers.origin && req.headers.origin !== origin) return json(res, 403, { error: 'Use the game from its own site.' })
-      const game = new OnlineGame(store.scoped?.() || store, { ...options, origin, deadline })
       let body = {}
       if (req.method === 'POST') {
         // Node IncomingMessage in tests, Vercel may preparse req.body.
@@ -29,6 +28,7 @@ export function createHandler(store, options = {}) {
           body = raw ? JSON.parse(raw) : {}
         }
       }
+      game = new OnlineGame(store.scoped?.() || store, { ...options, origin, deadline })
       if (req.method === 'POST' && path === '/session') {
         const ip = req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown'
         const key = `session-limit:${createHash('sha256').update(String(ip)).digest('hex')}:${Math.floor(Date.now() / 600000)}`
@@ -42,6 +42,8 @@ export function createHandler(store, options = {}) {
         // Explicit human-role check before opening a stream.
         await game.request('GET', '/lobby', url.searchParams)
         let frame = await game.request('GET', '/state', url.searchParams)
+        await game.store.watchToken?.(`token:${createHash('sha256').update(url.searchParams.get('token')).digest('hex')}`, { deadline })
+        if (game.store.watchSnapshot) frame = await game.request('GET', '/state', url.searchParams)
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', 'X-Accel-Buffering': 'no' })
         res.flushHeaders?.()
         res.write('retry: 100\n\n')
@@ -51,7 +53,7 @@ export function createHandler(store, options = {}) {
           const started = performance.now()
           if (!res.write(`data: ${JSON.stringify(frame)}\n\n`)) break // slow client reconnects; no unbounded buffering
           if (frame.view.ended && frame.report || performance.now() >= streamDeadline) break
-          frame = performance.now() - refreshedAt < 1250 ? game.projectFrame(url.searchParams) : null
+          frame = game.store.watchSnapshot ? await game.request('GET', '/state', url.searchParams) : performance.now() - refreshedAt < 1250 ? game.projectFrame(url.searchParams) : null
           if (!frame) {
             frame = await game.request('GET', '/state', url.searchParams)
             refreshedAt = performance.now()
@@ -69,7 +71,8 @@ export function createHandler(store, options = {}) {
         result = await game.request(req.method, path, url.searchParams, body)
         const waiting = req.method === 'GET' && (path === '/next' ? !result.match : path === '/events' ? result.state && !result.state.ended && !result.events.length : false)
         if (!waiting || performance.now() >= pollDeadline || closed) break
-        await delay(Math.min(path === '/events' ? 1000 : 500, Math.max(0, pollDeadline - performance.now())))
+        if (path === '/events' && !game.store.watchSnapshot) await game.store.watchToken?.(`token:${createHash('sha256').update(url.searchParams.get('token')).digest('hex')}`, { deadline })
+        await delay(Math.min(500, Math.max(0, pollDeadline - performance.now())))
       } while (!closed)
       if (!closed) json(res, 200, result)
     } catch (e) {
@@ -77,6 +80,8 @@ export function createHandler(store, options = {}) {
       if (closed) return
       if (res.headersSent) { res.write('event: unavailable\ndata: {}\n\n'); res.end() }
       else json(res, e.status || (e instanceof SyntaxError ? 400 : 503), { error: e.status ? e.message : e instanceof SyntaxError ? 'Send valid JSON.' : 'Online service is unavailable. Retry shortly.' })
+    } finally {
+      try { await game?.store.closeWatch?.() } catch { /* response is already closed */ }
     }
   }
 }

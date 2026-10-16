@@ -1,4 +1,5 @@
 // Atomic optimistic transactions. No application state is retained in a Vercel instance.
+import { ConvexClient } from 'convex/browser'
 import { boardNamespace, ratingKey, rankPairs } from './ratings.js'
 export function checkDeadline(deadline = Infinity) {
   if (performance.now() >= deadline) throw Object.assign(new Error('Request timed out. Retry shortly.'), { status: 503, code: 'DEADLINE' })
@@ -28,8 +29,41 @@ export class ConvexStore {
   }
   // Invocation-local speculative cache; writes pass CAS, read-only frames use a fresh snapshot.
   scoped() { const store = Object.create(this); store.cache = new Map(); return store }
+  // A subscription lives only for this bounded HTTP invocation. Convex pushes
+  // inputs/revocations immediately; no instance-global authority cache is used.
+  async watchToken(tokenKey, { deadline = Infinity } = {}) {
+    checkDeadline(deadline)
+    const client = new ConvexClient(this.url, { unsavedChangesWarning: false, logger: false })
+    client.setAdminAuth(this.token)
+    this.watchConnected = () => client.connectionState().isWebSocketConnected
+    const unavailable = () => Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })
+    client.subscribeToConnectionState(state => { if (this.watchSnapshot && !state.isWebSocketConnected) this.watchError = unavailable() })
+    this.closeWatch = () => client.close()
+    const ready = new Promise((resolve, reject) => {
+      this.unwatch = client.onUpdate('store:watch', { key: this.prefix + tokenKey }, data => {
+        this.watchSnapshot = data
+        this.watchValidatedAt = Date.now()
+        this.onWatchSnapshot?.(data)
+        resolve()
+      }, () => {
+        this.watchError = Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })
+        reject(this.watchError)
+      })
+    })
+    let timer
+    try {
+      await Promise.race([ready, new Promise((_, reject) => { timer = setTimeout(() => reject(Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })), Math.max(1, Math.min(8000, deadline - performance.now()))) })])
+    } catch (e) { await client.close(); throw e } finally { clearTimeout(timer) }
+  }
   async snapshot(tokenKey, options) {
-    const data = await this.call('query', 'store:get', { keys: [this.prefix + tokenKey], now: Date.now(), followToken: true }, options)
+    if (this.watchError) throw this.watchError
+    if (this.watchConnected && !this.watchConnected()) throw Object.assign(new Error('Online storage is unavailable. Retry shortly.'), { status: 503 })
+    if (this.watchSnapshot && (Date.now() >= this.watchSnapshot.expiresAt || Date.now() - (this.watchValidatedAt || 0) >= 5000)) {
+      // Bound stale authority even if a half-open socket has not been detected.
+      this.watchSnapshot = await this.call('query', 'store:watch', { key: this.prefix + tokenKey }, options)
+      this.watchValidatedAt = Date.now()
+    }
+    const data = this.watchSnapshot || await this.call('query', 'store:get', { keys: [this.prefix + tokenKey], now: Date.now(), followToken: true }, options)
     this.cache = new Map(data.keys.map((key, i) => [key.slice(this.prefix.length), data.values[i]]))
     this.snapshotKeys = new Set(this.cache.keys())
   }
