@@ -158,7 +158,7 @@ export class OnlineGame {
         const m = await tx.get(`match:${id}`)
         if (!m) return null
         const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
-        if (target - m.s.tick >= TPS) persist = true
+        if (target - m.s.tick >= TPS * (this.store.watchSnapshot ? 5 : 1)) persist = true
         const sequences = m.players.map(p => p.seq)
         while (m.s.tick < target && !m.s.ended) {
           if (m.s.tick % 100 === 0) checkDeadline(this.deadline)

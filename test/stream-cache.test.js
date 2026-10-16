@@ -10,6 +10,7 @@ import { ConvexStore, MemoryStore } from '../online/store.js'
 function fixture() {
   let now = Date.now(), calls = 0
   const memory = new MemoryStore(() => now), store = new ConvexStore({ BOTTERS_NAMESPACE: 'test' })
+  store.watchToken = null // REST adapter fixture; live subscription has its own tests.
   store.call = async (kind, path, args) => {
     calls++
     if (kind === 'mutation') return memory.commit(args.entries.map(e => ({ ...e, key: e.key.slice(store.prefix.length) })))

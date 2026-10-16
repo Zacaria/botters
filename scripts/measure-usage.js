@@ -16,13 +16,17 @@ const { createHandler } = await import(pathToFileURL(resolve(source, 'online/htt
 const namespace = `usage-${Date.now().toString(36)}`
 const store = new ConvexStore({ ...process.env, BOTTERS_NAMESPACE: namespace })
 assert.ok(store.url && store.token, 'Real Convex credentials required')
-const metrics = { calls: 0, queries: 0, mutations: 0, readValueBytes: 0, writtenValueBytes: 0 }
+const metrics = { calls: 0, queries: 0, mutations: 0, reactiveSnapshots: 0, readValueBytes: 0, writtenValueBytes: 0 }
 const bytes = value => value == null ? 0 : Buffer.byteLength(value)
+store.onWatchSnapshot = data => {
+  metrics.calls++; metrics.queries++; metrics.reactiveSnapshots++
+  metrics.readValueBytes += data.values.reduce((n, value) => n + bytes(value), 0)
+}
 const original = store.call
 store.call = async function (kind, path, args, options) {
   const result = await original.call(this, kind, path, args, options)
   metrics.calls++; metrics[kind === 'query' ? 'queries' : 'mutations']++
-  if (path === 'store:get') for (const value of args.followToken ? result.values : result) metrics.readValueBytes += bytes(value)
+  if (path === 'store:get' || path === 'store:watch') for (const value of path === 'store:watch' || args.followToken ? result.values : result) metrics.readValueBytes += bytes(value)
   if (path === 'store:commit') {
     // CAS reads every guard, including read-only guards. Values are the exact stored
     // JSON payloads; these counters exclude Convex document/index metadata and are

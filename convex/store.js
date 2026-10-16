@@ -27,6 +27,28 @@ export const get = internalQueryGeneric({
   },
 })
 
+// Internal server subscription: expiry is explicit so cached reads never extend
+// a capability past a document's TTL, even without a database invalidation.
+export const watch = internalQueryGeneric({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const keys = [], values = [], expiries = [], now = Date.now()
+    const add = async key => {
+      const row = await record(ctx, key)
+      keys.push(key); values.push(unexpired(row, now))
+      if (row?.expiresAt > now) expiries.push(row.expiresAt)
+    }
+    await add(key)
+    const namespace = /^(.*)token:[a-f0-9]{64}$/.exec(key)?.[1], auth = values[0] && JSON.parse(values[0])
+    if (namespace && auth) {
+      await add(`${namespace}session:${auth.id}`)
+      const session = values.at(-1) && JSON.parse(values.at(-1))
+      if (session?.match) await add(`${namespace}match:${session.match}`)
+    }
+    return { keys, values, expiresAt: expiries.length ? Math.min(...expiries) : now + 50000 }
+  },
+})
+
 export const commit = internalMutationGeneric({
   args: { entries: v.array(v.object({ key: v.string(), raw: v.union(v.string(), v.null()), value: v.string(), ttl: v.number() })) },
   handler: async (ctx, { entries }) => {
