@@ -1,0 +1,2872 @@
+{
+  "sourceCommit": "8871d4842eaf900362052ea1ed3879027a1fa5aa",
+  "sourceHashes": {
+    "index.html": "1c604ff08528599657d8b57b136c5078626114f7b2baf2cbd8a6428bc0230898",
+    "sim.js": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+    "server.js": "14fb7bd8c01dc3ec1381732f037a904c7a8d5fa98c0a925cf4776897ff04e649",
+    "scripts/capture-public-demo.js": "492cd7a390856d180191876acbf43c71532497d4ce45422306393a4ad36307ff"
+  },
+  "capturedAt": "2026-10-17T22:18:32.298Z",
+  "operator": "gpt-6.1-sol / openai-codex, contrib-superpowers; task t_1e2be52d, run 904",
+  "inference": "Operator chose opening once in session; no model invoked by this script; no claim of continuous model inference.",
+  "opponent": "house (normal), fixed gambits; no model opponent",
+  "humanSide": "Playwright sends real Tab, map click, G, Escape to native page; no human participant",
+  "options": {
+    "vs": "normal",
+    "minutes": 3,
+    "planets": 28,
+    "planning": 10,
+    "withAgent": true
+  },
+  "opening": [
+    {
+      "if": "bigger_enemy_near",
+      "p": 1.15,
+      "then": "retreat",
+      "on": true
+    },
+    {
+      "if": "planet_attacked",
+      "p": 500,
+      "then": "go",
+      "on": true
+    },
+    {
+      "if": "weaker_enemy_near",
+      "p": 0.7,
+      "then": "go",
+      "on": true
+    },
+    {
+      "if": "small",
+      "p": 400,
+      "then": "go",
+      "on": true
+    },
+    {
+      "if": "big",
+      "p": 5500,
+      "then": "split",
+      "on": true
+    },
+    {
+      "if": "free_planet",
+      "p": 2000,
+      "then": "go",
+      "on": true
+    },
+    {
+      "if": "enemy_planet",
+      "p": 2000,
+      "then": "go",
+      "on": true
+    }
+  ],
+  "humanRequests": [
+    {
+      "order": {
+        "swarm": 1,
+        "x": 225,
+        "y": 432
+      }
+    },
+    {
+      "release": 1
+    }
+  ],
+  "observed": [
+    {
+      "label": "opening",
+      "clipSeconds": 0.004,
+      "view": {
+        "tick": 1,
+        "secondsLeft": 180,
+        "ended": null,
+        "totals": {
+          "you": 9000,
+          "enemy": 9000
+        },
+        "swarms": [
+          {
+            "id": 1,
+            "x": 135,
+            "y": 280,
+            "n": 3000,
+            "tx": 135,
+            "ty": 280,
+            "manual": false,
+            "rule": -1,
+            "fighting": false
+          },
+          {
+            "id": 2,
+            "x": 135,
+            "y": 350,
+            "n": 3000,
+            "tx": 135,
+            "ty": 350,
+            "manual": false,
+            "rule": -1,
+            "fighting": false
+          },
+          {
+            "id": 3,
+            "x": 135,
+            "y": 420,
+            "n": 3000,
+            "tx": 135,
+            "ty": 420,
+            "manual": false,
+            "rule": -1,
+            "fighting": false
+          }
+        ],
+        "enemies": [],
+        "planets": [
+          {
+            "id": 0,
+            "x": 90,
+            "y": 350,
+            "r": 26,
+            "owner": "you",
+            "massLeft": 14997,
+            "mass": 15000,
+            "capture": 1
+          },
+          {
+            "id": 1,
+            "x": 1110,
+            "y": 350,
+            "r": 26,
+            "owner": "enemy",
+            "massLeft": 14997,
+            "mass": 15000,
+            "capture": -1
+          },
+          {
+            "id": 2,
+            "x": 187,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 3,
+            "x": 1013,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 4,
+            "x": 410,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 5,
+            "x": 790,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 6,
+            "x": 192,
+            "y": 352,
+            "r": 7,
+            "owner": null,
+            "massLeft": 1225,
+            "mass": 1225,
+            "capture": 0
+          },
+          {
+            "id": 7,
+            "x": 1008,
+            "y": 352,
+            "r": 7,
+            "owner": null,
+            "massLeft": 1225,
+            "mass": 1225,
+            "capture": 0
+          },
+          {
+            "id": 8,
+            "x": 507,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 9,
+            "x": 693,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 10,
+            "x": 327,
+            "y": 481,
+            "r": 12,
+            "owner": null,
+            "massLeft": 3600,
+            "mass": 3600,
+            "capture": 0
+          },
+          {
+            "id": 11,
+            "x": 873,
+            "y": 481,
+            "r": 12,
+            "owner": null,
+            "massLeft": 3600,
+            "mass": 3600,
+            "capture": 0
+          },
+          {
+            "id": 12,
+            "x": 323,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0
+          },
+          {
+            "id": 13,
+            "x": 877,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0
+          },
+          {
+            "id": 14,
+            "x": 310,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0
+          },
+          {
+            "id": 15,
+            "x": 890,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0
+          },
+          {
+            "id": 16,
+            "x": 236,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 17,
+            "x": 964,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 18,
+            "x": 275,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 19,
+            "x": 925,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 20,
+            "x": 491,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 21,
+            "x": 709,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 22,
+            "x": 450,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 23,
+            "x": 750,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 24,
+            "x": 226,
+            "y": 432,
+            "r": 14,
+            "owner": null,
+            "massLeft": 4900,
+            "mass": 4900,
+            "capture": 0
+          },
+          {
+            "id": 25,
+            "x": 974,
+            "y": 432,
+            "r": 14,
+            "owner": null,
+            "massLeft": 4900,
+            "mass": 4900,
+            "capture": 0
+          },
+          {
+            "id": 26,
+            "x": 396,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 27,
+            "x": 804,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          }
+        ],
+        "gambits": [
+          {
+            "if": "bigger_enemy_near",
+            "p": 1.15,
+            "then": "retreat",
+            "on": true
+          },
+          {
+            "if": "planet_attacked",
+            "p": 500,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "weaker_enemy_near",
+            "p": 0.7,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "small",
+            "p": 400,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "big",
+            "p": 5500,
+            "then": "split",
+            "on": true
+          },
+          {
+            "if": "free_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "enemy_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          }
+        ]
+      },
+      "calls": [],
+      "feed": [
+        {
+          "t": 0,
+          "who": "agent",
+          "text": "rewrote the gambits: Operator choice: expand, defend, avoid bigger enemies"
+        }
+      ],
+      "gambitsBy": {
+        "who": "agent",
+        "t": 0,
+        "why": "Operator choice: expand, defend, avoid bigger enemies"
+      },
+      "startsIn": 0,
+      "me": {
+        "name": "Local demo",
+        "withAgent": true,
+        "agentJoined": true,
+        "setup": "operator model / scripted UI"
+      },
+      "opponent": {
+        "name": "house (normal)",
+        "setup": "fixed gambits"
+      },
+      "options": {
+        "minutes": 3,
+        "planets": 28
+      }
+    },
+    {
+      "label": "before automated human-side input",
+      "clipSeconds": 8.02,
+      "view": {
+        "tick": 160,
+        "secondsLeft": 172,
+        "ended": null,
+        "totals": {
+          "you": 9560,
+          "enemy": 9560
+        },
+        "swarms": [
+          {
+            "id": 1,
+            "x": 226,
+            "y": 432,
+            "n": 4562,
+            "tx": 226,
+            "ty": 432,
+            "manual": false,
+            "rule": 4,
+            "fighting": false
+          },
+          {
+            "id": 9,
+            "x": 205,
+            "y": 396,
+            "n": 185,
+            "tx": 226,
+            "ty": 432,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 12,
+            "x": 163,
+            "y": 366,
+            "n": 125,
+            "tx": 204,
+            "ty": 395,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 15,
+            "x": 106,
+            "y": 352,
+            "n": 125,
+            "tx": 162,
+            "ty": 365,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 17,
+            "x": 231,
+            "y": 437,
+            "n": 4562,
+            "tx": 327,
+            "ty": 481,
+            "manual": false,
+            "rule": -1,
+            "fighting": false
+          }
+        ],
+        "enemies": [],
+        "planets": [
+          {
+            "id": 0,
+            "x": 90,
+            "y": 350,
+            "r": 26,
+            "owner": "you",
+            "massLeft": 14501,
+            "mass": 15000,
+            "capture": 1
+          },
+          {
+            "id": 1,
+            "x": 1110,
+            "y": 350,
+            "r": 26,
+            "owner": "enemy",
+            "massLeft": 14501,
+            "mass": 15000,
+            "capture": -1
+          },
+          {
+            "id": 2,
+            "x": 187,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 3,
+            "x": 1013,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 4,
+            "x": 410,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 5,
+            "x": 790,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 6,
+            "x": 192,
+            "y": 352,
+            "r": 7,
+            "owner": "you",
+            "massLeft": 1143,
+            "mass": 1225,
+            "capture": 1
+          },
+          {
+            "id": 7,
+            "x": 1008,
+            "y": 352,
+            "r": 7,
+            "owner": "enemy",
+            "massLeft": 1143,
+            "mass": 1225,
+            "capture": -1
+          },
+          {
+            "id": 8,
+            "x": 507,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 9,
+            "x": 693,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 10,
+            "x": 327,
+            "y": 481,
+            "r": 12,
+            "owner": null,
+            "massLeft": 3600,
+            "mass": 3600,
+            "capture": 0
+          },
+          {
+            "id": 11,
+            "x": 873,
+            "y": 481,
+            "r": 12,
+            "owner": null,
+            "massLeft": 3600,
+            "mass": 3600,
+            "capture": 0
+          },
+          {
+            "id": 12,
+            "x": 323,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0
+          },
+          {
+            "id": 13,
+            "x": 877,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0
+          },
+          {
+            "id": 14,
+            "x": 310,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0
+          },
+          {
+            "id": 15,
+            "x": 890,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0
+          },
+          {
+            "id": 16,
+            "x": 236,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 17,
+            "x": 964,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 18,
+            "x": 275,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 19,
+            "x": 925,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 20,
+            "x": 491,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 21,
+            "x": 709,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 22,
+            "x": 450,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 23,
+            "x": 750,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 24,
+            "x": 226,
+            "y": 432,
+            "r": 14,
+            "owner": null,
+            "massLeft": 4900,
+            "mass": 4900,
+            "capture": 0.98
+          },
+          {
+            "id": 25,
+            "x": 974,
+            "y": 432,
+            "r": 14,
+            "owner": "enemy",
+            "massLeft": 4888,
+            "mass": 4900,
+            "capture": -1
+          },
+          {
+            "id": 26,
+            "x": 396,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 27,
+            "x": 804,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          }
+        ],
+        "gambits": [
+          {
+            "if": "bigger_enemy_near",
+            "p": 1.15,
+            "then": "retreat",
+            "on": true
+          },
+          {
+            "if": "planet_attacked",
+            "p": 500,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "weaker_enemy_near",
+            "p": 0.7,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "small",
+            "p": 400,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "big",
+            "p": 5500,
+            "then": "split",
+            "on": true
+          },
+          {
+            "if": "free_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "enemy_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          }
+        ]
+      },
+      "calls": [],
+      "feed": [
+        {
+          "t": 0,
+          "who": "agent",
+          "text": "rewrote the gambits: Operator choice: expand, defend, avoid bigger enemies"
+        }
+      ],
+      "gambitsBy": {
+        "who": "agent",
+        "t": 0,
+        "why": "Operator choice: expand, defend, avoid bigger enemies"
+      },
+      "startsIn": 0,
+      "me": {
+        "name": "Local demo",
+        "withAgent": true,
+        "agentJoined": true,
+        "setup": "operator model / scripted UI"
+      },
+      "opponent": {
+        "name": "house (normal)",
+        "setup": "fixed gambits"
+      },
+      "options": {
+        "minutes": 3,
+        "planets": 28
+      }
+    },
+    {
+      "label": "automated human-side order accepted",
+      "clipSeconds": 8.807,
+      "view": {
+        "tick": 176,
+        "secondsLeft": 172,
+        "ended": null,
+        "totals": {
+          "you": 9560,
+          "enemy": 9560
+        },
+        "swarms": [
+          {
+            "id": 1,
+            "x": 226,
+            "y": 432,
+            "n": 4562,
+            "tx": 225,
+            "ty": 432,
+            "manual": true,
+            "rule": 4,
+            "fighting": false
+          },
+          {
+            "id": 9,
+            "x": 217,
+            "y": 417,
+            "n": 185,
+            "tx": 226,
+            "ty": 432,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 12,
+            "x": 182,
+            "y": 381,
+            "n": 125,
+            "tx": 212,
+            "ty": 408,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 15,
+            "x": 129,
+            "y": 359,
+            "n": 125,
+            "tx": 174,
+            "ty": 374,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 17,
+            "x": 249,
+            "y": 445,
+            "n": 4562,
+            "tx": 327,
+            "ty": 481,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          }
+        ],
+        "enemies": [],
+        "planets": [
+          {
+            "id": 0,
+            "x": 90,
+            "y": 350,
+            "r": 26,
+            "owner": "you",
+            "massLeft": 14451,
+            "mass": 15000,
+            "capture": 1
+          },
+          {
+            "id": 1,
+            "x": 1110,
+            "y": 350,
+            "r": 26,
+            "owner": "enemy",
+            "massLeft": 14451,
+            "mass": 15000,
+            "capture": -1
+          },
+          {
+            "id": 2,
+            "x": 187,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 3,
+            "x": 1013,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 4,
+            "x": 410,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 5,
+            "x": 790,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 6,
+            "x": 192,
+            "y": 352,
+            "r": 7,
+            "owner": "you",
+            "massLeft": 1129,
+            "mass": 1225,
+            "capture": 1
+          },
+          {
+            "id": 7,
+            "x": 1008,
+            "y": 352,
+            "r": 7,
+            "owner": "enemy",
+            "massLeft": 1129,
+            "mass": 1225,
+            "capture": -1
+          },
+          {
+            "id": 8,
+            "x": 507,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 9,
+            "x": 693,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 10,
+            "x": 327,
+            "y": 481,
+            "r": 12,
+            "owner": null,
+            "massLeft": 3600,
+            "mass": 3600,
+            "capture": 0
+          },
+          {
+            "id": 11,
+            "x": 873,
+            "y": 481,
+            "r": 12,
+            "owner": null,
+            "massLeft": 3600,
+            "mass": 3600,
+            "capture": 0
+          },
+          {
+            "id": 12,
+            "x": 323,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0
+          },
+          {
+            "id": 13,
+            "x": 877,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0
+          },
+          {
+            "id": 14,
+            "x": 310,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0
+          },
+          {
+            "id": 15,
+            "x": 890,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0
+          },
+          {
+            "id": 16,
+            "x": 236,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 17,
+            "x": 964,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 18,
+            "x": 275,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 19,
+            "x": 925,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 20,
+            "x": 491,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 21,
+            "x": 709,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 22,
+            "x": 450,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 23,
+            "x": 750,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 24,
+            "x": 226,
+            "y": 432,
+            "r": 14,
+            "owner": "you",
+            "massLeft": 4873,
+            "mass": 4900,
+            "capture": 1
+          },
+          {
+            "id": 25,
+            "x": 974,
+            "y": 432,
+            "r": 14,
+            "owner": "enemy",
+            "massLeft": 4861,
+            "mass": 4900,
+            "capture": -1
+          },
+          {
+            "id": 26,
+            "x": 396,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 27,
+            "x": 804,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          }
+        ],
+        "gambits": [
+          {
+            "if": "bigger_enemy_near",
+            "p": 1.15,
+            "then": "retreat",
+            "on": true
+          },
+          {
+            "if": "planet_attacked",
+            "p": 500,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "weaker_enemy_near",
+            "p": 0.7,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "small",
+            "p": 400,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "big",
+            "p": 5500,
+            "then": "split",
+            "on": true
+          },
+          {
+            "if": "free_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "enemy_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          }
+        ]
+      },
+      "calls": [],
+      "feed": [
+        {
+          "t": 0,
+          "who": "agent",
+          "text": "rewrote the gambits: Operator choice: expand, defend, avoid bigger enemies"
+        }
+      ],
+      "gambitsBy": {
+        "who": "agent",
+        "t": 0,
+        "why": "Operator choice: expand, defend, avoid bigger enemies"
+      },
+      "startsIn": 0,
+      "me": {
+        "name": "Local demo",
+        "withAgent": true,
+        "agentJoined": true,
+        "setup": "operator model / scripted UI"
+      },
+      "opponent": {
+        "name": "house (normal)",
+        "setup": "fixed gambits"
+      },
+      "options": {
+        "minutes": 3,
+        "planets": 28
+      }
+    },
+    {
+      "label": "automated human-side release accepted",
+      "clipSeconds": 16.844,
+      "view": {
+        "tick": 335,
+        "secondsLeft": 164,
+        "ended": null,
+        "totals": {
+          "you": 10482,
+          "enemy": 10543
+        },
+        "swarms": [
+          {
+            "id": 1,
+            "x": 226,
+            "y": 439,
+            "n": 5114,
+            "tx": 236,
+            "ty": 568,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 15,
+            "x": 223,
+            "y": 316,
+            "n": 558,
+            "tx": 310,
+            "ty": 280,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 17,
+            "x": 324,
+            "y": 562,
+            "n": 4562,
+            "tx": 323,
+            "ty": 586,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 27,
+            "x": 140,
+            "y": 340,
+            "n": 125,
+            "tx": 90,
+            "ty": 350,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 30,
+            "x": 326,
+            "y": 505,
+            "n": 60,
+            "tx": 324,
+            "ty": 555,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 31,
+            "x": 99,
+            "y": 348,
+            "n": 62,
+            "tx": 149,
+            "ty": 339,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          }
+        ],
+        "enemies": [],
+        "planets": [
+          {
+            "id": 0,
+            "x": 90,
+            "y": 350,
+            "r": 26,
+            "owner": "you",
+            "massLeft": 13955,
+            "mass": 15000,
+            "capture": 1
+          },
+          {
+            "id": 1,
+            "x": 1110,
+            "y": 350,
+            "r": 26,
+            "owner": "enemy",
+            "massLeft": 13955,
+            "mass": 15000,
+            "capture": -1
+          },
+          {
+            "id": 2,
+            "x": 187,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 3,
+            "x": 1013,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 4,
+            "x": 410,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 5,
+            "x": 790,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 6,
+            "x": 192,
+            "y": 352,
+            "r": 7,
+            "owner": "you",
+            "massLeft": 996,
+            "mass": 1225,
+            "capture": 1
+          },
+          {
+            "id": 7,
+            "x": 1008,
+            "y": 352,
+            "r": 7,
+            "owner": "enemy",
+            "massLeft": 996,
+            "mass": 1225,
+            "capture": -1
+          },
+          {
+            "id": 8,
+            "x": 507,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 9,
+            "x": 693,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 10,
+            "x": 327,
+            "y": 481,
+            "r": 12,
+            "owner": "you",
+            "massLeft": 3504,
+            "mass": 3600,
+            "capture": 1
+          },
+          {
+            "id": 11,
+            "x": 873,
+            "y": 481,
+            "r": 12,
+            "owner": "enemy",
+            "massLeft": 3502,
+            "mass": 3600,
+            "capture": -1
+          },
+          {
+            "id": 12,
+            "x": 323,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0.23
+          },
+          {
+            "id": 13,
+            "x": 877,
+            "y": 586,
+            "r": 10,
+            "owner": null,
+            "massLeft": 2500,
+            "mass": 2500,
+            "capture": 0
+          },
+          {
+            "id": 14,
+            "x": 310,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0
+          },
+          {
+            "id": 15,
+            "x": 890,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": -0.24
+          },
+          {
+            "id": 16,
+            "x": 236,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 17,
+            "x": 964,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": -0.01
+          },
+          {
+            "id": 18,
+            "x": 275,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 19,
+            "x": 925,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 20,
+            "x": 491,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 21,
+            "x": 709,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 22,
+            "x": 450,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 23,
+            "x": 750,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 24,
+            "x": 226,
+            "y": 432,
+            "r": 14,
+            "owner": "you",
+            "massLeft": 4606,
+            "mass": 4900,
+            "capture": 1
+          },
+          {
+            "id": 25,
+            "x": 974,
+            "y": 432,
+            "r": 14,
+            "owner": "enemy",
+            "massLeft": 4594,
+            "mass": 4900,
+            "capture": -1
+          },
+          {
+            "id": 26,
+            "x": 396,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 27,
+            "x": 804,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          }
+        ],
+        "gambits": [
+          {
+            "if": "bigger_enemy_near",
+            "p": 1.15,
+            "then": "retreat",
+            "on": true
+          },
+          {
+            "if": "planet_attacked",
+            "p": 500,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "weaker_enemy_near",
+            "p": 0.7,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "small",
+            "p": 400,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "big",
+            "p": 5500,
+            "then": "split",
+            "on": true
+          },
+          {
+            "if": "free_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "enemy_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          }
+        ]
+      },
+      "calls": [],
+      "feed": [
+        {
+          "t": 0,
+          "who": "agent",
+          "text": "rewrote the gambits: Operator choice: expand, defend, avoid bigger enemies"
+        }
+      ],
+      "gambitsBy": {
+        "who": "agent",
+        "t": 0,
+        "why": "Operator choice: expand, defend, avoid bigger enemies"
+      },
+      "startsIn": 0,
+      "me": {
+        "name": "Local demo",
+        "withAgent": true,
+        "agentJoined": true,
+        "setup": "operator model / scripted UI"
+      },
+      "opponent": {
+        "name": "house (normal)",
+        "setup": "fixed gambits"
+      },
+      "options": {
+        "minutes": 3,
+        "planets": 28
+      }
+    },
+    {
+      "label": "expansion continues",
+      "clipSeconds": 24.174,
+      "view": {
+        "tick": 481,
+        "secondsLeft": 156,
+        "ended": null,
+        "totals": {
+          "you": 11706,
+          "enemy": 11828
+        },
+        "swarms": [
+          {
+            "id": 1,
+            "x": 236,
+            "y": 568,
+            "n": 5235,
+            "tx": 236,
+            "ty": 568,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 15,
+            "x": 309,
+            "y": 280,
+            "n": 558,
+            "tx": 310,
+            "ty": 280,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 17,
+            "x": 396,
+            "y": 616,
+            "n": 4743,
+            "tx": 396,
+            "ty": 617,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 27,
+            "x": 209,
+            "y": 320,
+            "n": 620,
+            "tx": 310,
+            "ty": 280,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 43,
+            "x": 340,
+            "y": 539,
+            "n": 121,
+            "tx": 331,
+            "ty": 574,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 46,
+            "x": 231,
+            "y": 463,
+            "n": 121,
+            "tx": 327,
+            "ty": 481,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 51,
+            "x": 137,
+            "y": 340,
+            "n": 125,
+            "tx": 207,
+            "ty": 321,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 56,
+            "x": 332,
+            "y": 571,
+            "n": 60,
+            "tx": 341,
+            "ty": 536,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 58,
+            "x": 328,
+            "y": 484,
+            "n": 60,
+            "tx": 341,
+            "ty": 536,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 59,
+            "x": 90,
+            "y": 350,
+            "n": 62,
+            "tx": 90,
+            "ty": 350,
+            "manual": false,
+            "rule": -1,
+            "fighting": false
+          }
+        ],
+        "enemies": [],
+        "planets": [
+          {
+            "id": 0,
+            "x": 90,
+            "y": 350,
+            "r": 26,
+            "owner": "you",
+            "massLeft": 13499,
+            "mass": 15000,
+            "capture": 1
+          },
+          {
+            "id": 1,
+            "x": 1110,
+            "y": 350,
+            "r": 26,
+            "owner": "enemy",
+            "massLeft": 13499,
+            "mass": 15000,
+            "capture": -1
+          },
+          {
+            "id": 2,
+            "x": 187,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 3,
+            "x": 1013,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 4,
+            "x": 410,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 5,
+            "x": 790,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 6,
+            "x": 192,
+            "y": 352,
+            "r": 7,
+            "owner": "you",
+            "massLeft": 873,
+            "mass": 1225,
+            "capture": 1
+          },
+          {
+            "id": 7,
+            "x": 1008,
+            "y": 352,
+            "r": 7,
+            "owner": "enemy",
+            "massLeft": 873,
+            "mass": 1225,
+            "capture": -1
+          },
+          {
+            "id": 8,
+            "x": 507,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 9,
+            "x": 693,
+            "y": 535,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 10,
+            "x": 327,
+            "y": 481,
+            "r": 12,
+            "owner": "you",
+            "massLeft": 3293,
+            "mass": 3600,
+            "capture": 1
+          },
+          {
+            "id": 11,
+            "x": 873,
+            "y": 481,
+            "r": 12,
+            "owner": "enemy",
+            "massLeft": 3292,
+            "mass": 3600,
+            "capture": -1
+          },
+          {
+            "id": 12,
+            "x": 323,
+            "y": 586,
+            "r": 10,
+            "owner": "you",
+            "massLeft": 2366,
+            "mass": 2500,
+            "capture": 1
+          },
+          {
+            "id": 13,
+            "x": 877,
+            "y": 586,
+            "r": 10,
+            "owner": "enemy",
+            "massLeft": 2363,
+            "mass": 2500,
+            "capture": -1
+          },
+          {
+            "id": 14,
+            "x": 310,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": 0.38
+          },
+          {
+            "id": 15,
+            "x": 890,
+            "y": 280,
+            "r": 22,
+            "owner": null,
+            "massLeft": 12100,
+            "mass": 12100,
+            "capture": -0.85
+          },
+          {
+            "id": 16,
+            "x": 236,
+            "y": 568,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0.96
+          },
+          {
+            "id": 17,
+            "x": 964,
+            "y": 568,
+            "r": 19,
+            "owner": "enemy",
+            "massLeft": 8959,
+            "mass": 9025,
+            "capture": -1
+          },
+          {
+            "id": 18,
+            "x": 275,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 19,
+            "x": 925,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 20,
+            "x": 491,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 21,
+            "x": 709,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": 0
+          },
+          {
+            "id": 22,
+            "x": 450,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 23,
+            "x": 750,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0
+          },
+          {
+            "id": 24,
+            "x": 226,
+            "y": 432,
+            "r": 14,
+            "owner": "you",
+            "massLeft": 4361,
+            "mass": 4900,
+            "capture": 1
+          },
+          {
+            "id": 25,
+            "x": 974,
+            "y": 432,
+            "r": 14,
+            "owner": "enemy",
+            "massLeft": 4349,
+            "mass": 4900,
+            "capture": -1
+          },
+          {
+            "id": 26,
+            "x": 396,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0.89
+          },
+          {
+            "id": 27,
+            "x": 804,
+            "y": 617,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          }
+        ],
+        "gambits": [
+          {
+            "if": "bigger_enemy_near",
+            "p": 1.15,
+            "then": "retreat",
+            "on": true
+          },
+          {
+            "if": "planet_attacked",
+            "p": 500,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "weaker_enemy_near",
+            "p": 0.7,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "small",
+            "p": 400,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "big",
+            "p": 5500,
+            "then": "split",
+            "on": true
+          },
+          {
+            "if": "free_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "enemy_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          }
+        ]
+      },
+      "calls": [],
+      "feed": [
+        {
+          "t": 0,
+          "who": "agent",
+          "text": "rewrote the gambits: Operator choice: expand, defend, avoid bigger enemies"
+        }
+      ],
+      "gambitsBy": {
+        "who": "agent",
+        "t": 0,
+        "why": "Operator choice: expand, defend, avoid bigger enemies"
+      },
+      "startsIn": 0,
+      "me": {
+        "name": "Local demo",
+        "withAgent": true,
+        "agentJoined": true,
+        "setup": "operator model / scripted UI"
+      },
+      "opponent": {
+        "name": "house (normal)",
+        "setup": "fixed gambits"
+      },
+      "options": {
+        "minutes": 3,
+        "planets": 28
+      }
+    },
+    {
+      "label": "clip end",
+      "clipSeconds": 40.355,
+      "view": {
+        "tick": 803,
+        "secondsLeft": 140,
+        "ended": null,
+        "totals": {
+          "you": 16487,
+          "enemy": 16418
+        },
+        "swarms": [
+          {
+            "id": 1,
+            "x": 490,
+            "y": 390,
+            "n": 5355,
+            "tx": 450,
+            "ty": 265,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 15,
+            "x": 449,
+            "y": 265,
+            "n": 2217,
+            "tx": 450,
+            "ty": 265,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 70,
+            "x": 416,
+            "y": 452,
+            "n": 429,
+            "tx": 450,
+            "ty": 265,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 71,
+            "x": 367,
+            "y": 307,
+            "n": 493,
+            "tx": 450,
+            "ty": 265,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 78,
+            "x": 465,
+            "y": 417,
+            "n": 428,
+            "tx": 450,
+            "ty": 265,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 100,
+            "x": 238,
+            "y": 382,
+            "n": 493,
+            "tx": 450,
+            "ty": 265,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 107,
+            "x": 317,
+            "y": 317,
+            "n": 182,
+            "tx": 310,
+            "ty": 280,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 109,
+            "x": 408,
+            "y": 463,
+            "n": 60,
+            "tx": 415,
+            "ty": 458,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 110,
+            "x": 336,
+            "y": 538,
+            "n": 245,
+            "tx": 338,
+            "ty": 507,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 114,
+            "x": 454,
+            "y": 435,
+            "n": 60,
+            "tx": 465,
+            "ty": 422,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 118,
+            "x": 344,
+            "y": 502,
+            "n": 184,
+            "tx": 352,
+            "ty": 496,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 125,
+            "x": 381,
+            "y": 486,
+            "n": 60,
+            "tx": 392,
+            "ty": 477,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 129,
+            "x": 490,
+            "y": 390,
+            "n": 5355,
+            "tx": 450,
+            "ty": 265,
+            "manual": false,
+            "rule": 5,
+            "fighting": false
+          },
+          {
+            "id": 130,
+            "x": 397,
+            "y": 473,
+            "n": 60,
+            "tx": 403,
+            "ty": 467,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 133,
+            "x": 491,
+            "y": 505,
+            "n": 187,
+            "tx": 450,
+            "ty": 440,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 134,
+            "x": 171,
+            "y": 357,
+            "n": 185,
+            "tx": 177,
+            "ty": 355,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 138,
+            "x": 299,
+            "y": 554,
+            "n": 123,
+            "tx": 336,
+            "ty": 544,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 140,
+            "x": 360,
+            "y": 582,
+            "n": 123,
+            "tx": 336,
+            "ty": 544,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 148,
+            "x": 225,
+            "y": 398,
+            "n": 60,
+            "tx": 233,
+            "ty": 385,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 150,
+            "x": 111,
+            "y": 353,
+            "n": 125,
+            "tx": 163,
+            "ty": 358,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          },
+          {
+            "id": 155,
+            "x": 311,
+            "y": 286,
+            "n": 61,
+            "tx": 319,
+            "ty": 323,
+            "manual": false,
+            "rule": 3,
+            "fighting": false
+          }
+        ],
+        "enemies": [],
+        "planets": [
+          {
+            "id": 0,
+            "x": 90,
+            "y": 350,
+            "r": 26,
+            "owner": "you",
+            "massLeft": 12495,
+            "mass": 15000,
+            "capture": 1
+          },
+          {
+            "id": 1,
+            "x": 1110,
+            "y": 350,
+            "r": 26,
+            "owner": "enemy",
+            "massLeft": 12495,
+            "mass": 15000,
+            "capture": -1
+          },
+          {
+            "id": 2,
+            "x": 187,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": 0
+          },
+          {
+            "id": 3,
+            "x": 1013,
+            "y": 104,
+            "r": 19,
+            "owner": null,
+            "massLeft": 9025,
+            "mass": 9025,
+            "capture": -0.7
+          },
+          {
+            "id": 4,
+            "x": 410,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 5,
+            "x": 790,
+            "y": 134,
+            "r": 21,
+            "owner": null,
+            "massLeft": 11025,
+            "mass": 11025,
+            "capture": 0
+          },
+          {
+            "id": 6,
+            "x": 192,
+            "y": 352,
+            "r": 7,
+            "owner": "you",
+            "massLeft": 603,
+            "mass": 1225,
+            "capture": 1
+          },
+          {
+            "id": 7,
+            "x": 1008,
+            "y": 352,
+            "r": 7,
+            "owner": "enemy",
+            "massLeft": 603,
+            "mass": 1225,
+            "capture": -1
+          },
+          {
+            "id": 8,
+            "x": 507,
+            "y": 535,
+            "r": 20,
+            "owner": "you",
+            "massLeft": 9657,
+            "mass": 10000,
+            "capture": 1
+          },
+          {
+            "id": 9,
+            "x": 693,
+            "y": 535,
+            "r": 20,
+            "owner": "enemy",
+            "massLeft": 9957,
+            "mass": 10000,
+            "capture": -1
+          },
+          {
+            "id": 10,
+            "x": 327,
+            "y": 481,
+            "r": 12,
+            "owner": "you",
+            "massLeft": 2830,
+            "mass": 3600,
+            "capture": 1
+          },
+          {
+            "id": 11,
+            "x": 873,
+            "y": 481,
+            "r": 12,
+            "owner": "enemy",
+            "massLeft": 2828,
+            "mass": 3600,
+            "capture": -1
+          },
+          {
+            "id": 12,
+            "x": 323,
+            "y": 586,
+            "r": 10,
+            "owner": "you",
+            "massLeft": 1979,
+            "mass": 2500,
+            "capture": 1
+          },
+          {
+            "id": 13,
+            "x": 877,
+            "y": 586,
+            "r": 10,
+            "owner": "enemy",
+            "massLeft": 1977,
+            "mass": 2500,
+            "capture": -1
+          },
+          {
+            "id": 14,
+            "x": 310,
+            "y": 280,
+            "r": 22,
+            "owner": "you",
+            "massLeft": 11604,
+            "mass": 12100,
+            "capture": 1
+          },
+          {
+            "id": 15,
+            "x": 890,
+            "y": 280,
+            "r": 22,
+            "owner": "enemy",
+            "massLeft": 11329,
+            "mass": 12100,
+            "capture": -1
+          },
+          {
+            "id": 16,
+            "x": 236,
+            "y": 568,
+            "r": 19,
+            "owner": "you",
+            "massLeft": 8298,
+            "mass": 9025,
+            "capture": 1
+          },
+          {
+            "id": 17,
+            "x": 964,
+            "y": 568,
+            "r": 19,
+            "owner": "enemy",
+            "massLeft": 8225,
+            "mass": 9025,
+            "capture": -1
+          },
+          {
+            "id": 18,
+            "x": 275,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 19,
+            "x": 925,
+            "y": 67,
+            "r": 18,
+            "owner": null,
+            "massLeft": 8100,
+            "mass": 8100,
+            "capture": 0
+          },
+          {
+            "id": 20,
+            "x": 491,
+            "y": 394,
+            "r": 11,
+            "owner": "you",
+            "massLeft": 3007,
+            "mass": 3025,
+            "capture": 1
+          },
+          {
+            "id": 21,
+            "x": 709,
+            "y": 394,
+            "r": 11,
+            "owner": null,
+            "massLeft": 3025,
+            "mass": 3025,
+            "capture": -0.13
+          },
+          {
+            "id": 22,
+            "x": 450,
+            "y": 265,
+            "r": 20,
+            "owner": null,
+            "massLeft": 10000,
+            "mass": 10000,
+            "capture": 0.78
+          },
+          {
+            "id": 23,
+            "x": 750,
+            "y": 265,
+            "r": 20,
+            "owner": "enemy",
+            "massLeft": 9863,
+            "mass": 10000,
+            "capture": -1
+          },
+          {
+            "id": 24,
+            "x": 226,
+            "y": 432,
+            "r": 14,
+            "owner": "you",
+            "massLeft": 3820,
+            "mass": 4900,
+            "capture": 1
+          },
+          {
+            "id": 25,
+            "x": 974,
+            "y": 432,
+            "r": 14,
+            "owner": "enemy",
+            "massLeft": 3808,
+            "mass": 4900,
+            "capture": -1
+          },
+          {
+            "id": 26,
+            "x": 396,
+            "y": 617,
+            "r": 19,
+            "owner": "you",
+            "massLeft": 8311,
+            "mass": 9025,
+            "capture": 1
+          },
+          {
+            "id": 27,
+            "x": 804,
+            "y": 617,
+            "r": 19,
+            "owner": "enemy",
+            "massLeft": 8626,
+            "mass": 9025,
+            "capture": -1
+          }
+        ],
+        "gambits": [
+          {
+            "if": "bigger_enemy_near",
+            "p": 1.15,
+            "then": "retreat",
+            "on": true
+          },
+          {
+            "if": "planet_attacked",
+            "p": 500,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "weaker_enemy_near",
+            "p": 0.7,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "small",
+            "p": 400,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "big",
+            "p": 5500,
+            "then": "split",
+            "on": true
+          },
+          {
+            "if": "free_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          },
+          {
+            "if": "enemy_planet",
+            "p": 2000,
+            "then": "go",
+            "on": true
+          }
+        ]
+      },
+      "calls": [],
+      "feed": [
+        {
+          "t": 0,
+          "who": "agent",
+          "text": "rewrote the gambits: Operator choice: expand, defend, avoid bigger enemies"
+        }
+      ],
+      "gambitsBy": {
+        "who": "agent",
+        "t": 0,
+        "why": "Operator choice: expand, defend, avoid bigger enemies"
+      },
+      "startsIn": 0,
+      "me": {
+        "name": "Local demo",
+        "withAgent": true,
+        "agentJoined": true,
+        "setup": "operator model / scripted UI"
+      },
+      "opponent": {
+        "name": "house (normal)",
+        "setup": "fixed gambits"
+      },
+      "options": {
+        "minutes": 3,
+        "planets": 28
+      }
+    }
+  ],
+  "errors": [],
+  "rawVideo": "page@f63d8105f14b2dc5589eeb9d397008ed.webm",
+  "rawVideoSha256": "57f8fd949dcf098fbc3bbfe7327f3767196654ac9715458abb56011d9870d4b9",
+  "trimStartSeconds": 9.813,
+  "trimDurationSeconds": 40,
+  "capture": "Playwright viewport recording 1440x900, actual native renderer/server at 20Hz; no fake frames or simulation replacement",
+  "media": {
+    "public-demo.webm": {
+      "sha256": "0f37720d9c02da0aba25354a99d4760984b859e3f08810219db41e78247d510d",
+      "bytes": 1018285
+    },
+    "public-demo-poster.jpg": {
+      "sha256": "4ec20a6745c9835a37d57cb2374a9853743989188fe2f08fefe9f33e4cbf5ade",
+      "bytes": 72073
+    },
+    "public-demo.vtt": {
+      "sha256": "2d51f3b5155849f0164a8eaad7633973c90640f34ab442def5b481f6e86042a9",
+      "bytes": 639
+    }
+  },
+  "encodingCommand": "ffmpeg -ss 9.813 -i <rawVideo> -t 40 -an -vf fps=20 -c:v libvpx-vp9 -crf 38 -b:v 0 -row-mt 1 -pix_fmt yuv420p -map_metadata -1 media/public-demo.webm",
+  "posterCommand": "ffmpeg -ss 4 -i media/public-demo.webm -frames:v 1 -q:v 3 media/public-demo-poster.jpg",
+  "candidateBinding": "This provenance and media are committed with the candidate. Final handoff reports exact commit/tree; capture used the base renderer/simulation. No circular self-hash."
+}
