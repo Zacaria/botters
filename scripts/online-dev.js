@@ -1,5 +1,6 @@
 // Local Colyseus harness; never deployed to Vercel.
 import { readFile } from 'node:fs/promises'
+import { servePublicMedia } from '../public-media.js'
 import { createLiveServer } from '../online/live-server.js'
 import { LiveDurable } from '../online/live-durable.js'
 const port = Number(process.env.PORT || 8788), origin = `http://127.0.0.1:${port}`
@@ -10,6 +11,7 @@ const staticFiles = { '/': ['index.html', 'text/html'], '/guide': ['guide.html',
 const service = await createLiveServer({ remote, now, origin, origins: [origin], authority: remote?.authority.bind(remote),
   staticHandler: async (req, res) => {
     const url = new URL(req.url, origin)
+    if (servePublicMedia(req, res, url.pathname)) return true
     if (url.pathname === '/live-config.json') { res.json({ url: origin, accountRequired: false }); return true }
     const file = staticFiles[url.pathname] || (/^\/r\/[A-Z2-9]{6}$/i.test(url.pathname) ? staticFiles['/'] : null)
     if (!file) return false

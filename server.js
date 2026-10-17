@@ -4,6 +4,7 @@
 import http from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
+import { servePublicMedia } from './public-media.js'
 import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, HOUSE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
@@ -272,7 +273,7 @@ const srv = http.createServer(async (req, res) => {
   if (!HOSTS.has(req.headers.host) || (req.headers.origin && !HOSTS.has(req.headers.origin.replace(/^https?:\/\//, '')))) return json(res, 403, { error: 'forbidden host or origin' })
   try {
     const u = new URL(req.url, ORIGIN), route = routes[`${req.method} ${u.pathname}`]
-    if (!route) return json(res, 404, { error: 'not found' })
+    if (!route) { if (servePublicMedia(req, res, u.pathname)) return; return json(res, 404, { error: 'not found' }) }
     await route(req, res, u.searchParams)
   } catch (e) { console.error(e); if (res.headersSent) res.end(); else json(res, 400, { error: String(e.message || e) }) }
 }).listen(PORT, process.env.BOTTERS_HOST || '127.0.0.1', () => console.error(`botters server on ${ORIGIN}`))
