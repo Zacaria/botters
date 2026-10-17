@@ -41,6 +41,17 @@
   #roomCode { font-size: 24px; letter-spacing: 4px; color: #fff }
   .policy-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 18px 0 24px; font-size: 12px }
   .policy-links a:focus-visible { outline: 2px solid #ff2e88; outline-offset: 4px }
+  #start .wrap > * { min-width: 0 }
+  #start { line-height: 1.6; scroll-behavior: auto }
+  #start h2 { color: #fff; font-size: 19px; line-height: 1.35; margin: 0 0 12px }
+  #start .paths { display: flex; flex-wrap: wrap; gap: 12px 24px }
+  #start a:focus-visible, #start summary:focus-visible, #start video:focus-visible { outline: 2px solid #ff2e88; outline-offset: 4px }
+  #start :target { scroll-margin-top: 16px }
+  #start figure { margin: 20px 0 12px }
+  #start video { display: block; width: 100%; height: auto; background: #000 }
+  #start figcaption { margin-top: 10px }
+  #start summary { cursor: pointer; color: #9fe8c0 }
+  #start li { margin-bottom: 8px }
   #authForm label { display: grid; gap: 6px; max-width: 300px }
   #authForm input { box-sizing: border-box; width: 100%; min-height: 36px; border-color: #686875 }
   @media (max-width: 740px) { .wrap { grid-template-columns: 1fr; margin: 20px auto } }
@@ -53,8 +64,39 @@
       <h1><b>BOT</b><i>TERS</i></h1>
       <p>A real-time space strategy game you play <b>with your AI agent</b>. Swarms of particles conquer and eat planets.<br>
       Your agent writes the rules every swarm follows. You set the strategy, edit the rules and grab a swarm when it matters.</p>
+      <nav class="paths" aria-label="Get started"><a href="#play-entry">Play Botters</a><a href="#understand">Understand the game</a></nav>
     </div>
-    <div class="card">
+    <section id="understand" class="card" aria-labelledby="understand-title" tabindex="-1">
+      <h2 id="understand-title">You set the strategy. Swarms follow the rules.</h2>
+      <ol>
+        <li><b>Set your doctrine.</b> Tell your agent what matters: expand quickly, defend your planets, or avoid bigger enemies. Your own agent connects over MCP; the game server does not run model inference for you.</li>
+        <li><b>Build gambits.</b> These are ordered IF condition → action rules, shared by your swarms. Every half second the first matching rule decides what each swarm does. For example: IF a bigger enemy is near → retreat.</li>
+        <li><b>Take a swarm by hand.</b> Click a pink swarm, then the map to send it somewhere. Press G to give it back to the gambits. You can also edit or switch rules off during the match.</li>
+      </ol>
+      <p>Capture planets to turn their mass into new particles. Larger swarms have an advantage in a fight; splitting helps you expand but makes each half weaker. Fog hides distant enemy swarms. <b>Most particles at the end wins</b>; losing every swarm and planet ends the match early.</p>
+      <figure aria-labelledby="demo-title">
+        <h3 id="demo-title">Watch a real local match · 40 seconds</h3>
+        <p id="demo-description">Silent gameplay, not a trailer mockup. Pink is the local side; blue is the house. Watch the gambits on the right, then a swarm move under direct control and return to its rules.</p>
+        <video id="demo-video" controls playsinline preload="none" width="1440" height="900" poster="/media/public-demo-poster.jpg" tabindex="0" aria-label="Botters local gameplay demonstration" aria-describedby="demo-description demo-provenance">
+          <source src="/media/public-demo.webm" type="video/webm; codecs=vp9">
+          <track kind="captions" src="/media/public-demo.vtt" srclang="en" label="English descriptions" default>
+          Your browser cannot play this video. Read the transcript below or download the WebM.
+        </video>
+        <figcaption id="demo-provenance">An operator model chose the opening gambits once. A script submits those choices and operates the human-side controls; there is no human participant or continuous AI inference in this recording. The opponent is <b>house (normal), fixed gambits</b>—not another model.</figcaption>
+      </figure>
+      <p><a href="/media/public-demo.webm" download>Download the gameplay video (WebM, 1 MB)</a> · Use the native play, pause, seek, captions and fullscreen controls. A larger view makes the gambit text easier to read.</p>
+      <details>
+        <summary>Read the video transcript</summary>
+        <div id="demo-transcript">
+          <p><b>0:00–0:08.</b> A real local game begins. Pink swarms follow seven opening gambits: retreat from larger enemies, defend attacked planets, approach weaker enemies, merge small swarms, split large ones, then seek free and enemy planets. The blue house opponent uses fixed gambits.</p>
+          <p><b>0:08–0:16.</b> An automated Tab key selects swarm 1 and a map click sends it to (225, 432). A white ring and dashed route show direct control. The HUD says “by hand”. These are automated human-side inputs, not a person playing.</p>
+          <p><b>0:16–0:24.</b> An automated G key releases the swarm. The green status says “swarm #1 back on gambits”. The shared rules take over again.</p>
+          <p><b>0:24–0:40.</b> Swarms keep moving and capturing planets. The opening was chosen once before the clip; no model runs during it. This is an excerpt, not a completed match or a claim that the strategy wins.</p>
+        </div>
+      </details>
+      <p><a href="/guide">Understand the agent connection and controls →</a></p>
+    </section>
+    <div id="play-entry" class="card" tabindex="-1">
       <h3>Play with your agent</h3>
       <p>Connect Claude Code, Codex or any MCP client in one command, then tell it "let's play botters". It opens your lobby here.</p>
       <p><a href="/guide" target="_blank">How to plug your agent →</a></p>
