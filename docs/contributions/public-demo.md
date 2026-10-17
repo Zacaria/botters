@@ -33,24 +33,24 @@ Global constraints: 390px no-JS reading; loopback 39872; serialize 8788/8789 bro
 Review focus: missing/partial media responses; blocked/unsupported playback; keyboard-only controls; narrow layouts and JS-disabled navigation; secrets/private tokens in captured frames or provenance. Each is checked below, not inferred from build success.
 
 ### Task 1: Real capture and provenance
-- [ ] Verify tools and unchanged baseline, launch only owned server, inspect live rules/state.
-- [ ] Choose gambits as operator model, document rationale, record actual match with manual-side UI selection/order/release and advancing simulation ticks.
-- [ ] Decode entire delivered clip, inspect frames, preserve sanitized observations and media digests. Confirm no fabricated inference, account or token in frame/text.
-- [ ] Commit only final useful media, capture script and provenance; leave raw recording ignored.
+- [x] Verify tools and unchanged baseline, launch only owned server, inspect live rules/state.
+- [x] Choose gambits as operator model, document rationale, record actual match with manual-side UI selection/order/release and advancing simulation ticks.
+- [x] Decode entire delivered clip, inspect frames, preserve sanitized observations and media digests. Confirm no fabricated inference, account or token in frame/text.
+- [x] Commit only final useful media, capture script and provenance; leave raw recording ignored.
 
 ### Task 2: Public explanation and delivery (RED/GREEN)
 Files: index.html, server.js, scripts/online-dev.js, scripts/build.js, package.json; test/public-pages.test.js, e2e/public-pages.spec.js, test/public-demo.test.js.
-- [ ] Add failing assertions for native video, transcript, explicit Play/Understand links, and delivered media; run targeted checks and record expected failures.
-- [ ] Add smallest HTML/CSS change and explicit asset serving/build/package paths. Preserve auth IDs/handlers.
-- [ ] Run targeted checks to green, including real HTTP bytes and clean build/package contents.
+- [x] Add failing assertions for native video, transcript, explicit Play/Understand links, and delivered media; run targeted checks and record expected failures.
+- [x] Add smallest HTML/CSS change and explicit asset serving/build/package paths. Preserve auth IDs/handlers.
+- [x] Run targeted checks to green, including real HTTP bytes and clean build/package contents.
 
 ### Task 3: Candidate verification and handoff
-- [ ] At 390px without JS, follow both public paths, transcript, guide and policies; assert no horizontal overflow. Keyboard-focus native controls, play/pause/seek and decode with JS enabled.
-- [ ] Run npm test, npm run check, npm run build, npm pack --dry-run, locked browser/auth suites, local Convex harness. Inspect each command for remote writes first. Also exercise built/package assets, MIME, missing-route 404 and CSP-compatible same-origin requests.
+- [x] At 390px without JS, follow both public paths, transcript, guide and policies; assert no horizontal overflow. Keyboard-focus native controls, play/pause/seek and decode with JS enabled.
+- [x] Run npm test, npm run check, npm run build, npm pack --dry-run, locked browser/auth suites, local Convex harness. Inspect each command for remote writes first. Also exercise built/package assets, MIME, missing-route 404 and CSP-compatible same-origin requests.
 - [ ] Self-review scoped diff, sign candidate with established key, report exact base/commit/tree and native session/run. Independent judge and exact-candidate scene check remain downstream gates; PR is not integration or production.
 
 ## Baseline and execution notes
 
 - Locked dependencies installed with npm ci --ignore-scripts, no lockfile change, zero audit vulnerabilities.
 - Initial npm test: 77/78 passed; browser launch failed before page load with Socket path too long under the profile's long TMPDIR. Unchanged offline browser regression passed with TMPDIR=/proc/self/cwd/.cache/tmp (directory resides in this task checkout). Use this environment for subsequent browser commands; no product workaround added.
-- Results, exact identities, capture provenance and remaining publication prerequisite will be recorded after execution. A skill read alone is not evidence these steps ran.
+- Executed results and limitations: public-demo-verification.md. Capture provenance: public-demo-capture.json. The final signed identity is in the task handoff. PR publication remains held by the orchestrator's Git/auto-deployment read and source-only destination binding, not missing OAuth. Independent review and Sol scene check remain downstream gates; a skill read alone is not evidence they ran.
