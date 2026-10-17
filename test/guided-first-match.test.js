@@ -75,6 +75,10 @@ test('optional local guidance requires capture, disabled gambit, manual order an
   await page.locator('#guideRelease').focus(); await page.keyboard.press('Enter')
   await expect.poll(async () => (await state()).view.swarms.find(s => s.id === 1)?.manual).toBe(false)
   await expect(step).toHaveText('3 / 4 · Take manual control')
+  await page.locator('#guideSwarm').selectOption('2')
+  await page.locator('#guideSwarm').selectOption('1')
+  await page.waitForTimeout(300)
+  await expect(step).toHaveText('3 / 4 · Take manual control')
   // Tab reaches the next control instead of trapping keyboard users in swarm cycling.
   await page.locator('#guideSwarm').focus(); await page.keyboard.press('Tab')
   await expect(page.locator('#guidePlanet')).toBeFocused()
