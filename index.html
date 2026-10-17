@@ -43,6 +43,10 @@
   .policy-links a:focus-visible { outline: 2px solid #ff2e88; outline-offset: 4px }
   #authForm label { display: grid; gap: 6px; max-width: 300px }
   #authForm input { box-sizing: border-box; width: 100%; min-height: 36px; border-color: #686875 }
+  #guidePanel { border: 1px solid #9fe8c0; padding: 8px; margin-bottom: 10px }
+  #guidePanel p { margin: 6px 0 } #guidePanel select { max-width: 100% }
+  #guidePanel label { display: block; margin-top: 6px }
+  #guidePanel :focus-visible, #guideLaunch:focus-visible { outline: 2px solid #9fe8c0; outline-offset: 2px }
   @media (max-width: 740px) { .wrap { grid-template-columns: 1fr; margin: 20px auto } }
 </style>
 
@@ -109,6 +113,7 @@
       <div class="row"><b>map</b><span id="planets"></span></div>
       <div class="row"><b>planning</b><span id="planning"></span><span class="dim">countdown before the start</span></div>
       <div class="row"><b>with agent</b><span id="withAgent"></span></div>
+      <label id="guidedHouseOption" hidden><input type="checkbox" id="guidedHouse"> Guide my first local house match (optional)</label>
       <div class="row" style="margin-top:14px"><button class="main" id="play">PLAY</button> <button id="viewReport" hidden>View last report</button> <button id="cancel" hidden>cancel</button> <span id="lobbyMsg" class="warn" role="status"></span></div>
       <div id="online" class="card" hidden>
         <h3>Online</h3>
@@ -152,6 +157,23 @@
   <div id="hud"></div>
   <div id="big"></div>
   <aside>
+    <button id="guideLaunch" aria-keyshortcuts="F1" hidden>Learn while playing (F1)</button>
+    <section id="guidePanel" aria-labelledby="guideTitle" hidden>
+      <h3 id="guideTitle">Learn in this real match</h3>
+      <p id="guideStep" tabindex="-1" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p id="guideInstruction"></p>
+      <p id="guideNotice"></p>
+      <label>Own swarm <select id="guideSwarm"><option value="">Choose a swarm</option></select></label>
+      <label>Planet destination <select id="guidePlanet"></select></label>
+      <button id="guideSend">Send selected swarm</button><button id="guideRelease">Return selected swarm to gambits</button>
+      <details><summary>Rules, fog and winning</summary>
+        <p>Gambits run top to bottom every half second: the first enabled matching rule whose action can run decides. Manual swarms bypass gambits until released.</p>
+        <p>Stay on a planet to capture it. Owned planets are consumed into new particles until exhausted. Bigger swarms lose proportionally less in fights (square law).</p>
+        <p>Fog hides enemy swarms outside vision near your swarms and owned planets. Planet locations, ownership and both sides' particle totals are public; the enemy total is not a position reveal.</p>
+        <p>At time, more swarm particles wins; equal totals draw. With no swarms and no owned planets with mass left, a side is wiped out immediately.</p>
+      </details>
+      <button id="guideReplay">Restart guidance</button><button id="guideDismiss">Dismiss guidance</button>
+    </section>
     <div id="calls"></div>
     <h3>gambits <span class="dim">· click or 1–0: on/off</span></h3>
     <div id="byline" class="by"></div>
@@ -166,7 +188,7 @@
     </div>
     <div id="toast"></div>
     <p class="dim">
-      <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <b>Tab</b> next swarm · <b>Esc</b> drop<br>
+      <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> next swarm · </span><b>Esc</b> drop<br>
       <span id="pingHelp"><b>click the map with nothing grabbed</b>: ping your agent there<br></span>
       <button id="leave">← menu</button>
     </p>
@@ -329,6 +351,7 @@ const openEd = editor($('openEditor'), prefs.opening, l => { prefs.opening = l; 
 let L = null, lobbyTimer = null, docTimer = null, agentOk = false, inviteUsed = false, lastFrame = 0, lobbyError = '', memberTimer = null
 function syncRoomPlayer() { clearTimeout(memberTimer); if (L?.room && !L.live) memberTimer = setTimeout(() => api('POST', '/rooms/player', playOptions()).then(r => { if (r.error) lobbyError = r.error }), 250) }
 function lobbyChoices() {
+  $('guidedHouseOption').hidden = !!L?.online || !!L?.room || !!L?.live || prefs.vs === 'player'
   $('openAgent').className = prefs.openingMine ? '' : 'on'; $('openMine').className = prefs.openingMine ? 'on' : ''
   $('openAgent').disabled = !(agentOk && prefs.withAgent)
   $('openEditor').hidden = !(prefs.openingMine || !agentOk || !prefs.withAgent)
@@ -429,7 +452,77 @@ const pos = new Map() // id -> { x0, y0, x1, y1 } for smooth motion between serv
 const cur = p => { const t = Math.min(1, (performance.now() - frameAt) / 100); return { x: p.x0 + (p.x1 - p.x0) * t, y: p.y0 + (p.y1 - p.y0) * t } }
 const act = (body, label) => api('POST', '/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
 
+// Local, opt-in observer only. The server view, never a timer/click, proves each milestone.
+let guidance = null, guidePending = false
+const canGuide = () => F && !L?.online && prefs.vs !== 'player' && F.opponent.setup === 'fixed gambits' && /^house \(/.test(F.opponent.name)
+const guideSteps = [
+  ['1 / 4 · Capture a planet', 'Choose an own swarm and a neutral planet below, then send it (or click the map). Stay until ownership turns pink. Your gambits can also capture it. Your initial home planet does not count.'],
+  ['2 / 4 · Switch a gambit off', 'Press 1–0 outside a text field/select, or click an enabled gambit. We wait until the engine confirms it is off. Priority is top to bottom; the first enabled matching rule whose action can run decides. You can turn the rule back on afterwards.'],
+  ['3 / 4 · Take manual control', 'Choose a swarm, choose a planet, then Send selected swarm. Selecting alone does not take control: an accepted order must change a swarm from gambits to manual. If already manual, return it first.'],
+  ['4 / 4 · Return to gambits', 'Return the same swarm to gambits with the button below, or select it and press G. Escape only drops selection; it does not release manual control.'],
+  ['Complete · Keep playing', 'All four actions happened in the real engine. Keep playing, explore Rules, fog and winning, or restart guidance for fresh actions. This is not a match win.'],
+]
+function startGuide() {
+  if (!canGuide() || v.ended) return
+  guidance = { step: 0, previous: v, swarm: null }
+  renderGuide()
+}
+function observeGuide() {
+  if (!canGuide()) guidance = null
+  if (guidePending) { guidePending = false; startGuide() }
+  if (!guidance || v.ended) return
+  const was = guidance.previous
+  if (guidance.step === 0 && v.planets.some(p => p.owner === 'you' && p.massLeft > 0 && was.planets.some(o => o.id === p.id && o.owner !== 'you'))) guidance.step = 1
+  else if (guidance.step === 1 && v.gambits.some((r, i) => !r.on && was.gambits[i]?.on && label(r) === label(was.gambits[i]))) guidance.step = 2
+  else if (guidance.step === 2) {
+    const taken = v.swarms.find(s => s.manual && was.swarms.some(o => o.id === s.id && !o.manual))
+    if (taken) { guidance.swarm = taken.id; guidance.step = 3; guidance.lost = null }
+  } else if (guidance.step === 3) {
+    const s = v.swarms.find(s => s.id === guidance.swarm)
+    if (!s) { guidance.step = 2; guidance.lost = guidance.swarm; guidance.swarm = null }
+    else if (!s.manual && was.swarms.some(o => o.id === s.id && o.manual)) guidance.step = 4
+  }
+  guidance.previous = v
+}
+function renderGuide() {
+  $('guideLaunch').hidden = !canGuide() || !!guidance
+  $('guideLaunch').disabled = !v || !!v.ended
+  $('guidePanel').hidden = !guidance
+  $('swarmTabHelp').hidden = !!guidance
+  if (!guidance) return
+  const [title, instruction] = guideSteps[guidance.step]
+  // Announce only actual step changes; do not chatter on every streamed frame.
+  if ($('guideStep').textContent !== title) { $('guideStep').textContent = title; $('guideInstruction').textContent = instruction }
+  $('guideNotice').textContent = v.ended ? 'Match ended. Incomplete actions do not count; start another house match to try again.' : F.startsIn > 0 ? 'Planning countdown: orders unlock when play starts. You can edit gambits now.' : guidance.lost !== undefined && guidance.lost !== null ? `Swarm #${guidance.lost} disappeared (destroyed or merged). No release was confirmed; take another swarm.` : guidance.step === 3 ? `Waiting for swarm #${guidance.swarm} to return, not just any swarm.` : 'Guidance does not pause or change the match. Tab reaches controls; Escape drops selection.'
+  const options = [['guideSwarm', v.swarms.map(s => [s.id, `Swarm #${s.id}`])], ['guidePlanet', v.planets.filter(p => p.massLeft > 0).map(p => [p.id, `Planet #${p.id} · ${p.owner || 'neutral'} (${p.x}, ${p.y})`])]]
+  for (const [id, rows] of options) {
+    const el = $(id), key = JSON.stringify(rows)
+    if (el.dataset.options !== key) {
+      const value = el.value
+      el.innerHTML = (id === 'guideSwarm' ? '<option value="">Choose a swarm</option>' : '') + rows.map(([value, text]) => `<option value="${value}">${text}</option>`).join('')
+      if (rows.some(([id]) => String(id) === value)) el.value = value
+      el.dataset.options = key
+    }
+  }
+  $('guideSwarm').value = sel === null ? '' : String(sel)
+  const selected = v.swarms.find(s => s.id === sel), blocked = !!v.ended || F.startsIn > 0
+  $('guideSend').disabled = blocked || !selected || !$('guidePlanet').value
+  $('guideRelease').disabled = blocked || !selected?.manual
+  $('guideReplay').disabled = !!v.ended
+}
+$('guideLaunch').onclick = () => { startGuide(); if (guidance) $('guideStep').focus() }
+$('guideReplay').onclick = startGuide
+$('guideDismiss').onclick = () => { guidance = null; renderGuide(); $('guideLaunch').focus() }
+$('guideSwarm').onchange = () => { sel = $('guideSwarm').value === '' ? null : +$('guideSwarm').value; panel() }
+$('guidePlanet').onchange = renderGuide
+$('guideSend').onclick = () => {
+  const p = v?.planets.find(p => String(p.id) === $('guidePlanet').value)
+  if (sel !== null && p) act({ order: { swarm: sel, x: p.x, y: p.y } }, `swarm #${sel} → planet #${p.id}`)
+}
+$('guideRelease').onclick = () => { if (sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`) }
+
 function match() {
+  guidance = null; guidePending = $('guidedHouse').checked
   clearTimeout(lobbyTimer); lastFrame = Date.now(); $('connection').hidden = true
   show('game'); fit(); v = null; F = null; pos.clear(); sel = null; lastBy = ''; stopEditing()
   $('big').innerHTML = ''; $('feed').innerHTML = ''; $('toast').textContent = ''
@@ -443,6 +536,7 @@ async function connectStream() {
     if (es !== stream) return
     lastFrame = Date.now(); if (navigator.onLine) $('connection').hidden = true
     F = frame; v = F.view
+    observeGuide()
     const live = new Set()
     for (const c of [...v.swarms, ...v.enemies]) { // start from where the swarm is drawn now, before resetting the clock
       live.add(c.id); const p = pos.get(c.id)
@@ -527,6 +621,7 @@ function endScreen() {
 }
 function panel() {
   if (!F) return
+  renderGuide()
   const mineP = v.planets.filter(p => p.owner === 'you' && p.massLeft > 0).length, theirP = v.planets.filter(p => p.owner === 'enemy' && p.massLeft > 0).length
   const s = sel !== null && v.swarms.find(c => c.id === sel), agent = F.me.withAgent
   $('agentBox').hidden = !agent; $('pingHelp').hidden = !agent
@@ -596,11 +691,12 @@ oncontextmenu = e => e.preventDefault()
 onkeydown = e => {
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || !v || $('game').hidden || editing) return
   const key = e.key.toLowerCase()
+  if (key === 'f1' && canGuide()) { e.preventDefault(); if (!guidance) $('guideLaunch').click(); return }
   if (key >= '0' && key <= '9') toggle((+key + 9) % 10)
   if (key === 'escape') sel = null
   if (key === 'g' && sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`)
   if (key === 's' && sel !== null) act({ split: sel }, `swarm #${sel} split`)
-  if (key === 'tab') { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }
+  if (key === 'tab' && !guidance) { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }
   panel()
 }
 $('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
