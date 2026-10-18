@@ -77,8 +77,12 @@ preserve the current mode, inputs and result message. Keep reset-token handling,
 canonical-origin redirection, account-required checks and session issuance intact.
 No account/backend/installer/CI behavior changes are authorized by this repair.
 
-Add a deterministic Brave regression that holds only the actual initial 200
-`/account` response, selects signup and fills all fields before releasing it.
+Add a deterministic Brave regression within the existing signup flow that holds
+only the actual initial 200 `/account` response, selects signup and fills all fields
+before releasing it. Reuse that flow's account rather than consuming a sixth
+signup from the shared fixture's real five-per-minute rate limit; do not relax
+production options or fixture limits. The first canonical run with a separate
+sixth account failed with the real `Too many requests` response; retain that log.
 Assert the selected form and every input survive; submit to the real Better Auth
 signup endpoint, read captured local verification mail and follow its real link
 to the lobby. Do not add sleeps, retries or longer timeouts to hide the race.

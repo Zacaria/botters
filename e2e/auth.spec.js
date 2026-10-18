@@ -10,8 +10,7 @@ async function signup(page, email, name) {
   await page.goto(mail.at(-1).text.match(/http:\/\/\S+/)[0]); await expect(page.locator('#lobby')).toBeVisible()
 }
 
-test('signup selection and inputs survive a delayed initial account response', async ({ page }) => {
-  const email = 'auth-browser-delayed@example.test', name = 'Delayed signup'
+async function signupWithDelayedAccount(page, email, name) {
   let releaseAccount, accountFetched
   const gate = new Promise(resolve => { releaseAccount = resolve })
   const fetched = new Promise(resolve => { accountFetched = resolve })
@@ -49,14 +48,16 @@ test('signup selection and inputs survive a delayed initial account response', a
     await expect(page.locator('#lobby')).toBeVisible()
     await expect(page.locator('#name')).toHaveValue(name)
   } finally { releaseAccount() }
-})
+}
 
 test('signup verification, wrong password, reset/replay, account resume and logout use real library sessions', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('#authTitle')).toHaveText('Sign in to play online')
   await page.screenshot({ path: '.cache/auth-login.png', fullPage: true })
   expect((await page.request.post('/session', { data: { name: 'spoof', accountId: 'spoof' } })).status()).toBe(401)
-  await signup(page, 'auth-browser-one@example.test', 'Alice')
+  await test.step('signup selection and inputs survive a delayed initial account response', async () => {
+    await signupWithDelayedAccount(page, 'auth-browser-one@example.test', 'Alice')
+  })
   const token = await page.evaluate(() => localStorage.getItem('botters.session'))
   await page.locator('#name').fill('Renamed Alice'); await page.locator('#name').dispatchEvent('change')
   await page.reload(); await expect(page.locator('#name')).toHaveValue('Renamed Alice')
