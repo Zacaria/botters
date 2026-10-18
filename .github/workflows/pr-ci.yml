@@ -1,0 +1,41 @@
+name: PR CI
+
+on:
+  pull_request:
+    branches: [pvp-online]
+
+permissions:
+  contents: read
+
+jobs:
+  local-checks:
+    name: Botters local checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium and system libraries
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Select installed Chromium
+        run: |
+          echo "BOTTERS_BROWSER=$(node --input-type=module -e 'import { chromium } from "@playwright/test"; console.log(chromium.executablePath())')" >> "$GITHUB_ENV"
+      - name: Check source syntax
+        run: npm run check
+      - name: Build public assets
+        run: npm run build
+      - name: Run Node and offline browser tests
+        run: npm test
+      - name: Run local online browser tests
+        run: npm run test:browser
+      - name: Run local auth browser tests
+        run: npm run test:auth:browser
