@@ -48,6 +48,7 @@ def run(args):
     print(' '.join(map(str,args)), flush=True)
     subprocess.run(list(map(str,args)), check=True)
 
+final_shot_grade = "curves=all='0/0 0.2/0.15 0.42/0.82 1/1':interp=pchip"
 parts=[]; timeline=[]; cursor=0
 for i,(duration,start,crop,purpose) in enumerate(shots):
     part=out/f'part-{i:02}.mp4'; x,y,w,h=crop
@@ -66,10 +67,14 @@ for i,(duration,start,crop,purpose) in enumerate(shots):
         vf=(f'split[game][hud];[game]{vf}[main];'
             f'[hud]crop={hw}:{hh}:{hx}:{hy},scale=1026:100:flags=lanczos[inset];'
             f"[main][inset]overlay=447:155:enable='gte(t,{delay})'")
+    # Static whole-shot midtone lift: same curve on every pixel and frame,
+    # before captions; no mask, ownership-dependent recolour or painted state.
+    if i==9: vf+=','+final_shot_grade
     if i==10: vf+=',eq=brightness=-0.13:saturation=0.65,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.66:t=fill'
     run(['ffmpeg','-hide_banner','-loglevel','error','-y','-ss',trim+start,'-i',raw,'-t',duration,'-an','-vf',vf,'-c:v','libx264','-threads','4','-preset','fast','-crf','18',part])
     parts.append(part)
     timeline.append({'outputStart':cursor,'outputEnd':cursor+duration,'matchStart':start,'matchEnd':start+duration,'rawStart':round(trim+start,3),'crop':list(crop),'purpose':purpose,'speed':1})
+    if i==9: timeline[-1]['grade']=final_shot_grade
     cursor+=duration
 concat=out/'concat.txt';concat.write_text(''.join(f"file '{p.resolve()}'\n" for p in parts))
 joined=out/'picture.mp4'

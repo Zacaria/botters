@@ -48,13 +48,39 @@ test('final ownership fill changes visibly above captions at phone player size',
     const [r, g, b] = before.subarray(i, i + 3)
     if (Math.abs(r - g) < 7 && Math.abs(g - b) < 7 && r < 65) neutral++
     const [ar, ag, ab] = after.subarray(i, i + 3)
-    if (ar > ag * 1.8 && ab > ag * 1.3 && ar > ab + 5 && ar < 160) filled++
+    if (ar > ag * 1.8 && ab > ag * 1.3 && ar > ab + 5 && ar < 220) filled++
     redGain += ar - r
   }
   const n = before.length / 3
   assert.ok(neutral / n > 0.6, `before: unobstructed neutral disk, not pink swarm/caption (${neutral}/${n})`)
   assert.ok(filled / n > 0.7, `after: exposed pink disk, not caption (${filled}/${n})`)
   assert.ok(redGain / n > 12, `visible native ownership fill change (${redGain / n} red levels)`)
+})
+
+// Break caught: a crop-only export leaves the genuine filled disk too close
+// to its former dark interior. Read only the exposed interior, not words or
+// its already-pink rim. These fixed-shot guards do not replace human review.
+test('final filled disk has persistent midtone separation, not only a pink rim', { skip: !available && 'ffmpeg unavailable; rendered-media acceptance required' }, () => {
+  const interior = seconds => {
+    const pixels = execFileSync('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', 'media/public-demo.webm', '-frames:v', '1', '-vf', 'scale=308:174,crop=24:18:142:55,format=rgb24', '-f', 'rawvideo', '-'], { maxBuffer: 1024 * 1024 })
+    const reds = [], luminances = []
+    const linear = c => c <= 10.31475 ? c / 3294.6 : ((c / 255 + 0.055) / 1.055) ** 2.4
+    for (let i = 0; i < pixels.length; i += 3) {
+      const [r, g, b] = pixels.subarray(i, i + 3)
+      reds.push(r)
+      luminances.push(0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b))
+    }
+    const median = values => values.sort((a, b) => a - b)[Math.floor(values.length / 2)]
+    return { red: median(reds), luminance: median(luminances) }
+  }
+  const before = interior(50)
+  assert.ok(before.red < 65, `neutral disk remains dark before ownership: ${before.red}`)
+  for (const seconds of [51.5, 52.5]) {
+    const after = interior(seconds)
+    const separation = (after.luminance + 0.05) / (before.luminance + 0.05)
+    assert.ok(after.red >= 160, `filled interior at${seconds}s must not remain subdued burgundy: median red ${after.red}`)
+    assert.ok(separation >= 2, `persistent interior luminance separation at${seconds}s: ${separation}`)
+  }
 })
 
 // Break caught: burned captions placed underneath small native video controls.
