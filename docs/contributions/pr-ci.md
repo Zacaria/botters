@@ -95,7 +95,92 @@ its exact advancing head has the required successful check. Do not treat this
 CI preparation PR as integration, activate settings automatically, or relax the
 native exact-head gate.
 
-## Executed local verification
+## Auth CI repair acceptance (task t_45729372, before repair)
+
+Preserve failed run `39111645398` on signed candidate
+`439f6f6cbc252ae631b40e29fede557a71e482e1`. Its auth suite failed at
+`e2e/auth.spec.js:49`: approval reported success, but `#agentState` remained
+`none connected` for the default 5000 ms assertion. The original local suite
+passes; that does not disprove the hosted failure.
+
+Inspect the actual website approval, live authority subscription and lobby
+response separately. In particular, the approval handler currently does not
+refresh the lobby, whose idle polling interval is also 5000 ms. This is a
+hypothesis until a controlled real-browser reproduction distinguishes stale UI
+from failed approval/live adoption. Do not increase timeouts, add retries, skip
+assertions or replace the local Better Auth/Colyseus services with canned data.
+
+The regression must exercise actual approval and revocation and verify the
+rendered connection state without depending on the next periodic poll. Keep
+all token/cookie checks and the existing full-match/browser suites intact.
+Use the shared fixture lock, no remote backend or real account. Obtain a bounded
+independent review of the exact signed repair candidate before normally pushing
+only `contrib/hermes-pr-ci` to update draft PR #3. Success requires the exact-head
+`Botters local checks` result, not merely local success. No integration, provider
+mutation, protection activation or deployment is authorized.
+
+## Auth CI repair diagnosis and executed checks
+
+Native Hermes session `20261018_084159_5439a5`, Kanban run `912`,
+`contrib-hermes`, `gpt-6.1-sol` / `openai-codex`; native tools, no method loader.
+Repair starts from the original signed `439f6f6` candidate above, not a feature
+branch. Provider billing counters remain unknown; this repair is outside the
+four contribution scores.
+
+The discriminating real-browser probe freezes browser timers before navigation,
+not the server clock or network. Approval succeeds, `/agent/poll` says approved,
+and the live `/lobby` returns the agent while the rendered UI still says none.
+Advancing only the browser clock by 5000 ms renders the agent, without another
+approval or heartbeat. Revocation exhibits the inverse: live delegation is gone
+but the UI still shows connected until the same clock advance. Thus failed
+approval, missing live adoption and delayed backend processing are not necessary
+to reproduce the defect. The absent mutation-triggered refresh leaves UI entirely
+on an idle timer whose 5000 ms period coincides with the assertion deadline. This
+explains the hosted failure and local variability; the historical run alone
+cannot establish its exact request scheduling.
+
+The final regression, with the clock installed/frozen before navigation, failed
+before the fix at `#agentState` (expected `refresh-test-agent`, received none,
+5000 ms) despite preceding successful real approval/live-state assertions.
+After the fix it passed, including revoke button state, the with-agent choice
+and rejected revoked capability. The original full-match assertion is unchanged.
+Exploratory probe setup failures (wrong config cwd and installing the clock too
+late) are retained as failures, not counted as causal evidence.
+
+Smallest shared UI repair: successful approve and revoke reuse `lobby(false)`
+to fetch/render actual live state immediately. No optimistic connection claim,
+backend/auth policy modification, polling interval change, retry, skip, timeout
+increase or dependency change. `false` preserves the player's menu instead of
+jumping to an already running match. Failed mutations retain existing handling.
+Revocation feedback is assigned after rendering so it is not erased by refresh.
+
+Executed with Node `v24.21.0`, npm `11.19.0`, lockfile-installed Playwright
+Chromium revision `1228`, sanitized allowlisted environment, no hosted backend
+variables, captured-mail/ephemeral Better Auth and Colyseus fixture only. The
+full sequential check run held the shared native fixture lock (dwell
+`0.000087` seconds, recorded separately); fixture ports were checked under lock.
+
+- Original local auth suite before changes: 3 passed (not a hosted CI pass).
+- Controlled causal probe before fix: 1 passed, confirming both stale UI paths.
+- Final new regression before fix: 1 failed, matching stale `#agentState`.
+- Same regression after fix: 1 passed.
+- `npm run check`: exit 0, 71 JS files, inline scripts and JSON.
+- `npm run build`: exit 0.
+- `npm test`: exit 0, 78 passed, 0 failed/skipped.
+- `npm run test:browser`: exit 0, 9 passed.
+- `npm run test:auth:browser`: exit 0, 4 passed, including the unchanged full
+  match and cookie/revocation boundaries. Expected stolen-seat admission errors
+  remain visible in the actual log.
+- `git diff --check`: exit 0.
+
+No Convex-generated integration or remote service is certified. Workflow and
+fixture scripts are unchanged, so their previously inspected effect surface is
+preserved. Independent exact-candidate review, signature/tree, remote readback
+and actual GitHub CI are recorded in the task's durable evidence/handoff, not
+implied by these local results. Task-local scripts and raw logs are archived
+outside the cleanable checkout through the native task attachment mechanism.
+
+## Executed local verification (original preparation)
 
 Builder: native Hermes profile `contrib-hermes`, session
 `20261018_080921_4609c6`, Kanban run `907`, model/provider

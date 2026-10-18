@@ -35,6 +35,33 @@ test('signup verification, wrong password, reset/replay, account resume and logo
   await expect(page.locator('#name')).toHaveValue('Renamed Alice')
 })
 
+test('approval and revocation refresh the lobby without waiting for its idle poll', async ({ page }) => {
+  // Freeze browser timers before navigation. Better Auth, storage, live
+  // subscriptions and HTTP still run normally in the real two-origin fixture.
+  await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') })
+  await page.clock.pauseAt(new Date('2026-01-01T00:01:00Z'))
+  await signup(page, 'auth-browser-refresh@example.test', 'Refresh')
+  const pair = await page.request.post('/agent/pair', { data: { setup: 'refresh-test-agent' } }).then(r => r.json())
+  await page.goto(pair.approvalUrl)
+  await expect(page.locator('#agentState')).toContainText('none connected')
+  const token = await page.evaluate(() => localStorage.getItem('botters.session'))
+  const lobby = () => page.request.get(`${live}/lobby?token=${token}`).then(r => r.json())
+  await page.getByRole('button', { name: 'Connect agent', exact: true }).click()
+  await expect(page.locator('#pairMessage')).toContainText('Agent connected')
+  expect((await page.request.get(`/agent/poll?token=${pair.agentToken}`).then(r => r.json())).approved).toBe(true)
+  await expect.poll(async () => (await lobby()).agent).toBe('refresh-test-agent')
+  await expect(page.locator('#agentState')).toContainText('refresh-test-agent')
+  await expect(page.locator('#revokeAgent')).toBeEnabled()
+  await expect(page.locator('#withAgent [data-v="true"]')).toBeVisible()
+  await page.locator('#revokeAgent').click()
+  await expect(page.locator('#lobbyMsg')).toContainText('Agent disconnected')
+  await expect.poll(async () => (await lobby()).agentGranted).toBe(false)
+  await expect(page.locator('#agentState')).toContainText('none connected')
+  await expect(page.locator('#revokeAgent')).toBeDisabled()
+  await expect(page.locator('#withAgent [data-v="true"]')).toHaveCount(0)
+  expect((await page.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
+})
+
 test('two verified players pair an agent, play, reconnect, retain history and revoke delegation', async ({ browser }) => {
   const a = await browser.newContext(), b = await browser.newContext()
   try {
