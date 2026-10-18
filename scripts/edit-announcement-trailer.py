@@ -24,7 +24,7 @@ shots = [
  (2, 63, (350, 280, 800, 450), 'Pressure around the later selected swarm'),
  (13, 65, (400, 280, 800, 450), 'Native selection/order and visible217 long-distance travel'),
  (3, 78, (400, 280, 800, 450), 'Same swarm released with G; native control returns'),
- (4, 144, (650, 290, 400, 225), 'Later planet7 turns pink at146.22s; not instant manual conquest'),
+ (4, 144, (723, 360, 256, 144), 'Later planet7 turns pink at146.22s; not instant manual conquest'),
  (7, 171, (0, 105, 1520, 855), 'Held invitation over continuing actual late-match gameplay'),
 ]
 assert sum(s[0] for s in shots) == 60

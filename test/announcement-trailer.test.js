@@ -36,6 +36,27 @@ test('trailer music decodes with headroom and a deliberate pre-intervention brea
   assert.ok(rms(31, 33) < (rms(29, 31) + rms(33, 35)) / 4, 'musical breath at31–33s must be lower than adjacent action')
 })
 
+// SOL-FILM-01: a too-wide/low final crop puts planet7 under the caption.
+// Probe the exposed lower disk interior in the actual 308px picture before
+// and after capture, not the subtitle, manifest, capture arc or bright swarm.
+// This fixed-shot regression complements (does not replace) rendered review.
+test('final ownership fill changes visibly above captions at phone player size', { skip: !available && 'ffmpeg unavailable; rendered-media acceptance required' }, () => {
+  const region = seconds => execFileSync('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', 'media/public-demo.webm', '-frames:v', '1', '-vf', 'scale=308:174,crop=24:18:142:55,format=rgb24', '-f', 'rawvideo', '-'], { maxBuffer: 1024 * 1024 })
+  const before = region(50), after = region(51.5)
+  let neutral = 0, filled = 0, redGain = 0
+  for (let i = 0; i < before.length; i += 3) {
+    const [r, g, b] = before.subarray(i, i + 3)
+    if (Math.abs(r - g) < 7 && Math.abs(g - b) < 7 && r < 65) neutral++
+    const [ar, ag, ab] = after.subarray(i, i + 3)
+    if (ar > ag * 1.8 && ab > ag * 1.3 && ar > ab + 5 && ar < 160) filled++
+    redGain += ar - r
+  }
+  const n = before.length / 3
+  assert.ok(neutral / n > 0.6, `before: unobstructed neutral disk, not pink swarm/caption (${neutral}/${n})`)
+  assert.ok(filled / n > 0.7, `after: exposed pink disk, not caption (${filled}/${n})`)
+  assert.ok(redGain / n > 12, `visible native ownership fill change (${redGain / n} red levels)`)
+})
+
 // Break caught: burned captions placed underneath small native video controls.
 // A real390px embedded screenshot exposed the failure. Require the main white
 // story text in the safe band above that player overlay, not only in a VTT.
