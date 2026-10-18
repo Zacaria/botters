@@ -10,6 +10,47 @@ async function signup(page, email, name) {
   await page.goto(mail.at(-1).text.match(/http:\/\/\S+/)[0]); await expect(page.locator('#lobby')).toBeVisible()
 }
 
+test('signup selection and inputs survive a delayed initial account response', async ({ page }) => {
+  const email = 'auth-browser-delayed@example.test', name = 'Delayed signup'
+  let releaseAccount, accountFetched
+  const gate = new Promise(resolve => { releaseAccount = resolve })
+  const fetched = new Promise(resolve => { accountFetched = resolve })
+  await page.route('**/account', async route => {
+    // Delay the real response, not a fabricated account or auth service.
+    const response = await route.fetch()
+    expect(response.status()).toBe(200)
+    accountFetched()
+    await gate
+    await route.fulfill({ response })
+  }, { times: 1 })
+  try {
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await fetched
+    await page.getByRole('button', { name: 'Create account', exact: true }).click()
+    await page.locator('#signupName').fill(name)
+    await page.locator('#authEmail').fill(email)
+    await page.locator('#authPassword').fill(password)
+    const delivered = page.waitForResponse(r => new URL(r.url()).pathname === '/account')
+    releaseAccount()
+    await delivered
+    // Bootstrap unhides these controls inside the still-hidden lobby.
+    await page.waitForFunction(() => !document.getElementById('accountControls').hidden)
+    await expect(page.locator('#authTitle')).toHaveText('Create your player account')
+    await expect(page.locator('#signupName')).toHaveValue(name)
+    await expect(page.locator('#authEmail')).toHaveValue(email)
+    await expect(page.locator('#authPassword')).toHaveValue(password)
+    const submitted = page.waitForResponse(r => new URL(r.url()).pathname === '/api/auth/sign-up/email')
+    await page.locator('#authSubmit').click()
+    expect((await submitted).status()).toBe(200)
+    await expect(page.locator('#authMessage')).toContainText('Check your email')
+    const mail = await page.request.get(`/test/mail?email=${email}`).then(r => r.json())
+    expect(mail).toHaveLength(1)
+    await page.goto(mail[0].text.match(/http:\/\/\S+/)[0])
+    await expect(page.locator('#lobby')).toBeVisible()
+    await expect(page.locator('#name')).toHaveValue(name)
+  } finally { releaseAccount() }
+})
+
 test('signup verification, wrong password, reset/replay, account resume and logout use real library sessions', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('#authTitle')).toHaveText('Sign in to play online')

@@ -62,6 +62,37 @@ build-file hashes, binary diff, signed source branch, complete Git bundle and
 review packet. Re-read the remote at handoff and bind evidence to the successor
 SHA/tree. Do not label inherited evidence as a fresh execution.
 
+## R1: preserve auth selection during account bootstrap
+
+Independent review of initial successor `fa53defd8eccd5cd368ceedb97bb498eacf6ffea`
+reproduced an inherited onboarding race. The initial real `/account` response can
+arrive after a player chooses signup and fills the form. Its unauthenticated
+branch unconditionally calls `setAuthMode('signin')`, changing the submit endpoint
+and clearing the password. The earlier intermittent signup failure is consistent
+with this defect, but its exact timing was not captured and remains unproved.
+
+Initialize the query-derived auth mode once before starting account bootstrap.
+An unauthenticated account response must not reinitialize the interactive form:
+preserve the current mode, inputs and result message. Keep reset-token handling,
+canonical-origin redirection, account-required checks and session issuance intact.
+No account/backend/installer/CI behavior changes are authorized by this repair.
+
+Add a deterministic Brave regression that holds only the actual initial 200
+`/account` response, selects signup and fills all fields before releasing it.
+Assert the selected form and every input survive; submit to the real Better Auth
+signup endpoint, read captured local verification mail and follow its real link
+to the lobby. Do not add sleeps, retries or longer timeouts to hide the race.
+Run the regression against the old source first and retain its expected failure.
+
+This revision changes only `index.html`, `e2e/auth.spec.js` and this document beyond
+the initial successor. The original 20-blob equality requirement above describes
+the initial merge: 18 original inputs remain identical and the two UI/test inputs
+have only this R1 delta. Preserve the initial source/evidence and independent R1
+reproduction unchanged. Rerun the canonical checks and installer smoke, create a
+new signed candidate and self-contained bundle, and request same-card review.
+Cold50/warm48 remain inherited isolated results, not fresh cost measurements.
+No files or dependencies are deleted.
+
 ## Release boundary
 
 Cold 50 and warm 48 remain the prior independently reviewed isolated-backend
