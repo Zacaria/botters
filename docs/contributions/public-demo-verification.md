@@ -1,5 +1,7 @@
 # Public-demo executed verification
 
+Historical run-904 record below (preserved, not a current acceptance receipt). PR #1 was subsequently published at 87caf90d; Luna's historical PASS was followed by Sol CHANGES_REQUESTED R1. The current bounded repair and executed results are recorded separately in public-demo-r1-verification.md. Statements below about pending publication/review describe that earlier moment, not the present state.
+
 ## Identity and scope
 
 - Task: t_1e2be52d; native Kanban run 904.

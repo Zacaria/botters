@@ -2852,6 +2852,16 @@
   "trimStartSeconds": 9.813,
   "trimDurationSeconds": 40,
   "capture": "Playwright viewport recording 1440x900, actual native renderer/server at 20Hz; no fake frames or simulation replacement",
+  "captionRevision": {
+    "task": "t_1e2be52d",
+    "run": 914,
+    "nativeSession": "20261018_085523_9773e2",
+    "reviewedCandidate": "87caf90dbb43954925388c9558e20f3c5c604402",
+    "finding": "R1: selection and by-hand state are visible; directed travel/dashed route are not discernible",
+    "originalVttSha256": "2d51f3b5155849f0164a8eaad7633973c90640f34ab442def5b481f6e86042a9",
+    "originalVttBytes": 639,
+    "change": "Only descriptions at 8–16.5 seconds revised; cue timing, original video/poster bytes, source hashes and capture observations unchanged. Issued order is not a claim of visible travel."
+  },
   "media": {
     "public-demo.webm": {
       "sha256": "0f37720d9c02da0aba25354a99d4760984b859e3f08810219db41e78247d510d",
@@ -2862,8 +2872,8 @@
       "bytes": 72073
     },
     "public-demo.vtt": {
-      "sha256": "2d51f3b5155849f0164a8eaad7633973c90640f34ab442def5b481f6e86042a9",
-      "bytes": 639
+      "sha256": "7d898a709a1f789807f876802d22c6b40a7d0226e2348f4d82a9bf603e5ea575",
+      "bytes": 620
     }
   },
   "encodingCommand": "ffmpeg -ss 9.813 -i <rawVideo> -t 40 -an -vf fps=20 -c:v libvpx-vp9 -crf 38 -b:v 0 -row-mt 1 -pix_fmt yuv420p -map_metadata -1 media/public-demo.webm",

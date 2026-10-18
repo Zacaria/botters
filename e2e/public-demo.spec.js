@@ -36,6 +36,43 @@ test.describe('public explanation without JavaScript', () => {
   })
 })
 
+// R1: catches stale journey/path promises in any delivered surface, including
+// a stale caption asset even when HTML has been corrected. This checks served
+// text and the browser's active cues, not source markers or a mock player.
+// Visual truth still requires the independent exact-candidate scene recheck.
+test('demo descriptions agree with visible selection and return to gambits', async ({ page }, testInfo) => {
+  await page.goto('/')
+  const intro = page.locator('#demo-description')
+  await expect.soft(intro).toContainText(/select/i)
+  await expect.soft(intro).not.toContainText(/move under direct control|dashed (route|line|path)/i)
+  await page.getByText('Read the video transcript', { exact: true }).click()
+  const transcript = page.locator('#demo-transcript')
+  await expect.soft(transcript).toContainText(/selects swarm 1/i)
+  await expect.soft(transcript).toContainText(/order/i)
+  await expect.soft(transcript).toContainText('by hand')
+  await expect.soft(transcript).toContainText('back on gambits')
+  await expect.soft(transcript).not.toContainText(/dashed (route|line|path)|sends it to/i)
+  const video = page.locator('#demo-video')
+  await video.scrollIntoViewIfNeeded()
+  await video.focus()
+  await page.keyboard.press('Space')
+  await expect.poll(() => video.evaluate(v => v.currentTime)).toBeGreaterThan(0.5)
+  await page.keyboard.press('Space')
+  await expect.poll(() => video.evaluate(v => v.textTracks[0].cues?.length)).toBe(4)
+  await video.evaluate(v => { v.textTracks[0].mode = 'showing'; v.currentTime = 10 })
+  await expect.poll(() => video.evaluate(v => v.seeking)).toBe(false)
+  const active = () => video.evaluate(v => [...v.textTracks[0].activeCues].map(c => c.text).join(' '))
+  await expect.soft.poll(active).toMatch(/select swarm 1/i)
+  await expect.soft.poll(active).toMatch(/white ring/i)
+  await expect.soft.poll(active).toMatch(/by hand/i)
+  await expect.soft.poll(active).not.toMatch(/dashed (route|line|path)|send it to/i)
+  await page.screenshot({ path: testInfo.outputPath('R1-selection-10s.png'), fullPage: true })
+  await video.evaluate(v => { v.currentTime = 17.2 })
+  await expect.poll(() => video.evaluate(v => v.seeking)).toBe(false)
+  await expect.poll(active).toMatch(/swarm #1 back on gambits/i)
+  await page.screenshot({ path: testInfo.outputPath('R1-release-17s.png'), fullPage: true })
+})
+
 // Wrong asset path, MIME/ranges, unsupported codec, broken native controls or
 // autoplay all fail through the real browser, not a mocked video component.
 test('native demo decodes, plays, pauses and seeks by keyboard without login', async ({ page, request }, testInfo) => {

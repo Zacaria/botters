@@ -11,6 +11,12 @@ A compact, locally served real-game clip must show moving swarms, the model-sele
 
 Media must be present in the static build and npm package and served by both local harnesses with correct types; exercise actual asset bytes and browser playback, not just source strings. Record capture source commit, simulation/renderer hashes, selected gambits, observed input/state evidence, timing, encoding command, media digest and reproduction steps. Tie this provenance to the final candidate without a circular self-hash.
 
+## R1 focused repair (run 914)
+
+Independent Sol rendered review of 87caf90dbb43954925388c9558e20f3c5c604402 requested changes: selection/white ring and “by hand” are visible, but directed travel and a dashed route are not discernible at 8.5–15.5 seconds. The recorded order (225,432) is near the swarm's existing (226,432); accepted input is not proof of visible travel. Preserve the original clip, poster, capture observations and historical verification. No redesign, new capture, gameplay/auth change or new PR.
+
+Repair acceptance: introduction describes swarm selection, taking control and return to gambits; transcript describes the automated selection and issued order, not a visible journey; captions describe the white ring / “by hand” and subsequent green release status. None promises a visible dashed path or directed movement. Keep timing and all four cues. Add a real-browser consistency regression on rendered intro/transcript and active cues at 10s and 17.2s, observe RED before editing these surfaces, then run repository checks and browser suites under the shared lock. Refresh only the changed VTT digest, retaining its original digest as historical evidence. Sign a local descendant, preserve an independently fingerprinted recoverable archive and request coordinator-owned focused Sol recheck before any push or acceptance claim. Old Luna PASS is historical, not approval of the repair.
+
 ## Builder decisions (not additional owner decisions)
 
 - Keep one HTML homepage. Add a labelled demonstration section and inline transcript before the unchanged sign-in/local entry; reuse cards, pink/blue/mint palette and responsive wrap. No new app/framework.
