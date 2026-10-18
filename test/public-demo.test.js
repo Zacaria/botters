@@ -60,20 +60,28 @@ test('offline server serves public media, byte ranges, HEAD and refuses unrelate
   assert.equal((await fetch(`${base}/media/public-demo.webm`, { method: 'POST' })).status, 404)
 })
 
-// Catches accidental media replacement after provenance was recorded.
-test('capture provenance binds actual clip bytes and accepted human-side actions', async () => {
-  const provenance = JSON.parse(await source('docs/contributions/public-demo-capture.json'))
+// Current film bytes are bound to its edit manifest; original40s evidence
+// remains unmodified in public-demo-capture.json and historical Git.
+test('trailer provenance binds shipped bytes and meaningful same-swarm manual travel', async () => {
+  const edit = JSON.parse(await source('docs/contributions/announcement-trailer-edit.json'))
+  const provenance = JSON.parse(await source('docs/contributions/announcement-trailer-capture.json'))
   for (const file of files) {
     const data = await source(`media/${file}`)
-    assert.equal(createHash('sha256').update(data).digest('hex'), provenance.media[file].sha256)
-    assert.equal(data.length, provenance.media[file].bytes)
+    assert.equal(createHash('sha256').update(data).digest('hex'), edit.media[file].sha256)
+    assert.equal(data.length, edit.media[file].bytes)
   }
-  assert.equal(provenance.observed[0].view.tick, 1)
-  assert.ok(provenance.observed.at(-1).view.tick > 760)
-  assert.deepEqual(provenance.humanRequests, [{ order: { swarm: 1, x: 225, y: 432 } }, { release: 1 }])
-  const controlled = provenance.observed.find(f => f.label === 'automated human-side order accepted')
-  const released = provenance.observed.find(f => f.label === 'automated human-side release accepted')
-  assert.equal(controlled.view.swarms.find(s => s.id === 1).manual, true)
-  assert.equal(released.view.swarms.find(s => s.id === 1).manual, false)
+  assert.equal(edit.burnedCaptions, true)
+  assert.equal(edit.shots.length, 11)
+  assert.equal(edit.outputSeconds, 60)
+  const { before, after } = provenance.manual
+  assert.ok(Math.hypot(after.x - before.x, after.y - before.y) > 200)
+  assert.ok(provenance.manual.displacement > 200)
+  assert.equal(provenance.manual.before.manual, false)
+  assert.equal(provenance.manual.after.manual, true)
+  const release = provenance.marks.find(m => m.label === 'release')
+  assert.equal(release.swarm.id, provenance.manual.id)
+  assert.equal(release.swarm.manual, false)
+  assert.ok(provenance.humanRequests.some(r => r.input.order?.swarm === provenance.manual.id))
+  assert.ok(provenance.humanRequests.some(r => r.input.release === provenance.manual.id))
   assert.deepEqual(provenance.errors, [])
 })

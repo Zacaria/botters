@@ -75,23 +75,26 @@
       </ol>
       <p>Capture planets to turn their mass into new particles. Larger swarms have an advantage in a fight; splitting helps you expand but makes each half weaker. Fog hides distant enemy swarms. <b>Most particles at the end wins</b>; losing every swarm and planet ends the match early.</p>
       <figure aria-labelledby="demo-title">
-        <h3 id="demo-title">Watch a real local match · 40 seconds</h3>
-        <p id="demo-description">Silent gameplay, not a trailer mockup. Pink is the local side; blue is the house. Watch the gambits on the right, then a swarm being selected, taken by hand and returned to its rules.</p>
-        <video id="demo-video" controls playsinline preload="none" width="1440" height="900" poster="/media/public-demo-poster.jpg" tabindex="0" aria-label="Botters local gameplay demonstration" aria-describedby="demo-description demo-provenance">
-          <source src="/media/public-demo.webm" type="video/webm; codecs=vp9">
-          <track kind="captions" src="/media/public-demo.vtt" srclang="en" label="English descriptions" default>
+        <h3 id="demo-title">Botters · bande-annonce · 60 secondes</h3>
+        <p id="demo-description" lang="fr">Une bande-annonce montée à partir d’une vraie partie : capturez des planètes pour agrandir votre essaim, définissez ses priorités et reprenez la main quand la bataille change. Musique et sous-titres français incrustés ; le récit reste lisible sans son. Rose : votre camp. Bleu : l’adversaire.</p>
+        <video id="demo-video" controls playsinline preload="none" width="1920" height="1080" poster="/media/public-demo-poster.jpg" tabindex="0" aria-label="Botters announcement trailer, French captions" aria-describedby="demo-description demo-provenance demo-music-credit">
+          <source src="/media/public-demo.webm" type="video/webm; codecs=&quot;vp9, opus&quot;">
+          <track kind="subtitles" src="/media/public-demo.vtt" srclang="fr" label="Français (déjà incrusté dans l’image)">
           Your browser cannot play this video. Read the transcript below or download the WebM.
         </video>
-        <figcaption id="demo-provenance">An operator model chose the opening gambits once. A script submits those choices and operates the human-side controls; there is no human participant or continuous AI inference in this recording. The opponent is <b>house (normal), fixed gambits</b>—not another model.</figcaption>
+        <figcaption id="demo-provenance">Real local gameplay, reframed and edited. An operator model chose the opening gambits once. A script submits those choices and sends automated human-side controls; there is no human participant or continuous AI inference in this recording. The opponent is <b>house (normal), fixed gambits</b>—not another model. Cuts omit time; the later capture is not an instant consequence of the manual order.</figcaption>
       </figure>
-      <p><a href="/media/public-demo.webm" download>Download the gameplay video (WebM, 1 MB)</a> · Use the native play, pause, seek, captions and fullscreen controls. A larger view makes the gambit text easier to read.</p>
+      <p><a href="/media/public-demo.webm" download>Download the announcement trailer (WebM with music)</a> · Native play, pause, seek and fullscreen controls. French captions are burned into the image; the optional subtitle track repeats them.</p>
+      <p id="demo-music-credit">'Resonance' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au<br>
+        <a href="https://www.scottbuckley.com.au/library/resonance/">Music source</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0 licence</a>. Musique adaptée : extrait 2:25–3:25, fondus et niveau ajusté. No endorsement or exclusivity is implied; retain this credit and the licence with downloaded copies.</p>
       <details>
         <summary>Read the video transcript</summary>
-        <div id="demo-transcript">
-          <p><b>0:00–0:08.</b> A real local game begins. Pink swarms follow seven opening gambits: retreat from larger enemies, defend attacked planets, approach weaker enemies, merge small swarms, split large ones, then seek free and enemy planets. The blue house opponent uses fixed gambits.</p>
-          <p><b>0:08–0:16.</b> An automated Tab key selects swarm 1 and a map click issues an order to (225, 432), near its current position. The white ring marks the selected swarm; the HUD says “by hand”. This shows taking control, not a visible journey. These are automated human-side inputs, not a person playing.</p>
-          <p><b>0:16–0:24.</b> An automated G key releases the swarm. The green status says “swarm #1 back on gambits”. The shared rules take over again.</p>
-          <p><b>0:24–0:40.</b> Swarms keep moving and capturing planets. The opening was chosen once before the clip; no model runs during it. This is an excerpt, not a completed match or a claim that the strategy wins.</p>
+        <div id="demo-transcript" lang="fr">
+          <p><b>0:00–0:08.</b> « Vos règles. Votre essaim. » Un gros plan montre les vrais gambits, puis « SI planète libre → conquérir » : l’essaim rose atteint une planète neutre, qui devient rose. C’est la règle free_planet → go réellement exécutée.</p>
+          <p><b>0:08–0:20.</b> « Capturez des planètes. Faites grandir votre essaim. » De nouvelles planètes deviennent roses et produisent des particules. Le plan s’élargit et précise le but : « Objectif : le plus de particules à la fin du match. » Les essaims bleus apparaissent à l’approche du front.</p>
+          <p><b>0:20–0:33.</b> « Définissez vos priorités. » Un extrait agrandi de la vraie règle prioritaire de repli est superposé à la bataille contemporaine. « SI ennemi plus fort → repli. Regardez vos règles agir. » Les roses se replient vers des alliés pendant la confrontation réelle. « Mais la bataille change… » annonce une nouvelle menace, avec une brève respiration musicale.</p>
+          <p><b>0:33–0:49.</b> « Reprenez la main au bon moment. » Un Tab automatisé sélectionne l’essaim 217 ; un clic carte ordonne un trajet de (456,320) vers (672,242). Le cercle blanc et la ligne pointillée sont visibles ; le même essaim se déplace réellement de plus de 200 unités. « Un ordre. Un nouveau cap. » Puis une touche G automatisée rend cet essaim aux règles : « G : retour aux gambits. » Ces automated human-side controls ne sont pas une personne qui joue.</p>
+          <p><b>0:49–1:00.</b> « Plus tard : la planète bascule. » Un saut de montage explicitement annoncé montre la planète visée devenir rose, bien plus tard dans la même partie ; aucune victoire n’est revendiquée à l’image. BOTTERS, « Découvrez Botters. », botters.vercel.app et les crédits musicaux sont maintenus sept secondes. Le house opponent suit des fixed gambits ; no model runs during the match.</p>
         </div>
       </details>
       <p><a href="/guide">Understand the agent connection and controls →</a></p>

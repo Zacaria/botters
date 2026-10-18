@@ -4,6 +4,8 @@
 
 The owner requests a scripted game-announcement trailer with a clear goal and appeal, music and subtitles. The governing production brief is [announcement-trailer.md](announcement-trailer.md). The silent gameplay clip and all R1 scope/checks below are historical source material and evidence, not acceptance of that announcement trailer. In particular, the historical “no new capture” repair limit below applied to R1 only and does not prohibit the new footage and editing requested by the owner. No new trailer has yet passed its required reviews.
 
+Current local production and actual verification are recorded in [announcement-trailer-production.md](announcement-trailer-production.md) and [announcement-trailer-verification.md](announcement-trailer-verification.md); the new edit/capture/music manifests bind the replacement media. All scope, byte hashes and PASS results below refer to the historical silent clip/R1 unless explicitly stated otherwise.
+
 ## Source-bound scope and acceptance
 
 Task t_1e2be52d; base 8871d4842eaf900362052ea1ed3879027a1fa5aa.

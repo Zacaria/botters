@@ -1,0 +1,271 @@
+{
+  "capture": ".cache/trailer/take-2026-10-18T11-15-07-470Z/capture.json",
+  "rawVideoSha256": "e392b82e34f353ca385fe61b6e87e399ade1ceaa9d9a747098c09910d411d3dd",
+  "trimStartSeconds": 9.835,
+  "outputSeconds": 60,
+  "dimensions": [
+    1920,
+    1080
+  ],
+  "fps": 30,
+  "shots": [
+    {
+      "outputStart": 0,
+      "outputEnd": 3,
+      "matchStart": 0.5,
+      "matchEnd": 3.5,
+      "rawStart": 10.335,
+      "crop": [
+        60,
+        330,
+        800,
+        450
+      ],
+      "purpose": "Immediate live map plus enlarged native rule4 free_planet → go",
+      "speed": 1
+    },
+    {
+      "outputStart": 3,
+      "outputEnd": 8,
+      "matchStart": 2.5,
+      "matchEnd": 7.5,
+      "rawStart": 12.335,
+      "crop": [
+        60,
+        470,
+        640,
+        360
+      ],
+      "purpose": "Swarm reaches planet14; actual neutral→pink at5.32s",
+      "speed": 1
+    },
+    {
+      "outputStart": 8,
+      "outputEnd": 15,
+      "matchStart": 8,
+      "matchEnd": 15,
+      "rawStart": 17.835,
+      "crop": [
+        80,
+        340,
+        800,
+        450
+      ],
+      "purpose": "Planet18 capture12.38s; growing pink swarms",
+      "speed": 1
+    },
+    {
+      "outputStart": 15,
+      "outputEnd": 20,
+      "matchStart": 25,
+      "matchEnd": 30,
+      "rawStart": 34.835,
+      "crop": [
+        0,
+        105,
+        1520,
+        855
+      ],
+      "purpose": "Wider conquest and visible approaching blue opponent",
+      "speed": 1
+    },
+    {
+      "outputStart": 20,
+      "outputEnd": 23,
+      "matchStart": 31,
+      "matchEnd": 34,
+      "rawStart": 40.835,
+      "crop": [
+        400,
+        430,
+        800,
+        450
+      ],
+      "purpose": "Battle plus enlarged native priority1 bigger_enemy_near → retreat",
+      "speed": 1
+    },
+    {
+      "outputStart": 23,
+      "outputEnd": 31,
+      "matchStart": 33,
+      "matchEnd": 41,
+      "rawStart": 42.835,
+      "crop": [
+        400,
+        430,
+        800,
+        450
+      ],
+      "purpose": "Actual pink/blue confrontation and retreat behavior",
+      "speed": 1
+    },
+    {
+      "outputStart": 31,
+      "outputEnd": 33,
+      "matchStart": 63,
+      "matchEnd": 65,
+      "rawStart": 72.835,
+      "crop": [
+        350,
+        280,
+        800,
+        450
+      ],
+      "purpose": "Pressure around the later selected swarm",
+      "speed": 1
+    },
+    {
+      "outputStart": 33,
+      "outputEnd": 46,
+      "matchStart": 65,
+      "matchEnd": 78,
+      "rawStart": 74.835,
+      "crop": [
+        400,
+        280,
+        800,
+        450
+      ],
+      "purpose": "Native selection/order and visible217 long-distance travel",
+      "speed": 1
+    },
+    {
+      "outputStart": 46,
+      "outputEnd": 49,
+      "matchStart": 78,
+      "matchEnd": 81,
+      "rawStart": 87.835,
+      "crop": [
+        400,
+        280,
+        800,
+        450
+      ],
+      "purpose": "Same swarm released with G; native control returns",
+      "speed": 1
+    },
+    {
+      "outputStart": 49,
+      "outputEnd": 53,
+      "matchStart": 144,
+      "matchEnd": 148,
+      "rawStart": 153.835,
+      "crop": [
+        650,
+        290,
+        400,
+        225
+      ],
+      "purpose": "Later planet7 turns pink at146.22s; not instant manual conquest",
+      "speed": 1
+    },
+    {
+      "outputStart": 53,
+      "outputEnd": 60,
+      "matchStart": 171,
+      "matchEnd": 178,
+      "rawStart": 180.835,
+      "crop": [
+        0,
+        105,
+        1520,
+        855
+      ],
+      "purpose": "Held invitation over continuing actual late-match gameplay",
+      "speed": 1
+    }
+  ],
+  "captions": [
+    {
+      "start": 0,
+      "end": 3,
+      "text": "Vos règles. Votre essaim."
+    },
+    {
+      "start": 3,
+      "end": 8,
+      "text": "SI planète libre → conquérir"
+    },
+    {
+      "start": 8,
+      "end": 15,
+      "text": "Capturez des planètes.\nFaites grandir votre essaim."
+    },
+    {
+      "start": 15,
+      "end": 20,
+      "text": "Objectif : le plus de particules\nà la fin du match."
+    },
+    {
+      "start": 20,
+      "end": 23,
+      "text": "Définissez vos priorités."
+    },
+    {
+      "start": 23,
+      "end": 27,
+      "text": "SI ennemi plus fort → repli"
+    },
+    {
+      "start": 27,
+      "end": 31,
+      "text": "Regardez vos règles agir."
+    },
+    {
+      "start": 31,
+      "end": 33,
+      "text": "Mais la bataille change…"
+    },
+    {
+      "start": 33,
+      "end": 41,
+      "text": "Reprenez la main au bon moment."
+    },
+    {
+      "start": 41,
+      "end": 46,
+      "text": "Un ordre. Un nouveau cap."
+    },
+    {
+      "start": 46,
+      "end": 49,
+      "text": "G : retour aux gambits."
+    },
+    {
+      "start": 49,
+      "end": 53,
+      "text": "Plus tard : la planète bascule."
+    },
+    {
+      "start": 53,
+      "end": 60,
+      "text": "Découvrez Botters."
+    }
+  ],
+  "burnedCaptions": true,
+  "audio": {
+    "track": "Resonance",
+    "author": "Scott Buckley",
+    "inputSha256": "264be9c44c32419b6de70f0ac24c92f81401419419c8fb111b8e19e62261331b",
+    "sourceStart": 145,
+    "sourceEnd": 205,
+    "filter": "atrim=start=145:end=205,asetpts=PTS-STARTPTS,volume='if(lt(t,15),0.36,if(lt(t,31),0.48,if(lt(t,33),0.10,if(lt(t,49),0.48,0.58))))':eval=frame,afade=t=in:st=0:d=0.35,afade=t=out:st=56.5:d=3.5,alimiter=limit=0.84:level=false",
+    "subjectiveListening": false
+  },
+  "media": {
+    "public-demo.webm": {
+      "sha256": "b467075591a69280f72f8cc1e1c4556f95a038e1263e28b2f4cf3e6160e0e20a",
+      "bytes": 14363067
+    },
+    "public-demo.vtt": {
+      "sha256": "dd62274548b65c2b90380a893e85bdb51a0ff943682be67aca2563dc59b9c82b",
+      "bytes": 823
+    },
+    "public-demo-poster.jpg": {
+      "sha256": "0b24f79618f4300f193b16f3afee65357e573f540e25ee10baf068b3be39d6fe",
+      "bytes": 55026
+    }
+  },
+  "master": ".cache/trailer/edit/botters-announcement-1080p.mp4",
+  "masterSha256": "b573cb913fb69858ce7c844c800287f5a779044b03bd00dc621e5c38d6205f8f"
+}
