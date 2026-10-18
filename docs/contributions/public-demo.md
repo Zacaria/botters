@@ -1,5 +1,9 @@
 # Public gameplay demonstration
 
+## Production direction superseded — 18 October 2026
+
+The owner requests a scripted game-announcement trailer with a clear goal and appeal, music and subtitles. The governing production brief is [announcement-trailer.md](announcement-trailer.md). The silent gameplay clip and all R1 scope/checks below are historical source material and evidence, not acceptance of that announcement trailer. In particular, the historical “no new capture” repair limit below applied to R1 only and does not prohibit the new footage and editing requested by the owner. No new trailer has yet passed its required reviews.
+
 ## Source-bound scope and acceptance
 
 Task t_1e2be52d; base 8871d4842eaf900362052ea1ed3879027a1fa5aa.
