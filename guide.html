@@ -1,15 +1,25 @@
 <!doctype html>
+<html lang="en">
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Botters · plug your agent</title>
 <style>
   body { margin: 0; background: #050507; color: #b8b8c4; font: 14px/1.6 ui-monospace, monospace }
   main { max-width: 820px; margin: 40px auto; padding: 0 24px 60px }
   h1 { color: #fff; letter-spacing: 6px } h1 b { color: #ff2e88 } h1 i { color: #5b8cff; font-style: normal }
-  h2 { color: #fff; font-size: 16px; margin-top: 34px; border-bottom: 1px solid #1c1c24; padding-bottom: 4px }
-  pre { background: #0e0e13; border: 1px solid #1c1c24; padding: 10px 64px 10px 12px; white-space: pre-wrap; word-break: break-word; color: #ddd; position: relative }
+  h2, h3 { color: #fff; font-size: 16px; margin-top: 34px; border-bottom: 1px solid #1c1c24; padding-bottom: 4px }
+  main { overflow-wrap: anywhere }
+  pre { background: #0e0e13; border: 1px solid #1c1c24; padding: 12px; white-space: pre-wrap; word-break: break-word; color: #ddd }
   code { color: #9fe8c0 } a { color: #9fe8c0 } b { color: #ddd }
-  button.copy { position: absolute; right: 6px; top: 6px; font: inherit; font-size: 11px; background: #1a1a22; color: #ddd; border: 1px solid #444; cursor: pointer }
-  table { border-collapse: collapse } td { padding: 3px 14px 3px 0; vertical-align: top }
+  button.copy { display: block; margin-top: 8px; min-height: 44px; min-width: 44px; font: inherit; background: #1a1a22; color: #ddd; border: 1px solid #444; cursor: pointer }
+  table { border-collapse: collapse; width: 100%; table-layout: fixed } td { padding: 3px 14px 3px 0; vertical-align: top }
+  nav[aria-label="Connection paths"] a { display: inline-block; padding: 10px 12px; border: 1px solid #444; margin: 0 4px 8px 0 }
+  summary { cursor: pointer; padding: 10px 0 }
+  :focus-visible { outline: 2px solid #9fe8c0; outline-offset: 3px }
+  @media (max-width: 600px) {
+    main { margin-top: 24px; padding: 0 16px 40px }
+    tr { display: block; margin-bottom: 12px } td { display: block; padding: 3px 0 }
+  }
   .dim { color: #6a6a7a }
 </style>
 <main>
@@ -17,11 +27,35 @@
 <p>Botters is played by you <b>and</b> your AI agent. The agent connects through <b>MCP</b>, the open protocol Claude Code, Codex and most agent tools speak. It runs on your own subscription or model: the game never sees your keys and never runs a model itself.</p>
 <p id="back"><a href="/">← back to the game</a></p>
 
-<h2>1. Requirements</h2>
+<h2>Choose your connection path</h2>
+<p>Where do you use your agent? This installer connects a client running on your computer through local <b>stdio MCP</b>, not a remote MCP URL.</p>
+<nav aria-label="Connection paths">
+<a href="#local-client">Local client</a>
+<a href="#web-client">Web interface</a>
+<a href="#phone">Phone</a>
+</nav>
+
+<section id="web-client" aria-labelledby="web-title" tabindex="-1">
+<h2 id="web-title">Web interface: no demonstrated direct connection</h2>
+<p>Using Claude on the web or ChatGPT? This repository's local stdio setup does not demonstrate a direct MCP connection from these interfaces. The game's web address is not a remote MCP endpoint; do not paste the install command into a web chat as a connection step.</p>
+<p>Use one of the documented clients on a computer instead. <a href="#local-client">Go to local client setup</a>.</p>
+</section>
+
+<section id="phone" aria-labelledby="phone-title" tabindex="-1">
+<h2 id="phone-title">Phone: read the guide, set up on a computer</h2>
+<p>This guide is readable on a phone, but the local stdio setup does not demonstrate a direct MCP connection from a phone browser or chat app. It does not establish touch-gameplay support either.</p>
+<p>Continue on a computer with a documented local client. <a href="#local-client">Go to local client setup</a>.</p>
+</section>
+
+<section id="local-client" aria-labelledby="local-title" tabindex="-1">
+<h2 id="local-title">Local client: install on your computer</h2>
+<h3>1. Requirements</h3>
 <p>Node.js 22 or newer for your agent. Sign in at <a href="https://botters.havesomecode.io">botters.havesomecode.io</a> with Google or a verified email/password account. House modes can also run locally without a game account.</p>
 
-<h2>2. Connect your agent</h2>
+<h3>2. Connect your agent</h3>
 <pre>npx -y github:Zacaria/botters install</pre>
+<p>Select the command text to copy it manually if the copy button is unavailable.</p>
+<p id="copy-status" role="status"></p>
 <p>The installer detects <b>Claude Code, Codex, Claude Desktop, Cursor and Windsurf</b>, lists the changes and asks before writing. It backs up existing configuration and keeps your other MCP servers. For Codex it sets 60-second startup/tool timeouts and approves Botters tools automatically, without changing permissions for other servers. Restart your agent after setup.</p>
 <p>Use <code>install --local</code> for offline-only house games, <code>install --yes</code> to skip confirmation, or <code>install --uninstall</code> to remove Botters from your detected clients. Rerunning an unchanged setup does nothing.</p>
 <p><b>No agent yet?</b> Play alone against the house: <code>npx -y github:Zacaria/botters</code> in a terminal opens the game in your browser.</p>
@@ -47,6 +81,7 @@ default_tools_approval_mode = "approve"</pre>
   }
 }</pre>
 </details>
+</section>
 
 <h2>3. Play</h2>
 <p>Tell your agent:</p>
@@ -89,7 +124,17 @@ GET  /rules                                             → every condition and 
 
 for (const pre of document.querySelectorAll('pre')) {
   const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'copy'
-  b.onclick = () => navigator.clipboard.writeText(pre.firstChild.textContent).then(() => { b.textContent = 'copied' })
+  b.onclick = async () => {
+    const status = document.getElementById('copy-status')
+    b.textContent = 'copy'; status.textContent = ''
+    try {
+      await navigator.clipboard.writeText(pre.firstChild.textContent)
+      b.textContent = 'copied'
+    } catch {
+      status.textContent = 'Copy unavailable. Select the command text and copy it manually.'
+    }
+  }
   pre.appendChild(b)
 }
 </script>
+</html>
