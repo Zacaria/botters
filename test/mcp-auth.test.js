@@ -139,6 +139,7 @@ async function callbackFixture({ supplied = false } = {}) {
     assert.ok(S.since > 0)
   }
   return { S, call, join, approve, requests,
+    read: path => request(null, 'GET', path, S.session.agentToken),
     revoke: () => request(identity, 'POST', '/agent/revoke', human.humanToken),
     advance: ms => { now += ms }, fault: fn => { fault = fn },
   }
@@ -253,4 +254,65 @@ for (const [tool, args] of [['wait_for_event', { timeout_s: 1 }], ['join_match',
   release(); assert.match(await late, /join_match/)
   assert.ok(f.S.session === newer && f.S.inMatch, 'old refusal must not erase a new connection')
   assert.equal(JSON.parse(await f.call('set_gambits', gameplay[1][1])).ok, true)
+})
+
+for (const route of ['/next', '/rules', '/events']) for (const pending of [false, true]) test(`a delayed old ${route} success cannot restore gameplay while ${pending ? 'new approval is pending' : 'disconnected'}`, async () => {
+  const f = await callbackFixture(); await f.join()
+  const oldResult = await f.read(route)
+  let release, entered
+  const started = new Promise(resolve => { entered = resolve })
+  f.fault(path => {
+    if (path === route) {
+      f.fault(null); entered()
+      return new Promise(resolve => { release = () => resolve({ ok: true, status: 200, json: async () => oldResult }) })
+    }
+  })
+  const late = f.call(route === '/events' ? 'wait_for_event' : 'join_match', { timeout_s: 1 }); await started
+  await f.revoke(); await f.call('call_human', { message: 'discover revocation' })
+  if (pending) assert.equal(JSON.parse(await f.call('join_match')).waiting, true)
+  const current = f.S.session, sent = f.requests.length
+  release(); assert.match(await late, /join_match/)
+  assert.ok(f.S.session === current)
+  assert.equal(f.S.inMatch, false)
+  assert.equal(f.S.matchId, null)
+  assert.equal(f.S.since, 0)
+  for (const [name, args] of gameplay) assert.match(await f.call(name, args), /join_match/)
+  assert.equal(f.requests.length, sent, 'stale success and blocked tools initiate no requests')
+})
+
+test('a delayed old poll approval cannot send next with an already refused capability', async () => {
+  const f = await callbackFixture()
+  assert.equal(JSON.parse(await f.call('join_match')).waiting, true)
+  await f.approve()
+  const approved = await f.read('/agent/poll')
+  let release, entered
+  const started = new Promise(resolve => { entered = resolve })
+  f.fault(path => {
+    if (path === '/agent/poll') {
+      f.fault(null); entered()
+      return new Promise(resolve => { release = () => resolve({ ok: true, status: 200, json: async () => approved }) })
+    }
+  })
+  const late = f.call('join_match'); await started
+  await f.revoke(); assert.match(await f.call('join_match'), /join_match/)
+  disconnected(f.S)
+  const sent = f.requests.length
+  release(); assert.match(await late, /join_match/)
+  disconnected(f.S)
+  assert.equal(f.requests.length, sent, 'late approved response must not initiate an old-token next request')
+})
+
+for (const path of ['/events', '/input', '/call', '/next', '/agent/poll']) test(`a definitive ${path} refusal resets state even with an unreadable JSON body`, async () => {
+  const f = await callbackFixture()
+  if (path === '/agent/poll') {
+    await f.call('join_match')
+    Object.assign(f.S, { inMatch: true, matchId: 'previous-match', since: 27 })
+  } else await f.join()
+  f.fault(route => route === path ? { ok: false, status: path === '/agent/poll' ? 410 : 401, json: async () => { throw new SyntaxError('isolated empty or malformed JSON') } } : null)
+  const [name, args] = path === '/input' ? gameplay[1] : path === '/call' ? gameplay[5] : path === '/events' ? gameplay[0] : ['join_match', {}]
+  assert.match(await f.call(name, args), /join_match/)
+  disconnected(f.S)
+  const sent = f.requests.length
+  for (const [tool, input] of gameplay) assert.match(await f.call(tool, input), /join_match/)
+  assert.equal(f.requests.length, sent)
 })
