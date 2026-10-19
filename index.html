@@ -61,7 +61,11 @@
   #guidePanel p { margin: 6px 0 } #guidePanel select { max-width: 100% }
   #guidePanel label { display: block; margin-top: 6px }
   #guidePanel :focus-visible, #guideLaunch:focus-visible { outline: 2px solid #9fe8c0; outline-offset: 2px }
-  @media (max-width: 740px) { .wrap { grid-template-columns: 1fr; margin: 20px auto } }
+  @media (max-width: 740px) {
+    .wrap { grid-template-columns: 1fr; margin: 20px auto }
+    aside { top: 50vh; width: 100%; border-left: 0; border-top: 1px solid #1c1c24 }
+    #big { right: 0; top: 12px }
+  }
 </style>
 
 <!-- start: no lobby yet -->
@@ -497,9 +501,11 @@ let W = 1200, H = 700, k = 1, ox = 0, oy = 0, img, px
 const TN = 1 << 17, TA = new Float32Array(TN), TR = new Float32Array(TN), TW = new Float32Array(TN)
 for (let i = 0; i < TN; i++) { TA[i] = Math.random() * 6.283; TR[i] = Math.sqrt(Math.random()); TW[i] = (Math.random() - 0.5) * 0.06 }
 function fit() {
-  const vw = innerWidth - 400; k = Math.min(vw / W, innerHeight / H)
+  const panel = document.querySelector('aside').getBoundingClientRect()
+  const vw = Math.max(1, panel.top > 0 ? innerWidth : panel.left || innerWidth), vh = Math.max(1, panel.top || innerHeight)
+  k = Math.min(vw / W, vh / H)
   cv.width = W; cv.height = H; cv.style.width = W * k + 'px'; cv.style.height = H * k + 'px'
-  ox = (vw - W * k) / 2; oy = (innerHeight - H * k) / 2; cv.style.left = ox + 'px'; cv.style.top = oy + 'px'
+  ox = (vw - W * k) / 2; oy = (vh - H * k) / 2; cv.style.left = ox + 'px'; cv.style.top = oy + 'px'
   img = g.createImageData(W, H); px = new Uint32Array(img.data.buffer)
 }
 fit(); onresize = fit
