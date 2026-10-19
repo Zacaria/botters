@@ -739,10 +739,10 @@ function draw() {
 requestAnimationFrame(draw)
 
 // ---------- menu backdrop: two house bots fight a real sim.js match behind the menus ----------
-const bc = $('bg'), bgx = bc.getContext('2d'); bc.width = 1200; bc.height = 700
-const bimg = bgx.createImageData(1200, 700), bpx = new Uint32Array(bimg.data.buffer), BG_BUDGET = 14000
-let bs = null
+const bc = $('bg'), bgx = bc.getContext('2d'), BG_BUDGET = 14000
+let bs = null, bimg, bpx, tall = null // portrait screens get the battlefield turned on its side so both armies stay on screen
 function backdrop() {
+  if (tall !== innerHeight > innerWidth) { tall = innerHeight > innerWidth; bc.width = tall ? 700 : 1200; bc.height = tall ? 1200 : 700; bimg = bgx.createImageData(bc.width, bc.height); bpx = new Uint32Array(bimg.data.buffer) }
   if (!bs || bs.ended) { bs = createMatch((Math.random() * 2 ** 32) >>> 0, { minutes: 8, planets: 28 }); applyInput(bs, 0, { gambits: HOUSE.hard }); applyInput(bs, 1, { gambits: HOUSE.normal }) }
   step(bs)
   for (let i = 0; i < bpx.length; i++) bpx[i] = ((bpx[i] >>> 1) & 0x7f7f7f7f) | 0xff000000
@@ -752,11 +752,11 @@ function backdrop() {
     for (let i = 0; i < m; i++) {
       const j = (seed + i) & (TN - 1), a = TA[j] + t * TW[j], r = TR[j] * rr
       const x = (c.x + Math.cos(a) * r) | 0, y = (c.y + Math.sin(a) * r * 0.85) | 0
-      if (x >= 0 && x < 1200 && y >= 0 && y < 700) bpx[y * 1200 + x] = c.eng && (j & 3) === 0 ? WHITE : col
+      if (x >= 0 && x < 1200 && y >= 0 && y < 700) bpx[tall ? x * 700 + y : y * 1200 + x] = c.eng && (j & 3) === 0 ? WHITE : col
     }
   }
   bgx.putImageData(bimg, 0, 0)
-  for (const p of bs.planets) if (p.mass > 0) { const col = p.owner < 0 ? '#6a6a7a' : p.owner ? CSS.enemy : CSS.you; bgx.fillStyle = p.owner < 0 ? '#2a2a33' : col + '55'; bgx.strokeStyle = col; bgx.beginPath(); bgx.arc(p.x, p.y, Math.max(1.5, p.r * Math.sqrt(p.mass / p.m0)), 0, 7); bgx.fill(); bgx.stroke() }
+  for (const p of bs.planets) if (p.mass > 0) { const col = p.owner < 0 ? '#6a6a7a' : p.owner ? CSS.enemy : CSS.you; bgx.fillStyle = p.owner < 0 ? '#2a2a33' : col + '55'; bgx.strokeStyle = col; bgx.beginPath(); bgx.arc(tall ? p.y : p.x, tall ? p.x : p.y, Math.max(1.5, p.r * Math.sqrt(p.mass / p.m0)), 0, 7); bgx.fill(); bgx.stroke() }
 }
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) for (let i = 0; i < 900; i++) backdrop() // one still frame of a battle in progress
 else (function loop() { requestAnimationFrame(loop); if (!$('bg').hidden && !document.hidden) backdrop() })()
