@@ -148,12 +148,13 @@
   <div class="wrap">
     <div>
       <h1><b>BOT</b><i>TERS</i></h1>
-      <div class="row"><b>player</b><input id="name" maxlength="24"> <span class="dim" id="saved"></span></div>
+      <div class="row"><b>player</b><input id="name" maxlength="24"></div>
       <div class="row"><b>your agent</b><span id="agentState"></span></div>
 
       <h3>Doctrine <span class="dim">· your strategy, in your words. Your agent turns it into gambits and follows it during the match.</span></h3>
-      <textarea id="doctrine" maxlength="500"></textarea>
-      <div class="help"><span id="dcount"></span>/500 · saved automatically · editable during the match too</div>
+      <textarea id="doctrine" aria-label="Doctrine" maxlength="500"></textarea>
+      <div class="help"><span id="dcount"></span>/500 · autosave after edits · editable during the match too <button id="retryDoctrine" hidden>Retry saving doctrine</button></div>
+      <div id="saved" role="status"></div>
 
       <h3>Opening gambits</h3>
       <div class="row"><button id="openAgent">my agent writes them from the doctrine</button><button id="openMine">I write them</button></div>
@@ -236,7 +237,7 @@
       <h3>agent feed</h3>
       <div id="feed"></div>
       <form id="say"><input class="wide" id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form>
-      <details style="margin-top:6px"><summary class="dim" style="cursor:pointer">doctrine</summary><textarea id="doctrine2" maxlength="500"></textarea><button id="sendDoctrine">send to agent</button></details>
+      <details style="margin-top:6px"><summary class="dim" style="cursor:pointer">doctrine</summary><textarea id="doctrine2" aria-label="Doctrine during match" maxlength="500"></textarea><button id="sendDoctrine">send to agent</button><div id="doctrineStatus2" role="status"></div></details>
     </div>
     <div id="toast"></div>
     <p class="dim">
@@ -421,19 +422,56 @@ function lobbyChoices() {
 }
 $('openAgent').onclick = () => { prefs.openingMine = false; savePrefs(); lobbyChoices(); syncRoomPlayer() }
 $('openMine').onclick = () => { prefs.openingMine = true; savePrefs(); lobbyChoices(); syncRoomPlayer() }
-$('doctrine').oninput = () => { $('dcount').textContent = $('doctrine').value.length; clearTimeout(docTimer); docTimer = setTimeout(() => api('POST', '/profile', { doctrine: $('doctrine').value }).then(() => { $('saved').textContent = 'doctrine saved' }), 500) }
+let doctrineDraft = '', doctrineDirty = false, doctrineRevision = 0, doctrineSession = null, doctrineQueue = Promise.resolve()
+function setDoctrine(text) {
+  doctrineDraft = text
+  for (const id of ['doctrine', 'doctrine2']) if ($(id).value !== text) $(id).value = text
+  $('dcount').textContent = text.length
+}
+function doctrineStatus(text) {
+  $('saved').textContent = $('doctrineStatus2').textContent = text
+  $('retryDoctrine').hidden = !doctrineDirty
+}
+function editDoctrine(field) {
+  clearTimeout(docTimer); ++doctrineRevision; doctrineDirty = true; setDoctrine(field.value)
+  doctrineStatus('Doctrine not saved. Draft kept; retry when ready.')
+  if (!$('game').hidden) toast('Doctrine not saved. Draft kept; retry when ready.', false)
+}
+function saveDoctrine(inMatch = false) {
+  clearTimeout(docTimer)
+  const text = doctrineDraft, revision = doctrineRevision, session = token
+  if (!session || doctrineSession !== session) return
+  // Serialize actual writes, but never retry a failure automatically. New edits
+  // invalidate old acknowledgements and supersede any not-yet-started saves.
+  doctrineQueue = doctrineQueue.then(async () => {
+    if (session !== token || revision !== doctrineRevision) return
+    doctrineStatus('Saving doctrine…')
+    const r = await api('POST', '/profile', { doctrine: text })
+    if (session !== token || revision !== doctrineRevision) return
+    if (r.ok === true) { ++doctrineRevision; doctrineDirty = false; setDoctrine(text.trim().slice(0, 500)) }
+    doctrineStatus(r.ok === true ? 'doctrine saved' : 'Doctrine not saved. Draft kept; retry when ready.')
+    if (inMatch) toast(r.ok === true ? '✓ doctrine saved' : '✗ Doctrine not saved. Draft kept; retry when ready.', r.ok === true)
+  })
+  return doctrineQueue
+}
+$('doctrine').oninput = () => { editDoctrine($('doctrine')); docTimer = setTimeout(() => saveDoctrine(), 500) }
+$('retryDoctrine').onclick = () => saveDoctrine()
 $('name').onchange = () => api('POST', '/profile', { name: $('name').value })
 
 async function lobby(auto = true) { // auto: jump into a live match (page load, Play); false when the player left it for the menu
+  if (doctrineSession !== token) {
+    doctrineSession = token; ++doctrineRevision; doctrineDirty = false; setDoctrine(''); doctrineStatus('')
+  }
   show('lobby'); clearInterval(lobbyTimer)
   const first = !L
+  const docRevision = doctrineRevision
   L = await api('GET', '/lobby')
   if (L.status === 401) { localStorage.removeItem('botters.session'); token = null; history.replaceState(null, '', '/'); return show('start') }
   if (L.error) { $('lobbyMsg').textContent = L.error; lobbyTimer = setTimeout(() => lobby(auto), 3000); return }
 
   localStorage.setItem('botters.session', token)
   if (first || document.activeElement !== $('name')) $('name').value = L.name
-  if (first || document.activeElement !== $('doctrine')) { $('doctrine').value = L.doctrine; $('dcount').textContent = L.doctrine.length }
+  if (!doctrineDirty && docRevision === doctrineRevision && !['doctrine', 'doctrine2'].includes(document.activeElement.id)) setDoctrine(L.doctrine)
   for (const k of ['vs', 'minutes', 'planets', 'planning']) pick(k, L.choices[k])
   $('online').hidden = !L.online || !!L.room
   renderRoom(L.room)
@@ -746,8 +784,8 @@ function stopEditing() { editing = null; $('gEditor').hidden = true; $('gambits'
 $('editG').onclick = () => { if (!v) return; editing = true; gEd = editor($('gEditor'), v.gambits); $('gEditor').hidden = false; $('gambits').hidden = true; $('editG').hidden = true; $('applyG').hidden = $('cancelG').hidden = false }
 $('cancelG').onclick = stopEditing
 $('applyG').onclick = async () => { const r = await api('POST', '/input', { gambits: gEd.get(), why: 'edited by hand' }); toast(r.ok ? '✓ gambits applied' + (F.me.withAgent ? ', your agent was told' : '') : `✗ ${r.error}`, r.ok); if (r.ok) stopEditing() }
-$('sendDoctrine').onclick = async () => { await api('POST', '/profile', { doctrine: $('doctrine2').value }); $('doctrine').value = $('doctrine2').value; toast('✓ doctrine sent to your agent') }
-document.querySelector('#agentBox details').ontoggle = () => { $('doctrine2').value = $('doctrine').value }
+$('doctrine2').oninput = () => editDoctrine($('doctrine2'))
+$('sendDoctrine').onclick = () => saveDoctrine(true)
 
 const toggle = i => { if (v?.gambits[i] && !v.ended) act({ toggle: i }, `rule ${i + 1} ${v.gambits[i].on ? 'off' : 'on'}`) }
 $('gambits').onclick = e => { const d = e.target.closest('[data-g]'); if (d) toggle(+d.dataset.g) }
