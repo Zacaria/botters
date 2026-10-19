@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import net from 'node:net'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium, expect } from '@playwright/test'
 import { DEFAULT_GAMBITS, MAX_GAMBITS } from '../sim.js'
@@ -43,6 +43,148 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   assert.ok(requests.filter(p => p === '/stream').length >= 2)
   assert.ok(!requests.includes('/live-client.js'))
   assert.deepEqual(errors, [])
+})
+
+test('primary map input ignores secondary buttons without changing engine control', { timeout: 45000 }, async t => {
+  if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER || process.env.BOTTERS_DEV_CONVEX) throw new Error('Map input regression requires local ephemeral fixtures')
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), errors = [], posts = [], replies = [], observations = []
+  page.on('pageerror', e => errors.push(e.message))
+  page.on('request', r => {
+    if (r.method() !== 'POST') return
+    const path = new URL(r.url()).pathname
+    posts.push({ path, ...(['/input', '/say'].includes(path) && { body: r.postDataJSON() }) })
+  })
+  page.on('response', async r => {
+    const path = new URL(r.url()).pathname
+    if (r.request().method() === 'POST' && ['/input', '/say'].includes(path)) replies.push({ path, status: r.status(), body: await r.json() })
+  })
+  const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+  const selected = () => page.locator('#hud').textContent().then(text => text.match(/grabbed: swarm #(\d+)/)?.[1] || null)
+  const snapshot = async label => {
+    if (!process.env.BOTTERS_MAP_INPUT_EVIDENCE) return
+    await mkdir(process.env.BOTTERS_MAP_INPUT_EVIDENCE, { recursive: true })
+    await page.screenshot({ path: join(process.env.BOTTERS_MAP_INPUT_EVIDENCE, label + '.png') })
+  }
+  t.after(async () => {
+    t.diagnostic(`Native map input observations (capabilities omitted): ${JSON.stringify(observations)}`)
+    if (process.env.BOTTERS_MAP_INPUT_EVIDENCE) {
+      await mkdir(process.env.BOTTERS_MAP_INPUT_EVIDENCE, { recursive: true })
+      await writeFile(join(process.env.BOTTERS_MAP_INPUT_EVIDENCE, 'observations.json'), JSON.stringify({ origin, posts, replies, observations, errors }, null, 2))
+    }
+  })
+  await page.goto(origin + '/privacy')
+  await page.evaluate(() => localStorage.setItem('botters.prefs', JSON.stringify({ vs: 'easy', minutes: 3, planets: 28, planning: 10, withAgent: true, openingMine: true, opening: [{ if: 'always', then: 'hold' }] })))
+  await page.goto(origin)
+  await page.locator('#startName').fill('Synthetic map input player')
+  const created = page.waitForResponse(r => new URL(r.url()).pathname === '/session' && r.request().method() === 'POST')
+  await page.locator('#startSolo').click()
+  const { agentToken } = await (await created).json()
+  // A real local heartbeat enables the existing ping UI; no model is involved.
+  assert.equal((await page.request.get(`${origin}/next?token=${agentToken}&timeout=0.001`)).status(), 200)
+  await expect(page.locator('#withAgent [data-v="true"]')).toBeVisible({ timeout: 8000 })
+  await page.locator('#withAgent [data-v="true"]').click()
+  await expect(page.locator('#guidedHouse')).not.toBeChecked()
+  await page.locator('#play').click()
+  // After PLAY evaluations only read; all actions are native mouse/keyboard input.
+  await expect(page.locator('#hud')).toContainText('swarms')
+  await expect(page.locator('#guidePanel')).toBeHidden()
+  await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(0)
+  const first = await read(), swarm = first.view.swarms[0]
+  const session = await page.evaluate(() => localStorage.getItem('botters.session'))
+  const map = frame => frame.view.planets.map(({ id, x, y, r }) => ({ id, x, y, r }))
+  assert.equal(first.startsIn, 0)
+  assert.equal(first.me.withAgent, true)
+  assert.equal(swarm.manual, false)
+  const box = await page.locator('#c').boundingBox(), size = await page.locator('#c').evaluate(c => ({ w: c.width, h: c.height }))
+  const point = (x, y) => ({ x: Math.round(box.x + x * box.width / size.w), y: Math.round(box.y + y * box.height / size.h) })
+  const destination = point(600, 200)
+  const target = { x: Math.round((destination.x - box.x) * size.w / box.width), y: Math.round((destination.y - box.y) * size.h / box.height) }
+  const grab = async id => {
+    await page.keyboard.press('Escape')
+    const s = (await read()).view.swarms.find(s => s.id === id), p = point(s.x, s.y)
+    await page.mouse.click(p.x, p.y)
+    await expect.poll(selected).toBe(String(id))
+  }
+  const advance = async tick => {
+    await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(tick + 2)
+    return read()
+  }
+  await grab(swarm.id)
+  assert.equal((await read()).view.swarms.find(s => s.id === swarm.id).manual, false, 'primary selection alone keeps gambits')
+  assert.equal(posts.filter(p => p.path === '/input').length, 0)
+
+  for (const button of ['right', 'middle']) await t.test(`${button} order`, async () => {
+    await grab(swarm.id)
+    const before = await read(), start = posts.length, replyStart = replies.length
+    await page.mouse.click(destination.x, destination.y, { button })
+    const after = await advance(before.view.tick), actual = after.view.swarms.find(s => s.id === swarm.id)
+    const observed = { action: 'secondary order', button, tickBefore: before.view.tick, tickAfter: after.view.tick, posts: posts.slice(start), replies: replies.slice(replyStart), manual: actual.manual, tx: actual.tx, ty: actual.ty }
+    observations.push(observed)
+    await snapshot(button + '-order')
+    // Restore through the real shortcut even on RED, so both buttons are measured.
+    if (actual.manual) {
+      await page.keyboard.press('g')
+      await expect.poll(async () => (await read()).view.swarms.find(s => s.id === swarm.id).manual).toBe(false)
+    }
+    assert.deepEqual(observed.posts, [], `${button} must emit no order: ${JSON.stringify(observed)}`)
+    assert.equal(observed.manual, false)
+  })
+
+  for (const button of ['right', 'middle']) await t.test(`${button} selection`, async () => {
+    await grab(swarm.id)
+    const before = await read(), other = before.view.swarms.find(s => s.id !== swarm.id), p = point(other.x, other.y), start = posts.length
+    await page.mouse.click(p.x, p.y, { button })
+    const after = await advance(before.view.tick), grabbed = await selected()
+    observations.push({ action: 'secondary selection', button, selected: grabbed, expected: String(swarm.id), tick: after.view.tick })
+    assert.equal(grabbed, String(swarm.id))
+    assert.deepEqual(posts.slice(start), [])
+    assert.ok(after.view.swarms.every(s => !s.manual))
+  })
+
+  await grab(swarm.id)
+  const start = posts.length, replyStart = replies.length
+  const accepted = page.waitForResponse(r => new URL(r.url()).pathname === '/input' && r.request().method() === 'POST')
+  await page.mouse.click(destination.x, destination.y)
+  const response = await accepted
+  assert.equal(response.status(), 200); assert.equal((await response.json()).ok, true)
+  await expect.poll(async () => { const s = (await read()).view.swarms.find(s => s.id === swarm.id); return { manual: s.manual, tx: s.tx, ty: s.ty } }).toEqual({ manual: true, tx: target.x, ty: target.y })
+  assert.deepEqual(posts.slice(start), [{ path: '/input', body: { order: { swarm: swarm.id, ...target } } }])
+  observations.push({ action: 'primary order', target, posts: posts.slice(start), replies: replies.slice(replyStart), tick: (await read()).view.tick })
+  await snapshot('primary-order')
+  await page.keyboard.press('g')
+  await expect.poll(async () => (await read()).view.swarms.find(s => s.id === swarm.id).manual).toBe(false)
+  assert.deepEqual(posts.slice(start + 1), [{ path: '/input', body: { release: swarm.id } }])
+  observations.push({ action: 'G release', manual: false, tick: (await read()).view.tick })
+  await page.keyboard.press('Escape')
+  await expect.poll(selected).toBe(null)
+  for (const button of ['right', 'middle']) await t.test(`${button} ping`, async () => {
+    const before = await read(), start = posts.length
+    await page.mouse.click(destination.x, destination.y, { button })
+    const after = await advance(before.view.tick), emitted = posts.slice(start)
+    observations.push({ action: 'secondary ping', button, posts: emitted, tick: after.view.tick })
+    assert.deepEqual(emitted, [])
+    assert.equal(await selected(), null)
+    assert.ok(after.view.swarms.every(s => !s.manual))
+  })
+  const pingStart = posts.length
+  const pinged = page.waitForResponse(r => new URL(r.url()).pathname === '/say' && r.request().method() === 'POST')
+  await page.mouse.click(destination.x, destination.y)
+  const ping = await pinged
+  assert.equal(ping.status(), 200); assert.equal((await ping.json()).ok, true)
+  assert.equal(posts.length, pingStart + 1)
+  assert.equal(posts[pingStart].path, '/say')
+  assert.equal(posts[pingStart].body.text, 'look here')
+  assert.ok(Math.abs(posts[pingStart].body.x - target.x) <= 0.5 && Math.abs(posts[pingStart].body.y - target.y) <= 0.5)
+  const last = await advance(first.view.tick)
+  assert.ok(await page.evaluate(() => localStorage.getItem('botters.session')) === session, 'same session (capability omitted)')
+  assert.deepEqual(map(last), map(first))
+  assert.ok(last.view.tick > first.view.tick)
+  assert.equal(posts.filter(p => p.path === '/session').length, 1)
+  assert.equal(posts.filter(p => p.path === '/play').length, 1)
+  assert.deepEqual(errors, [])
+  observations.push({ action: 'primary ping and continuity', posts: posts.slice(pingStart), sameSession: true, sameMap: true, planets: first.view.planets.length, tickBefore: first.view.tick, tickAfter: last.view.tick, sessionPosts: 1, playPosts: 1 })
+  await snapshot('primary-ping')
 })
 
 test('in-match keyboard navigation escapes swarm cycling and resumes the same real match', { timeout: 60000 }, async t => {
@@ -423,6 +565,8 @@ test('invalid saved preferences do not block local play', { timeout: 90000 }, as
       await page.locator('#play').click()
       await expect(page.locator('#hud')).toContainText('swarms')
       const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+      // The initial HUD can render before the server's first simulation tick.
+      await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(0)
       const first = await read()
       assert.ok(first.view.tick > 0)
       assert.equal(first.opponent.name, `house (${savedSettings?.vs || 'normal'})`)
