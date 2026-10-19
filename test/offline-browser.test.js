@@ -257,7 +257,7 @@ test('in-match keyboard navigation escapes swarm cycling and resumes the same re
   }
   t.after(() => t.diagnostic(`Native keyboard trace (no focus()/click after PLAY): ${JSON.stringify(keys)}`))
   await page.goto(origin)
-  await page.evaluate(() => localStorage.setItem('botters.prefs', JSON.stringify({ vs: 'easy', minutes: 3, planets: 28, planning: 10, withAgent: false, openingMine: true, opening: [{ if: 'always', then: 'hold' }, { if: 'enemy_near', p: 200, then: 'hold', on: false }] })))
+  await page.evaluate(() => { localStorage.setItem('botters.prefs', JSON.stringify({ vs: 'easy', minutes: 3, planets: 28, planning: 10, withAgent: false, openingMine: true, opening: [{ if: 'always', then: 'hold' }, { if: 'enemy_near', p: 200, then: 'hold', on: false }] })); localStorage.setItem('botters.setupOpen', '1') })
   await page.reload()
   await page.locator('#startName').fill('Keyboard local player')
   await page.locator('#startSolo').click()
@@ -360,6 +360,7 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
       await page.locator('#startSolo').click()
       const { agentToken } = await (await created).json()
       await expect(page.locator('#play')).toBeVisible()
+      await page.locator('#setup > summary').click()
       const session = await page.evaluate(() => localStorage.getItem('botters.session'))
       const readLobby = () => page.evaluate(() => fetch('/lobby?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
       const state = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
@@ -514,6 +515,7 @@ test('doctrine save recovery ignores a lobby snapshot predating an acknowledged 
   await page.locator('#startName').fill('Synthetic stale poll player')
   const initial = page.waitForResponse(r => new URL(r.url()).pathname === '/lobby')
   await page.locator('#startSolo').click(); await initial
+  await page.locator('#setup > summary').click()
   await expect(page.locator('#doctrine')).not.toHaveValue('')
   let release, reached
   const held = new Promise(resolve => { reached = resolve })
@@ -634,6 +636,7 @@ test('invalid saved preferences do not block local play', { timeout: 90000 }, as
       if (name === 'null opening') {
         // The next real settings edit still saves normally; recovery itself did not.
         await page.locator('#leave').click()
+        await page.locator('#setup > summary').click()
         await page.locator('#minutes [data-v="3"]').click()
         const saved = JSON.parse((await storage()).prefs)
         assert.equal(saved.minutes, 3)
@@ -645,4 +648,28 @@ test('invalid saved preferences do not block local play', { timeout: 90000 }, as
       t.diagnostic(`${name}: real house tick ${first.view.tick}, session/map continuity verified; raw storage preserved until explicit edit`)
     } finally { await context.close() }
   })
+})
+
+test('casual lobby: one choice and PLAY up front, live swarm backdrop, settings folded away', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } }), errors = []
+  page.on('pageerror', e => errors.push(e.message))
+  await page.goto(origin)
+  await page.locator('#startName').fill('Casual player')
+  await page.locator('#startSolo').click()
+  await expect(page.locator('#play')).toBeInViewport()
+  await expect(page.locator('#vs [data-v="normal"]')).toHaveText('Normal')
+  await expect(page.locator('#withAgent')).toBeHidden() // no agent: no agent choice to read
+  for (const id of ['#doctrine', '#openAgent', '#minutes', '#history']) await expect(page.locator(id)).toBeHidden()
+  const visibleWords = (await page.locator('#lobby').innerText()).split(/\s+/).filter(Boolean).length
+  assert.ok(visibleWords < 60, `lobby shows ${visibleWords} words before any click`)
+  const pixels = () => page.locator('#bg').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < d.length; i += 4) h = (h * 31 + d[i]) | 0; return h })
+  const before = await pixels(); await page.waitForTimeout(300)
+  assert.notEqual(await pixels(), before, 'backdrop swarms must move')
+  await page.getByText('Strategy & settings').click()
+  await expect(page.locator('#doctrine')).toBeVisible()
+  await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms')
+  await expect(page.locator('#bg')).toBeHidden()
+  assert.deepEqual(errors, [])
 })
