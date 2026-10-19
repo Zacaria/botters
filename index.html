@@ -241,7 +241,7 @@
 </div>
 
 <script type="module">
-import { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, rad } from '/sim.js'
+import { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, checkGambits, rad } from '/sim.js'
 const $ = id => document.getElementById(id)
 const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
 const n = c => Math.round(c).toLocaleString('en')
@@ -392,7 +392,12 @@ $('startSolo').onclick = async () => {
 $('startName').onkeydown = e => { if (e.key === 'Enter') $('startSolo').click() }
 
 // ---------- lobby ----------
-const prefs = Object.assign({ vs: 'normal', minutes: 5, planets: 28, planning: 20, withAgent: true, openingMine: false, opening: DEFAULT_GAMBITS }, JSON.parse(localStorage.getItem('botters.prefs') || '{}'))
+const prefs = { vs: 'normal', minutes: 5, planets: 28, planning: 20, withAgent: true, openingMine: false, opening: DEFAULT_GAMBITS }
+try {
+  const saved = JSON.parse(localStorage.getItem('botters.prefs') || '{}')
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) Object.assign(prefs, saved)
+} catch {} // Unreadable preferences fall back in memory; leave stored data untouched.
+if (checkGambits(prefs.opening)) prefs.opening = DEFAULT_GAMBITS
 const savePrefs = () => localStorage.setItem('botters.prefs', JSON.stringify(prefs))
 const NAMES = { vs: { easy: 'house · easy', normal: 'house · normal', hard: 'house · hard', player: 'another player' }, minutes: { 3: '3 min', 5: '5 min', 8: '8 min' }, planets: { 16: 'small · 16 planets', 28: 'medium · 28', 40: 'large · 40' }, planning: { 10: '10 s', 20: '20 s', 30: '30 s' }, withAgent: { true: 'yes', false: 'no, I play alone' } }
 const pick = (id, values) => { $(id).innerHTML = values.map(v => `<button data-v="${v}" class="${String(prefs[id]) === String(v) ? 'on' : ''}">${NAMES[id][v]}</button>`).join(''); $(id).onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; prefs[id] = id === 'vs' ? v : id === 'withAgent' ? v === 'true' : +v; savePrefs(); pick(id, values); lobbyChoices(); syncRoomPlayer() } }
