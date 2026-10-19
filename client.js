@@ -42,11 +42,18 @@ try {
   if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false }
 } catch { /* Offline servers do not advertise a live endpoint. */ }
 const api = async (method, path, body) => {
+  const s = S.session, url = new URL(path, SERVER)
   const headers = { 'content-type': 'application/json' }
   const target = path === '/session' && liveAccounts || path.startsWith('/agent/') ? SERVER : liveServer
   if (new URL(target).hostname.endsWith('.vercel.app') && env.VERCEL_AUTOMATION_BYPASS_SECRET) headers['x-vercel-protection-bypass'] = env.VERCEL_AUTOMATION_BYPASS_SECRET
   const r = await fetch(target + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
-  return { status: r.status, ...(await r.json()) }
+  const data = { status: r.status, ...(await r.json()) }
+  if (s?.agentToken && url.searchParams.get('token') === s.agentToken && (r.status === 401 || r.status === 410 && url.pathname === '/agent/poll')) {
+    // A late refusal belongs to the connection that sent it, not a newer one.
+    if (S.session === s) Object.assign(S, { session: null, opened: false, inMatch: false, matchId: null, since: 0 })
+    data.error = 'Agent access or approval expired or was revoked. Call join_match to request fresh approval from your human.'
+  }
+  return data
 }
 const S = { session: env.BOTTERS_AGENT_TOKEN ? { agentToken: env.BOTTERS_AGENT_TOKEN, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null }
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
@@ -94,14 +101,14 @@ The result includes the rules, the match settings and your human's doctrine (the
   if (!S.opened) { S.opened = true; openUrl(s.lobby) }
   if (s.pairing) {
     const pair = await api('GET', `/agent/poll?token=${s.agentToken}&timeout=20`)
-    if (pair.status === 401 || pair.status === 410) { S.session = null; S.opened = false; return text('Agent approval expired or was revoked. Call join_match to request fresh approval.') }
+    if (pair.error) return text(pair.error)
     if (!pair.approved) return text({ waiting: true, tell_the_human: `Sign in and explicitly connect this agent: ${s.approvalUrl}`, next: 'Call join_match again after approval. Never request the human’s password or browser token.' })
     s.pairing = false; s.lobby = SERVER
   }
   if (vs && s.online) return text('Your signed-in human starts online matches in the lobby. Do not use the headless vs option online; call join_match without vs.')
   if (vs) { const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning }); if (!r.ok && r.error !== 'already in a match') return text(r.error) }
   const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
-  if (r.status === 401) { S.session = null; S.opened = false; return text('Agent access expired or was revoked. Call join_match for a fresh connection.') }
+  if (r.error) return text(r.error)
   if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
   if (!r.match.id || r.match.id !== S.matchId) S.since = 0
   S.inMatch = true; S.matchId = r.match.id || null
