@@ -70,9 +70,11 @@ function parseConfig(text, item) {
   return { data, key }
 }
 
-export async function planInstall({ home = homedir(), platform = process.platform, env = process.env, lookup = name => lookupCommand(name, env), local = false, uninstall = false } = {}) {
+export async function planInstall({ home = homedir(), platform = process.platform, env = process.env, lookup = name => lookupCommand(name, env), local = false, uninstall = false, client } = {}) {
+  const locations = clientLocations({ home, platform, env })
+  if (client !== undefined && !locations.some(item => item.id === client)) throw new Error(`Unknown client. Choose one of: ${locations.map(item => item.id).join(', ')}`)
   const plan = []
-  for (const item of clientLocations({ home, platform, env })) {
+  for (const item of locations.filter(item => client === undefined || item.id === client)) {
     try {
       if (!isAbsolute(item.path)) throw new Error('Config directory must be an absolute path')
       const state = await snapshot(item.path)
@@ -101,6 +103,7 @@ export async function planInstall({ home = homedir(), platform = process.platfor
       plan.push({ ...item, ...state, cli, previous, desired, action, next, env })
     } catch (error) { throw new Error(`${item.name}: ${error.message}`, { cause: error }) }
   }
+  if (client !== undefined && !plan.length) throw new Error(`Selected client ${client} was not detected. Install that client or create its user MCP config, then rerun.`)
   return plan
 }
 
@@ -168,11 +171,19 @@ export async function install(args = [], options = {}) {
   const { input = process.stdin, output = process.stdout } = options
   const log = text => output.write(`${text}\n`)
   const allowed = new Set(['--yes', '--local', '--uninstall', '--help'])
-  if (args.some(arg => !allowed.has(arg))) { log('Unknown install option. Use: botters install [--yes] [--local] [--uninstall]'); return 1 }
-  if (args.includes('--help')) { log('Usage: botters install [--yes] [--local] [--uninstall]\nDetect installed agents and show user-level MCP changes before asking.\n--yes: skip confirmation\n--local: offline house play instead of online\n--uninstall: remove only Botters registrations'); return 0 }
+  const clients = clientLocations().map(item => item.id)
+  const usage = `Usage: botters install [--client <id>] [--yes] [--local] [--uninstall]\nClients: ${clients.join(', ')}`
+  let client
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--client') {
+      if (client !== undefined || !clients.includes(args[i + 1])) { log(`Expected one --client with a supported ID.\n${usage}`); return 1 }
+      client = args[++i]
+    } else if (!allowed.has(args[i])) { log(`Unknown install option.\n${usage}`); return 1 }
+  }
+  if (args.includes('--help')) { log(`${usage}\nDetect installed agents and show user-level MCP changes before asking.\n--client <id>: target only this client; otherwise target all detected clients\n--yes: skip confirmation\n--local: offline house play instead of online\n--uninstall: remove only Botters registrations`); return 0 }
   try {
     const uninstall = args.includes('--uninstall'), local = args.includes('--local')
-    const plan = await planInstall({ ...options, uninstall, local })
+    const plan = await planInstall({ ...options, uninstall, local, client })
     if (!plan.length) { log('No supported agent found. Install Claude Code or Codex, or create your desktop client’s MCP config, then rerun. Manual setup: https://botters.havesomecode.io/guide'); return 1 }
     log(uninstall ? 'Remove Botters from detected user configs:' : `Botters setup: ${local ? 'offline house play' : ONLINE}`)
     for (const item of plan) log(`  ${item.name}: ${item.action} — ${item.path}${item.action !== 'unchanged' ? ` (${item.cli ? 'client CLI + config merge' : 'config merge'}${item.original !== null ? '; backup first' : ''})` : ''}`)

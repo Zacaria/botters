@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, writeFile, readFile, readdir, lstat, symlink } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, readdir, lstat, symlink, readlink, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { Readable, Writable } from 'node:stream'
@@ -17,6 +17,16 @@ async function put(path, text) { await mkdir(join(path, '..'), { recursive: true
 const options = home => ({ home, platform: 'linux', env: { HOME: home, PATH: '' }, lookup: () => null })
 const capture = () => { let text = ''; return { output: new Writable({ write(chunk, _, cb) { text += chunk; cb() } }), text: () => text } }
 const server = { command: 'other', args: ['secret'], env: { KEY: 'keep private' } }
+
+async function fileState(path) {
+  const stat = await lstat(path)
+  const state = { mode: stat.mode, ino: stat.ino, mtime: stat.mtimeMs }
+  if (stat.isSymbolicLink()) return { ...state, link: await readlink(path) }
+  if (!stat.isDirectory()) return { ...state, text: await readFile(path, 'utf8') }
+  const children = {}
+  for (const name of (await readdir(path)).sort()) children[name] = await fileState(join(path, name))
+  return { ...state, children }
+}
 
 for (const platform of ['darwin', 'linux', 'win32']) {
   test(`detect and preserve every client on ${platform}; rerun and uninstall are idempotent`, async t => {
@@ -126,6 +136,193 @@ test('--yes installs; no detection, help and unknown options do not write', asyn
   await put(join(home, '.cursor/mcp.json'), '{}')
   assert.equal(await install(['--yes'], { ...options(home), output: capture().output }), 0)
   assert.ok(parseJson(await readFile(join(home, '.cursor/mcp.json'), 'utf8')).mcpServers.botters)
+})
+
+for (const entry of ['CLI', 'planner']) {
+  test(`selected client excludes unrelated configs before preflight (${entry})`, async t => {
+    const home = await fixture(t)
+    const codex = join(home, '.codex/config.toml'), cursor = join(home, '.cursor/mcp.json')
+    await put(codex, 'model = "keep"\n[mcp_servers.other]\ncommand = "other"\n')
+    await put(cursor, '{oops')
+    const looked = [], out = capture()
+    const opts = { ...options(home), lookup: name => { looked.push(name); return null } }
+    if (entry === 'CLI') {
+      assert.equal(await install(['--client', 'codex', '--yes'], { ...opts, output: out.output }), 0, out.text())
+      assert.ok(parseToml(await readFile(codex, 'utf8')).mcp_servers.botters)
+      assert.doesNotMatch(out.text(), /Claude|Cursor|Windsurf/)
+    } else {
+      const plan = await planInstall({ ...opts, client: 'codex' })
+      assert.deepEqual(plan.map(item => item.id), ['codex'])
+    }
+    assert.deepEqual(looked, ['codex'])
+    assert.equal(await readFile(cursor, 'utf8'), '{oops')
+    assert.deepEqual(await readdir(join(home, '.cursor')), ['mcp.json'])
+  })
+}
+
+for (const platform of ['darwin', 'linux', 'win32']) {
+  for (const client of ['claude', 'codex', 'desktop', 'cursor', 'windsurf']) {
+    test(`selected client ${client} on ${platform}: isolated install, rerun, local update and uninstall`, async t => {
+      const home = await fixture(t), looked = [], calls = []
+      const opts = { ...options(home), platform, env: {
+        HOME: home, PATH: '', CLAUDE_CONFIG_DIR: join(home, 'claude-space'), CODEX_HOME: join(home, 'codex-space'),
+        APPDATA: join(home, 'Roaming'), XDG_CONFIG_HOME: join(home, 'xdg'),
+      }, lookup: name => { looked.push(name); return join(home, 'fake-bin', name) },
+      run: async (command, args) => { calls.push([command, args]) } }
+      const paths = clientLocations(opts), selected = paths.find(item => item.id === client)
+      for (const item of paths) await put(item.path, item.id === 'codex'
+        ? 'model = "keep"\n[mcp_servers.other]\ncommand = "other"\nargs = ["secret"]\n[mcp_servers.other.env]\nKEY = "keep private"\n'
+        : '{\n// keep comment\n"theme":"keep","mcpServers":{"other":' + JSON.stringify(server) + '}}')
+      const before = await fileState(home)
+      const original = await readFile(selected.path, 'utf8'), mode = (await lstat(selected.path)).mode & 0o777
+      const excluded = paths.filter(item => item.id !== client)
+      const untouched = await Promise.all(excluded.map(item => fileState(join(item.path, '..'))))
+      const out = capture(), cliClient = ['claude', 'codex'].includes(client)
+      const invoke = args => install(['--client', client, '--yes', ...args], { ...opts, output: out.output })
+      const data = async () => {
+        const text = await readFile(selected.path, 'utf8')
+        return client === 'codex' ? JSON.parse(JSON.stringify(parseToml(text))) : parseJson(text)
+      }
+      const key = client === 'codex' ? 'mcp_servers' : 'mcpServers'
+      assert.equal(await invoke([]), 0, out.text())
+      assert.deepEqual((await data())[key].other, server)
+      assert.equal((await data())[client === 'codex' ? 'model' : 'theme'], 'keep')
+      if (client !== 'codex') assert.match(await readFile(selected.path, 'utf8'), /keep comment/)
+      assert.equal((await data())[key].botters.env.BOTTERS_SERVER, 'https://botters.havesomecode.io')
+      assert.equal((await lstat(selected.path)).mode & 0o777, mode)
+      const backups = (await readdir(join(selected.path, '..'))).filter(name => name.includes('.botters-backup-'))
+      assert.equal(backups.length, 1)
+      assert.equal(await readFile(join(selected.path, '..', backups[0]), 'utf8'), original)
+      assert.equal((await lstat(join(selected.path, '..', backups[0]))).mode & 0o777, 0o600)
+      const installed = await fileState(home), callCount = calls.length
+      assert.equal(await invoke([]), 0)
+      assert.deepEqual(await fileState(home), installed, 'rerun does not write or back up anything')
+      assert.equal(calls.length, callCount)
+      assert.equal(await invoke(['--local']), 0)
+      assert.equal((await data())[key].botters.env.BOTTERS_SERVER, '')
+      assert.equal(await invoke(['--uninstall']), 0)
+      assert.deepEqual((await data())[key], { other: server })
+      const removed = await fileState(home), removeCalls = calls.length
+      assert.equal(await invoke(['--uninstall']), 0)
+      assert.deepEqual(await fileState(home), removed)
+      assert.equal(calls.length, removeCalls)
+      assert.deepEqual(await Promise.all(excluded.map(item => fileState(join(item.path, '..')))), untouched)
+      assert.deepEqual(Object.keys((await fileState(home)).children), Object.keys(before.children), 'no excluded directories created')
+      assert.deepEqual(looked, cliClient ? Array(5).fill(client) : [])
+      assert.ok(calls.every(([command]) => command === join(home, 'fake-bin', client)))
+      assert.deepEqual(calls.map(([, args]) => args.slice(0, 2)), cliClient ? [['mcp', 'add'], ['mcp', 'remove'], ['mcp', 'add'], ['mcp', 'remove']] : [])
+      assert.match(out.text(), new RegExp(selected.name))
+      for (const item of excluded) assert.ok(!out.text().includes(item.name), `excluded ${item.name} in logs`)
+      assert.doesNotMatch(out.text(), /secret|keep private/)
+    })
+  }
+}
+
+test('selected client skips absent configs and excluded symlinks; default and selected preflight stay strict', async t => {
+  const home = await fixture(t), codex = join(home, '.codex/config.toml'), cursor = join(home, '.cursor/mcp.json')
+  await put(codex, 'model="keep"\n')
+  await put(cursor, '{oops')
+  const opts = { ...options(home), lookup: name => { assert.equal(name, 'codex'); return null } }
+  let before = await fileState(home)
+  assert.equal(await install(['--yes'], { ...options(home), output: capture().output }), 1)
+  assert.deepEqual(await fileState(home), before)
+  await assert.rejects(planInstall({ ...options(home), client: 'cursor' }), /Cursor.*Invalid JSON/)
+  assert.deepEqual(await fileState(home), before)
+  await unlink(cursor)
+  const target = join(home, 'target.json')
+  await put(target, '{}')
+  await symlink(target, cursor)
+  before = await fileState(home)
+  assert.equal(await install(['--yes'], { ...options(home), output: capture().output }), 1)
+  await assert.rejects(planInstall({ ...options(home), client: 'cursor' }), /Cursor.*symlink/)
+  assert.deepEqual(await fileState(home), before)
+  assert.equal(await install(['--client', 'codex', '--yes'], { ...opts, output: capture().output }), 0)
+  assert.equal(await readFile(target, 'utf8'), '{}')
+  assert.equal(await readlink(cursor), target)
+  assert.deepEqual(await readdir(home), ['.codex', '.cursor', 'target.json'])
+  await put(codex, 'not toml')
+  const malformed = await fileState(home)
+  assert.equal(await install(['--client', 'codex', '--yes'], { ...opts, output: capture().output }), 1)
+  assert.deepEqual(await fileState(home), malformed)
+})
+
+test('selected client validates CLI arguments before planning and rejects unknown planner targets', async t => {
+  const home = await fixture(t)
+  for (const args of [
+    ['--client'], ['--client', '--yes'], ['--client', 'unknown'], ['--client', 'CODEX'],
+    ['--client', 'codex', '--client', 'cursor'], ['--client', 'codex', '--client', 'codex'],
+    ['--client=codex'], ['--client', 'codex', '--yess'], ['--client', 'codex', 'cursor'],
+  ]) {
+    const out = capture()
+    const opts = { ...options(home), output: out.output, lookup: () => assert.fail('lookup for invalid args'), run: () => assert.fail('CLI for invalid args') }
+    Object.defineProperty(opts, 'home', { get() { assert.fail('planning invalid CLI arguments') } })
+    assert.equal(await install(args, opts), 1, JSON.stringify(args))
+    assert.match(out.text(), /Usage:.*--client <id>/)
+    for (const id of ['claude', 'codex', 'desktop', 'cursor', 'windsurf']) assert.ok(out.text().includes(id))
+  }
+  for (const client of ['unknown', '', null, ['codex']]) {
+    await assert.rejects(planInstall({ ...options(home), client, lookup: () => assert.fail('lookup for unknown target') }), /client.*claude.*codex.*desktop.*cursor.*windsurf/i)
+  }
+  const out = capture()
+  assert.equal(await install(['--client', 'codex', '--help'], { ...options(home), output: out.output, lookup: () => assert.fail('help lookup') }), 0)
+  assert.match(out.text(), /--client <id>/)
+  assert.deepEqual(await readdir(home), [])
+})
+
+test('selected client not detected never falls back; CLI-only detection still creates only its config', async t => {
+  const home = await fixture(t), cursor = join(home, '.cursor/mcp.json')
+  await put(cursor, '{}')
+  const before = await fileState(home), out = capture(), looked = []
+  const opts = { ...options(home), output: out.output, lookup: name => { looked.push(name); return null } }
+  assert.equal(await install(['--client', 'codex', '--yes'], opts), 1)
+  assert.match(out.text(), /codex.*not detected/i)
+  assert.deepEqual(looked, ['codex'])
+  assert.deepEqual(await fileState(home), before)
+  for (const client of ['claude', 'codex']) {
+    const calls = []
+    const selected = { ...options(home), client, lookup: name => { assert.equal(name, client); return join(home, 'fake-bin', name) } }
+    const plan = await planInstall(selected)
+    assert.deepEqual(plan.map(item => item.id), [client])
+    await applyPlan(plan, { run: async (command, args) => { calls.push([command, args]); assert.ok((await lstat(join(plan[0].path, '..'))).isDirectory()) } })
+    assert.equal(calls.length, 1)
+    assert.equal((await lstat(plan[0].path)).mode & 0o777, 0o600)
+  }
+  assert.equal(await readFile(cursor, 'utf8'), '{}')
+})
+
+test('selected client keeps interactive confirmation and refuses pipes without --yes', async t => {
+  const home = await fixture(t), path = join(home, '.cursor/mcp.json')
+  await put(path, '{}')
+  const before = await fileState(home)
+  for (const answer of ['y\n', 'n\n']) {
+    const out = capture()
+    assert.equal(await install(['--client', 'cursor'], { ...options(home), input: Readable.from([answer]), output: out.output }), 1)
+    assert.match(out.text(), /--yes/)
+    assert.deepEqual(await fileState(home), before)
+  }
+  for (const answer of ['\n', 'n\n', 'yes\n']) {
+    const input = Readable.from([answer]); input.isTTY = true
+    const out = capture()
+    assert.equal(await install(['--client', 'cursor'], { ...options(home), input, output: out.output }), 0)
+    assert.match(out.text(), /Apply these changes/)
+    if (answer !== 'yes\n') { assert.match(out.text(), /Cancelled/); assert.deepEqual(await fileState(home), before) }
+  }
+  assert.ok(parseJson(await readFile(path, 'utf8')).mcpServers.botters)
+})
+
+test('selected client preserves concurrent-change and CLI restoration guards', async t => {
+  const home = await fixture(t), path = join(home, '.claude.json')
+  await put(path, '{"theme":"original"}')
+  await put(join(home, '.cursor/mcp.json'), '{oops')
+  const opts = { ...options(home), client: 'claude', lookup: name => { assert.equal(name, 'claude'); return join(home, 'fake-bin', name) } }
+  const plan = await planInstall(opts)
+  await writeFile(path, '{"theme":"concurrent"}')
+  const before = await fileState(home)
+  await assert.rejects(applyPlan(plan, { run: () => assert.fail('CLI before concurrency check') }), /changed/)
+  assert.deepEqual(await fileState(home), before)
+  await assert.rejects(applyPlan(await planInstall(opts), { run: async () => { await writeFile(path, '{}'); throw new Error('private CLI output') } }), /Claude Code.*restored/)
+  assert.equal(await readFile(path, 'utf8'), '{"theme":"concurrent"}')
+  assert.equal(await readFile(join(home, '.cursor/mcp.json'), 'utf8'), '{oops')
 })
 
 test('preflight rejects malformed/invalid config across all clients before any write', async t => {
