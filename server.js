@@ -209,8 +209,10 @@ const routes = {
     }
     const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release }
     if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
-    const r = applyInput(m.s, side, input)
+    const candidate = structuredClone(m.s)
+    const r = applyInput(candidate, side, input)
     if (r.ok) {
+      m.s = candidate
       m.log.push({ tick: m.s.tick, side, role: a.role, input })
       const why = b.why ? String(b.why).slice(0, 120) : '', t = Math.floor(m.s.tick / TPS), list = m.s.gambits[side]
       if (b.gambits) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why }
