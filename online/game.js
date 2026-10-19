@@ -73,7 +73,7 @@ function matchFrame(m, side, now) {
   const p = m.players[side], foe = opponent(m, side)
   return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy,
     startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
-    opponent: { name: foe.name, setup: foe.setup, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
+    opponent: { name: foe.name, setup: foe.setup, human: !!foe.session, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
 }
 
 export class OnlineGame {
@@ -107,7 +107,7 @@ export class OnlineGame {
 
         const chunks = []
         for (let i = 0; i < Math.ceil(m.logCount / 64); i++) {
-          const chunk = await tx.read(`log:${m.id}:${i}`)
+          const chunk = await tx.get(`log:${m.id}:${i}`)
           if (!chunk) fail(503, 'Match log is unavailable. Retry shortly.')
           chunks.push(chunk)
         }
@@ -149,7 +149,7 @@ export class OnlineGame {
         return m
       }
       const start = async (entries, req, roomCode = null) => {
-        const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, startsAt: now + req.planning * 1000 }
+        const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, planning: req.planning, startsAt: now + req.planning * 1000 }
         for (const [side, e] of entries.entries()) {
           const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
             agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', events: [], seq: 0, sent: [], humanSent: [], calls: [], feed: [], prev: null, seen: now,
@@ -290,6 +290,24 @@ export class OnlineGame {
           return { ok: true }
         }
         if (active(m) || s.queued) fail(409, 'Finish your match or cancel the queue first.')
+        if (path === '/rooms/rematch') {
+          if (!m || body.matchId !== undefined && body.matchId !== m.id) fail(409, 'This match is no longer available for a rematch.')
+          if (!s.room) {
+            const foe = opponent(m, s.side), other = foe.session && await loadSession(foe.session)
+            if (!other || other.match !== m.id || other.queued || other.room && other.room !== m.rematchRoomCode) fail(409, 'Your opponent has left. Find a new opponent from the lobby.')
+            const req = parsePlay(body)
+            let room = idx.rooms[m.rematchRoomCode]
+            if (!room) {
+              let code
+              do { code = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[randomInt(32)]).join('') } while (idx.rooms[code])
+              room = idx.rooms[code] = { host: s.id, members: [s.id], invited: other.id, settings: sharedSettings({ ...m.s.opts, planning: m.planning || 20 }), ready: [s.id], updated: now, match: m.id }
+              m.rematchRoomCode = code; s.room = code; s.roomPrefs = req
+              return { ok: true, waiting: true }
+            }
+            if (room.match !== m.id || room.invited !== s.id || room.members.length !== 1 || room.members[0] !== other.id) fail(409, 'This rematch is no longer available.')
+            room.members.push(s.id); s.room = m.rematchRoomCode; s.roomPrefs = req
+          }
+        }
         if (path === '/rooms' || path === '/rooms/join') {
           if (s.room && idx.rooms[s.room]) fail(409, 'Leave your current room first.')
           if (path === '/rooms') {
@@ -301,6 +319,7 @@ export class OnlineGame {
           } else {
             const code = text(body.code, 6).toUpperCase(), room = idx.rooms[code]
             if (!room) fail(404, 'Room not found. Check the code or ask for a new link.')
+            if (room.invited && room.invited !== s.id) fail(403, 'This rematch is reserved for the original opponent.')
             if (room.members.length >= 2) fail(409, 'Room is full.')
             // A finished room can accept a replacement; an active match cannot.
             if (active(await loadMatch(room.match))) fail(409, 'This room is playing a match.')
@@ -319,6 +338,7 @@ export class OnlineGame {
           return await roomInfo(idx)
         }
         if (!['/rooms/start', '/rooms/rematch'].includes(path)) fail(404, 'Unknown room action.')
+        if (path === '/rooms/rematch' && room.invited && room.members.length === 1 && room.members[0] === s.id) return { ok: true, waiting: true }
         if (room.members.length !== 2) fail(409, 'Wait for your opponent to join.')
         if (path === '/rooms/start' && room.host !== s.id) fail(403, 'Only the host can start the match.')
         if (active(await loadMatch(room.match))) fail(409, 'Room is already playing.')
@@ -370,6 +390,16 @@ export class OnlineGame {
         if (!m || !p.agentJoined) return { events: [], state: null, next: m && !p.withAgent ? 'solo' : 'join' }
         const since = Number(q.get('since')) || 0
         return { events: p.events.filter(e => e.seq > since), state: view(m.s, s.side), startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)) }
+      }
+      if (method === 'POST' && path === '/surrender') {
+        human(); requireMatch()
+        if (m.s.ended) fail(409, 'Match is over.')
+        const input = { surrender: true }
+        applyInput(m.s, s.side, input)
+        await appendLog(m, { tick: m.s.tick, side: s.side, role: 'human', input })
+        for (const player of m.players) diffEvents(m, player)
+        await finish(m)
+        return { ok: true }
       }
       if (method === 'POST' && path === '/input') {
         requireMatch()

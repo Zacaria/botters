@@ -51,8 +51,8 @@ Then plug your agent. The full guide is at `http://localhost:8787/guide`.
 1. Your agent calls `join_match`: it opens (or links) your **lobby** and waits.
 2. In the lobby you write the **doctrine** (your strategy in your words, 500 characters) and pick the opponent (house easy / normal / hard, or another player), the length (3 / 5 / 8 min), the map (16 / 28 / 40 planets), the planning countdown, and who writes the opening gambits.
 3. **Play**: your agent receives the doctrine and writes the opening gambits during the countdown.
-4. In the match, the panel shows who last wrote the gambits and why; new rules flash. You can edit the gambits, switch rules (click, 1–0), change the doctrine, message or ping your agent, and grab swarms. Each of your actions reaches your agent as a `HUMAN …` event.
-5. End screen: the same match replayed without your actions and without your agent's, then **Play again**. The lobby lists your last 10 matches.
+4. In the match, the panel shows who last wrote the gambits and why; new rules flash. You can edit the gambits, switch rules (click, 1–0), change the doctrine, message or ping your agent, and grab swarms. Each of your actions reaches your agent as a `HUMAN …` event. **Surrender** asks for confirmation and ends the match as a loss, even during planning; **menu** leaves the match running so you can resume it. Surrender works locally and online, including rooms; only the human can surrender (`POST /surrender` with their human token). The result, history and Elo use the normal match-end flow, then you can play again or request a room rematch.
+5. End screen: the same match replayed without your actions and without your agent's, then **Play again**. After online matchmaking, **Rematch** keeps the same opponent: the first player opens a room and waits; the second accepts from their result screen. Both must accept before the next PvP starts. Match length, map size and planning countdown are preserved, while each player supplies their own current opening/agent preference. It never falls back to a house opponent. You can leave the waiting room instead. The lobby lists your last 10 matches.
 
 ## Rules
 

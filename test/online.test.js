@@ -43,6 +43,66 @@ test('atomic compatible matchmaking, any settings, cancellation, no duplicate/se
   await assert.rejects(f.call(a, 'POST', '/play', { vs: 'player' }), { status: 409 })
 })
 
+test('matchmaking rematch keeps the same two players and settings, with separate human consent', async () => {
+  const f = fixture(), a = await f.session('a', 'codex'), b = await f.session('b', 'claude'), c = await f.session('c')
+  const prefs = { vs: 'player', minutes: 8, planets: 40, planning: 30, withAgent: false }
+  await f.call(a, 'POST', '/play', prefs); await f.call(b, 'POST', '/play', prefs)
+  const first = await f.call(a, 'GET', '/state')
+  assert.equal(first.opponent.human, true)
+  await assert.rejects(f.call(a, 'POST', '/rooms/rematch', { matchId: first.matchId }), { status: 409 })
+  await f.call(a, 'POST', '/surrender')
+  await assert.rejects(f.call(a, 'POST', '/rooms/rematch', { matchId: first.matchId }, 'agent'), { status: 401 })
+  await assert.rejects(f.call(c, 'POST', '/rooms/rematch', { matchId: first.matchId }), { status: 409 })
+  await assert.rejects(f.call(a, 'POST', '/rooms/rematch', { matchId: first.matchId, opening: [{ if: 'bad', then: 'hold' }] }), { status: 400 })
+  assert.equal((await f.call(a, 'GET', '/lobby')).room, null)
+  assert.deepEqual(await f.call(a, 'POST', '/rooms/rematch', { ...prefs, matchId: first.matchId }), { ok: true, waiting: true })
+  const waiting = await f.call(a, 'GET', '/lobby')
+  assert.equal(waiting.live, false); assert.equal(waiting.room.players.length, 1)
+  assert.equal((await f.call(b, 'GET', '/lobby')).room, null, 'Do not move the opponent without their consent')
+  assert.equal((await f.call(b, 'GET', '/state')).matchId, first.matchId)
+  assert.equal(waiting.room.ready.length, 1)
+  assert.deepEqual(await f.call(a, 'POST', '/rooms/rematch', { matchId: first.matchId }), { ok: true, waiting: true })
+  await assert.rejects(f.call(c, 'POST', '/rooms/join', { code: waiting.room.code }), { status: 403 })
+  assert.equal((await f.call(c, 'GET', '/lobby')).room, null)
+  assert.equal((await f.call(a, 'GET', '/room')).players.length, 1)
+  const opening = [{ if: 'always', then: 'hold' }]
+  await f.call(b, 'POST', '/rooms/rematch', { matchId: first.matchId, minutes: 3, planets: 16, planning: 10, withAgent: false, opening })
+  const again = await f.call(a, 'GET', '/state'), other = await f.call(b, 'GET', '/state')
+  assert.equal(again.matchId, other.matchId); assert.notEqual(again.matchId, first.matchId)
+  assert.equal(again.opponent.name, 'b'); assert.equal(other.opponent.name, 'a')
+  assert.deepEqual(again.options, { minutes: 8, planets: 40 }); assert.equal(again.startsIn, 30)
+  assert.equal(again.roomCode, waiting.room.code); assert.equal(other.roomCode, again.roomCode)
+  assert.equal(again.me.withAgent, false); assert.equal(other.me.withAgent, false)
+  assert.deepEqual(other.view.gambits, [{ ...opening[0], on: true }])
+  assert.equal((await f.call(a, 'GET', '/lobby')).history.length, 1)
+})
+
+test('matchmaking rematch handles concurrent acceptance and refuses stale or departed opponents', async () => {
+  for (const departure of [null, 'queue', 'house', 'room']) {
+    const f = fixture(), a = await f.session('a'), b = await f.session('b')
+    const prefs = { vs: 'player', minutes: 3, planets: 16, planning: 10 }
+    await f.call(a, 'POST', '/play', prefs); await f.call(b, 'POST', '/play', prefs)
+    await f.call(a, 'POST', '/surrender')
+    const old = await f.call(a, 'GET', '/state'), body = { matchId: old.matchId, withAgent: false }
+    if (!departure) {
+      const replies = await Promise.all([f.call(a, 'POST', '/rooms/rematch', body), f.call(b, 'POST', '/rooms/rematch', body)])
+      assert.equal(replies.filter(r => r.waiting).length, 1)
+      assert.equal((await f.call(a, 'GET', '/state')).matchId, (await f.call(b, 'GET', '/state')).matchId)
+      assert.notEqual((await f.call(a, 'GET', '/state')).matchId, old.matchId)
+      await f.call(a, 'POST', '/surrender')
+      await assert.rejects(f.call(a, 'POST', '/rooms/rematch', body), { status: 409 })
+      assert.equal((await f.call(a, 'GET', '/room')).ready.length, 0)
+    } else {
+      if (departure === 'room') await f.call(b, 'POST', '/rooms', prefs)
+      else await f.call(b, 'POST', '/play', { ...prefs, vs: departure === 'house' ? 'normal' : 'player' })
+      const before = await f.call(b, 'GET', '/lobby')
+      await assert.rejects(f.call(a, 'POST', '/rooms/rematch', body), { status: 409 })
+      assert.equal((await f.call(a, 'GET', '/lobby')).room, null)
+      assert.deepEqual(await f.call(b, 'GET', '/lobby'), before)
+    }
+  }
+})
+
 test('room host authority, code/link, settings, concurrent membership, finish and rematch', async () => {
   const f = fixture(), a = await f.session('a', 'A'), b = await f.session('b', 'B'), c = await f.session('c')
   const room = await f.call(a, 'POST', '/rooms', { minutes: 3, planets: 16, planning: 10 })
@@ -117,6 +177,51 @@ test('cold instance resumes, concurrent agent rate limit is shared, replay and E
   const m = JSON.parse(await f.store.get(`match:${before.matchId}`))
   const log = (await Promise.all(Array.from({ length: Math.ceil(m.logCount / 64) }, (_, i) => f.store.get(`log:${m.id}:${i}`).then(JSON.parse)))).flat()
   assert.deepEqual(replay(m.s.seed, log, m.s.opts), m.s)
+})
+
+test('surrender finishes either room side once, notifies both agents and permits rematch or leave', async () => {
+  for (const side of [0, 1]) {
+    const f = fixture(), a = await f.session('a', 'A'), b = await f.session('b', 'B')
+    await assert.rejects(f.call(a, 'POST', '/surrender'), { status: 409 })
+    const room = await f.call(a, 'POST', '/rooms', { minutes: 3, planets: 16, planning: 10 })
+    await f.call(b, 'POST', '/rooms/join', { code: room.code })
+    await f.call(a, 'POST', '/rooms/start')
+    for (const player of [a, b]) await f.call(player, 'GET', '/next', {}, 'agent')
+    if (side) f.advance(12_000)
+    const loser = [a, b][side], winner = [a, b][1 - side]
+    const before = await f.call(loser, 'GET', '/state')
+    await assert.rejects(f.call(loser, 'POST', '/surrender', {}, 'agent'), { status: 401 })
+    await assert.rejects(f.call(loser, 'POST', '/input', { surrender: true }, 'agent'), { status: 400 })
+    assert.deepEqual(await f.call(loser, 'POST', '/surrender'), { ok: true })
+    const lost = await f.call(loser, 'GET', '/state'), won = await f.call(winner, 'GET', '/state')
+    assert.deepEqual(lost.view.ended, { reason: 'surrender', result: 'lost' })
+    assert.deepEqual(won.view.ended, { reason: 'surrender', result: 'won' })
+    assert.equal(lost.view.tick, before.view.tick)
+    assert.equal(lost.report.actual.result, 'lost'); assert.equal(won.report.actual.result, 'won')
+    for (const [player, result] of [[loser, 'lost'], [winner, 'won']]) {
+      const events = await f.call(player, 'GET', '/events', {}, 'agent')
+      assert.equal(events.events.filter(e => e.text.includes(`match over: you ${result} (surrender)`)).length, 1)
+    }
+    const m = JSON.parse(await f.store.get(`match:${lost.matchId}`))
+    const log = (await Promise.all(Array.from({ length: Math.ceil(m.logCount / 64) }, (_, i) => f.store.get(`log:${m.id}:${i}`).then(JSON.parse)))).flat()
+    assert.deepEqual(replay(m.s.seed, log, m.s.opts), m.s)
+    await assert.rejects(f.call(winner, 'POST', '/surrender'), { status: 409 })
+    await assert.rejects(f.call(loser, 'POST', '/input', { toggle: 0 }), { status: 409 })
+    f.advance(20_000)
+    assert.deepEqual((await f.call(loser, 'GET', '/state')).view, lost.view)
+    for (const player of [a, b]) {
+      const lobby = await f.call(player, 'GET', '/lobby')
+      assert.equal(lobby.live, false); assert.equal(lobby.history.length, 1)
+      assert.equal(lobby.history[0].reason, 'surrender')
+      assert.ok(lobby.leaderboard.every(p => p.games === 1))
+    }
+    await f.call(loser, 'POST', '/rooms/rematch')
+    await f.call(winner, 'POST', '/rooms/rematch')
+    assert.notEqual((await f.call(loser, 'GET', '/state')).matchId, lost.matchId)
+    await f.call(loser, 'POST', '/surrender')
+    await f.call(loser, 'POST', '/rooms/leave')
+    assert.equal((await f.call(loser, 'GET', '/lobby')).room, null)
+  }
 })
 
 test('abandoned queue expires, room leave removes stale membership, ended input rejected', async () => {

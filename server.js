@@ -58,12 +58,12 @@ function startMatch(entries, req) { // entries[1] === null: the house plays side
     if (e) { e.s.match = m; e.s.side = side }
   })
   for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is on the ${p.side ? 'right' : 'left'}. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits: keep them unless the situation demands a change.' : 'Write your opening gambits from the doctrine now.'}`)
-  const timer = setInterval(() => {
+  m.timer = setInterval(() => {
     if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
     step(m.s)
-    if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
-    if (m.s.ended) { clearInterval(timer); finish(m) } // before the last frame: it carries the report
-    if (m.s.tick % FRAME_EVERY === 0 || m.s.ended) for (const st of m.streams) send(st, m)
+    if (m.s.ended) return finish(m)
+    if (m.s.tick % TPS === 0) for (const p of m.players) diffEvents(m, p)
+    if (m.s.tick % FRAME_EVERY === 0) for (const st of m.streams) send(st, m)
   }, 1000 / TPS)
   for (const e of entries) e?.s.nextWaiters.splice(0).forEach(fn => fn()) // wake agents only once the match is complete
   return m
@@ -77,12 +77,16 @@ const frame = (m, side) => {
 const send = (st, m) => st.res.write(`data: ${JSON.stringify(frame(m, st.side))}\n\n`)
 
 function finish(m) {
+  if (m.report) return
+  clearInterval(m.timer)
+  for (const p of m.players) diffEvents(m, p)
   const [a, b] = m.players, w = m.s.ended.winner
   const ra = elo.get(a.name) ?? 1000, rb = elo.get(b.name) ?? 1000
   const exp = 1 / (1 + 10 ** ((rb - ra) / 400)), got = w === 0 ? 1 : w === 1 ? 0 : 0.5
   elo.set(a.name, Math.round(ra + 32 * (got - exp))); elo.set(b.name, Math.round(rb - 32 * (got - exp)))
   m.report = m.players.map(p => p.session && whatIf(m, p))
   for (const p of m.players) if (p.session) p.session.history = [{ ...m.report[p.side], reason: m.s.ended.reason, at: Math.round(m.s.tick / TPS), vs: m.players[1 - p.side].name, withAgent: p.withAgent }, ...p.session.history].slice(0, 10)
+  for (const st of m.streams) send(st, m)
   setTimeout(() => { for (const p of m.players) if (p.session?.match === m) p.session.match = null }, FINISHED_TTL)
   console.error(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${b.name} (${b.setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0] }))
 }
@@ -196,6 +200,16 @@ const routes = {
     const t = setTimeout(() => { p.waiters = p.waiters.filter(f => f !== fn); reply() }, Math.min(25, Number(q.get('timeout') || 10)) * 1000)
     const fn = () => { clearTimeout(t); reply() }
     p.waiters.push(fn)
+  },
+  'POST /surrender': (req, res, q) => {
+    const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'bad token' })
+    const m = a.s.match
+    if (!m || m.s.ended) return json(res, 409, { error: m ? 'match ended' : 'not in a match' })
+    const input = { surrender: true }, side = a.s.side
+    applyInput(m.s, side, input)
+    m.log.push({ tick: m.s.tick, side, role: 'human', input })
+    finish(m)
+    json(res, 200, { ok: true })
   },
   'POST /input': async (req, res, q) => { // agent or human: gambits, toggle, order, split, release
     const a = auth(q); if (!a) return json(res, 401, { error: 'bad token' })

@@ -47,6 +47,35 @@ test('unchanged local server serves the shared UI and runs an offline house matc
   assert.equal(state.opponent.name, 'house (normal)')
 })
 
+test('local human surrender ends during planning or play, records one result and permits play again', async t => {
+  for (const delay of ['60000', '1']) await t.test(delay === '1' ? 'playing' : 'planning', async t => {
+    const { origin, post } = await fixture(t, delay)
+    const session = await post('/session', { name: 'surrender', setup: 'script' })
+    const send = token => fetch(`${origin}/surrender?token=${token}`, { method: 'POST' })
+    assert.equal((await send(session.humanToken)).status, 409)
+    await post(`/play?token=${session.humanToken}`, { vs: 'easy', minutes: 3, planets: 16, withAgent: true })
+    await fetch(`${origin}/next?token=${session.agentToken}&timeout=0`).then(r => r.json())
+    if (delay === '1') await new Promise(r => setTimeout(r, 150))
+    assert.equal((await send(session.agentToken)).status, 401)
+    assert.equal((await send('invalid')).status, 401)
+    assert.equal((await send(session.humanToken)).status, 200)
+    const read = () => fetch(`${origin}/state?token=${session.humanToken}`).then(r => r.json())
+    const end = await read()
+    assert.deepEqual(end.view.ended, { reason: 'surrender', result: 'lost' })
+    assert.equal(end.report.actual.result, 'lost')
+    assert.equal((await send(session.humanToken)).status, 409)
+    await new Promise(r => setTimeout(r, 150))
+    assert.deepEqual((await read()).view, end.view)
+    const events = await fetch(`${origin}/events?token=${session.agentToken}&since=0`).then(r => r.json())
+    assert.equal(events.events.filter(e => e.text.includes('match over: you lost (surrender)')).length, 1)
+    const lobby = await fetch(`${origin}/lobby?token=${session.humanToken}`).then(r => r.json())
+    assert.equal(lobby.live, false); assert.equal(lobby.history.length, 1)
+    assert.equal(lobby.history[0].reason, 'surrender')
+    assert.deepEqual(await post(`/play?token=${session.humanToken}`, { vs: 'easy' }), { ok: true })
+    assert.equal((await read()).view.ended, null)
+  })
+})
+
 test('local refused gambits plus invalid split preserve strategy and notifications', async t => {
   const { origin, post, started } = await fixture(t)
   for (const role of ['human', 'agent']) await t.test(role, async () => {

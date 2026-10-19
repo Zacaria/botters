@@ -45,6 +45,53 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   assert.deepEqual(errors, [])
 })
 
+test('offline surrender confirms, recovers from refusal, shows the real result and starts another match', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage(), errors = [], posts = []
+  page.on('pageerror', e => errors.push(e.message))
+  page.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/surrender') posts.push(r.url()) })
+  await page.goto(origin)
+  await page.locator('#startName').fill('Surrender browser')
+  await page.locator('#startSolo').click()
+  await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms')
+  const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+  if (process.env.BOTTERS_SURRENDER_EVIDENCE) {
+    await mkdir(process.env.BOTTERS_SURRENDER_EVIDENCE, { recursive: true })
+    await page.locator('#surrender').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: join(process.env.BOTTERS_SURRENDER_EVIDENCE, 'offline-surrender-button.png') })
+  }
+  page.once('dialog', dialog => dialog.dismiss())
+  await page.locator('#surrender').click()
+  assert.equal(posts.length, 0); assert.equal((await read()).view.ended, null)
+  await page.locator('#leave').click()
+  await expect(page.locator('#play')).toHaveText('RESUME MATCH')
+  await page.locator('#play').click()
+  await page.route('**/surrender?*', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Synthetic surrender refusal"}' }), { times: 1 })
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#surrender').click()
+  await expect(page.locator('#toast')).toHaveText('Synthetic surrender refusal')
+  await expect(page.locator('#surrender')).toBeEnabled()
+  assert.equal((await read()).view.ended, null)
+  page.once('dialog', async dialog => { assert.match(dialog.message(), /You will lose/); await dialog.accept() })
+  await page.locator('#surrender').focus(); await page.keyboard.press('Enter')
+  await expect(page.locator('#again')).toBeVisible()
+  await expect(page.locator('#big')).toContainText('you surrendered')
+  await expect(page.locator('#big')).toContainText('also removes your surrender')
+  await expect(page.locator('#toast')).toBeEmpty()
+  await expect(page.locator('#surrender')).toBeHidden()
+  assert.deepEqual((await read()).view.ended, { reason: 'surrender', result: 'lost' })
+  if (process.env.BOTTERS_SURRENDER_EVIDENCE) {
+    await mkdir(process.env.BOTTERS_SURRENDER_EVIDENCE, { recursive: true })
+    await page.screenshot({ path: join(process.env.BOTTERS_SURRENDER_EVIDENCE, 'offline-surrender.png') })
+  }
+  await page.locator('#again').click()
+  await expect(page.locator('#surrender')).toBeVisible()
+  assert.equal((await read()).view.ended, null)
+  assert.equal(posts.length, 2)
+  assert.deepEqual(errors, [])
+})
+
 test('primary map input ignores secondary buttons without changing engine control', { timeout: 45000 }, async t => {
   if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER || process.env.BOTTERS_DEV_CONVEX) throw new Error('Map input regression requires local ephemeral fixtures')
   const { browser, origin } = await fixture(t)
