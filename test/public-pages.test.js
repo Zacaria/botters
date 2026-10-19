@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile, mkdtemp, copyFile, readdir, rm } from 'node:fs/promises'
+import { readFile, mkdtemp, copyFile, cp, readdir, rm } from 'node:fs/promises'
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -51,8 +51,9 @@ test('clean build includes the two policies and only intended public files', asy
   const assets = ['index.html', 'guide.html', 'sim.js', 'privacy.html', 'terms.html']
   try {
     for (const file of assets) await copyFile(new URL(`../${file}`, import.meta.url), join(dir, file))
+    await cp(new URL('../media', import.meta.url), join(dir, 'media'), { recursive: true })
     execFileSync(process.execPath, [new URL('../scripts/build.js', import.meta.url).pathname], { cwd: dir })
-    assert.deepEqual((await readdir(join(dir, 'public'))).sort(), [...assets, 'live-client.js', 'live-config.json'].toSorted())
+    assert.deepEqual((await readdir(join(dir, 'public'))).sort(), [...assets, 'media', 'live-client.js', 'live-config.json'].toSorted())
     for (const file of assets) assert.equal(await readFile(join(dir, 'public', file), 'utf8'), await source(file))
   } finally { await rm(dir, { recursive: true }) }
 })
