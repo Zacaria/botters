@@ -758,7 +758,7 @@ cv.onmousedown = e => {
 }
 oncontextmenu = e => e.preventDefault()
 onkeydown = e => {
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || !v || $('game').hidden || editing) return
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || !v || v.ended || $('game').hidden || editing) return
   const key = e.key.toLowerCase()
   if (key === 'f1' && canGuide()) { e.preventDefault(); if (!guidance) $('guideLaunch').click(); return }
   if (key >= '0' && key <= '9') toggle((+key + 9) % 10)

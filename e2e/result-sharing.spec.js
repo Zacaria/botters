@@ -34,7 +34,13 @@ async function secretsInURL(page) {
 
 async function copied(page, summary, key = 'Enter') {
   const copy = page.getByRole('button', { name: 'Copy result', exact: true })
-  await copy.focus()
+  // Traverse like a keyboard-only player; programmatic focus hid a Tab trap.
+  for (let i = 0; i < 40 && !await copy.evaluate(el => el === document.activeElement); i++) await page.keyboard.press('Tab')
+  await expect(copy).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('#again')).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(copy).toBeFocused()
   await page.keyboard.press(key)
   await expect(page.getByRole('status').filter({ hasText: 'Result copied.' })).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(summary)
