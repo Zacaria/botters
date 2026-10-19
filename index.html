@@ -31,7 +31,20 @@
   #big:has(#copyResult) .box { box-sizing: border-box; max-width: calc(100vw - 24px) }
   @media (max-width: 740px) { #big:has(#copyResult) { right: 0; top: 12px } }
   #toast { min-height: 1.5em; margin-top: 6px }
-  .screen { position: fixed; inset: 0; overflow: auto; background: radial-gradient(ellipse at 30% 40%, #1a0a14 0, #050507 55%), #050507 }
+  .screen { position: fixed; inset: 0; overflow: auto }
+  #bg { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: default; pointer-events: none; opacity: .8; background: radial-gradient(ellipse at 50% 45%, #1a0a14 0, #050507 60%) }
+  #lobby .hero { box-sizing: border-box; max-width: 440px; margin: 9vh auto 18px; padding: 30px 28px 18px; text-align: center; background: #08080bb0; border: 1px solid #24242e; border-radius: 16px; backdrop-filter: blur(3px) }
+  #lobby h1 { font-size: 46px; letter-spacing: 8px }
+  #lobby .tag { color: #e4e4ec; font: 17px/1.45 system-ui, sans-serif; margin: 8px 0 24px }
+  .choice { display: flex; gap: 8px; margin-top: 8px } .choice button { flex: 1; margin: 0; padding: 10px 4px; border-radius: 8px }
+  #lobby #play { display: block; width: 100%; margin: 18px 0 10px; padding: 16px; border-radius: 10px; font-size: 22px; letter-spacing: 4px; box-shadow: 0 0 32px #ff2e8866 }
+  #lobby #play:not(:disabled):hover { box-shadow: 0 0 44px #ff2e88aa }
+  #guidedHouseOption { display: block; cursor: pointer } #guidedHouse { accent-color: #ff2e88 } #lobby #lobbyMsg:empty { display: none }
+  #lobby #online { margin: 0 0 12px; text-align: left } #lobby #roomPanel { margin: 0 0 12px; text-align: left; overflow-wrap: anywhere }
+  details.more { text-align: left; border-top: 1px solid #1c1c24; padding: 10px 0 } details.more > summary { cursor: pointer; color: #ddd }
+  details.more[open] > summary { margin-bottom: 8px } details.more li { margin-bottom: 6px } details.more :focus-visible { outline: 2px solid #ff2e88; outline-offset: 2px }
+  #accountControls { justify-content: flex-end; padding: 8px 16px 0 } #lobby #pairApproval { max-width: 440px; margin: 16px auto 0 }
+  #lobby .policy-links { justify-content: center }
   .wrap { max-width: 980px; margin: 40px auto; padding: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px }
   .card { background: #08080bcc; border: 1px solid #1c1c24; padding: 14px 16px }
   .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 } .row > b { width: 110px; color: #ddd; font-weight: normal }
@@ -67,6 +80,8 @@
     #big { right: 0; top: 12px }
   }
 </style>
+
+<canvas id="bg" aria-hidden="true"></canvas>
 
 <!-- start: no lobby yet -->
 <div id="start" class="screen">
@@ -141,34 +156,20 @@
   </div>
 </div>
 
-<!-- lobby -->
+<!-- lobby: one choice and one button up front; everything else folds away -->
 <div id="lobby" class="screen" hidden>
   <div class="row" id="accountControls" hidden><span id="accountName"></span> <button id="signout">Sign out</button> <button id="revokeAgent">Disconnect agent</button></div>
   <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. The agent can read your match view, rewrite your gambits and send instructions to your swarms. It cannot manage your account or command an opponent's swarms. Connecting replaces any currently authorized agent.</p><p>Access lasts up to seven days, including while you are signed out. Use Disconnect agent in the lobby to revoke access.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
-  <div class="wrap">
-    <div>
-      <h1><b>BOT</b><i>TERS</i></h1>
-      <div class="row"><b>player</b><input id="name" maxlength="24"></div>
-      <div class="row"><b>your agent</b><span id="agentState"></span></div>
-
-      <h3>Doctrine <span class="dim">· your strategy, in your words. Your agent turns it into gambits and follows it during the match.</span></h3>
-      <textarea id="doctrine" aria-label="Doctrine" maxlength="500"></textarea>
-      <div class="help"><span id="dcount"></span>/500 · autosave after edits · editable during the match too <button id="retryDoctrine" hidden>Retry saving doctrine</button></div>
-      <div id="saved" role="status"></div>
-
-      <h3>Opening gambits</h3>
-      <div class="row"><button id="openAgent">my agent writes them from the doctrine</button><button id="openMine">I write them</button></div>
-      <div id="openEditor" hidden></div>
-
-      <h3>Match</h3>
-      <div class="row"><b>opponent</b><span id="vs"></span></div>
-      <div class="row"><b>length</b><span id="minutes"></span></div>
-      <div class="row"><b>map</b><span id="planets"></span></div>
-      <div class="row"><b>planning</b><span id="planning"></span><span class="dim">countdown before the start</span></div>
-      <div class="row"><b>with agent</b><span id="withAgent"></span></div>
-      <label id="guidedHouseOption" hidden><input type="checkbox" id="guidedHouse"> Guide my first local house match (optional)</label>
-      <div class="row" style="margin-top:14px"><button class="main" id="play">PLAY</button> <button id="viewReport" hidden>View last report</button> <button id="cancel" hidden>cancel</button> <span id="lobbyMsg" class="warn" role="status"></span></div>
-      <div id="online" class="card" hidden>
+  <main class="hero">
+    <h1><b>BOT</b><i>TERS</i></h1>
+    <p class="tag">Your swarm eats planets.<br>Biggest swarm at the end wins.</p>
+    <div id="vs" class="choice" role="group" aria-label="Opponent"></div>
+    <div id="withAgent" class="choice" role="group" aria-label="Who plays" hidden></div>
+    <button class="main" id="play">PLAY</button>
+    <label id="guidedHouseOption" hidden><input type="checkbox" id="guidedHouse"> Teach me while I play</label>
+    <div><button id="viewReport" hidden>View last report</button> <button id="cancel" hidden>cancel</button></div>
+    <p id="lobbyMsg" class="warn" role="status"></p>
+    <div id="online" class="card" hidden>
         <h3>Online</h3>
         <button class="main" id="quick">Play online</button><button id="createRoom">Create room</button>
         <div class="row"><input id="joinCode" aria-label="Room code" placeholder="room code" maxlength="6" autocomplete="off"><button id="joinRoom">Join by code</button></div>
@@ -182,25 +183,40 @@
         <button id="saveRoom">Use my settings</button><button id="savePlayer">Save my opening</button><button class="main" id="startRoom">Start match</button><button id="rematchRoom">Rematch</button><button id="leaveRoom">Leave room</button>
         <p class="help" id="roomReady"></p>
       </div>
-    </div>
-    <div>
-      <div class="card">
-        <h3 style="margin-top:0">How it plays</h3>
-        <p>Every swarm follows your side's <b>gambits</b>: an ordered list of <b>IF condition → action</b> rules. The first rule that matches decides, every half second.</p>
-        <p>Your agent rewrites them as the match evolves. You can edit them too, switch a rule off, or grab one swarm and send it yourself.</p>
-        <p><b>Square law</b>: in a fight, each side loses in proportion to the other's size, so the bigger swarm wins and loses little. <b>Planets</b> you own are eaten into new particles. <b>Fog</b>: you only see near your swarms and planets.</p>
-        <p>Most particles at the end wins. No swarms and no planets left loses at once.</p>
-        <p><a href="/guide" target="_blank">Plug your own agent →</a></p>
-        <nav class="policy-links" aria-label="Policies"><a href="/privacy">Privacy policy</a><a href="/terms">Terms of service</a></nav>
-      </div>
-      <div class="card" style="margin-top:14px">
-        <h3 style="margin-top:0">Your last matches</h3>
-        <div id="history" class="dim">none yet</div>
-        <h3>Leaderboard</h3>
-        <div id="board" class="dim">empty</div>
-      </div>
-    </div>
-  </div>
+    <details class="more" id="setup">
+      <summary>Strategy &amp; settings</summary>
+      <div class="row"><b>player</b><input id="name" maxlength="24"></div>
+      <div class="row"><b>AI agent</b><span id="agentState"></span></div>
+      <h3>Doctrine <span class="dim">· your strategy, in your words. Your agent turns it into gambits and follows it during the match.</span></h3>
+      <textarea id="doctrine" aria-label="Doctrine" maxlength="500"></textarea>
+      <div class="help"><span id="dcount"></span>/500 · autosave after edits · editable during the match too <button id="retryDoctrine" hidden>Retry saving doctrine</button></div>
+      <div id="saved" role="status"></div>
+      <h3>Opening gambits</h3>
+      <div class="row"><button id="openAgent">my agent writes them from the doctrine</button><button id="openMine">I write them</button></div>
+      <div id="openEditor" hidden></div>
+      <h3>Match</h3>
+      <div class="row"><b>length</b><span id="minutes"></span></div>
+      <div class="row"><b>map</b><span id="planets"></span></div>
+      <div class="row"><b>countdown</b><span id="planning"></span></div>
+    </details>
+    <details class="more">
+      <summary>How to play</summary>
+      <ol>
+        <li>Your <b class="you">pink</b> swarms play on their own, following simple rules.</li>
+        <li>Click a swarm, then click the map to send it there.</li>
+        <li>Park on a planet to capture it. Your planets turn into new particles.</li>
+        <li>The bigger swarm wins a fight. When time runs out, most particles wins.</li>
+      </ol>
+      <p><a href="/guide" target="_blank">Full guide and AI agent setup →</a></p>
+    </details>
+    <details class="more">
+      <summary>Your matches &amp; leaderboard</summary>
+      <div id="history" class="dim">none yet</div>
+      <h3>Leaderboard</h3>
+      <div id="board" class="dim">empty</div>
+    </details>
+  </main>
+  <nav class="policy-links" aria-label="Policies"><a href="/privacy">Privacy policy</a><a href="/terms">Terms of service</a></nav>
 </div>
 
 <!-- match -->
@@ -250,12 +266,12 @@
 </div>
 
 <script type="module">
-import { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, checkGambits, rad } from '/sim.js'
+import { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, HOUSE, checkGambits, rad, createMatch, applyInput, step } from '/sim.js'
 const $ = id => document.getElementById(id)
 const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
 const n = c => Math.round(c).toLocaleString('en')
 const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-const show = id => { for (const s of ['start', 'lobby', 'game']) $(s).hidden = s !== id }
+const show = id => { for (const s of ['start', 'lobby', 'game']) $(s).hidden = s !== id; $('bg').hidden = id === 'game' }
 const authQuery = new URLSearchParams(location.search)
 let resetToken = authQuery.get('token')
 let pendingPair = authQuery.get('pair') || sessionStorage.getItem('botters.pair')
@@ -408,8 +424,9 @@ try {
 } catch {} // Unreadable preferences fall back in memory; leave stored data untouched.
 if (checkGambits(prefs.opening)) prefs.opening = DEFAULT_GAMBITS
 const savePrefs = () => localStorage.setItem('botters.prefs', JSON.stringify(prefs))
-const NAMES = { vs: { easy: 'house · easy', normal: 'house · normal', hard: 'house · hard', player: 'another player' }, minutes: { 3: '3 min', 5: '5 min', 8: '8 min' }, planets: { 16: 'small · 16 planets', 28: 'medium · 28', 40: 'large · 40' }, planning: { 10: '10 s', 20: '20 s', 30: '30 s' }, withAgent: { true: 'yes', false: 'no, I play alone' } }
+const NAMES = { vs: { easy: 'Easy', normal: 'Normal', hard: 'Hard', player: 'vs Human' }, minutes: { 3: '3 min', 5: '5 min', 8: '8 min' }, planets: { 16: 'small · 16 planets', 28: 'medium · 28', 40: 'large · 40' }, planning: { 10: '10 s', 20: '20 s', 30: '30 s' }, withAgent: { true: 'With my agent', false: 'Just me' } }
 const pick = (id, values) => { $(id).innerHTML = values.map(v => `<button data-v="${v}" class="${String(prefs[id]) === String(v) ? 'on' : ''}">${NAMES[id][v]}</button>`).join(''); $(id).onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; prefs[id] = id === 'vs' ? v : id === 'withAgent' ? v === 'true' : +v; savePrefs(); pick(id, values); lobbyChoices(); syncRoomPlayer() } }
+$('setup').open = localStorage.getItem('botters.setupOpen') === '1'; $('setup').ontoggle = () => localStorage.setItem('botters.setupOpen', $('setup').open ? '1' : '0')
 const openEd = editor($('openEditor'), prefs.opening, l => { prefs.opening = l; savePrefs(); syncRoomPlayer() })
 let L = null, lobbyTimer = null, docTimer = null, agentOk = false, inviteUsed = false, lastFrame = 0, lobbyError = '', memberTimer = null
 function syncRoomPlayer() { clearTimeout(memberTimer); if (L?.room && !L.live) memberTimer = setTimeout(() => api('POST', '/rooms/player', playOptions()).then(r => { if (r.error) lobbyError = r.error }), 250) }
@@ -478,13 +495,13 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   renderRoom(L.room)
   agentOk = !!L.agent
   if (accountRequired) $('revokeAgent').disabled = !L.agentGranted
-  pick('withAgent', agentOk ? [true, false] : [false])
+  pick('withAgent', agentOk ? [true, false] : [false]); $('withAgent').hidden = !agentOk
   if (!agentOk) prefs.withAgent = false
   if (inviteCode && !inviteUsed && !L.room && !L.live && !L.queued) {
     inviteUsed = true; const joined = await api('POST', '/rooms/join', { ...playOptions(), code: inviteCode })
     if (joined.error) lobbyError = joined.error; else return lobby()
   }
-  $('agentState').innerHTML = agentOk ? `<span class="agent">● ${esc(L.agent)} connected</span>` : `<span class="dim">○ none connected · <a href="/guide" target="_blank">plug your agent</a></span>`
+  $('agentState').innerHTML = agentOk ? `<span class="agent">● ${esc(L.agent)} connected</span>` : `<span class="dim">none connected · <a href="/guide" target="_blank">connect one</a></span>`
   $('history').innerHTML = L.history.length ? '<table>' + L.history.map(h => `<tr><td class="${h.actual.result === 'won' ? 'you' : 'dim'}">${h.actual.result.toUpperCase()}</td><td>vs ${esc(h.vs)}</td><td>${n(h.actual.you)}–${n(h.actual.enemy)}</td><td class="dim">without you: ${h.withoutHuman.result}</td></tr>`).join('') + '</table>' : 'none yet'
   $('board').innerHTML = L.leaderboard.length ? '<table>' + L.leaderboard.map((b, i) => `<tr><td>${i + 1}.</td><td>${esc(b.name)} <span class="dim">${esc(b.setup || '')}</span></td><td>${b.rating}</td></tr>`).join('') + '</table>' : 'empty'
   $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError
@@ -720,6 +737,29 @@ function draw() {
   for (const p of pings) if (p.until > Date.now()) { g.strokeStyle = '#0ff'; g.lineWidth = 2; g.beginPath(); g.arc(p.x, p.y, 8 + 20 * (p.until - Date.now()) / 1500, 0, 7); g.stroke() }
 }
 requestAnimationFrame(draw)
+
+// ---------- menu backdrop: two house bots fight a real sim.js match behind the menus ----------
+const bc = $('bg'), bgx = bc.getContext('2d'); bc.width = 1200; bc.height = 700
+const bimg = bgx.createImageData(1200, 700), bpx = new Uint32Array(bimg.data.buffer), BG_BUDGET = 14000
+let bs = null
+function backdrop() {
+  if (!bs || bs.ended) { bs = createMatch((Math.random() * 2 ** 32) >>> 0, { minutes: 8, planets: 28 }); applyInput(bs, 0, { gambits: HOUSE.hard }); applyInput(bs, 1, { gambits: HOUSE.normal }) }
+  step(bs)
+  for (let i = 0; i < bpx.length; i++) bpx[i] = ((bpx[i] >>> 1) & 0x7f7f7f7f) | 0xff000000
+  const total = bs.swarms.reduce((a, c) => a + c.n, 0), scale = Math.min(1, BG_BUDGET / Math.max(1, total)), t = performance.now() * 0.06
+  for (const c of bs.swarms) {
+    const m = Math.ceil(c.n * scale), rr = rad(c.n), col = c.side ? COLS.enemy : COLS.you, seed = (c.id * 7919) & (TN - 1)
+    for (let i = 0; i < m; i++) {
+      const j = (seed + i) & (TN - 1), a = TA[j] + t * TW[j], r = TR[j] * rr
+      const x = (c.x + Math.cos(a) * r) | 0, y = (c.y + Math.sin(a) * r * 0.85) | 0
+      if (x >= 0 && x < 1200 && y >= 0 && y < 700) bpx[y * 1200 + x] = c.eng && (j & 3) === 0 ? WHITE : col
+    }
+  }
+  bgx.putImageData(bimg, 0, 0)
+  for (const p of bs.planets) if (p.mass > 0) { const col = p.owner < 0 ? '#6a6a7a' : p.owner ? CSS.enemy : CSS.you; bgx.fillStyle = p.owner < 0 ? '#2a2a33' : col + '55'; bgx.strokeStyle = col; bgx.beginPath(); bgx.arc(p.x, p.y, Math.max(1.5, p.r * Math.sqrt(p.mass / p.m0)), 0, 7); bgx.fill(); bgx.stroke() }
+}
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) for (let i = 0; i < 900; i++) backdrop() // one still frame of a battle in progress
+else (function loop() { requestAnimationFrame(loop); if (!$('bg').hidden && !document.hidden) backdrop() })()
 
 let lastCalls = '', lastGambits = '', lastFeed = ''
 async function copyResult() {
