@@ -798,7 +798,7 @@ $('calls').onclick = e => {
 const at = e => ({ x: (e.clientX - ox) / k, y: (e.clientY - oy) / k })
 const pings = []
 cv.onmousedown = e => {
-  if (!v || v.ended) return
+  if (e.button !== 0 || !v || v.ended) return
   const p = at(e), hit = v.swarms.find(c => { const a = cur(pos.get(c.id)); return Math.hypot(a.x - p.x, a.y - p.y) < rad(c.n) + 8 })
   if (hit && hit.id !== sel) { sel = hit.id; return panel() }
   if (sel !== null) return act({ order: { swarm: sel, x: Math.round(p.x), y: Math.round(p.y) } }, `swarm #${sel} → (${Math.round(p.x)},${Math.round(p.y)})`)
