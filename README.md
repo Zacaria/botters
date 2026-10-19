@@ -20,6 +20,12 @@ Use `install --local` for offline-only house games, `install --yes` for noninter
 
 No agent yet? `npx -y github:Zacaria/botters` opens the game locally to play alone, without an account.
 
+### Browser assistants: remote MCP
+
+The remote gateway source is in `web-mcp.js`. It uses OAuth 2.1, S256 PKCE and the existing signed-in Botters agent approval; the assistant receives agent access, never account cookies or human-control tokens. A registered connector does not start a match. Local stdio installation above remains unchanged.
+
+Operator setup, private token-state storage and the consent flow are documented in [`docs/mcp-oauth.md`](docs/mcp-oauth.md). This branch does not activate a public OAuth endpoint or establish that Claude Web or ChatGPT completes a match.
+
 <details>
 <summary>Manual setup fallback</summary>
 
