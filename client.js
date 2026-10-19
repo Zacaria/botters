@@ -42,10 +42,17 @@ try {
   if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false }
 } catch { /* Offline servers do not advertise a live endpoint. */ }
 const api = async (method, path, body) => {
+  const s = S.session, url = new URL(path, SERVER)
   const headers = { 'content-type': 'application/json' }
   const target = path === '/session' && liveAccounts || path.startsWith('/agent/') ? SERVER : liveServer
   if (new URL(target).hostname.endsWith('.vercel.app') && env.VERCEL_AUTOMATION_BYPASS_SECRET) headers['x-vercel-protection-bypass'] = env.VERCEL_AUTOMATION_BYPASS_SECRET
   const r = await fetch(target + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
+  if (s?.agentToken && url.searchParams.get('token') === s.agentToken && (r.status === 401 || r.status === 410 && url.pathname === '/agent/poll')) {
+    // A late refusal belongs to the connection that sent it, not a newer one.
+    if (S.session === s) Object.assign(S, { session: null, opened: false, inMatch: false, matchId: null, since: 0 })
+    await r.body?.cancel().catch(() => {}) // refusal is definitive even without a JSON body
+    return { status: r.status, error: 'Agent access or approval expired or was revoked. Call join_match to request fresh approval from your human.' }
+  }
   return { status: r.status, ...(await r.json()) }
 }
 const S = { session: env.BOTTERS_AGENT_TOKEN ? { agentToken: env.BOTTERS_AGENT_TOKEN, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null }
@@ -91,21 +98,30 @@ The result includes the rules, the match settings and your human's doctrine (the
   },
 }, async ({ vs, minutes, planets, planning }) => {
   const s = await session()
+  const changed = () => S.session !== s && text('Agent connection changed. Call join_match again.')
+  if (changed()) return changed()
   if (!S.opened) { S.opened = true; openUrl(s.lobby) }
   if (s.pairing) {
     const pair = await api('GET', `/agent/poll?token=${s.agentToken}&timeout=20`)
-    if (pair.status === 401 || pair.status === 410) { S.session = null; S.opened = false; return text('Agent approval expired or was revoked. Call join_match to request fresh approval.') }
+    if (pair.error) return text(pair.error)
+    if (changed()) return changed()
     if (!pair.approved) return text({ waiting: true, tell_the_human: `Sign in and explicitly connect this agent: ${s.approvalUrl}`, next: 'Call join_match again after approval. Never request the human’s password or browser token.' })
     s.pairing = false; s.lobby = SERVER
   }
   if (vs && s.online) return text('Your signed-in human starts online matches in the lobby. Do not use the headless vs option online; call join_match without vs.')
-  if (vs) { const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning }); if (!r.ok && r.error !== 'already in a match') return text(r.error) }
+  if (vs) {
+    const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning })
+    if (!r.ok && r.error !== 'already in a match') return text(r.error)
+    if (changed()) return changed()
+  }
   const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
-  if (r.status === 401) { S.session = null; S.opened = false; return text('Agent access expired or was revoked. Call join_match for a fresh connection.') }
+  if (r.error) return text(r.error)
+  if (changed()) return changed()
   if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
+  const rules = await api('GET', '/rules'), m = r.match
+  if (changed()) return changed()
   if (!r.match.id || r.match.id !== S.matchId) S.since = 0
   S.inMatch = true; S.matchId = r.match.id || null
-  const rules = await api('GET', '/rules'), m = r.match
   return text({
     opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
     opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
@@ -120,8 +136,10 @@ mcp.registerTool('wait_for_event', {
   inputSchema: { timeout_s: z.number().min(1).max(20).default(10) },
 }, async ({ timeout_s }) => {
   if (need()) return need()
-  const r = await api('GET', `/events?token=${S.session.agentToken}&since=${S.since}&timeout=${timeout_s}`)
+  const s = S.session
+  const r = await api('GET', `/events?token=${s.agentToken}&since=${S.since}&timeout=${timeout_s}`)
   if (r.error) return text(r.error)
+  if (S.session !== s) return text('Agent connection changed. Call join_match again.')
   if (!r.state) { S.inMatch = false; return text('Your match is over. Call join_match to wait for the next one.') }
   S.since = r.events.at(-1)?.seq ?? S.since
   if (r.state.ended) S.inMatch = false
