@@ -118,6 +118,10 @@ function think(s, c) {
 // gambits / toggle: the side's rule list. order / split / release: hand control of one swarm.
 export function applyInput(s, side, input) {
   if (s.ended) return { ok: false, error: 'match ended' }
+  if (input.surrender === true) {
+    s.ended = { winner: 1 - side, reason: 'surrender' }
+    return { ok: true }
+  }
   const own = id => s.swarms.find(o => o.id === id && o.side === side)
   if (input.gambits !== undefined) {
     const err = checkGambits(input.gambits); if (err) return { ok: false, error: err }

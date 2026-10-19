@@ -49,6 +49,32 @@ test('live ticks, inputs and frames never touch durable storage; results persist
   assert.equal(session.history.filter(h => h.matchId === frame.matchId).length, 1)
 })
 
+test('surrender persists once through a failed durable result boundary', async t => {
+  let fail = false
+  const durable = new MemoryStore()
+  const store = new LiveStore({
+    get: key => durable.get(key), read: keys => Promise.resolve(keys.map(key => durable.raw(key))),
+    commit: entries => { if (fail) throw new Error('offline'); return durable.commit(entries) },
+  })
+  const runtime = new LiveRuntime(store); t.after(() => runtime.close())
+  const a = await runtime.request('POST', '/session', undefined, { name: 'Surrender' })
+  await runtime.request('POST', '/play', q(a.humanToken), { minutes: 3, planets: 16, planning: 10 })
+  const first = await runtime.request('GET', '/state', q(a.humanToken))
+  fail = true
+  await assert.rejects(runtime.request('POST', '/surrender', q(a.humanToken)), /offline/)
+  assert.equal(JSON.parse(store.raw(`match:${first.matchId}`)).s.ended, null)
+  fail = false
+  await runtime.request('POST', '/surrender', q(a.humanToken))
+  const end = await runtime.request('GET', '/state', q(a.humanToken))
+  assert.deepEqual(end.view.ended, { reason: 'surrender', result: 'lost' })
+  await assert.rejects(runtime.request('POST', '/surrender', q(a.humanToken)), { status: 409 })
+  const result = JSON.parse(durable.raw(`result:${first.matchId}`))
+  assert.equal(result.report[0].actual.result, 'lost')
+  const session = JSON.parse(durable.raw(`session:${result.players[0].session}`))
+  assert.equal(session.history.length, 1)
+  assert.equal(session.history[0].reason, 'surrender')
+})
+
 test('a failed durable boundary leaves no local result or rating to double-apply', async t => {
   let now = Date.now(), fail = false
   const durable = new MemoryStore(() => now)

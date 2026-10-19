@@ -8,6 +8,23 @@ const empty = seed => { // planets kept, no starting swarms, both homes kept ali
 }
 const only = (s, side, gambits) => applyInput(s, side, { gambits })
 
+test('surrender loses for either side, freezes the match and replays at the same tick', () => {
+  for (const side of [0, 1]) for (const tick of [0, 40]) {
+    const s = createMatch(7, { minutes: 3, planets: 16 })
+    run(s, tick)
+    const input = { surrender: true }
+    assert.deepEqual(applyInput(s, side, input), { ok: true })
+    assert.deepEqual(s.ended, { winner: 1 - side, reason: 'surrender' })
+    assert.deepEqual(view(s, side).ended, { result: 'lost', reason: 'surrender' })
+    assert.deepEqual(view(s, 1 - side).ended, { result: 'won', reason: 'surrender' })
+    const frozen = structuredClone(s)
+    step(s)
+    assert.equal(applyInput(s, 1 - side, input).ok, false)
+    assert.deepEqual(s, frozen)
+    assert.deepEqual(replay(s.seed, [{ tick, side, input }], s.opts), s)
+  }
+})
+
 test('same seed and inputs give the same match; maps are mirrored and differ by seed', () => {
   const play = () => {
     const s = createMatch(7)

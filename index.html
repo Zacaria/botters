@@ -243,7 +243,8 @@
     <p class="dim">
       <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> from the map: next swarm · <b>Shift+Tab</b>: reach controls, then Tab/Shift+Tab to navigate · </span><b>Esc</b> drop<br>
       <span id="pingHelp"><b>click the map with nothing grabbed</b>: ping your agent there<br></span>
-      <button id="leave">← menu</button>
+      <button id="leave" title="Return to the menu; the match keeps running">← menu</button>
+      <button id="surrender" hidden>Surrender</button>
     </p>
   </aside>
 </div>
@@ -503,14 +504,15 @@ function renderRoom(room) {
   $('saveRoom').hidden = !room.host; $('startRoom').hidden = !room.host || !!room.matchId
   $('startRoom').disabled = room.players.length < 2 || room.live
   $('rematchRoom').hidden = !room.matchId; $('rematchRoom').disabled = room.live
-  $('roomReady').textContent = room.live ? 'Match running. Resume from above.' : room.ready.length ? `${room.ready.length}/${room.players.length} ready for a rematch` : room.host ? 'Share the link. Start when your opponent has joined.' : 'Waiting for the host to start.'
+  $('roomReady').textContent = room.live ? 'Match running. Resume from above.' : room.ready.length ? `${room.ready.length}/2 ready for a rematch` : room.host ? 'Share the link. Start when your opponent has joined.' : 'Waiting for the host to start.'
 }
 const playOptions = () => ({ minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent: agentOk && prefs.withAgent, opening: !agentOk || !prefs.withAgent || prefs.openingMine ? openEd.get() : null })
 async function roomAction(path, body = {}) {
   const r = await api('POST', path, body)
   if (r.error) { lobbyError = r.error; $('lobbyMsg').textContent = r.error; return }
   lobbyError = ''
-  return lobby()
+  await lobby()
+  if (path === '/rooms/rematch' && !$('lobby').hidden) $('roomReady').scrollIntoView({ block: 'nearest' })
 }
 $('quick').onclick = async () => { const r = await api('POST', '/play', { ...playOptions(), vs: 'player', ...($('anySettings').checked ? { minutes: 'any', planets: 'any' } : {}) }); if (r.error) { lobbyError = r.error; $('lobbyMsg').textContent = r.error } else { lobbyError = ''; lobby() } }
 $('createRoom').onclick = () => roomAction('/rooms', playOptions())
@@ -627,6 +629,7 @@ function match() {
   clearTimeout(lobbyTimer); lastFrame = Date.now(); $('connection').hidden = true
   show('game'); fit(); v = null; F = null; pos.clear(); sel = null; lastBy = ''; stopEditing()
   $('big').innerHTML = ''; $('feed').innerHTML = ''; $('toast').textContent = ''
+  $('surrender').hidden = true; $('surrender').disabled = false
   connectStream()
 }
 async function connectStream() {
@@ -668,6 +671,13 @@ async function connectStream() {
 setInterval(() => { if (!$('game').hidden && !v?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
 window.addEventListener('offline', () => { if (!$('game').hidden && !v?.ended) { $('connection').hidden = false; $('connection').textContent = 'You are offline. The match continues; reconnecting when your connection returns…' } })
 $('leave').onclick = () => { es?.close(); lobby(false) }
+$('surrender').onclick = async () => {
+  if (!v || v.ended || !confirm('Surrender this match? You will lose and your opponent will win.')) return
+  $('surrender').disabled = true
+  $('toast').textContent = ''
+  const r = await api('POST', '/surrender', {})
+  if (!r.ok) { $('surrender').disabled = false; toast(r.error || 'Surrender failed. Retry.', false) }
+}
 
 function draw() {
   requestAnimationFrame(draw)
@@ -729,8 +739,8 @@ async function copyResult() {
 }
 function endScreen() {
   const R = F.report, line = (label, r) => `<tr><td>${label}</td><td class="${r.result === 'won' ? 'you' : 'dim'}"><b>${r.result.toUpperCase()}</b></td><td>${n(r.you)} vs ${n(r.enemy)}</td></tr>`
-  const verdict = R.withoutHuman.result === R.actual.result ? (R.humanInputs ? 'Your actions did not change the result.' : 'You did not act this match.') : R.actual.result === 'won' ? '<span class="you">Your actions won this match.</span>' : 'Your actions cost this match.'
-  return `${v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw'} <span class="dim" style="font-size:18px">(${v.ended.reason === 'wipe' ? 'wiped out' : 'time'})</span><br><div class="box">
+  const verdict = v.ended.reason === 'surrender' && v.ended.result === 'lost' ? 'You surrendered. The replay without your actions also removes your surrender.' : R.withoutHuman.result === R.actual.result ? (R.humanInputs ? 'Your actions did not change the result.' : 'You did not act this match.') : R.actual.result === 'won' ? '<span class="you">Your actions won this match.</span>' : 'Your actions cost this match.'
+  return `${v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw'} <span class="dim" style="font-size:18px">(${v.ended.reason === 'surrender' ? (v.ended.result === 'lost' ? 'you surrendered' : 'opponent surrendered') : v.ended.reason === 'wipe' ? 'wiped out' : 'time'})</span><br><div class="box">
     <b>Same match replayed, same enemy:</b><table>${line('real match', R.actual)}${line(`without your ${R.humanInputs} action${R.humanInputs === 1 ? '' : 's'}`, R.withoutHuman)}${R.withoutAgent ? line(`without your agent's ${R.agentInputs} action${R.agentInputs === 1 ? '' : 's'}`, R.withoutAgent) : ''}</table>
     ${verdict}<br><span class="dim" style="font-size:12px">In a replay, the other side's inputs are kept exactly as they were, without reacting.</span><br>
     <button id="copyResult">Copy result</button><div id="copyResultStatus" role="status"></div>
@@ -739,6 +749,7 @@ function endScreen() {
 }
 function panel() {
   if (!F) return
+  $('surrender').hidden = !!v.ended
   renderGuide()
   const mineP = v.planets.filter(p => p.owner === 'you' && p.massLeft > 0).length, theirP = v.planets.filter(p => p.owner === 'enemy' && p.massLeft > 0).length
   const s = sel !== null && v.swarms.find(c => c.id === sel), agent = F.me.withAgent
@@ -746,7 +757,7 @@ function panel() {
   $('hud').innerHTML = `<b class="you">${esc(F.me.name)} ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP} planets      <b class="foe">${esc(F.opponent.name)} ${n(v.totals.enemy)}</b> · ${theirP} planets · ${esc(F.opponent.setup || '')}${F.opponent.connected === false ? ' · reconnecting' : ''}` +
     `\n${clock(v.secondsLeft)} left · most particles at the end wins · ${agent ? (F.me.agentJoined ? `<span class="agent">agent: ${esc(F.me.setup)}</span>` : '<span class="warn">agent not joined yet</span>') : 'no agent'}\n` +
     (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
-  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('copyResult').onclick = copyResult; $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode) { show('lobby'); roomAction('/rooms/rematch', playOptions()) } else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
+  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('copyResult').onclick = copyResult; $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : L?.online && F.opponent.human ? 'REMATCH' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode || L?.online && F.opponent.human) { show('lobby'); roomAction('/rooms/rematch', { ...playOptions(), matchId: F.matchId }) } else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
   else $('big').innerHTML = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : 'you lose') : F.startsIn > 0 ? `starts in ${F.startsIn}s<div style="font-size:15px">${agent && F.gambitsBy.who === 'default' ? 'your agent is writing the opening gambits' : 'edit your gambits now if you want'}</div>` : ''
 
   const by = F.gambitsBy, byKey = JSON.stringify(by)
