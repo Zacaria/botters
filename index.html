@@ -27,6 +27,9 @@
   #feed div { margin-bottom: 2px }
   #big { position: fixed; left: 0; right: 400px; top: 30%; text-align: center; font-size: 38px; color: #fff; text-shadow: 0 0 12px #000; pointer-events: none }
   #big .box { display: inline-block; pointer-events: auto; background: #08080bee; border: 1px solid #333; padding: 18px 28px; font-size: 15px; line-height: 1.9; margin-top: 12px; text-align: left }
+  #big:has(#copyResult) { z-index: 1; bottom: 12px; overflow: auto }
+  #big:has(#copyResult) .box { box-sizing: border-box; max-width: calc(100vw - 24px) }
+  @media (max-width: 740px) { #big:has(#copyResult) { right: 0; top: 12px } }
   #toast { min-height: 1.5em; margin-top: 6px }
   .screen { position: fixed; inset: 0; overflow: auto; background: radial-gradient(ellipse at 30% 40%, #1a0a14 0, #050507 55%), #050507 }
   .wrap { max-width: 980px; margin: 40px auto; padding: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px }
@@ -660,12 +663,29 @@ function draw() {
 requestAnimationFrame(draw)
 
 let lastCalls = '', lastGambits = '', lastFeed = ''
+async function copyResult() {
+  if (!v?.ended || !F?.report) return
+  const r = F.report.actual, text = `Botters: ${r.result}\n${n(r.you)} vs ${n(r.enemy)}\nhttps://botters.havesomecode.io/`
+  const button = $('copyResult'), status = $('copyResultStatus'), summary = $('resultSummary')
+  button.disabled = true
+  try {
+    await navigator.clipboard.writeText(text)
+    if (!button.isConnected) return
+    summary.hidden = true; status.textContent = 'Result copied.'
+  } catch {
+    if (!button.isConnected) return
+    status.textContent = 'Clipboard unavailable. Copy manually from the selected summary below.'
+    summary.value = text; summary.hidden = false; summary.focus(); summary.select()
+  } finally { if (button.isConnected) button.disabled = false }
+}
 function endScreen() {
   const R = F.report, line = (label, r) => `<tr><td>${label}</td><td class="${r.result === 'won' ? 'you' : 'dim'}"><b>${r.result.toUpperCase()}</b></td><td>${n(r.you)} vs ${n(r.enemy)}</td></tr>`
   const verdict = R.withoutHuman.result === R.actual.result ? (R.humanInputs ? 'Your actions did not change the result.' : 'You did not act this match.') : R.actual.result === 'won' ? '<span class="you">Your actions won this match.</span>' : 'Your actions cost this match.'
   return `${v.ended.result === 'won' ? 'YOU WIN' : v.ended.result === 'lost' ? 'you lose' : 'draw'} <span class="dim" style="font-size:18px">(${v.ended.reason === 'wipe' ? 'wiped out' : 'time'})</span><br><div class="box">
     <b>Same match replayed, same enemy:</b><table>${line('real match', R.actual)}${line(`without your ${R.humanInputs} action${R.humanInputs === 1 ? '' : 's'}`, R.withoutHuman)}${R.withoutAgent ? line(`without your agent's ${R.agentInputs} action${R.agentInputs === 1 ? '' : 's'}`, R.withoutAgent) : ''}</table>
     ${verdict}<br><span class="dim" style="font-size:12px">In a replay, the other side's inputs are kept exactly as they were, without reacting.</span><br>
+    <button id="copyResult">Copy result</button><div id="copyResultStatus" role="status"></div>
+    <textarea id="resultSummary" aria-label="Result summary" readonly hidden></textarea>
     <button class="main" id="again">PLAY AGAIN</button> <button id="menu">menu</button></div>`
 }
 function panel() {
@@ -677,7 +697,7 @@ function panel() {
   $('hud').innerHTML = `<b class="you">${esc(F.me.name)} ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP} planets      <b class="foe">${esc(F.opponent.name)} ${n(v.totals.enemy)}</b> · ${theirP} planets · ${esc(F.opponent.setup || '')}${F.opponent.connected === false ? ' · reconnecting' : ''}` +
     `\n${clock(v.secondsLeft)} left · most particles at the end wins · ${agent ? (F.me.agentJoined ? `<span class="agent">agent: ${esc(F.me.setup)}</span>` : '<span class="warn">agent not joined yet</span>') : 'no agent'}\n` +
     (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
-  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode) { show('lobby'); roomAction('/rooms/rematch', playOptions()) } else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
+  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('copyResult').onclick = copyResult; $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode) { show('lobby'); roomAction('/rooms/rematch', playOptions()) } else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
   else $('big').innerHTML = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : 'you lose') : F.startsIn > 0 ? `starts in ${F.startsIn}s<div style="font-size:15px">${agent && F.gambitsBy.who === 'default' ? 'your agent is writing the opening gambits' : 'edit your gambits now if you want'}</div>` : ''
 
   const by = F.gambitsBy, byKey = JSON.stringify(by)
@@ -738,7 +758,7 @@ cv.onmousedown = e => {
 }
 oncontextmenu = e => e.preventDefault()
 onkeydown = e => {
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || !v || $('game').hidden || editing) return
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || !v || v.ended || $('game').hidden || editing) return
   const key = e.key.toLowerCase()
   if (key === 'f1' && canGuide()) { e.preventDefault(); if (!guidance) $('guideLaunch').click(); return }
   if (key >= '0' && key <= '9') toggle((+key + 9) % 10)
