@@ -41,6 +41,17 @@
   #roomCode { font-size: 24px; letter-spacing: 4px; color: #fff }
   .policy-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 18px 0 24px; font-size: 12px }
   .policy-links a:focus-visible { outline: 2px solid #ff2e88; outline-offset: 4px }
+  #start .wrap > * { min-width: 0 }
+  #start { line-height: 1.6; scroll-behavior: auto }
+  #start h2 { color: #fff; font-size: 19px; line-height: 1.35; margin: 0 0 12px }
+  #start .paths { display: flex; flex-wrap: wrap; gap: 12px 24px }
+  #start a:focus-visible, #start summary:focus-visible, #start video:focus-visible { outline: 2px solid #ff2e88; outline-offset: 4px }
+  #start :target { scroll-margin-top: 16px }
+  #start figure { margin: 20px 0 12px }
+  #start video { display: block; width: 100%; height: auto; background: #000 }
+  #start figcaption { margin-top: 10px }
+  #start summary { cursor: pointer; color: #9fe8c0 }
+  #start li { margin-bottom: 8px }
   #authForm label { display: grid; gap: 6px; max-width: 300px }
   #authForm input { box-sizing: border-box; width: 100%; min-height: 36px; border-color: #686875 }
   #guidePanel { border: 1px solid #9fe8c0; padding: 8px; margin-bottom: 10px }
@@ -57,8 +68,42 @@
       <h1><b>BOT</b><i>TERS</i></h1>
       <p>A real-time space strategy game you play <b>with your AI agent</b>. Swarms of particles conquer and eat planets.<br>
       Your agent writes the rules every swarm follows. You set the strategy, edit the rules and grab a swarm when it matters.</p>
+      <nav class="paths" aria-label="Get started"><a href="#play-entry">Play Botters</a><a href="#understand">Understand the game</a></nav>
     </div>
-    <div class="card">
+    <section id="understand" class="card" aria-labelledby="understand-title" tabindex="-1">
+      <h2 id="understand-title">You set the strategy. Swarms follow the rules.</h2>
+      <ol>
+        <li><b>Set your doctrine.</b> Tell your agent what matters: expand quickly, defend your planets, or avoid bigger enemies. Your own agent connects over MCP; the game server does not run model inference for you.</li>
+        <li><b>Build gambits.</b> These are ordered IF condition → action rules, shared by your swarms. Every half second the first matching rule decides what each swarm does. For example: IF a bigger enemy is near → retreat.</li>
+        <li><b>Take a swarm by hand.</b> Click a pink swarm, then the map to send it somewhere. Press G to give it back to the gambits. You can also edit or switch rules off during the match.</li>
+      </ol>
+      <p>Capture planets to turn their mass into new particles. Larger swarms have an advantage in a fight; splitting helps you expand but makes each half weaker. Fog hides distant enemy swarms. <b>Most particles at the end wins</b>; losing every swarm and planet ends the match early.</p>
+      <figure aria-labelledby="demo-title">
+        <h3 id="demo-title">Botters · bande-annonce · 60 secondes</h3>
+        <p id="demo-description" lang="fr">Une bande-annonce montée à partir d’une vraie partie : capturez des planètes pour agrandir votre essaim, définissez ses priorités et reprenez la main quand la bataille change. Musique et sous-titres français incrustés ; le récit reste lisible sans son. Rose : votre camp. Bleu : l’adversaire.</p>
+        <video id="demo-video" controls playsinline preload="none" width="1920" height="1080" poster="/media/public-demo-poster.jpg" tabindex="0" aria-label="Botters announcement trailer, French captions" aria-describedby="demo-description demo-provenance demo-music-credit">
+          <source src="/media/public-demo.webm" type="video/webm; codecs=&quot;vp9, opus&quot;">
+          <track kind="subtitles" src="/media/public-demo.vtt" srclang="fr" label="Français (déjà incrusté dans l’image)">
+          Your browser cannot play this video. Read the transcript below or download the WebM.
+        </video>
+        <figcaption id="demo-provenance">Real local gameplay, reframed and edited. An operator model chose the opening gambits once. A script submits those choices and sends automated human-side controls; there is no human participant or continuous AI inference in this recording. The opponent is <b>house (normal), fixed gambits</b>—not another model. Cuts omit time; the later capture is not an instant consequence of the manual order.</figcaption>
+      </figure>
+      <p><a href="/media/public-demo.webm" download>Download the announcement trailer (WebM with music)</a> · Native play, pause, seek and fullscreen controls. French captions are burned into the image; the optional subtitle track repeats them.</p>
+      <p id="demo-music-credit">'Resonance' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au<br>
+        <a href="https://www.scottbuckley.com.au/library/resonance/">Music source</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0 licence</a>. Musique adaptée : extrait 2:25–3:25, fondus et niveau ajusté. No endorsement or exclusivity is implied; retain this credit and the licence with downloaded copies.</p>
+      <details>
+        <summary>Read the video transcript</summary>
+        <div id="demo-transcript" lang="fr">
+          <p><b>0:00–0:08.</b> « Vos règles. Votre essaim. » Un gros plan montre les vrais gambits, puis « SI planète libre → conquérir » : l’essaim rose atteint une planète neutre, qui devient rose. C’est la règle free_planet → go réellement exécutée.</p>
+          <p><b>0:08–0:20.</b> « Capturez des planètes. Faites grandir votre essaim. » De nouvelles planètes deviennent roses et produisent des particules. Le plan s’élargit et précise le but : « Objectif : le plus de particules à la fin du match. » Les essaims bleus apparaissent à l’approche du front.</p>
+          <p><b>0:20–0:33.</b> « Définissez vos priorités. » Un extrait agrandi de la vraie règle prioritaire de repli est superposé à la bataille contemporaine. « SI ennemi plus fort → repli. Regardez vos règles agir. » Les roses se replient vers des alliés pendant la confrontation réelle. « Mais la bataille change… » annonce une nouvelle menace, avec une brève respiration musicale.</p>
+          <p><b>0:33–0:49.</b> « Reprenez la main au bon moment. » Un Tab automatisé sélectionne l’essaim 217 ; un clic carte ordonne un trajet de (456,320) vers (672,242). Le cercle blanc et la ligne pointillée sont visibles ; le même essaim se déplace réellement de plus de 200 unités. « Un ordre. Un nouveau cap. » Puis une touche G automatisée rend cet essaim aux règles : « G : retour aux gambits. » Ces automated human-side controls ne sont pas une personne qui joue.</p>
+          <p><b>0:49–1:00.</b> « Plus tard : la planète bascule. » Un saut de montage explicitement annoncé montre la planète visée devenir rose, bien plus tard dans la même partie ; aucune victoire n’est revendiquée à l’image. BOTTERS, « Découvrez Botters. », botters.vercel.app et les crédits musicaux sont maintenus sept secondes. Le house opponent suit des fixed gambits ; no model runs during the match.</p>
+        </div>
+      </details>
+      <p><a href="/guide">Understand the agent connection and controls →</a></p>
+    </section>
+    <div id="play-entry" class="card" tabindex="-1">
       <h3>Play with your agent</h3>
       <p>Connect Claude Code, Codex or any MCP client in one command, then tell it "let's play botters". It opens your lobby here.</p>
       <p><a href="/guide" target="_blank">How to plug your agent →</a></p>

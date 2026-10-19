@@ -1,0 +1,296 @@
+{
+  "historicalRecord": "Preserved run-904 artifact evidence for the candidate/tree below, not the R1 repair. In particular its VTT digest/package are historical; use public-demo-r1-verification.md and the run-914 handoff for new bytes.",
+  "candidate": "55c95150beac8d9f030408d914150508aeae8e73",
+  "tree": "ce455cd514d9b2f5e99354e93f40efa069fff608",
+  "package": {
+    "file": "botters-0.1.0.tgz",
+    "sha256": "ec1a2e2825a71969a43c41e744a740ba030018f674d1a6ff8fec2dd15e3bb0df",
+    "files": [
+      "DOCTRINE.md",
+      "README.md",
+      "client.js",
+      "guide.html",
+      "index.html",
+      "install.js",
+      "media/public-demo-poster.jpg",
+      "media/public-demo.vtt",
+      "media/public-demo.webm",
+      "package.json",
+      "privacy.html",
+      "public-media.js",
+      "server.js",
+      "sim.js",
+      "terms.html"
+    ]
+  },
+  "fixtures": [
+    {
+      "label": "source",
+      "pid": 358076,
+      "cwd": "/srv/hermes-ssd/workspaces/botters/contributions-1561132421896740937/public-demo",
+      "assets": [
+        {
+          "file": "public-demo.webm",
+          "status": 200,
+          "contentType": "video/webm",
+          "bytes": 1018285,
+          "sha256": "0f37720d9c02da0aba25354a99d4760984b859e3f08810219db41e78247d510d",
+          "rangeStatus": 206
+        },
+        {
+          "file": "public-demo-poster.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "bytes": 72073,
+          "sha256": "4ec20a6745c9835a37d57cb2374a9853743989188fe2f08fefe9f33e4cbf5ade",
+          "rangeStatus": 206
+        },
+        {
+          "file": "public-demo.vtt",
+          "status": 200,
+          "contentType": "text/vtt; charset=utf-8",
+          "bytes": 639,
+          "sha256": "2d51f3b5155849f0164a8eaad7633973c90640f34ab442def5b481f6e86042a9",
+          "rangeStatus": 206
+        }
+      ],
+      "browsers": [
+        {
+          "javaScriptEnabled": false,
+          "narrowWidth": 390,
+          "overflow": false,
+          "paths": [
+            "Play",
+            "Understand",
+            "transcript",
+            "/guide",
+            "/privacy",
+            "/terms"
+          ],
+          "nativeKeyboardControls": [
+            "Space play/pause",
+            "ArrowRight seek"
+          ],
+          "media": {
+            "duration": 40,
+            "width": 1440,
+            "height": 900,
+            "error": null,
+            "decodedFrames": 283,
+            "cues": 4,
+            "ended": true
+          },
+          "errors": [],
+          "externalRequests": []
+        },
+        {
+          "javaScriptEnabled": true,
+          "narrowWidth": 390,
+          "overflow": false,
+          "paths": [
+            "Play",
+            "Understand",
+            "transcript",
+            "/guide",
+            "/privacy",
+            "/terms"
+          ],
+          "nativeKeyboardControls": [
+            "Space play/pause",
+            "ArrowRight seek"
+          ],
+          "media": {
+            "duration": 40,
+            "width": 1440,
+            "height": 900,
+            "error": null,
+            "decodedFrames": 282,
+            "cues": 4,
+            "ended": true
+          },
+          "errors": [],
+          "externalRequests": []
+        }
+      ]
+    },
+    {
+      "label": "built-csp",
+      "pid": 357970,
+      "cwd": "/srv/hermes-ssd/workspaces/botters/contributions-1561132421896740937/public-demo",
+      "staticRoot": "/srv/hermes-ssd/workspaces/botters/contributions-1561132421896740937/public-demo/public",
+      "assets": [
+        {
+          "file": "public-demo.webm",
+          "status": 200,
+          "contentType": "video/webm",
+          "bytes": 1018285,
+          "sha256": "0f37720d9c02da0aba25354a99d4760984b859e3f08810219db41e78247d510d",
+          "rangeStatus": 206
+        },
+        {
+          "file": "public-demo-poster.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "bytes": 72073,
+          "sha256": "4ec20a6745c9835a37d57cb2374a9853743989188fe2f08fefe9f33e4cbf5ade",
+          "rangeStatus": 206
+        },
+        {
+          "file": "public-demo.vtt",
+          "status": 200,
+          "contentType": "text/vtt; charset=utf-8",
+          "bytes": 639,
+          "sha256": "2d51f3b5155849f0164a8eaad7633973c90640f34ab442def5b481f6e86042a9",
+          "rangeStatus": 206
+        }
+      ],
+      "browsers": [
+        {
+          "javaScriptEnabled": false,
+          "narrowWidth": 390,
+          "overflow": false,
+          "paths": [
+            "Play",
+            "Understand",
+            "transcript",
+            "/guide",
+            "/privacy",
+            "/terms"
+          ],
+          "nativeKeyboardControls": [
+            "Space play/pause",
+            "ArrowRight seek"
+          ],
+          "media": {
+            "duration": 40,
+            "width": 1440,
+            "height": 900,
+            "error": null,
+            "decodedFrames": 283,
+            "cues": 4,
+            "ended": true
+          },
+          "errors": [],
+          "externalRequests": []
+        },
+        {
+          "javaScriptEnabled": true,
+          "narrowWidth": 390,
+          "overflow": false,
+          "paths": [
+            "Play",
+            "Understand",
+            "transcript",
+            "/guide",
+            "/privacy",
+            "/terms"
+          ],
+          "nativeKeyboardControls": [
+            "Space play/pause",
+            "ArrowRight seek"
+          ],
+          "media": {
+            "duration": 40,
+            "width": 1440,
+            "height": 900,
+            "error": null,
+            "decodedFrames": 284,
+            "cues": 4,
+            "ended": true
+          },
+          "errors": [],
+          "externalRequests": []
+        }
+      ]
+    },
+    {
+      "label": "npm-package",
+      "pid": 361426,
+      "cwd": "/srv/hermes-ssd/workspaces/botters/contributions-1561132421896740937/public-demo/.cache/package-check/package",
+      "assets": [
+        {
+          "file": "public-demo.webm",
+          "status": 200,
+          "contentType": "video/webm",
+          "bytes": 1018285,
+          "sha256": "0f37720d9c02da0aba25354a99d4760984b859e3f08810219db41e78247d510d",
+          "rangeStatus": 206
+        },
+        {
+          "file": "public-demo-poster.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "bytes": 72073,
+          "sha256": "4ec20a6745c9835a37d57cb2374a9853743989188fe2f08fefe9f33e4cbf5ade",
+          "rangeStatus": 206
+        },
+        {
+          "file": "public-demo.vtt",
+          "status": 200,
+          "contentType": "text/vtt; charset=utf-8",
+          "bytes": 639,
+          "sha256": "2d51f3b5155849f0164a8eaad7633973c90640f34ab442def5b481f6e86042a9",
+          "rangeStatus": 206
+        }
+      ],
+      "browsers": [
+        {
+          "javaScriptEnabled": false,
+          "narrowWidth": 390,
+          "overflow": false,
+          "paths": [
+            "Play",
+            "Understand",
+            "transcript",
+            "/guide",
+            "/privacy",
+            "/terms"
+          ],
+          "nativeKeyboardControls": [
+            "Space play/pause",
+            "ArrowRight seek"
+          ],
+          "media": {
+            "duration": 40,
+            "width": 1440,
+            "height": 900,
+            "error": null,
+            "decodedFrames": 290,
+            "cues": 4,
+            "ended": true
+          },
+          "errors": [],
+          "externalRequests": []
+        },
+        {
+          "javaScriptEnabled": true,
+          "narrowWidth": 390,
+          "overflow": false,
+          "paths": [
+            "Play",
+            "Understand",
+            "transcript",
+            "/guide",
+            "/privacy",
+            "/terms"
+          ],
+          "nativeKeyboardControls": [
+            "Space play/pause",
+            "ArrowRight seek"
+          ],
+          "media": {
+            "duration": 40,
+            "width": 1440,
+            "height": 900,
+            "error": null,
+            "decodedFrames": 293,
+            "cues": 4,
+            "ended": true
+          },
+          "errors": [],
+          "externalRequests": []
+        }
+      ]
+    }
+  ]
+}

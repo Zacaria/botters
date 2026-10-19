@@ -1,0 +1,3127 @@
+{
+  "sourceCommit": "d8bef777dd31ae1362d26c3095fd1625381d88d0",
+  "sourceHashes": {
+    "index.html": "e9efffa7aedf0de538314cd51b5a3d275c2fc80a4c18bf85c493b93787da7f0b",
+    "sim.js": "bf98d41b5e866a8a0608645f4a6016dd61c3a945e1fe39dbe3a20d7f55299651",
+    "server.js": "be59e0e34a5237c04a2969840ae9ec947a28a39c5086627979c6bf878b553cd3",
+    "scripts/capture-announcement-trailer.js": "17a583cef7a70bd93a967d89c0786e93ea92b446a8e967f6702a9703ff93baaf"
+  },
+  "capturedAt": "2026-10-18T11:18:21.458Z",
+  "nativeSession": "20261018_111025_4722ef",
+  "nativeRun": 919,
+  "operator": "gpt-6.1-sol/openai-codex; contrib-superpowers",
+  "inference": "Operator selected opening once; this script makes no model calls. No continuous inference or human participant.",
+  "opponent": "house normal fixed gambits",
+  "options": {
+    "vs": "normal",
+    "minutes": 3,
+    "planets": 28,
+    "planning": 10,
+    "withAgent": true
+  },
+  "opening": [
+    {
+      "if": "bigger_enemy_near",
+      "p": 1.15,
+      "then": "retreat",
+      "on": true
+    },
+    {
+      "if": "big",
+      "p": 5000,
+      "then": "split",
+      "on": true
+    },
+    {
+      "if": "weaker_enemy_near",
+      "p": 0.8,
+      "then": "go",
+      "on": true
+    },
+    {
+      "if": "free_planet",
+      "p": 2000,
+      "then": "go",
+      "on": true
+    },
+    {
+      "if": "enemy_planet",
+      "p": 2000,
+      "then": "go",
+      "on": true
+    }
+  ],
+  "humanRequests": [
+    {
+      "seconds": 65.589,
+      "input": {
+        "order": {
+          "swarm": 217,
+          "x": 672,
+          "y": 242
+        }
+      }
+    },
+    {
+      "seconds": 79.292,
+      "input": {
+        "release": 217
+      }
+    }
+  ],
+  "manual": {
+    "seconds": 65.487,
+    "id": 217,
+    "before": {
+      "id": 217,
+      "x": 456,
+      "y": 320,
+      "n": 1338,
+      "tx": 472,
+      "ty": 339,
+      "manual": false,
+      "rule": 2,
+      "fighting": true
+    },
+    "target": {
+      "id": 7,
+      "x": 672,
+      "y": 242,
+      "r": 19,
+      "owner": "enemy",
+      "massLeft": 8270,
+      "mass": 9025,
+      "capture": -1
+    },
+    "nearestVisibleEnemy": 19.697715603592208,
+    "after": {
+      "id": 217,
+      "x": 658,
+      "y": 247,
+      "n": 1382,
+      "tx": 672,
+      "ty": 242,
+      "manual": true,
+      "rule": 2,
+      "fighting": true
+    },
+    "displacement": 214.78593994952274
+  },
+  "marks": [
+    {
+      "label": "frame-0",
+      "seconds": 0.007,
+      "tick": 2
+    },
+    {
+      "label": "frame-10",
+      "seconds": 10.414,
+      "tick": 204
+    },
+    {
+      "label": "frame-20",
+      "seconds": 20.014,
+      "tick": 394
+    },
+    {
+      "label": "frame-30",
+      "seconds": 30.306,
+      "tick": 598
+    },
+    {
+      "label": "frame-40",
+      "seconds": 40.076,
+      "tick": 793
+    },
+    {
+      "label": "frame-50",
+      "seconds": 50.337,
+      "tick": 996
+    },
+    {
+      "label": "frame-60",
+      "seconds": 60.129,
+      "tick": 1191
+    },
+    {
+      "label": "manual-order",
+      "seconds": 65.487,
+      "id": 217,
+      "before": {
+        "id": 217,
+        "x": 456,
+        "y": 320,
+        "n": 1338,
+        "tx": 472,
+        "ty": 339,
+        "manual": false,
+        "rule": 2,
+        "fighting": true
+      },
+      "target": {
+        "id": 7,
+        "x": 672,
+        "y": 242,
+        "r": 19,
+        "owner": "enemy",
+        "massLeft": 8270,
+        "mass": 9025,
+        "capture": -1
+      },
+      "nearestVisibleEnemy": 19.697715603592208
+    },
+    {
+      "label": "frame-70",
+      "seconds": 70.027,
+      "tick": 1387
+    },
+    {
+      "label": "release",
+      "seconds": 80.013,
+      "swarm": {
+        "id": 217,
+        "x": 662,
+        "y": 251,
+        "n": 1355,
+        "tx": 661,
+        "ty": 269,
+        "manual": false,
+        "rule": 2,
+        "fighting": true
+      },
+      "tick": 1583
+    },
+    {
+      "label": "frame-80",
+      "seconds": 80.729,
+      "tick": 1597
+    },
+    {
+      "label": "frame-90",
+      "seconds": 90.501,
+      "tick": 1792
+    },
+    {
+      "label": "frame-100",
+      "seconds": 100.289,
+      "tick": 1987
+    },
+    {
+      "label": "frame-110",
+      "seconds": 110.054,
+      "tick": 2182
+    },
+    {
+      "label": "frame-120",
+      "seconds": 120.343,
+      "tick": 2386
+    },
+    {
+      "label": "frame-130",
+      "seconds": 130.115,
+      "tick": 2581
+    },
+    {
+      "label": "frame-140",
+      "seconds": 140.439,
+      "tick": 2782
+    },
+    {
+      "label": "frame-150",
+      "seconds": 150.286,
+      "tick": 2978
+    },
+    {
+      "label": "frame-160",
+      "seconds": 160.302,
+      "tick": 3174
+    },
+    {
+      "label": "frame-170",
+      "seconds": 170.078,
+      "tick": 3368
+    },
+    {
+      "label": "frame-180",
+      "seconds": 180.412,
+      "tick": 3570
+    }
+  ],
+  "errors": [],
+  "rawVideoSha256": "e392b82e34f353ca385fe61b6e87e399ade1ceaa9d9a747098c09910d411d3dd",
+  "trimStartSeconds": 9.835,
+  "capture": "Native1920x1080 viewport; real-time20Hz simulation, genuine UI inputs, no game-state replacement or fabricated gameplay frames",
+  "rawVideo": ".cache/trailer/take-2026-10-18T11-15-07-470Z/page@31bb0395bc13f27c7f258d3437405ea1.webm",
+  "fullCaptureReceipt": ".cache/trailer/take-2026-10-18T11-15-07-470Z/capture.json",
+  "fullCaptureReceiptSha256": "f9f6021f1c6f630b7f95eeec6374ccacc128db04c3e311a6adeecea1c21b8de1",
+  "selectedObservations": [
+    {
+      "seconds": 0.007,
+      "tick": 2,
+      "secondsLeft": 180,
+      "totals": {
+        "you": 9000,
+        "enemy": 9000
+      },
+      "swarmCount": 3,
+      "ownedPlanetCount": 1,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 135,
+          "y": 280,
+          "n": 3000,
+          "tx": 135,
+          "ty": 280,
+          "manual": false,
+          "rule": -1,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 135,
+          "y": 350,
+          "n": 3000,
+          "tx": 135,
+          "ty": 350,
+          "manual": false,
+          "rule": -1,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 10000,
+          "mass": 10000,
+          "capture": 0
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 2.291,
+      "tick": 46,
+      "secondsLeft": 178,
+      "totals": {
+        "you": 9125,
+        "enemy": 9125
+      },
+      "swarmCount": 4,
+      "ownedPlanetCount": 1,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 163,
+          "y": 240,
+          "n": 3000,
+          "tx": 198,
+          "ty": 187,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 161,
+          "y": 391,
+          "n": 3062,
+          "tx": 181,
+          "ty": 424,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0.33
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 10000,
+          "mass": 10000,
+          "capture": 0
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 3,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 3.804,
+      "tick": 75,
+      "secondsLeft": 177,
+      "totals": {
+        "you": 9187,
+        "enemy": 9187
+      },
+      "swarmCount": 4,
+      "ownedPlanetCount": 1,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 184,
+          "y": 208,
+          "n": 3000,
+          "tx": 198,
+          "ty": 187,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 181,
+          "y": 424,
+          "n": 3031,
+          "tx": 181,
+          "ty": 424,
+          "manual": false,
+          "rule": 1,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0.72
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 10000,
+          "mass": 10000,
+          "capture": 0
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 1,
+        "2": 0,
+        "3": 2,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 5.322,
+      "tick": 105,
+      "secondsLeft": 175,
+      "totals": {
+        "you": 9312,
+        "enemy": 9312
+      },
+      "swarmCount": 5,
+      "ownedPlanetCount": 2,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 198,
+          "y": 187,
+          "n": 3000,
+          "tx": 198,
+          "ty": 187,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 188,
+          "y": 428,
+          "n": 3031,
+          "tx": 300,
+          "ty": 477,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 9002,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 10000,
+          "mass": 10000,
+          "capture": 0
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 5,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 7.363,
+      "tick": 145,
+      "secondsLeft": 173,
+      "totals": {
+        "you": 9498,
+        "enemy": 9498
+      },
+      "swarmCount": 6,
+      "ownedPlanetCount": 3,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 206,
+          "y": 190,
+          "n": 3000,
+          "tx": 338,
+          "ty": 244,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 236,
+          "y": 449,
+          "n": 3093,
+          "tx": 300,
+          "ty": 477,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 8911,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 10000,
+          "mass": 10000,
+          "capture": 0
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 5,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 8.371,
+      "tick": 165,
+      "secondsLeft": 172,
+      "totals": {
+        "you": 9622,
+        "enemy": 9622
+      },
+      "swarmCount": 6,
+      "ownedPlanetCount": 3,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 230,
+          "y": 200,
+          "n": 3000,
+          "tx": 338,
+          "ty": 244,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 259,
+          "y": 459,
+          "n": 3062,
+          "tx": 300,
+          "ty": 477,
+          "manual": false,
+          "rule": 1,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 8865,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 10000,
+          "mass": 10000,
+          "capture": 0.02
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 1,
+        "2": 0,
+        "3": 4,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 10.414,
+      "tick": 204,
+      "secondsLeft": 170,
+      "totals": {
+        "you": 9931,
+        "enemy": 9931
+      },
+      "swarmCount": 10,
+      "ownedPlanetCount": 3,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 278,
+          "y": 219,
+          "n": 3000,
+          "tx": 338,
+          "ty": 244,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 299,
+          "y": 476,
+          "n": 3062,
+          "tx": 300,
+          "ty": 477,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 8776,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 10000,
+          "mass": 10000,
+          "capture": 0.53
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 9,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 12.383,
+      "tick": 243,
+      "secondsLeft": 168,
+      "totals": {
+        "you": 10178,
+        "enemy": 10178
+      },
+      "swarmCount": 10,
+      "ownedPlanetCount": 4,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 326,
+          "y": 239,
+          "n": 3000,
+          "tx": 338,
+          "ty": 244,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 299,
+          "y": 476,
+          "n": 6310,
+          "tx": 300,
+          "ty": 477,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 8688,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 9990,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 10,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 16.972,
+      "tick": 333,
+      "secondsLeft": 164,
+      "totals": {
+        "you": 10982,
+        "enemy": 10982
+      },
+      "swarmCount": 12,
+      "ownedPlanetCount": 5,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 341,
+          "y": 248,
+          "n": 3309,
+          "tx": 429,
+          "ty": 352,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 391,
+          "y": 473,
+          "n": 6497,
+          "tx": 391,
+          "ty": 473,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 8482,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 9774,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 11,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 20.014,
+      "tick": 394,
+      "secondsLeft": 161,
+      "totals": {
+        "you": 11725,
+        "enemy": 11725
+      },
+      "swarmCount": 20,
+      "ownedPlanetCount": 6,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 392,
+          "y": 308,
+          "n": 3371,
+          "tx": 429,
+          "ty": 352,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 384,
+          "y": 531,
+          "n": 3248,
+          "tx": 377,
+          "ty": 591,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 8343,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 9628,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 20,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 25.277,
+      "tick": 498,
+      "secondsLeft": 156,
+      "totals": {
+        "you": 13025,
+        "enemy": 13025
+      },
+      "swarmCount": 23,
+      "ownedPlanetCount": 8,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 429,
+          "y": 351,
+          "n": 3932,
+          "tx": 429,
+          "ty": 352,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 445,
+          "y": 555,
+          "n": 3435,
+          "tx": 530,
+          "ty": 511,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 8106,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 9378,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 23,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 29.803,
+      "tick": 588,
+      "secondsLeft": 151,
+      "totals": {
+        "you": 14568,
+        "enemy": 14568
+      },
+      "swarmCount": 30,
+      "ownedPlanetCount": 8,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 521,
+          "y": 391,
+          "n": 4239,
+          "tx": 521,
+          "ty": 391,
+          "manual": false,
+          "rule": 3,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 530,
+          "y": 511,
+          "n": 3559,
+          "tx": 530,
+          "ty": 511,
+          "manual": false,
+          "rule": 0,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": 0
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 7901,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 9162,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 3,
+        "1": 0,
+        "2": 0,
+        "3": 25,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 31.527,
+      "tick": 623,
+      "secondsLeft": 149,
+      "totals": {
+        "you": 15121,
+        "enemy": 15121
+      },
+      "swarmCount": 31,
+      "ownedPlanetCount": 9,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 557,
+          "y": 396,
+          "n": 4239,
+          "tx": 530,
+          "ty": 511,
+          "manual": false,
+          "rule": 0,
+          "fighting": false
+        },
+        {
+          "id": 2,
+          "x": 535,
+          "y": 512,
+          "n": 3589,
+          "tx": 547,
+          "ty": 515,
+          "manual": false,
+          "rule": 0,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": -0.07
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 7821,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 9078,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 8,
+        "1": 0,
+        "2": 2,
+        "3": 20,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 33.539,
+      "tick": 663,
+      "secondsLeft": 147,
+      "totals": {
+        "you": 15903,
+        "enemy": 15801
+      },
+      "swarmCount": 31,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 548,
+          "y": 441,
+          "n": 4827,
+          "tx": 537,
+          "ty": 513,
+          "manual": false,
+          "rule": 0,
+          "fighting": true
+        },
+        {
+          "id": 2,
+          "x": 540,
+          "y": 513,
+          "n": 3662,
+          "tx": 541,
+          "ty": 513,
+          "manual": false,
+          "rule": 0,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": -0.17
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 7730,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 8982,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 11,
+        "1": 0,
+        "2": 2,
+        "3": 16,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 37.562,
+      "tick": 743,
+      "secondsLeft": 143,
+      "totals": {
+        "you": 13380,
+        "enemy": 14588
+      },
+      "swarmCount": 34,
+      "ownedPlanetCount": 11,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 542,
+          "y": 477,
+          "n": 4418,
+          "tx": 90,
+          "ty": 350,
+          "manual": false,
+          "rule": 0,
+          "fighting": true
+        },
+        {
+          "id": 2,
+          "x": 542,
+          "y": 514,
+          "n": 2105,
+          "tx": 543,
+          "ty": 514,
+          "manual": false,
+          "rule": 0,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": -0.29
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 7548,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 8790,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 14,
+        "1": 0,
+        "2": 1,
+        "3": 17,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 40.076,
+      "tick": 793,
+      "secondsLeft": 141,
+      "totals": {
+        "you": 12242,
+        "enemy": 14446
+      },
+      "swarmCount": 29,
+      "ownedPlanetCount": 11,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 522,
+          "y": 465,
+          "n": 4906,
+          "tx": 530,
+          "ty": 439,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        },
+        {
+          "id": 2,
+          "x": 542,
+          "y": 512,
+          "n": 2705,
+          "tx": 521,
+          "ty": 466,
+          "manual": false,
+          "rule": 0,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 9025,
+          "mass": 9025,
+          "capture": -0.37
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 7434,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 8670,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 10,
+        "1": 0,
+        "2": 1,
+        "3": 18,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 62.975,
+      "tick": 1247,
+      "secondsLeft": 118,
+      "totals": {
+        "you": 13451,
+        "enemy": 14108
+      },
+      "swarmCount": 25,
+      "ownedPlanetCount": 11,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 510,
+          "y": 438,
+          "n": 2440,
+          "tx": 492,
+          "ty": 422,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        },
+        {
+          "id": 217,
+          "x": 421,
+          "y": 304,
+          "n": 677,
+          "tx": 442,
+          "ty": 289,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 8384,
+          "mass": 9025,
+          "capture": -1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 6398,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 7581,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 10,
+        "1": 0,
+        "2": 7,
+        "3": 7,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 65.487,
+      "tick": 1297,
+      "secondsLeft": 116,
+      "totals": {
+        "you": 14381,
+        "enemy": 14549
+      },
+      "swarmCount": 25,
+      "ownedPlanetCount": 11,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 456,
+          "y": 427,
+          "n": 2490,
+          "tx": 433,
+          "ty": 413,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        },
+        {
+          "id": 217,
+          "x": 456,
+          "y": 320,
+          "n": 1338,
+          "tx": 472,
+          "ty": 339,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 8270,
+          "mass": 9025,
+          "capture": -1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 6284,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 7461,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 16,
+        "1": 0,
+        "2": 4,
+        "3": 5,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 66.509,
+      "tick": 1317,
+      "secondsLeft": 115,
+      "totals": {
+        "you": 14901,
+        "enemy": 14864
+      },
+      "swarmCount": 27,
+      "ownedPlanetCount": 11,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 451,
+          "y": 422,
+          "n": 2482,
+          "tx": 433,
+          "ty": 406,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        },
+        {
+          "id": 217,
+          "x": 462,
+          "y": 318,
+          "n": 1455,
+          "tx": 672,
+          "ty": 242,
+          "manual": true,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 8225,
+          "mass": 9025,
+          "capture": -1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 6239,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 7413,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 17,
+        "1": 0,
+        "2": 3,
+        "3": 4,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 70.027,
+      "tick": 1387,
+      "secondsLeft": 111,
+      "totals": {
+        "you": 15539,
+        "enemy": 15132
+      },
+      "swarmCount": 28,
+      "ownedPlanetCount": 11,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 475,
+          "y": 350,
+          "n": 2601,
+          "tx": 469,
+          "ty": 312,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        },
+        {
+          "id": 217,
+          "x": 505,
+          "y": 302,
+          "n": 1436,
+          "tx": 672,
+          "ty": 242,
+          "manual": true,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 8065,
+          "mass": 9025,
+          "capture": -1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 6079,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 7245,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 19,
+        "1": 0,
+        "2": 3,
+        "3": 2,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 73.785,
+      "tick": 1462,
+      "secondsLeft": 107,
+      "totals": {
+        "you": 15997,
+        "enemy": 15212
+      },
+      "swarmCount": 24,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 491,
+          "y": 350,
+          "n": 4010,
+          "tx": 519,
+          "ty": 376,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        },
+        {
+          "id": 217,
+          "x": 599,
+          "y": 269,
+          "n": 1436,
+          "tx": 672,
+          "ty": 242,
+          "manual": true,
+          "rule": 2,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 7894,
+          "mass": 9025,
+          "capture": -1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 5908,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 7065,
+          "mass": 10000,
+          "capture": 0.95
+        }
+      ],
+      "ruleCounts": {
+        "0": 17,
+        "1": 0,
+        "2": 3,
+        "3": 2,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 78.339,
+      "tick": 1550,
+      "secondsLeft": 103,
+      "totals": {
+        "you": 16342,
+        "enemy": 13808
+      },
+      "swarmCount": 22,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 498,
+          "y": 369,
+          "n": 4082,
+          "tx": 493,
+          "ty": 369,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        },
+        {
+          "id": 217,
+          "x": 655,
+          "y": 248,
+          "n": 1401,
+          "tx": 672,
+          "ty": 242,
+          "manual": true,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 7693,
+          "mass": 9025,
+          "capture": -1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 5708,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 6854,
+          "mass": 10000,
+          "capture": 0.46
+        }
+      ],
+      "ruleCounts": {
+        "0": 13,
+        "1": 0,
+        "2": 5,
+        "3": 3,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 80.729,
+      "tick": 1597,
+      "secondsLeft": 101,
+      "totals": {
+        "you": 16920,
+        "enemy": 13259
+      },
+      "swarmCount": 22,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 480,
+          "y": 362,
+          "n": 5926,
+          "tx": 479,
+          "ty": 365,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        },
+        {
+          "id": 217,
+          "x": 661,
+          "y": 256,
+          "n": 1340,
+          "tx": 657,
+          "ty": 268,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 7586,
+          "mass": 9025,
+          "capture": -0.93
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 5600,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 6741,
+          "mass": 10000,
+          "capture": 0.29
+        }
+      ],
+      "ruleCounts": {
+        "0": 12,
+        "1": 0,
+        "2": 5,
+        "3": 4,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 89.997,
+      "tick": 1782,
+      "secondsLeft": 91,
+      "totals": {
+        "you": 18872,
+        "enemy": 12788
+      },
+      "swarmCount": 14,
+      "ownedPlanetCount": 9,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 520,
+          "y": 384,
+          "n": 3448,
+          "tx": 509,
+          "ty": 371,
+          "manual": false,
+          "rule": 1,
+          "fighting": false
+        },
+        {
+          "id": 217,
+          "x": 637,
+          "y": 291,
+          "n": 1015,
+          "tx": 630,
+          "ty": 297,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 7165,
+          "mass": 9025,
+          "capture": -1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 5179,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": null,
+          "massLeft": 6542,
+          "mass": 10000,
+          "capture": -0.13
+        }
+      ],
+      "ruleCounts": {
+        "0": 6,
+        "1": 1,
+        "2": 4,
+        "3": 2,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 129.111,
+      "tick": 2561,
+      "secondsLeft": 52,
+      "totals": {
+        "you": 25611,
+        "enemy": 8686
+      },
+      "swarmCount": 24,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 482,
+          "y": 301,
+          "n": 3581,
+          "tx": 509,
+          "ty": 265,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "enemy",
+          "massLeft": 5388,
+          "mass": 9025,
+          "capture": -0.02
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 3403,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 5757,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 15,
+        "1": 0,
+        "2": 9,
+        "3": 0,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 144.191,
+      "tick": 2857,
+      "secondsLeft": 38,
+      "totals": {
+        "you": 30243,
+        "enemy": 7036
+      },
+      "swarmCount": 30,
+      "ownedPlanetCount": 9,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 664,
+          "y": 398,
+          "n": 2751,
+          "tx": 662,
+          "ty": 422,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 5377,
+          "mass": 9025,
+          "capture": 0.71
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 2728,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 5046,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 8,
+        "1": 0,
+        "2": 10,
+        "3": 12,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 145.206,
+      "tick": 2877,
+      "secondsLeft": 37,
+      "totals": {
+        "you": 30608,
+        "enemy": 6965
+      },
+      "swarmCount": 34,
+      "ownedPlanetCount": 9,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 672,
+          "y": 413,
+          "n": 2750,
+          "tx": 717,
+          "ty": 448,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": null,
+          "massLeft": 5377,
+          "mass": 9025,
+          "capture": 0.86
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 2682,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 4998,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 6,
+        "1": 0,
+        "2": 12,
+        "3": 13,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 146.219,
+      "tick": 2897,
+      "secondsLeft": 36,
+      "totals": {
+        "you": 30730,
+        "enemy": 6710
+      },
+      "swarmCount": 33,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 688,
+          "y": 424,
+          "n": 2748,
+          "tx": 713,
+          "ty": 430,
+          "manual": false,
+          "rule": 2,
+          "fighting": true
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 5361,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 2636,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 4950,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 8,
+        "1": 0,
+        "2": 8,
+        "3": 16,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 147.232,
+      "tick": 2917,
+      "secondsLeft": 35,
+      "totals": {
+        "you": 31139,
+        "enemy": 6453
+      },
+      "swarmCount": 31,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 701,
+          "y": 423,
+          "n": 6837,
+          "tx": 770,
+          "ty": 380,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 5315,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 2591,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 4902,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 5,
+        "1": 0,
+        "2": 8,
+        "3": 16,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 148.247,
+      "tick": 2937,
+      "secondsLeft": 34,
+      "totals": {
+        "you": 31444,
+        "enemy": 6385
+      },
+      "swarmCount": 31,
+      "ownedPlanetCount": 10,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 715,
+          "y": 416,
+          "n": 3418,
+          "tx": 715,
+          "ty": 416,
+          "manual": false,
+          "rule": 0,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 5270,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 2545,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 4854,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 7,
+        "1": 0,
+        "2": 6,
+        "3": 17,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 170.83,
+      "tick": 3383,
+      "secondsLeft": 11,
+      "totals": {
+        "you": 39671,
+        "enemy": 3421
+      },
+      "swarmCount": 40,
+      "ownedPlanetCount": 17,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 937,
+          "y": 418,
+          "n": 3875,
+          "tx": 962,
+          "ty": 440,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 4253,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 1528,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 3784,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 5,
+        "1": 1,
+        "2": 9,
+        "3": 24,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 177.886,
+      "tick": 3521,
+      "secondsLeft": 4,
+      "totals": {
+        "you": 43640,
+        "enemy": 647
+      },
+      "swarmCount": 37,
+      "ownedPlanetCount": 17,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 1036,
+          "y": 400,
+          "n": 10800,
+          "tx": 1073,
+          "ty": 375,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 3938,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 1214,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 3453,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 1,
+        "1": 0,
+        "2": 12,
+        "3": 23,
+        "4": 0
+      },
+      "ended": null
+    },
+    {
+      "seconds": 183.309,
+      "tick": 3600,
+      "secondsLeft": 0,
+      "totals": {
+        "you": 46444,
+        "enemy": 153
+      },
+      "swarmCount": 40,
+      "ownedPlanetCount": 19,
+      "focusedSwarms": [
+        {
+          "id": 1,
+          "x": 1054,
+          "y": 381,
+          "n": 10859,
+          "tx": 886,
+          "ty": 389,
+          "manual": false,
+          "rule": 2,
+          "fighting": false
+        }
+      ],
+      "focusedPlanets": [
+        {
+          "id": 7,
+          "x": 672,
+          "y": 242,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 3758,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 14,
+          "x": 181,
+          "y": 424,
+          "r": 19,
+          "owner": "you",
+          "massLeft": 1034,
+          "mass": 9025,
+          "capture": 1
+        },
+        {
+          "id": 18,
+          "x": 300,
+          "y": 477,
+          "r": 20,
+          "owner": "you",
+          "massLeft": 3263,
+          "mass": 10000,
+          "capture": 1
+        }
+      ],
+      "ruleCounts": {
+        "0": 0,
+        "1": 0,
+        "2": 9,
+        "3": 31,
+        "4": 0
+      },
+      "ended": {
+        "reason": "time",
+        "result": "won"
+      }
+    }
+  ],
+  "ownershipEvents": [
+    {
+      "seconds": 5.322,
+      "tick": 105,
+      "planet": 14,
+      "before": null,
+      "after": "you",
+      "x": 181,
+      "y": 424
+    },
+    {
+      "seconds": 5.322,
+      "tick": 105,
+      "planet": 15,
+      "before": null,
+      "after": "enemy",
+      "x": 1019,
+      "y": 424
+    },
+    {
+      "seconds": 7.363,
+      "tick": 145,
+      "planet": 20,
+      "before": null,
+      "after": "you",
+      "x": 198,
+      "y": 187
+    },
+    {
+      "seconds": 7.363,
+      "tick": 145,
+      "planet": 21,
+      "before": null,
+      "after": "enemy",
+      "x": 1002,
+      "y": 187
+    },
+    {
+      "seconds": 12.383,
+      "tick": 243,
+      "planet": 18,
+      "before": null,
+      "after": "you",
+      "x": 300,
+      "y": 477
+    },
+    {
+      "seconds": 12.892,
+      "tick": 253,
+      "planet": 19,
+      "before": null,
+      "after": "enemy",
+      "x": 900,
+      "y": 477
+    },
+    {
+      "seconds": 16.972,
+      "tick": 333,
+      "planet": 2,
+      "before": null,
+      "after": "you",
+      "x": 338,
+      "y": 244
+    },
+    {
+      "seconds": 16.972,
+      "tick": 333,
+      "planet": 3,
+      "before": null,
+      "after": "enemy",
+      "x": 862,
+      "y": 244
+    },
+    {
+      "seconds": 17.478,
+      "tick": 343,
+      "planet": 16,
+      "before": null,
+      "after": "you",
+      "x": 391,
+      "y": 473
+    },
+    {
+      "seconds": 17.478,
+      "tick": 343,
+      "planet": 17,
+      "before": null,
+      "after": "enemy",
+      "x": 809,
+      "y": 473
+    },
+    {
+      "seconds": 22.254,
+      "tick": 438,
+      "planet": 8,
+      "before": null,
+      "after": "you",
+      "x": 377,
+      "y": 591
+    },
+    {
+      "seconds": 22.254,
+      "tick": 438,
+      "planet": 9,
+      "before": null,
+      "after": "enemy",
+      "x": 823,
+      "y": 591
+    },
+    {
+      "seconds": 25.277,
+      "tick": 498,
+      "planet": 4,
+      "before": null,
+      "after": "you",
+      "x": 429,
+      "y": 352
+    },
+    {
+      "seconds": 25.277,
+      "tick": 498,
+      "planet": 5,
+      "before": null,
+      "after": "enemy",
+      "x": 771,
+      "y": 352
+    },
+    {
+      "seconds": 31.026,
+      "tick": 613,
+      "planet": 12,
+      "before": null,
+      "after": "you",
+      "x": 530,
+      "y": 511
+    },
+    {
+      "seconds": 31.527,
+      "tick": 623,
+      "planet": 13,
+      "before": null,
+      "after": "enemy",
+      "x": 670,
+      "y": 511
+    },
+    {
+      "seconds": 32.533,
+      "tick": 643,
+      "planet": 26,
+      "before": null,
+      "after": "you",
+      "x": 521,
+      "y": 391
+    },
+    {
+      "seconds": 34.041,
+      "tick": 673,
+      "planet": 22,
+      "before": null,
+      "after": "you",
+      "x": 282,
+      "y": 58
+    },
+    {
+      "seconds": 34.041,
+      "tick": 673,
+      "planet": 23,
+      "before": null,
+      "after": "enemy",
+      "x": 918,
+      "y": 58
+    },
+    {
+      "seconds": 36.556,
+      "tick": 723,
+      "planet": 27,
+      "before": null,
+      "after": "enemy",
+      "x": 679,
+      "y": 391
+    },
+    {
+      "seconds": 41.782,
+      "tick": 827,
+      "planet": 10,
+      "before": null,
+      "after": "you",
+      "x": 423,
+      "y": 55
+    },
+    {
+      "seconds": 41.782,
+      "tick": 827,
+      "planet": 11,
+      "before": null,
+      "after": "enemy",
+      "x": 777,
+      "y": 55
+    },
+    {
+      "seconds": 48.827,
+      "tick": 967,
+      "planet": 7,
+      "before": null,
+      "after": "enemy",
+      "x": 672,
+      "y": 242
+    },
+    {
+      "seconds": 57.607,
+      "tick": 1141,
+      "planet": 25,
+      "before": null,
+      "after": "enemy",
+      "x": 659,
+      "y": 94
+    },
+    {
+      "seconds": 62.975,
+      "tick": 1247,
+      "planet": 12,
+      "before": "you",
+      "after": null,
+      "x": 530,
+      "y": 511
+    },
+    {
+      "seconds": 66.509,
+      "tick": 1317,
+      "planet": 24,
+      "before": null,
+      "after": "enemy",
+      "x": 541,
+      "y": 94
+    },
+    {
+      "seconds": 72.277,
+      "tick": 1432,
+      "planet": 10,
+      "before": "you",
+      "after": null,
+      "x": 423,
+      "y": 55
+    },
+    {
+      "seconds": 77.832,
+      "tick": 1540,
+      "planet": 10,
+      "before": null,
+      "after": "enemy",
+      "x": 423,
+      "y": 55
+    },
+    {
+      "seconds": 84.969,
+      "tick": 1682,
+      "planet": 18,
+      "before": "you",
+      "after": null,
+      "x": 300,
+      "y": 477
+    },
+    {
+      "seconds": 88.991,
+      "tick": 1762,
+      "planet": 13,
+      "before": "enemy",
+      "after": null,
+      "x": 670,
+      "y": 511
+    },
+    {
+      "seconds": 90.501,
+      "tick": 1792,
+      "planet": 6,
+      "before": null,
+      "after": "enemy",
+      "x": 528,
+      "y": 242
+    },
+    {
+      "seconds": 93.25,
+      "tick": 1847,
+      "planet": 13,
+      "before": null,
+      "after": "you",
+      "x": 670,
+      "y": 511
+    },
+    {
+      "seconds": 101.005,
+      "tick": 2001,
+      "planet": 22,
+      "before": "you",
+      "after": null,
+      "x": 282,
+      "y": 58
+    },
+    {
+      "seconds": 112.804,
+      "tick": 2236,
+      "planet": 18,
+      "before": null,
+      "after": "you",
+      "x": 300,
+      "y": 477
+    },
+    {
+      "seconds": 113.307,
+      "tick": 2246,
+      "planet": 6,
+      "before": "enemy",
+      "after": null,
+      "x": 528,
+      "y": 242
+    },
+    {
+      "seconds": 129.613,
+      "tick": 2571,
+      "planet": 7,
+      "before": "enemy",
+      "after": null,
+      "x": 672,
+      "y": 242
+    },
+    {
+      "seconds": 142.182,
+      "tick": 2817,
+      "planet": 5,
+      "before": "enemy",
+      "after": null,
+      "x": 771,
+      "y": 352
+    },
+    {
+      "seconds": 143.689,
+      "tick": 2847,
+      "planet": 4,
+      "before": "you",
+      "after": null,
+      "x": 429,
+      "y": 352
+    },
+    {
+      "seconds": 146.219,
+      "tick": 2897,
+      "planet": 7,
+      "before": null,
+      "after": "you",
+      "x": 672,
+      "y": 242
+    },
+    {
+      "seconds": 146.725,
+      "tick": 2907,
+      "planet": 27,
+      "before": "enemy",
+      "after": null,
+      "x": 679,
+      "y": 391
+    },
+    {
+      "seconds": 148.247,
+      "tick": 2937,
+      "planet": 24,
+      "before": "enemy",
+      "after": null,
+      "x": 541,
+      "y": 94
+    },
+    {
+      "seconds": 148.755,
+      "tick": 2947,
+      "planet": 22,
+      "before": null,
+      "after": "you",
+      "x": 282,
+      "y": 58
+    },
+    {
+      "seconds": 151.205,
+      "tick": 2996,
+      "planet": 27,
+      "before": null,
+      "after": "you",
+      "x": 679,
+      "y": 391
+    },
+    {
+      "seconds": 152.213,
+      "tick": 3015,
+      "planet": 5,
+      "before": null,
+      "after": "you",
+      "x": 771,
+      "y": 352
+    },
+    {
+      "seconds": 158.292,
+      "tick": 3134,
+      "planet": 25,
+      "before": "enemy",
+      "after": null,
+      "x": 659,
+      "y": 94
+    },
+    {
+      "seconds": 161.029,
+      "tick": 3188,
+      "planet": 4,
+      "before": null,
+      "after": "you",
+      "x": 429,
+      "y": 352
+    },
+    {
+      "seconds": 163.541,
+      "tick": 3238,
+      "planet": 6,
+      "before": null,
+      "after": "you",
+      "x": 528,
+      "y": 242
+    },
+    {
+      "seconds": 164.043,
+      "tick": 3248,
+      "planet": 25,
+      "before": null,
+      "after": "you",
+      "x": 659,
+      "y": 94
+    },
+    {
+      "seconds": 169.073,
+      "tick": 3348,
+      "planet": 24,
+      "before": null,
+      "after": "you",
+      "x": 541,
+      "y": 94
+    },
+    {
+      "seconds": 170.078,
+      "tick": 3368,
+      "planet": 19,
+      "before": "enemy",
+      "after": null,
+      "x": 900,
+      "y": 477
+    },
+    {
+      "seconds": 177.383,
+      "tick": 3511,
+      "planet": 15,
+      "before": "enemy",
+      "after": null,
+      "x": 1019,
+      "y": 424
+    },
+    {
+      "seconds": 178.388,
+      "tick": 3531,
+      "planet": 12,
+      "before": null,
+      "after": "you",
+      "x": 530,
+      "y": 511
+    },
+    {
+      "seconds": 180.412,
+      "tick": 3570,
+      "planet": 15,
+      "before": null,
+      "after": "you",
+      "x": 1019,
+      "y": 424
+    },
+    {
+      "seconds": 181.281,
+      "tick": 3587,
+      "planet": 23,
+      "before": "enemy",
+      "after": null,
+      "x": 918,
+      "y": 58
+    }
+  ],
+  "selectionNote": "Nearest real observations to decisive shot/control/ownership times, projecting focused swarms1/2/217 and planets7/14/18 plus counts. Complete ownership transitions included; full original receipt retained in recovery evidence, not a model-generated replay."
+}
