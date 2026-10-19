@@ -240,7 +240,7 @@
     </div>
     <div id="toast"></div>
     <p class="dim">
-      <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> next swarm · </span><b>Esc</b> drop<br>
+      <b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> from the map: next swarm · <b>Shift+Tab</b>: reach controls, then Tab/Shift+Tab to navigate · </span><b>Esc</b> drop<br>
       <span id="pingHelp"><b>click the map with nothing grabbed</b>: ping your agent there<br></span>
       <button id="leave">← menu</button>
     </p>
@@ -776,7 +776,7 @@ onkeydown = e => {
   if (key === 'escape') sel = null
   if (key === 'g' && sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`)
   if (key === 's' && sel !== null) act({ split: sel }, `swarm #${sel} split`)
-  if (key === 'tab' && !guidance) { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }
+  if (key === 'tab' && !guidance && !e.shiftKey && (e.target === document.body || e.target === cv)) { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }
   panel()
 }
 $('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
