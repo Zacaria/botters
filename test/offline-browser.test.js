@@ -565,6 +565,8 @@ test('invalid saved preferences do not block local play', { timeout: 90000 }, as
       await page.locator('#play').click()
       await expect(page.locator('#hud')).toContainText('swarms')
       const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+      // The initial HUD can render before the server's first simulation tick.
+      await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(0)
       const first = await read()
       assert.ok(first.view.tick > 0)
       assert.equal(first.opponent.name, `house (${savedSettings?.vs || 'normal'})`)
