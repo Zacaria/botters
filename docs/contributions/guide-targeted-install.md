@@ -50,8 +50,8 @@
 - Ruling: store the short plan in this authorized document rather than the skill's default plan path — three-path source limit takes precedence; cost if wrong: documentation location only.
 - Ruling: reuse the already-linked worktree and installed read-only dependencies, not create a worktree or run npm install — explicit isolation/dependency guard; cost if wrong: missing dependencies would surface as a blocker.
 - Environment discovery found inherited `HERMES_KANBAN_WORKSPACE` pointing to a nonexistent older scratch directory. All commands use the exact bound checkout explicitly; no old trial memories were read.
-- Baseline: first `npm test` on unchanged source failed 3/110 tests (`optional local guidance…`, `guidance is absent by default…`, `offline browser renders…`) because Brave reported `Socket path too long` under the profile's long scratch path. Hypothesis confirmed by changing only TMPDIR to `/home/hermes/.hermes/cache/scratch/gti`: baseline `npm test` then passed. Both logs retained, no source fix.
-- Runtime pinned to installed `/home/hermes/.local/share/hermes-toolchains/node22/bin` (Node 22.23.2 / npm 10.9.8), not inherited Node 24/npm 11. No downloads.
+- Baseline: first `npm test` on unchanged source failed 3/110 tests (`optional local guidance…`, `guidance is absent by default…`, `offline browser renders…`) because Brave reported `Socket path too long` under the profile's long scratch path. A short-TMPDIR retry passed; the final audit discovered that terminal exports reset between calls, so that retry also inherited Node 24/npm 11. It was not a controlled one-variable comparison. Both logs are retained; no product-source fix was made.
+- Runtime correction: only the first baseline call explicitly selected installed Node 22.23.2 / npm 10.9.8. Earlier later-call GREEN/regression checks inherited Node 24.21.0 / npm 11.19.0 and the default short scratch root. Final verification explicitly sets `/home/hermes/.local/share/hermes-toolchains/node22/bin` and `/home/hermes/.hermes/cache/scratch/gti` in the same call as every required check. No downloads or profile changes.
 
 ## Executed results
 
@@ -65,6 +65,7 @@
 - `source-audit.json`: exactly three allowed source paths; no overlap with preferences candidate; all original guide bytes, inline JavaScript and manual fallback preserved. Only 22 HTML lines added.
 - Screenshots are produced by actual local Brave rendering in each viewport and JS/no-JS state. Selection is browser-automation Range selection of the visible command text node, not an assertion of manual human drag selection. Visual evidence inspection of mobile Claude Desktop and desktop Codex found no clipping; not a Luna/Sol or human approval.
 - Browser commands use the installed `node_modules/.bin/playwright` equivalent of the scope's npx command to prohibit package downloads. Each browser/suite run holds `/home/hermes/.hermes/cache/scratch/botters-contribution-browser-fixtures.lock` and neutralizes remote backend variables.
+- The post-review environment audit corrected only this documentation, not the reviewed HTML/tests. Final Node 22/npm 10 outputs and explicit environment receipt live under `evidence/final-node22-*`; earlier successful/failing runs remain distinct. A prior reviewer PASS is not transferred to new documentation bytes or represented as a Luna/Sol verdict.
 
 ## Delivery boundaries
 
