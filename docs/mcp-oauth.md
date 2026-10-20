@@ -22,6 +22,16 @@ Every MCP request needs a valid bearer token, including initialized sessions, GE
 
 ## Run the gateway
 
+### Existing Lightsail ingress
+
+The deployment target is a separate MCP container on the existing Botters Lightsail instance, behind the existing `play.botters.havesomecode.io` HTTPS origin. The connector URL is `https://play.botters.havesomecode.io/mcp`. No new DNS, AWS resource, website release or match-container replacement is required. This is the target configuration; publication is verified separately in the release evidence.
+
+`deploy/mcp-compose.yaml` uses the existing private `botters_default` network with no published port. `deploy/mcp-entry.js` consumes the already-tested gateway API and binds port 8798 inside that private container; the ordinary CLI below remains loopback-only. The dedicated state directory must be created privately for UID 1000 before startup. Set `BOTTERS_MCP_RELEASE` to the exact source commit and `BOTTERS_MCP_STATE_DIR` to that absolute directory; run Compose with `--env-file /dev/null` so no game credentials are loaded. Do not share the game's `.env` with this service.
+
+The Caddy matcher forwards only MCP/OAuth routes to the sidecar and preserves the game's existing routes, `/health`, 16 KiB body ceiling and process. MCP routes are limited to 64 KiB. Their application-generated consent CSP/referrer policy is preserved, and Caddy removes the unrelated live-host proof cookie before forwarding. Validate configuration and private health before a graceful Caddy reload; retain the previous Caddyfile for rollback. Do not recreate the game or Caddy containers merely to reload routes.
+
+### Standalone loopback process
+
 Use Node 22+ on a POSIX host. Install the repository's locked dependencies, choose a stable HTTPS origin and keep its reverse proxy's original `Host` header. The gateway listens only on loopback; do not put it behind a public path that changes its issuer or `/mcp` resource. `mcp.example.com` below is a reserved example, not a provisioned Botters address.
 
 ```sh
