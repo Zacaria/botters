@@ -37,6 +37,7 @@ if (process.stdin.isTTY) { openUrl(SERVER); console.error(`Botters is running: $
 const log = (...a) => console.error('[botters]', ...a) // stdout belongs to MCP
 
 let liveServer = SERVER, liveAccounts = true
+const reconnectOAuth = 'Agent access ended. Reconnect Botters in your assistant to authorize it again.'
 try {
   const config = await fetch(`${SERVER}/live-config.json`, { headers: serverURL.hostname.endsWith('.vercel.app') && env.VERCEL_AUTOMATION_BYPASS_SECRET ? { 'x-vercel-protection-bypass': env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}, signal: AbortSignal.timeout(5000) }).then(r => r.ok ? r.json() : {})
   if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false }
@@ -51,7 +52,7 @@ const api = async (method, path, body) => {
     // A late refusal belongs to the connection that sent it, not a newer one.
     if (S.session === s) Object.assign(S, { session: null, opened: false, inMatch: false, matchId: null, since: 0 })
     await r.body?.cancel().catch(() => {}) // refusal is definitive even without a JSON body
-    return { status: r.status, error: 'Agent access or approval expired or was revoked. Call join_match to request fresh approval from your human.' }
+    return { status: r.status, error: env.BOTTERS_REQUIRE_AGENT_TOKEN === '1' ? reconnectOAuth : 'Agent access or approval expired or was revoked. Call join_match to request fresh approval from your human.' }
   }
   return { status: r.status, ...(await r.json()) }
 }
@@ -74,6 +75,7 @@ const GAMBIT = z.object({ if: z.string(), p: z.number().optional(), then: z.stri
 
 async function session() {
   if (S.session) return S.session
+  if (env.BOTTERS_REQUIRE_AGENT_TOKEN === '1') throw new Error(reconnectOAuth)
   S.session = await api('POST', '/session', { name: env.BOTTERS_NAME || 'you', setup: env.BOTTERS_SETUP || 'agent' })
   if (S.session.status === 401) {
     const pair = await api('POST', '/agent/pair', { setup: env.BOTTERS_SETUP || 'agent' })

@@ -97,13 +97,14 @@ const gameplay = [
   ['set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'fixture' }],
   ['order_swarm', { swarm: 1, x: 100, y: 100, why: 'fixture' }],
   ['split_swarm', { swarm: 1, why: 'fixture' }],
+  ['morph_swarm', { swarm: 1, type: 'spore', why: 'fixture' }],
   ['release_swarm', { swarm: 1 }],
   ['call_human', { message: 'fixture' }],
 ]
 
 // Execute the real callbacks without stdio/startup. Only HTTP faults and timing
 // are injected; OnlineGame/MemoryStore retain real authorization and gameplay.
-async function callbackFixture({ supplied = false } = {}) {
+async function callbackFixture({ supplied = false, bound = false } = {}) {
   const origin = 'http://127.0.0.1:8790', identity = { id: 'fixture-owner', name: 'Fixture', emailVerified: true }
   let now = 1800000000000, fault = null
   const store = new MemoryStore(() => now), requests = [], tools = new Map()
@@ -113,7 +114,7 @@ async function callbackFixture({ supplied = false } = {}) {
   if (initial) await request(identity, 'POST', '/agent/approve', human.humanToken, { id: initial.id })
   const source = await readFile(new URL('../client.js', import.meta.url), 'utf8')
   const context = vm.createContext({
-    SERVER: origin, serverURL: new URL(origin), env: initial ? { BOTTERS_AGENT_TOKEN: initial.agentToken } : {}, URL, AbortSignal, z,
+    SERVER: origin, serverURL: new URL(origin), env: { ...(initial ? { BOTTERS_AGENT_TOKEN: initial.agentToken } : {}), ...(bound ? { BOTTERS_REQUIRE_AGENT_TOKEN: '1' } : {}) }, URL, AbortSignal, z,
     openUrl: () => {}, log: () => {},
     McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
     fetch: async (target, options = {}) => {
@@ -226,6 +227,18 @@ test('an externally supplied agent capability is forgotten after real revocation
   assert.equal(f.requests.filter(r => r.path === '/agent/pair').length, 1)
 })
 
+test('OAuth-bound clients never fall back to anonymous pairing after their approved capability is revoked', async () => {
+  const f = await callbackFixture({ supplied: true, bound: true }); await f.join()
+  await f.revoke()
+  assert.match(await f.call('morph_swarm', { swarm: 1, type: 'spore', why: 'revoked OAuth grant' }), /Reconnect Botters in your assistant/)
+  disconnected(f.S)
+  const sent = f.requests.length
+  for (const [name, args] of gameplay) assert.match(await f.call(name, args), /join_match/)
+  await assert.rejects(f.call('join_match'), /Reconnect Botters in your assistant/)
+  assert.equal(f.requests.length, sent, 'no account or pairing requests may escape the OAuth grant')
+  assert.equal(f.requests.filter(r => r.path === '/agent/pair').length, 0)
+})
+
 test('transport failure does not revoke a still-valid agent connection', async () => {
   const f = await callbackFixture(); await f.join(); const session = f.S.session
   f.fault(path => { if (path === '/events') throw new TypeError('isolated network failure') })
@@ -309,7 +322,7 @@ for (const path of ['/events', '/input', '/call', '/next', '/agent/poll']) test(
     Object.assign(f.S, { inMatch: true, matchId: 'previous-match', since: 27 })
   } else await f.join()
   f.fault(route => route === path ? { ok: false, status: path === '/agent/poll' ? 410 : 401, json: async () => { throw new SyntaxError('isolated empty or malformed JSON') } } : null)
-  const [name, args] = path === '/input' ? gameplay[1] : path === '/call' ? gameplay[5] : path === '/events' ? gameplay[0] : ['join_match', {}]
+  const [name, args] = path === '/input' ? gameplay.find(([tool]) => tool === 'set_gambits') : path === '/call' ? gameplay.find(([tool]) => tool === 'call_human') : path === '/events' ? gameplay.find(([tool]) => tool === 'wait_for_event') : ['join_match', {}]
   assert.match(await f.call(name, args), /join_match/)
   disconnected(f.S)
   const sent = f.requests.length
