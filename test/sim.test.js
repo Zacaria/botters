@@ -122,7 +122,9 @@ test('modes: sides, teams, symmetric homes and one swarm of each type per side',
   const a = createMatch(11, { mode: 'ffa6' })
   const homes = a.planets.slice(0, 6)
   for (const h of homes) assert.ok(homes.some(o => o !== h && Math.abs(o.x - (W - h.x)) < 1 && Math.abs(o.y - h.y) < 1) || h.y === H / 2, 'x-mirror exists')
-  assert.equal(replay(5, [], { mode: '2v2', minutes: 3 }).tick, 3 * 60 * TPS)
+  const live = createMatch(5, { mode: '2v2', minutes: 3 })
+  while (!live.ended) step(live)
+  assert.deepEqual(replay(5, [], live.opts), live) // valid wipes can end before the time limit
 })
 
 test('2v2: allies share vision, never fight, and the team wins together', () => {

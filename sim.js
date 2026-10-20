@@ -104,9 +104,10 @@ function rng(seed) { // mulberry32
 export function createMatch(seed, options) {
   const opts = matchOptions(options), r = rng(seed), teams = MODES[opts.mode], n = teams.length
   const planets = HOMES[n].map(([x, y], side) => ({ x, y, r: 26, owner: side, cap: 1 }))
-  for (let tries = 0; planets.length < opts.planets && tries < 5000; tries++) { // mirrored copies: 2 for a duel, 4 for 4 or 6 sides
-    const pr = Math.round(6 + r() * 16), x = 180 + r() * (W / 2 - 210), y = n === 2 ? 40 + r() * (H - 80) : 40 + r() * (H / 2 - 90 - pr)
-    const copies = n === 2 ? [[x, y], [W - x, y]] : [[x, y], [W - x, y], [x, H - y], [W - x, H - y]]
+  for (let tries = 0; planets.length < opts.planets && tries < 5000; tries++) { // six homes need a centreline pair before the mirrored quartets
+    const pair = n > 2 && (opts.planets - planets.length) % 4 === 2
+    const pr = Math.round(6 + r() * 16), x = 180 + r() * (W / 2 - 210), y = pair ? H / 2 : n === 2 ? 40 + r() * (H - 80) : 40 + r() * (H / 2 - 90 - pr)
+    const copies = n === 2 || pair ? [[x, y], [W - x, y]] : [[x, y], [W - x, y], [x, H - y], [W - x, H - y]]
     if (planets.some(p => Math.hypot(p.x - x, p.y - y) < p.r + pr + 50)) continue
     for (const [cx, cy] of copies) planets.push({ x: cx, y: cy, r: pr, owner: -1, cap: 0 })
   }
@@ -131,6 +132,7 @@ function split(s, c, manual) {
   const b = addSwarm(s, c.side, c.x + 4, c.y + 4, c.n / 2, c.type)
   if (!b) return null
   c.n /= 2; b.belly = c.belly /= 2; b.meal = c.meal
+  b.morphAt = c.morphAt; b.cocoon = c.cocoon
   b.manual = c.manual = manual; c.noMerge = b.noMerge = s.tick + 80
   const t = s.planets.filter(p => p.mass > 0 && p.owner !== c.side).sort((p, o) => dist(c, p) - dist(c, o) || p.id - o.id)
   moveTo(b, t[1] || { x: c.x, y: Math.min(H - 10, c.y + 80) })
@@ -216,7 +218,7 @@ export function step(s) {
     const d = dist(c, { x: c.tx, y: c.ty }), v = Math.min(d, speed(c) * (c.eng && !c.roll ? 0.25 : 1) / (1 + T.SLOW * c.belly / c.n))
     if (d > 1) { c.x += (c.tx - c.x) / d * v; c.y += (c.ty - c.y) / d * v }
   }
-  const loss = new Map(), gain = new Map()
+  const loss = new Map(), gain = new Map(), hits = []
   for (const c of s.swarms) { c.eng = false; c.roll = false; c.fire = null }
   for (let i = 0; i < s.swarms.length; i++) for (let j = i + 1; j < s.swarms.length; j++) {
     const a = s.swarms[i], b = s.swarms[j]
@@ -226,19 +228,23 @@ export function step(s) {
     // front law: only the contact front fights (width bounded by the smaller swarm); a much bigger swarm wraps the smaller one and bites from all sides
     const L = 2 * Math.min(ra, rb), ka = hit(a, b, contact, L, Math.min(1, Math.max(0, ra / rb - 1))), kb = hit(b, a, contact, L, Math.min(1, Math.max(0, rb / ra - 1)))
     loss.set(b, (loss.get(b) || 0) + ka); loss.set(a, (loss.get(a) || 0) + kb)
-    gain.set(a, (gain.get(a) || 0) + T.G * ka); gain.set(b, (gain.get(b) || 0) + T.G * kb)
+    if (ka > 0) hits.push([a, b, ka])
+    if (kb > 0) hits.push([b, a, kb])
     if (contact) { a.eng = b.eng = true; if (ka > kb) a.roll = true; if (kb > ka) b.roll = true }
     if (ka > 0 && !contact) a.fire = [b.x, b.y]
     if (kb > 0 && !contact) b.fire = [a.x, a.y]
   }
-  for (const [c, l] of loss) c.n -= l
+  // Share each target's actual losses proportionally among simultaneous attackers, before changing any population.
+  for (const [attacker, target, damage] of hits) gain.set(attacker, (gain.get(attacker) || 0) + T.G * damage * Math.min(1, target.n / loss.get(target)))
+  for (const [c, l] of loss) c.n = Math.max(0, c.n - l)
   for (const [c, g] of gain) if (c.n > 0 && g > 0) { c.belly += g; c.meal = s.tick } // kills feed, but the meal is digested slowly
-  for (const c of s.swarms) if (c.belly > 0) { const d = Math.min(c.belly, c.n * T.DIG); c.belly -= d; c.n += d }
+  for (const c of s.swarms) if (c.n > 0 && c.belly > 0) { const d = Math.min(c.belly, c.n * T.DIG); c.belly -= d; c.n += d }
   for (let i = 0; i < s.swarms.length; i++) for (let j = i + 1; j < s.swarms.length; j++) { // overlapping friends merge
     const a = s.swarms[i], b = s.swarms[j]
     if (a.side === b.side && a.type === b.type && a.n > 0 && b.n > 0 && a.noMerge < s.tick && b.noMerge < s.tick && dist(a, b) < 0.5 * (rad(a.n) + rad(b.n))) {
       a.x = (a.x * a.n + b.x * b.n) / (a.n + b.n); a.y = (a.y * a.n + b.y * b.n) / (a.n + b.n)
       a.belly += b.belly; a.meal = Math.max(a.meal, b.meal); a.n += b.n; b.n = 0
+      a.morphAt = Math.max(a.morphAt, b.morphAt); a.cocoon = Math.max(a.cocoon, b.cocoon)
       a.manual = a.manual || b.manual
     }
   }
