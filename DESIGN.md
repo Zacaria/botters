@@ -123,6 +123,7 @@ Cohort measurement (VM, Node, square-law fights between cohorts): full 5-minute 
 Decisions 2026-10-14 #3 (owner played the space sketch: "felt great, there's a learning curve and I could feel the pressure"):
 - ✅ Q24 The space sketch becomes the game: `sim.js` (deterministic cohort sim, 20 Hz, fog), `server.js`, `client.js` (MCP: join_match, wait_for_event, set_gambits, order_swarm, split_swarm, release_swarm, call_human), `index.html`. Jev pilot deleted. House opponent = fixed gambits, no agent, no model.
 - ✅ Q25 Three swarm types (locusts fast/fragile/fast eaters, carapace slow/tough, spores ranged) right after the first agent-played match.
+- ✅ Q26 (2026-10-20) Swarm depth shipped: front-and-wrap combat with 50% digestion replaces the square law (the old law melted equal swarms for two minutes and rarely let a trailing side come back); hunger and satiety counter the snowball; the three types form a triangle and can be changed in play; colour is the camp and shape the type so 2v2 and free-for-all (4 or 6 sides, against house bots for now) stay readable. Measured over 12 seeds per cell with `$TMPDIR` probes: comebacks after 1:30 went from 3/40 to 14/40 in duels.
 
 Hosting answer (Q23): yes, a 5-minute match fits Vercel. Fluid compute allows 300 s on Hobby and 800 s on Pro; with cohorts the simulation is ~0.1 ms per tick, so a stateless replay per request also works (≤0.5 s). Live updates: Vercel WebSockets (public beta since June 2026) or Convex subscriptions. To be spiked when the game moves online.
 

@@ -58,7 +58,9 @@ Then plug your agent. The full guide is at `http://localhost:8787/guide`.
 
 - Map 1200×700, mirrored planets plus one home planet per side. Each side starts with 3 swarms of 3,000 particles.
 - Owned planets are slowly eaten and turned into particles for their owner. Most particles at the end wins; no swarms and no planets left loses at once.
-- Fights follow the square law: touching swarms lose particles in proportion to the enemy's size. Big swarms move slower. Overlapping friendly swarms merge.
+- Fights use the contact front: only the front of two touching swarms fights (width = the smaller swarm's diameter) and a swarm much bigger than its enemy wraps it. Half of what a swarm kills joins it but is digested slowly, which also slows it. A swarm that touches no planet and kills nothing for too long starves (gambit conditions `hungry` and `full`). Big swarms move slower. Overlapping friendly swarms of the same type merge.
+- Types: each side starts with one locust, one carapace and one spore swarm. Locust (fast, fast eater, starves early) beats spore, spore (hits 45 beyond contact, weak in melee) beats carapace, carapace (slow, starves late) beats locust. Change type with `morph_swarm`, the gambit action `counter` or the keys L / C / P (10% of the particles, 3 s cocoon, 15 s cooldown).
+- Modes: `1v1`, `2v2` (you and a house ally against two house bots), `ffa4` and `ffa6` (free-for-all against house bots). Human-versus-human queue and rooms stay duels. Allies share vision and never fight. Colour is the camp (your team pink, each enemy team its own colour); shape and motion are the type.
 - Fog of war: you see enemies within 150 of your swarms and 80 of your planets.
 - Gambits: up to 10 rules per side, first enabled match wins, re-evaluated every 0.5 s. Conditions and actions: `GET /rules`.
 - A swarm grabbed by hand (by you or your agent) ignores the gambits until released.
