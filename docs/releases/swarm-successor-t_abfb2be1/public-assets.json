@@ -1,0 +1,202 @@
+[
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/guide.html",
+    "status": 200,
+    "bytes": 11860,
+    "sha256": "1bf6b6c2e4d2e9c3a6fd7153954284c8e2560f03c49f2ff4bb90b62078502d98",
+    "expected_sha256": "1bf6b6c2e4d2e9c3a6fd7153954284c8e2560f03c49f2ff4bb90b62078502d98",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/",
+    "status": 200,
+    "bytes": 75991,
+    "sha256": "5625fb9940f12af45bee95cda6af258dc6a55329ecd10cd0258bce9fdfc106e9",
+    "expected_sha256": "5625fb9940f12af45bee95cda6af258dc6a55329ecd10cd0258bce9fdfc106e9",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/live-client.js",
+    "status": 200,
+    "bytes": 106584,
+    "sha256": "5382a990ccf1131995d22181eee6c5095f8f57b313ad0e402e7bdc5a7bbb4366",
+    "expected_sha256": "5382a990ccf1131995d22181eee6c5095f8f57b313ad0e402e7bdc5a7bbb4366",
+    "match": true,
+    "content_type": "application/javascript; charset=utf-8"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/live-config.json",
+    "status": 200,
+    "bytes": 69,
+    "sha256": "bfa2ab94513765fb09ccef2e4a067bb05e2a0edbb4fa21f6d099fafcd6aa3781",
+    "expected_sha256": "bfa2ab94513765fb09ccef2e4a067bb05e2a0edbb4fa21f6d099fafcd6aa3781",
+    "match": true,
+    "content_type": "application/json; charset=utf-8"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/media/public-demo-poster.jpg",
+    "status": 200,
+    "bytes": 55026,
+    "sha256": "0b24f79618f4300f193b16f3afee65357e573f540e25ee10baf068b3be39d6fe",
+    "expected_sha256": "0b24f79618f4300f193b16f3afee65357e573f540e25ee10baf068b3be39d6fe",
+    "match": true,
+    "content_type": "image/jpeg"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/media/public-demo.vtt",
+    "status": 200,
+    "bytes": 823,
+    "sha256": "dd62274548b65c2b90380a893e85bdb51a0ff943682be67aca2563dc59b9c82b",
+    "expected_sha256": "dd62274548b65c2b90380a893e85bdb51a0ff943682be67aca2563dc59b9c82b",
+    "match": true,
+    "content_type": "text/vtt; charset=utf-8"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/media/public-demo.webm",
+    "status": 200,
+    "bytes": 14482092,
+    "sha256": "46b35b8a24b91ecad90bcfb472ae46c7685f1238ce35fa2fba79e30d42a3c610",
+    "expected_sha256": "46b35b8a24b91ecad90bcfb472ae46c7685f1238ce35fa2fba79e30d42a3c610",
+    "match": true,
+    "content_type": "video/webm"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/privacy.html",
+    "status": 200,
+    "bytes": 8457,
+    "sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e",
+    "expected_sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/sim.js",
+    "status": 200,
+    "bytes": 23704,
+    "sha256": "1b456697b3bfd8b02890605b20bd7dd104da9598128c0006b145caa74ab16908",
+    "expected_sha256": "1b456697b3bfd8b02890605b20bd7dd104da9598128c0006b145caa74ab16908",
+    "match": true,
+    "content_type": "application/javascript; charset=utf-8"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/terms.html",
+    "status": 200,
+    "bytes": 5542,
+    "sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629",
+    "expected_sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/guide.html",
+    "status": 200,
+    "bytes": 11860,
+    "sha256": "1bf6b6c2e4d2e9c3a6fd7153954284c8e2560f03c49f2ff4bb90b62078502d98",
+    "expected_sha256": "1bf6b6c2e4d2e9c3a6fd7153954284c8e2560f03c49f2ff4bb90b62078502d98",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/",
+    "status": 200,
+    "bytes": 75991,
+    "sha256": "5625fb9940f12af45bee95cda6af258dc6a55329ecd10cd0258bce9fdfc106e9",
+    "expected_sha256": "5625fb9940f12af45bee95cda6af258dc6a55329ecd10cd0258bce9fdfc106e9",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/live-client.js",
+    "status": 200,
+    "bytes": 106584,
+    "sha256": "5382a990ccf1131995d22181eee6c5095f8f57b313ad0e402e7bdc5a7bbb4366",
+    "expected_sha256": "5382a990ccf1131995d22181eee6c5095f8f57b313ad0e402e7bdc5a7bbb4366",
+    "match": true,
+    "content_type": "application/javascript; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/live-config.json",
+    "status": 200,
+    "bytes": 69,
+    "sha256": "bfa2ab94513765fb09ccef2e4a067bb05e2a0edbb4fa21f6d099fafcd6aa3781",
+    "expected_sha256": "bfa2ab94513765fb09ccef2e4a067bb05e2a0edbb4fa21f6d099fafcd6aa3781",
+    "match": true,
+    "content_type": "application/json; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/media/public-demo-poster.jpg",
+    "status": 200,
+    "bytes": 55026,
+    "sha256": "0b24f79618f4300f193b16f3afee65357e573f540e25ee10baf068b3be39d6fe",
+    "expected_sha256": "0b24f79618f4300f193b16f3afee65357e573f540e25ee10baf068b3be39d6fe",
+    "match": true,
+    "content_type": "image/jpeg"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/media/public-demo.vtt",
+    "status": 200,
+    "bytes": 823,
+    "sha256": "dd62274548b65c2b90380a893e85bdb51a0ff943682be67aca2563dc59b9c82b",
+    "expected_sha256": "dd62274548b65c2b90380a893e85bdb51a0ff943682be67aca2563dc59b9c82b",
+    "match": true,
+    "content_type": "text/vtt; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/media/public-demo.webm",
+    "status": 200,
+    "bytes": 14482092,
+    "sha256": "46b35b8a24b91ecad90bcfb472ae46c7685f1238ce35fa2fba79e30d42a3c610",
+    "expected_sha256": "46b35b8a24b91ecad90bcfb472ae46c7685f1238ce35fa2fba79e30d42a3c610",
+    "match": true,
+    "content_type": "video/webm"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/privacy.html",
+    "status": 200,
+    "bytes": 8457,
+    "sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e",
+    "expected_sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/sim.js",
+    "status": 200,
+    "bytes": 23704,
+    "sha256": "1b456697b3bfd8b02890605b20bd7dd104da9598128c0006b145caa74ab16908",
+    "expected_sha256": "1b456697b3bfd8b02890605b20bd7dd104da9598128c0006b145caa74ab16908",
+    "match": true,
+    "content_type": "application/javascript; charset=utf-8"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/terms.html",
+    "status": 200,
+    "bytes": 5542,
+    "sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629",
+    "expected_sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629",
+    "match": true,
+    "content_type": "text/html; charset=utf-8"
+  }
+]

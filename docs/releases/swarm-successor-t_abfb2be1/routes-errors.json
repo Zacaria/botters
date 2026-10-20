@@ -1,0 +1,137 @@
+[
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/guide",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 11860,
+    "sha256": "1bf6b6c2e4d2e9c3a6fd7153954284c8e2560f03c49f2ff4bb90b62078502d98"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/privacy",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 8457,
+    "sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/terms",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 5542,
+    "sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/account",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 72,
+    "sha256": "f9b3efd9be7e2b076396bbce0e791c92f50678e620c3bbe183f3f5fdd1e70b45"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/state?token=release-unallocated-invalid",
+    "status": 410,
+    "expected": 410,
+    "match": true,
+    "bytes": 105,
+    "sha256": "4ae9bf7601f07619a665770e918c01c4deba98d33e59c8c9234b4abea7dc8963"
+  },
+  {
+    "host": "botters.havesomecode.io",
+    "path": "/release-route-not-found",
+    "status": 404,
+    "expected": 404,
+    "match": true,
+    "bytes": 79,
+    "sha256": "e8035269c823e04f245e842432fa4c7027b60c547c64a0c6d25f412dfcc48069"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/guide",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 11860,
+    "sha256": "1bf6b6c2e4d2e9c3a6fd7153954284c8e2560f03c49f2ff4bb90b62078502d98"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/privacy",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 8457,
+    "sha256": "de1a430a4fd0b27458ad675c9b456687a75a4d11a1fb82b42b1568e50d74c87e"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/terms",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 5542,
+    "sha256": "5b07fb42a10a189fa1efd62105cb77c23632dc5ddafc4046c7c881ac2efe7629"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/account",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "bytes": 72,
+    "sha256": "f9b3efd9be7e2b076396bbce0e791c92f50678e620c3bbe183f3f5fdd1e70b45"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/state?token=release-unallocated-invalid",
+    "status": 410,
+    "expected": 410,
+    "match": true,
+    "bytes": 105,
+    "sha256": "4ae9bf7601f07619a665770e918c01c4deba98d33e59c8c9234b4abea7dc8963"
+  },
+  {
+    "host": "botters.vercel.app",
+    "path": "/release-route-not-found",
+    "status": 404,
+    "expected": 404,
+    "match": true,
+    "bytes": 79,
+    "sha256": "dc5387c59d46d01eb65d9a629edd50faf19917b60dc35f2be328cd9cdfa04f93"
+  },
+  {
+    "host": "play.botters.havesomecode.io",
+    "path": "/state?token=release-unallocated-invalid",
+    "status": 401,
+    "expected": 401,
+    "match": true,
+    "body": "{\"error\":\"Unknown session. Open a new lobby.\"}",
+    "www_authenticate": null
+  },
+  {
+    "host": "play.botters.havesomecode.io",
+    "path": "/account",
+    "status": 200,
+    "expected": 200,
+    "match": true,
+    "body": "{\"required\":false,\"origin\":\"https://botters.havesomecode.io\",\"user\":null}",
+    "www_authenticate": null
+  },
+  {
+    "host": "play.botters.havesomecode.io",
+    "path": "/mcp",
+    "status": 401,
+    "expected": 401,
+    "match": true,
+    "body": "{\"error\":\"Authentication required\"}",
+    "www_authenticate": "Bearer resource_metadata=\"https://play.botters.havesomecode.io/.well-known/oauth-protected-resource/mcp\", scope=\"botters:play\""
+  }
+]

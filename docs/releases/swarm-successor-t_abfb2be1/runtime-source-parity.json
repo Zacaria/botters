@@ -1,0 +1,92 @@
+[
+  {
+    "path": "scripts/live-server.js",
+    "sha256": "2d5cf7dfabe25be098037923b76b8ebfff1d4b9f2b074c3be2e03d4806650f17",
+    "expected_sha256": "2d5cf7dfabe25be098037923b76b8ebfff1d4b9f2b074c3be2e03d4806650f17",
+    "match": true
+  },
+  {
+    "path": "online/auth-options.js",
+    "sha256": "17fc02da856a10611d66a883fe39c8080faf405118e1b3d6f6a8d44c1994422d",
+    "expected_sha256": "17fc02da856a10611d66a883fe39c8080faf405118e1b3d6f6a8d44c1994422d",
+    "match": true
+  },
+  {
+    "path": "online/auth.js",
+    "sha256": "39b17eafec3a132f2041a5422dc51b127a6c54bed023a10359301cf4960ff14a",
+    "expected_sha256": "39b17eafec3a132f2041a5422dc51b127a6c54bed023a10359301cf4960ff14a",
+    "match": true
+  },
+  {
+    "path": "online/game.js",
+    "sha256": "f238d1d846eac31499effc659cced3107fdc745af906b8a485a20a17316ddc2f",
+    "expected_sha256": "f238d1d846eac31499effc659cced3107fdc745af906b8a485a20a17316ddc2f",
+    "match": true
+  },
+  {
+    "path": "online/http.js",
+    "sha256": "416ed2b951f4a4a4db56b34085aa2ab6ccaaedc3a6b21a63c903a2535d763f78",
+    "expected_sha256": "416ed2b951f4a4a4db56b34085aa2ab6ccaaedc3a6b21a63c903a2535d763f78",
+    "match": true
+  },
+  {
+    "path": "online/live-cookie.js",
+    "sha256": "dca973aee57c1aca18289155506de5164863f9bdbe2da59a5a8e6402e41c65e5",
+    "expected_sha256": "dca973aee57c1aca18289155506de5164863f9bdbe2da59a5a8e6402e41c65e5",
+    "match": true
+  },
+  {
+    "path": "online/live-durable.js",
+    "sha256": "2f75b1e07afbb432b7b5191ce9afd845388696f1645cc229f8e1bb2591ae7864",
+    "expected_sha256": "2f75b1e07afbb432b7b5191ce9afd845388696f1645cc229f8e1bb2591ae7864",
+    "match": true
+  },
+  {
+    "path": "online/live-runtime.js",
+    "sha256": "8ebdf22305cc379b8a2d22e90f0af5bf54e348aa75b1230cbcc4249d770dd2b3",
+    "expected_sha256": "8ebdf22305cc379b8a2d22e90f0af5bf54e348aa75b1230cbcc4249d770dd2b3",
+    "match": true
+  },
+  {
+    "path": "online/live-server.js",
+    "sha256": "f3b08e1f490046beab4fe3b1c2a09f2c05d7984e6131c4c8b2af52628c5895f0",
+    "expected_sha256": "f3b08e1f490046beab4fe3b1c2a09f2c05d7984e6131c4c8b2af52628c5895f0",
+    "match": true
+  },
+  {
+    "path": "online/live-store.js",
+    "sha256": "1a8581b298218618c5e330d1905bd28686bd4d7383162170bfc790745ed7bace",
+    "expected_sha256": "1a8581b298218618c5e330d1905bd28686bd4d7383162170bfc790745ed7bace",
+    "match": true
+  },
+  {
+    "path": "online/ratings.js",
+    "sha256": "ce347f4cf78b34ac15d3c09d8d4f799b5328ef96a26a28fa78d4f980ec53de68",
+    "expected_sha256": "ce347f4cf78b34ac15d3c09d8d4f799b5328ef96a26a28fa78d4f980ec53de68",
+    "match": true
+  },
+  {
+    "path": "online/store.js",
+    "sha256": "41375e2d491eba63f5d540f9e421e863de67ceaed2667469ffefb4b509fc5680",
+    "expected_sha256": "41375e2d491eba63f5d540f9e421e863de67ceaed2667469ffefb4b509fc5680",
+    "match": true
+  },
+  {
+    "path": "sim.js",
+    "sha256": "1b456697b3bfd8b02890605b20bd7dd104da9598128c0006b145caa74ab16908",
+    "expected_sha256": "1b456697b3bfd8b02890605b20bd7dd104da9598128c0006b145caa74ab16908",
+    "match": true
+  },
+  {
+    "path": "package.json",
+    "sha256": "172a6c704ea7aacbb161f873caef0696e06f13d4266ea80eb7ab91fde72e0343",
+    "expected_sha256": "172a6c704ea7aacbb161f873caef0696e06f13d4266ea80eb7ab91fde72e0343",
+    "match": true
+  },
+  {
+    "path": "package-lock.json",
+    "sha256": "b452d5452f8428fe2e014c264674f0c02caa3a2a48387a428314dab74e0ef83f",
+    "expected_sha256": "b452d5452f8428fe2e014c264674f0c02caa3a2a48387a428314dab74e0ef83f",
+    "match": true
+  }
+]

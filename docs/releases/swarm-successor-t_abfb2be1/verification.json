@@ -1,0 +1,80 @@
+{
+  "observed_at_utc": "2026-10-20T08:27:54.334665+00:00",
+  "task": "t_abfb2be1",
+  "candidate": "d6630fca9b252948088ea06f9c3b6329ff72ded8",
+  "approved_head": "581ce19d05e3d1fde122049cdfe9f74a40ed34f7",
+  "approved_tree": "04d55305ba1beadeb6233683e8b3afd481aa44ef",
+  "production_mutations_this_run": [],
+  "status": "PARTIAL; authenticated gameplay unavailable",
+  "candidate_tree": "04d55305ba1beadeb6233683e8b3afd481aa44ef",
+  "remote_refs": "581ce19d05e3d1fde122049cdfe9f74a40ed34f7\trefs/heads/feat/swarm-depth\nd6630fca9b252948088ea06f9c3b6329ff72ded8\trefs/heads/pvp-online",
+  "exact_head_ci": {
+    "conclusion": "success",
+    "head_sha": "581ce19d05e3d1fde122049cdfe9f74a40ed34f7",
+    "html_url": "https://github.com/Zacaria/botters/actions/runs/39389931993",
+    "id": 39389931993,
+    "status": "completed",
+    "updated_at": "2026-10-20T08:05:04Z"
+  },
+  "merge_signature": {
+    "sha": "d6630fca9b252948088ea06f9c3b6329ff72ded8",
+    "tree": "04d55305ba1beadeb6233683e8b3afd481aa44ef",
+    "verification": {
+      "reason": "valid",
+      "verified": true,
+      "verified_at": "2026-10-20T08:06:31Z"
+    }
+  },
+  "vercel_source_matched_count": 193,
+  "vercel_deployments": {
+    "botters.havesomecode.io": {
+      "id": "dpl_7v2xmoicQzJMPc2RFRVswAbtuUk7",
+      "url": "botters-7se7todm8-zacaria-chtatars-projects.vercel.app",
+      "target": "production",
+      "readyState": "READY",
+      "createdAt": 1792483917913,
+      "ready": 1792483926556,
+      "aliasAssigned": true,
+      "aliasAssignedAt": 1792483964460
+    },
+    "botters.vercel.app": {
+      "id": "dpl_7v2xmoicQzJMPc2RFRVswAbtuUk7",
+      "url": "botters-7se7todm8-zacaria-chtatars-projects.vercel.app",
+      "target": "production",
+      "readyState": "READY",
+      "createdAt": 1792483917913,
+      "ready": 1792483926556,
+      "aliasAssigned": true,
+      "aliasAssignedAt": 1792483964460
+    }
+  },
+  "public_asset_comparisons_passed": 20,
+  "live_config": {
+    "url": "https://play.botters.havesomecode.io",
+    "accountRequired": true
+  },
+  "health": {
+    "status": "ok",
+    "build": "d6630fca9b252948088ea06f9c3b6329ff72ded8",
+    "transport": "colyseus",
+    "activeMatches": 0,
+    "convex": {
+      "query": 0,
+      "mutation": 0,
+      "subscription": 0,
+      "updates": 0
+    },
+    "memory": 80416768
+  },
+  "route_expectation_failures": [],
+  "runtime_source_files_matched": 15,
+  "sibling_mcp_and_caddy": "Container identities/start times show MCP started 2026-10-20T05:25:28Z and Caddy 2026-10-16T08:28:28Z, before game at 08:10:06Z; public OAuth metadata and anonymous MCP 401 readbacks preserved.",
+  "authenticated_gameplay": "NOT RUN: fresh browser signed out; browser_vault list returned no saved logins. No signup, email, owner session reuse, capability bypass, or account manipulation.",
+  "not_run": [
+    "Authenticated mode selection, house match, in-match morph and result on public production",
+    "Real Claude/ChatGPT gameplay",
+    "Production Convex deployment or customer-data queries",
+    "Local test-suite reruns; independent exact-tree PASS reused"
+  ],
+  "deletions": []
+}

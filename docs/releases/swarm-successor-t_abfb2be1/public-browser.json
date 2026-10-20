@@ -1,0 +1,76 @@
+[
+  {
+    "host": "botters.havesomecode.io",
+    "homepage": 200,
+    "signInVisible": true,
+    "canonicalLogin": null,
+    "accountRequired": true,
+    "playGated": true,
+    "modeButtons": [],
+    "config": {
+      "url": "https://play.botters.havesomecode.io",
+      "accountRequired": true
+    },
+    "account": {
+      "required": true,
+      "origin": "https://botters.havesomecode.io",
+      "user": null
+    },
+    "pages": [
+      {
+        "path": "/guide",
+        "title": "Botters · plug your agent",
+        "status": 200
+      },
+      {
+        "path": "/privacy",
+        "title": "Privacy policy · Botters",
+        "status": 200
+      },
+      {
+        "path": "/terms",
+        "title": "Terms of service · Botters",
+        "status": 200
+      }
+    ],
+    "uncaughtErrors": [],
+    "authenticatedMatch": "not run; no saved vault login"
+  },
+  {
+    "host": "botters.vercel.app",
+    "homepage": 200,
+    "signInVisible": false,
+    "canonicalLogin": "https://botters.havesomecode.io/",
+    "accountRequired": true,
+    "playGated": true,
+    "modeButtons": [],
+    "config": {
+      "url": "https://play.botters.havesomecode.io",
+      "accountRequired": true
+    },
+    "account": {
+      "required": true,
+      "origin": "https://botters.havesomecode.io",
+      "user": null
+    },
+    "pages": [
+      {
+        "path": "/guide",
+        "title": "Botters · plug your agent",
+        "status": 200
+      },
+      {
+        "path": "/privacy",
+        "title": "Privacy policy · Botters",
+        "status": 200
+      },
+      {
+        "path": "/terms",
+        "title": "Terms of service · Botters",
+        "status": 200
+      }
+    ],
+    "uncaughtErrors": [],
+    "authenticatedMatch": "not run; no saved vault login"
+  }
+]

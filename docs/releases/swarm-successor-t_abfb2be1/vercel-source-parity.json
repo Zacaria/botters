@@ -1,0 +1,1361 @@
+{
+  "deployment_id": "dpl_7v2xmoicQzJMPc2RFRVswAbtuUk7",
+  "matched_count": 193,
+  "critical_count": 21,
+  "comparisons": [
+    {
+      "path": ".github/workflows/pr-ci.yml",
+      "sha1": "f2e1d9fef04889fc5e1e7e7a0d05064bd0f18ebb",
+      "uploaded_sha1": "f2e1d9fef04889fc5e1e7e7a0d05064bd0f18ebb",
+      "match": true
+    },
+    {
+      "path": ".vercelignore",
+      "sha1": "8bf97933cee91af4082a9d3568e30827c062c89b",
+      "uploaded_sha1": "8bf97933cee91af4082a9d3568e30827c062c89b",
+      "match": true
+    },
+    {
+      "path": "DESIGN.md",
+      "sha1": "6c627fc43e809dbc3ef206788cf992b9e86f8e66",
+      "uploaded_sha1": "6c627fc43e809dbc3ef206788cf992b9e86f8e66",
+      "match": true
+    },
+    {
+      "path": "DOCTRINE.md",
+      "sha1": "929f78b0561758754cefc44892ceabbf1ea25db7",
+      "uploaded_sha1": "929f78b0561758754cefc44892ceabbf1ea25db7",
+      "match": true
+    },
+    {
+      "path": "IDEA.md",
+      "sha1": "7a64d9c92ae30b2ef4bbbfd61b55a1e36a0c001d",
+      "uploaded_sha1": "7a64d9c92ae30b2ef4bbbfd61b55a1e36a0c001d",
+      "match": true
+    },
+    {
+      "path": "README.md",
+      "sha1": "4c29ca577fd2468da322745d2d7d0690acab786d",
+      "uploaded_sha1": "4c29ca577fd2468da322745d2d7d0690acab786d",
+      "match": true
+    },
+    {
+      "path": "api/index.js",
+      "sha1": "48d4e43b609dcbb4e2307ecfe5468b8043756e26",
+      "uploaded_sha1": "48d4e43b609dcbb4e2307ecfe5468b8043756e26",
+      "match": true
+    },
+    {
+      "path": "browser-live.js",
+      "sha1": "20701e5288ad1d5e98f9e62d2434514775518932",
+      "uploaded_sha1": "20701e5288ad1d5e98f9e62d2434514775518932",
+      "match": true
+    },
+    {
+      "path": "client.js",
+      "sha1": "d2a807365084b9c3995008774a38155a92dc93d6",
+      "uploaded_sha1": "d2a807365084b9c3995008774a38155a92dc93d6",
+      "match": true
+    },
+    {
+      "path": "convex/auth.js",
+      "sha1": "9d52a9a4a2ee95864fe331c9c4222f9f2472b40b",
+      "uploaded_sha1": "9d52a9a4a2ee95864fe331c9c4222f9f2472b40b",
+      "match": true
+    },
+    {
+      "path": "convex/convex.config.js",
+      "sha1": "d054a2a34f3fc7c525c29497eb974222a82106f5",
+      "uploaded_sha1": "d054a2a34f3fc7c525c29497eb974222a82106f5",
+      "match": true
+    },
+    {
+      "path": "convex/crons.js",
+      "sha1": "89e8fa9c397fc96072fbd68e59f3ec6273941a0f",
+      "uploaded_sha1": "89e8fa9c397fc96072fbd68e59f3ec6273941a0f",
+      "match": true
+    },
+    {
+      "path": "convex/http.js",
+      "sha1": "aa28f5ec46cb9fbdd44b4d9a2448df84954e68c5",
+      "uploaded_sha1": "aa28f5ec46cb9fbdd44b4d9a2448df84954e68c5",
+      "match": true
+    },
+    {
+      "path": "convex/liveAuth.js",
+      "sha1": "98080dd8b4b57a5581ba341ee8e21f2c7c5d9db4",
+      "uploaded_sha1": "98080dd8b4b57a5581ba341ee8e21f2c7c5d9db4",
+      "match": true
+    },
+    {
+      "path": "convex/schema.js",
+      "sha1": "d776784b1d81f2737752f45ddd0bc77afe29341b",
+      "uploaded_sha1": "d776784b1d81f2737752f45ddd0bc77afe29341b",
+      "match": true
+    },
+    {
+      "path": "convex/store.js",
+      "sha1": "2f448f957483d01ebf856a733ab7fbaf8497c630",
+      "uploaded_sha1": "2f448f957483d01ebf856a733ab7fbaf8497c630",
+      "match": true
+    },
+    {
+      "path": "deploy/Caddyfile",
+      "sha1": "eb4f02e8cdcb4917be33e7a3b3162840545a5e84",
+      "uploaded_sha1": "eb4f02e8cdcb4917be33e7a3b3162840545a5e84",
+      "match": true
+    },
+    {
+      "path": "deploy/Dockerfile",
+      "sha1": "7f01344de531b7db7418313028215e4b2069c6a8",
+      "uploaded_sha1": "7f01344de531b7db7418313028215e4b2069c6a8",
+      "match": true
+    },
+    {
+      "path": "deploy/compose.yaml",
+      "sha1": "9a21d59baf7c73d12369052cc3fb594f8058fdd2",
+      "uploaded_sha1": "9a21d59baf7c73d12369052cc3fb594f8058fdd2",
+      "match": true
+    },
+    {
+      "path": "deploy/mcp-compose.yaml",
+      "sha1": "0b581781127bb554560e233e9b9674432b791961",
+      "uploaded_sha1": "0b581781127bb554560e233e9b9674432b791961",
+      "match": true
+    },
+    {
+      "path": "deploy/mcp-entry.js",
+      "sha1": "e4c672d5787ca8a8d8eb5f92ec702fdb5c5b8752",
+      "uploaded_sha1": "e4c672d5787ca8a8d8eb5f92ec702fdb5c5b8752",
+      "match": true
+    },
+    {
+      "path": "deploy/mcp.Dockerfile",
+      "sha1": "823e1a075fd9571915e013e001f084596f8c31a5",
+      "uploaded_sha1": "823e1a075fd9571915e013e001f084596f8c31a5",
+      "match": true
+    },
+    {
+      "path": "docs/auth-live-candidate.md",
+      "sha1": "ad91043052ec2da46095194fc08e23be409d13f4",
+      "uploaded_sha1": "ad91043052ec2da46095194fc08e23be409d13f4",
+      "match": true
+    },
+    {
+      "path": "docs/auth-live-session-retention.md",
+      "sha1": "21b5943848f4e8a7e11a01b8437f18da97e31792",
+      "uploaded_sha1": "21b5943848f4e8a7e11a01b8437f18da97e31792",
+      "match": true
+    },
+    {
+      "path": "docs/auth-production-activation.md",
+      "sha1": "1d75cc0509026eab1e7a308cb30c99e761542924",
+      "uploaded_sha1": "1d75cc0509026eab1e7a308cb30c99e761542924",
+      "match": true
+    },
+    {
+      "path": "docs/auth-verification.md",
+      "sha1": "f011a975aedcd0ffddc3b966f41530006867826c",
+      "uploaded_sha1": "f011a975aedcd0ffddc3b966f41530006867826c",
+      "match": true
+    },
+    {
+      "path": "docs/auth.md",
+      "sha1": "da584ec2f90c0be74c9efb357d31f686a14895c0",
+      "uploaded_sha1": "da584ec2f90c0be74c9efb357d31f686a14895c0",
+      "match": true
+    },
+    {
+      "path": "docs/colyseus.md",
+      "sha1": "0a9ff588e06a04069cc803ac826c7e360578049f",
+      "uploaded_sha1": "0a9ff588e06a04069cc803ac826c7e360578049f",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/agent-reapproval-recovery.md",
+      "sha1": "2cf5813994506d9504af0ade47fcdc5affd491db",
+      "uploaded_sha1": "2cf5813994506d9504af0ade47fcdc5affd491db",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer-capture.json",
+      "sha1": "6b7e5a3fba0bf960a00919e11965a2973de0a69e",
+      "uploaded_sha1": "6b7e5a3fba0bf960a00919e11965a2973de0a69e",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer-contrast.md",
+      "sha1": "ff78302fcbbc4ad98e0e64c086a6718d79e6c5cf",
+      "uploaded_sha1": "ff78302fcbbc4ad98e0e64c086a6718d79e6c5cf",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer-edit.json",
+      "sha1": "d6f4b795dafef2dcbed58c99ee2078871a52d2a0",
+      "uploaded_sha1": "d6f4b795dafef2dcbed58c99ee2078871a52d2a0",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer-music.json",
+      "sha1": "b701f844c3f6b3735ca6ceef7d79878d9d7e9c9d",
+      "uploaded_sha1": "b701f844c3f6b3735ca6ceef7d79878d9d7e9c9d",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer-production.md",
+      "sha1": "600a3952a8d9c7eacae9d52a4f7effde667c3747",
+      "uploaded_sha1": "600a3952a8d9c7eacae9d52a4f7effde667c3747",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer-sol-film-01.md",
+      "sha1": "344645ab3e075937fba05226cd6753ca69c72734",
+      "uploaded_sha1": "344645ab3e075937fba05226cd6753ca69c72734",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer-verification.md",
+      "sha1": "5237b8424752782bb060ca1002f60b51c4a1401a",
+      "uploaded_sha1": "5237b8424752782bb060ca1002f60b51c4a1401a",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/announcement-trailer.md",
+      "sha1": "c8055a5cf20cb6b7d4831d3c2601d241638d7984",
+      "uploaded_sha1": "c8055a5cf20cb6b7d4831d3c2601d241638d7984",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/client-chooser-mobile-guide.md",
+      "sha1": "da39ebc928850dec8d0dad0d9a183df6049f4621",
+      "uploaded_sha1": "da39ebc928850dec8d0dad0d9a183df6049f4621",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/doctrine-save-recovery.md",
+      "sha1": "a6d4bc8125a1e7a2c832870d9f24f46500c5b7c2",
+      "uploaded_sha1": "a6d4bc8125a1e7a2c832870d9f24f46500c5b7c2",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/guide-install-test-integration.md",
+      "sha1": "b3d7916ad3021398273f4fae39a7abe1fa4f3919",
+      "uploaded_sha1": "b3d7916ad3021398273f4fae39a7abe1fa4f3919",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/guide-targeted-install.md",
+      "sha1": "95e28850530eb7444723e7f4590906f28ed9ac37",
+      "uploaded_sha1": "95e28850530eb7444723e7f4590906f28ed9ac37",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/guided-first-match.md",
+      "sha1": "a4fcabfa03834e1b2fbb003eced783ebc648511c",
+      "uploaded_sha1": "a4fcabfa03834e1b2fbb003eced783ebc648511c",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/in-match-keyboard-navigation.md",
+      "sha1": "97460e5a24e7335e18ec979c2b408e2079d98101",
+      "uploaded_sha1": "97460e5a24e7335e18ec979c2b408e2079d98101",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/install-client-target.md",
+      "sha1": "0a412e93c893d88fc9b1bcbf0f2a24a1417c1113",
+      "uploaded_sha1": "0a412e93c893d88fc9b1bcbf0f2a24a1417c1113",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/local-input-atomicity.md",
+      "sha1": "2e89130654375c808908528509ec4613b33ed2d5",
+      "uploaded_sha1": "2e89130654375c808908528509ec4613b33ed2d5",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/narrow-map-layout.md",
+      "sha1": "b0727dcfcb4c66109519be5183e6f06efdee38de",
+      "uploaded_sha1": "b0727dcfcb4c66109519be5183e6f06efdee38de",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/pr-ci.md",
+      "sha1": "e433c5886f17fc67db52715cab1b65631f97724c",
+      "uploaded_sha1": "e433c5886f17fc67db52715cab1b65631f97724c",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/preferences-first-tick-ci-repair.md",
+      "sha1": "f949a945380a733c920e057867dcfcc47e769bd5",
+      "uploaded_sha1": "f949a945380a733c920e057867dcfcc47e769bd5",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/primary-map-input.md",
+      "sha1": "990877a00bceb1ccb8a57ddaa64a2e19d8090007",
+      "uploaded_sha1": "990877a00bceb1ccb8a57ddaa64a2e19d8090007",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/public-demo-artifacts.json",
+      "sha1": "041acd202ce8d51e8b01de5a4f8543160b4fc703",
+      "uploaded_sha1": "041acd202ce8d51e8b01de5a4f8543160b4fc703",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/public-demo-capture.json",
+      "sha1": "a10df914f79533ebe91c34dfeb6b23bc47b66294",
+      "uploaded_sha1": "a10df914f79533ebe91c34dfeb6b23bc47b66294",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/public-demo-r1-verification.md",
+      "sha1": "348a45237f3b77b6a1f88d5cda704e82f687aad0",
+      "uploaded_sha1": "348a45237f3b77b6a1f88d5cda704e82f687aad0",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/public-demo-verification.md",
+      "sha1": "6bad0016cbc5e0fcc76bdcaecfff9df9765b4628",
+      "uploaded_sha1": "6bad0016cbc5e0fcc76bdcaecfff9df9765b4628",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/public-demo.md",
+      "sha1": "b7fae8b4f9cf44664402b725b29310bb07ac669e",
+      "uploaded_sha1": "b7fae8b4f9cf44664402b725b29310bb07ac669e",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/result-sharing.md",
+      "sha1": "95ca076e53e25b50de7bea9e69463f4d8f43506c",
+      "uploaded_sha1": "95ca076e53e25b50de7bea9e69463f4d8f43506c",
+      "match": true
+    },
+    {
+      "path": "docs/contributions/saved-preferences-recovery.md",
+      "sha1": "85c8b180b0fcc4d6108c2b5a3338c777c1d49c8c",
+      "uploaded_sha1": "85c8b180b0fcc4d6108c2b5a3338c777c1d49c8c",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/account-executions-5f34d62.jsonl.gz",
+      "sha1": "7e3b4e3fcc90c7ab5705ef872e6e070ffe5ced6f",
+      "uploaded_sha1": "7e3b4e3fcc90c7ab5705ef872e6e070ffe5ced6f",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/account-function-measurement-5f34d62.json",
+      "sha1": "08e739b2132aff2d4126580630e10b0df8b7ddbf",
+      "uploaded_sha1": "08e739b2132aff2d4126580630e10b0df8b7ddbf",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/mcp-oauth-local-verification.json",
+      "sha1": "d2192601749f16d32b257bd90cd97109fb8df236",
+      "uploaded_sha1": "d2192601749f16d32b257bd90cd97109fb8df236",
+      "match": true
+    },
+    {
+      "path": "docs/evidence/web-mcp-https-verification.json",
+      "sha1": "a6bf596ac95a4c5d2957987c45c3935e81e0b56a",
+      "uploaded_sha1": "a6bf596ac95a4c5d2957987c45c3935e81e0b56a",
+      "match": true
+    },
+    {
+      "path": "docs/install-verification.json",
+      "sha1": "0373c59210931481c4f5ff868c311fae7cd35dae",
+      "uploaded_sha1": "0373c59210931481c4f5ff868c311fae7cd35dae",
+      "match": true
+    },
+    {
+      "path": "docs/install-verification.md",
+      "sha1": "85093f3e2a02a28339a767953c1c4d32c5ad2b3f",
+      "uploaded_sha1": "85093f3e2a02a28339a767953c1c4d32c5ad2b3f",
+      "match": true
+    },
+    {
+      "path": "docs/install.md",
+      "sha1": "78fc592e3c1fc8f921c2de89059aed6c05ca7ccf",
+      "uploaded_sha1": "78fc592e3c1fc8f921c2de89059aed6c05ca7ccf",
+      "match": true
+    },
+    {
+      "path": "docs/mcp-oauth.md",
+      "sha1": "82554e3962db824ea5b931e3447a1bc4cf890a3e",
+      "uploaded_sha1": "82554e3962db824ea5b931e3447a1bc4cf890a3e",
+      "match": true
+    },
+    {
+      "path": "docs/public-pages-release.md",
+      "sha1": "8d5f5164dbdec51848bd631ea2c15dfe12aa3c8a",
+      "uploaded_sha1": "8d5f5164dbdec51848bd631ea2c15dfe12aa3c8a",
+      "match": true
+    },
+    {
+      "path": "docs/public-pages.md",
+      "sha1": "65dffae47c6f4d6a567c7e65743c5c7c2c7b2458",
+      "uploaded_sha1": "65dffae47c6f4d6a567c7e65743c5c7c2c7b2458",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-benchmark.json",
+      "sha1": "1300f9dba08dc92cc31c0f5e31d06863c8ecbf18",
+      "uploaded_sha1": "1300f9dba08dc92cc31c0f5e31d06863c8ecbf18",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-colyseus-release.json",
+      "sha1": "1cdd38cfd0543f2275fd133d6bf57798503803a3",
+      "uploaded_sha1": "1cdd38cfd0543f2275fd133d6bf57798503803a3",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-convex-assets.json",
+      "sha1": "45c69a8266f1d816e86b68fd9f3a2d764f3b4120",
+      "uploaded_sha1": "45c69a8266f1d816e86b68fd9f3a2d764f3b4120",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-convex-browser.txt",
+      "sha1": "2769515a0cba2ba43522e5403c3c3890b7afad38",
+      "uploaded_sha1": "2769515a0cba2ba43522e5403c3c3890b7afad38",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-convex-capacity.json",
+      "sha1": "392e9f298452d88a3e68c67e995a30a7a31d24c9",
+      "uploaded_sha1": "392e9f298452d88a3e68c67e995a30a7a31d24c9",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-convex-mcp.json",
+      "sha1": "0af5b0190688f3e25833f2a0b0795f5b80ccfd03",
+      "uploaded_sha1": "0af5b0190688f3e25833f2a0b0795f5b80ccfd03",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-convex-reduction.json",
+      "sha1": "7ae00762f75c2749f959ddda241bb08f998c7546",
+      "uploaded_sha1": "7ae00762f75c2749f959ddda241bb08f998c7546",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-convex-usage.json",
+      "sha1": "e11a6a9dbfeccc7ea0f241299f56d9ce34f8ec9e",
+      "uploaded_sha1": "e11a6a9dbfeccc7ea0f241299f56d9ce34f8ec9e",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-convex-verification.json",
+      "sha1": "6a51b394e36e8abd29db7b06246793d3f5223963",
+      "uploaded_sha1": "6a51b394e36e8abd29db7b06246793d3f5223963",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-http-benchmark.json",
+      "sha1": "f0c019ef1cbd4f9201dfb2fa2361198b25902fc2",
+      "uploaded_sha1": "f0c019ef1cbd4f9201dfb2fa2361198b25902fc2",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-local-verification.json",
+      "sha1": "67af0d04236f93d701fbeae55db781d623b9f426",
+      "uploaded_sha1": "67af0d04236f93d701fbeae55db781d623b9f426",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-preview-verification.json",
+      "sha1": "b1c24a650137d95472f784e5a3b0c0f4b8d60416",
+      "uploaded_sha1": "b1c24a650137d95472f784e5a3b0c0f4b8d60416",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-production-mcp.json",
+      "sha1": "270dcb2ac58aad4f5b00d439d63e9ac85ea3113d",
+      "uploaded_sha1": "270dcb2ac58aad4f5b00d439d63e9ac85ea3113d",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-production-staged.json",
+      "sha1": "3c6f26af1b23bbb090fc1cb282f414ff776a1c3d",
+      "uploaded_sha1": "3c6f26af1b23bbb090fc1cb282f414ff776a1c3d",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-public-browser.txt",
+      "sha1": "bba3699e4969f6d10dc43275714f21edc055af4c",
+      "uploaded_sha1": "bba3699e4969f6d10dc43275714f21edc055af4c",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-public-mcp.json",
+      "sha1": "6a6a74fa3f291fb6120ffedf22884a2502807566",
+      "uploaded_sha1": "6a6a74fa3f291fb6120ffedf22884a2502807566",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-public-release.json",
+      "sha1": "7fff61bdc1d6956b3c8789696e79e834cd435bf3",
+      "uploaded_sha1": "7fff61bdc1d6956b3c8789696e79e834cd435bf3",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-release.md",
+      "sha1": "0b47c68481d2e2b520a2d3f3a2982f836130566a",
+      "uploaded_sha1": "0b47c68481d2e2b520a2d3f3a2982f836130566a",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-room-join-repair.json",
+      "sha1": "4e21d10146e7eeb361a310b7b0f2b4454833f44b",
+      "uploaded_sha1": "4e21d10146e7eeb361a310b7b0f2b4454833f44b",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-spec.md",
+      "sha1": "cdbe0c54f0e4caa095fc42398fa30f93ba6720fb",
+      "uploaded_sha1": "cdbe0c54f0e4caa095fc42398fa30f93ba6720fb",
+      "match": true
+    },
+    {
+      "path": "docs/pvp-two-machine-pass.json",
+      "sha1": "135c8c4cb797b3f86c03814ec41f9ad2b2fd0e64",
+      "uploaded_sha1": "135c8c4cb797b3f86c03814ec41f9ad2b2fd0e64",
+      "match": true
+    },
+    {
+      "path": "docs/reviews/browser-backend-isolation.md",
+      "sha1": "05af75753ea7a99ad38e9c5ef17232af8f4a7139",
+      "uploaded_sha1": "05af75753ea7a99ad38e9c5ef17232af8f4a7139",
+      "match": true
+    },
+    {
+      "path": "docs/reviews/swarm-depth-00fc4b6.md",
+      "sha1": "8af047930303b4d4358a9b6f4adb9bf9ed65faac",
+      "uploaded_sha1": "8af047930303b4d4358a9b6f4adb9bf9ed65faac",
+      "match": true
+    },
+    {
+      "path": "docs/reviews/swarm-depth-a1449ad.md",
+      "sha1": "5f74aca7b95fced3e4bf5d1da65fbf0e5f569cd3",
+      "uploaded_sha1": "5f74aca7b95fced3e4bf5d1da65fbf0e5f569cd3",
+      "match": true
+    },
+    {
+      "path": "docs/reviews/swarm-depth-repair.md",
+      "sha1": "3f39d380267b45a3f8ac29ad25bdf0c7fa7b6e70",
+      "uploaded_sha1": "3f39d380267b45a3f8ac29ad25bdf0c7fa7b6e70",
+      "match": true
+    },
+    {
+      "path": "docs/reviews/swarm-oauth-integration.md",
+      "sha1": "8f2b38a91f9c612f6dea5a86be66eef36d5cd629",
+      "uploaded_sha1": "8f2b38a91f9c612f6dea5a86be66eef36d5cd629",
+      "match": true
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-18-announcement-trailer.md",
+      "sha1": "bde56123b32cf3ea06beb88ff08b97a6e9736763",
+      "uploaded_sha1": "bde56123b32cf3ea06beb88ff08b97a6e9736763",
+      "match": true
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-18-final-ownership-contrast.md",
+      "sha1": "4935c8ebebf642573eacddc61b86f45ae5f6743e",
+      "uploaded_sha1": "4935c8ebebf642573eacddc61b86f45ae5f6743e",
+      "match": true
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-18-sol-film-01.md",
+      "sha1": "30271ec8390275bf27f6fc7e0cd4a9a554e1c4a8",
+      "uploaded_sha1": "30271ec8390275bf27f6fc7e0cd4a9a554e1c4a8",
+      "match": true
+    },
+    {
+      "path": "docs/web-mcp-pilot.md",
+      "sha1": "9dcaaea6f93cf8475ffac6956aadc1ace764c27b",
+      "uploaded_sha1": "9dcaaea6f93cf8475ffac6956aadc1ace764c27b",
+      "match": true
+    },
+    {
+      "path": "e2e/auth.spec.js",
+      "sha1": "9b42bebdfc3b65e8e2149a5ebf3b422102e99f33",
+      "uploaded_sha1": "9b42bebdfc3b65e8e2149a5ebf3b422102e99f33",
+      "match": true
+    },
+    {
+      "path": "e2e/backend-isolation.spec.js",
+      "sha1": "6e22f669f957b6763fffb2510e01cd1bc1581bb1",
+      "uploaded_sha1": "6e22f669f957b6763fffb2510e01cd1bc1581bb1",
+      "match": true
+    },
+    {
+      "path": "e2e/build.js",
+      "sha1": "b5e4093c6105ba7a117b2b40ac0d1a00b8f0a245",
+      "uploaded_sha1": "b5e4093c6105ba7a117b2b40ac0d1a00b8f0a245",
+      "match": true
+    },
+    {
+      "path": "e2e/fixtures.js",
+      "sha1": "cf72981a304255a1bd6c42c20deace36ce95682c",
+      "uploaded_sha1": "cf72981a304255a1bd6c42c20deace36ce95682c",
+      "match": true
+    },
+    {
+      "path": "e2e/guide-targeted-install.spec.js",
+      "sha1": "af0380131a2a3073f3454f87af1c07e21da15570",
+      "uploaded_sha1": "af0380131a2a3073f3454f87af1c07e21da15570",
+      "match": true
+    },
+    {
+      "path": "e2e/install.spec.js",
+      "sha1": "8b7fa73c9c5f18108294b1d13c84a8bc7e91f65d",
+      "uploaded_sha1": "8b7fa73c9c5f18108294b1d13c84a8bc7e91f65d",
+      "match": true
+    },
+    {
+      "path": "e2e/mode-picker.spec.js",
+      "sha1": "93e88a404d43f19b5533a9c8be79d9ca33a42849",
+      "uploaded_sha1": "93e88a404d43f19b5533a9c8be79d9ca33a42849",
+      "match": true
+    },
+    {
+      "path": "e2e/narrow-map-layout.spec.js",
+      "sha1": "a6688112a30f5cf75367c83b5fbf07def306791c",
+      "uploaded_sha1": "a6688112a30f5cf75367c83b5fbf07def306791c",
+      "match": true
+    },
+    {
+      "path": "e2e/online.spec.js",
+      "sha1": "3fae9b69ff03bb1ca6ce3b2b4e5ceb1bd48b039b",
+      "uploaded_sha1": "3fae9b69ff03bb1ca6ce3b2b4e5ceb1bd48b039b",
+      "match": true
+    },
+    {
+      "path": "e2e/preview.js",
+      "sha1": "0ac7aee9a89ecad59d40dfa359660438a04c8df0",
+      "uploaded_sha1": "0ac7aee9a89ecad59d40dfa359660438a04c8df0",
+      "match": true
+    },
+    {
+      "path": "e2e/public-demo.spec.js",
+      "sha1": "45994a7591ec083d9baca40bbd3110eee094ab17",
+      "uploaded_sha1": "45994a7591ec083d9baca40bbd3110eee094ab17",
+      "match": true
+    },
+    {
+      "path": "e2e/public-pages.spec.js",
+      "sha1": "80b6ea2682082eb1a5da958daef72c352d676c8e",
+      "uploaded_sha1": "80b6ea2682082eb1a5da958daef72c352d676c8e",
+      "match": true
+    },
+    {
+      "path": "e2e/result-sharing.spec.js",
+      "sha1": "a120672592171801a35e178aad3bbc6ee9cf073b",
+      "uploaded_sha1": "a120672592171801a35e178aad3bbc6ee9cf073b",
+      "match": true
+    },
+    {
+      "path": "guide.html",
+      "sha1": "99ddd3d70d5612c0ce740b5964f8b42f44ca35d5",
+      "uploaded_sha1": "99ddd3d70d5612c0ce740b5964f8b42f44ca35d5",
+      "match": true
+    },
+    {
+      "path": "house.md",
+      "sha1": "675846446c7682b1b47af513db7761d149aed7c9",
+      "uploaded_sha1": "675846446c7682b1b47af513db7761d149aed7c9",
+      "match": true
+    },
+    {
+      "path": "index.html",
+      "sha1": "7eff103e91a321397c0f21e657aaec5bf632edf4",
+      "uploaded_sha1": "7eff103e91a321397c0f21e657aaec5bf632edf4",
+      "match": true
+    },
+    {
+      "path": "install.js",
+      "sha1": "29038753f8067573dcd5444d6e70fe6cbfa1130a",
+      "uploaded_sha1": "29038753f8067573dcd5444d6e70fe6cbfa1130a",
+      "match": true
+    },
+    {
+      "path": "integration/auth.test.js",
+      "sha1": "36bcf2561ed489209db9c28dba5b0d052956e4f0",
+      "uploaded_sha1": "36bcf2561ed489209db9c28dba5b0d052956e4f0",
+      "match": true
+    },
+    {
+      "path": "integration/live-auth.test.js",
+      "sha1": "d79ede430d84a7a6754dece7b4aa5400b558479d",
+      "uploaded_sha1": "d79ede430d84a7a6754dece7b4aa5400b558479d",
+      "match": true
+    },
+    {
+      "path": "integration/live-cutover.test.js",
+      "sha1": "1fc1702b0c9dfcac67d8cd9f14bf239c276bf76d",
+      "uploaded_sha1": "1fc1702b0c9dfcac67d8cd9f14bf239c276bf76d",
+      "match": true
+    },
+    {
+      "path": "mcp-oauth.js",
+      "sha1": "c443baad266c97a250bebfca84c18821c42f5966",
+      "uploaded_sha1": "c443baad266c97a250bebfca84c18821c42f5966",
+      "match": true
+    },
+    {
+      "path": "media/public-demo-poster.jpg",
+      "sha1": "cb6f3e8844648bd0b145c4ca306e99d5028bd4c2",
+      "uploaded_sha1": "cb6f3e8844648bd0b145c4ca306e99d5028bd4c2",
+      "match": true
+    },
+    {
+      "path": "media/public-demo.vtt",
+      "sha1": "634d386c533d48de7f4893d2513236f163b593f2",
+      "uploaded_sha1": "634d386c533d48de7f4893d2513236f163b593f2",
+      "match": true
+    },
+    {
+      "path": "media/public-demo.webm",
+      "sha1": "401d72d421459b3eb28ea67d30d21f824c1e1dd4",
+      "uploaded_sha1": "401d72d421459b3eb28ea67d30d21f824c1e1dd4",
+      "match": true
+    },
+    {
+      "path": "online/auth-options.js",
+      "sha1": "4f930ee78b70e6b7c186a5b9b11ca7fba8c14fed",
+      "uploaded_sha1": "4f930ee78b70e6b7c186a5b9b11ca7fba8c14fed",
+      "match": true
+    },
+    {
+      "path": "online/auth.js",
+      "sha1": "e2763306786a17f497b34a34b546758ef9363d7b",
+      "uploaded_sha1": "e2763306786a17f497b34a34b546758ef9363d7b",
+      "match": true
+    },
+    {
+      "path": "online/game.js",
+      "sha1": "f28b533bb1d1a148e69025ba41e1363aa24c7c92",
+      "uploaded_sha1": "f28b533bb1d1a148e69025ba41e1363aa24c7c92",
+      "match": true
+    },
+    {
+      "path": "online/http.js",
+      "sha1": "a3cb30c55527760ebdfb5933d80cbc8b81e321fc",
+      "uploaded_sha1": "a3cb30c55527760ebdfb5933d80cbc8b81e321fc",
+      "match": true
+    },
+    {
+      "path": "online/live-cookie.js",
+      "sha1": "1234192f5090c6edac80cfebf492052cdb02f629",
+      "uploaded_sha1": "1234192f5090c6edac80cfebf492052cdb02f629",
+      "match": true
+    },
+    {
+      "path": "online/live-durable.js",
+      "sha1": "3e5b4796d6fa4be2c218d33423113c57947db455",
+      "uploaded_sha1": "3e5b4796d6fa4be2c218d33423113c57947db455",
+      "match": true
+    },
+    {
+      "path": "online/live-runtime.js",
+      "sha1": "73175ecc209e8081a71d37b0a5e063b0f832d244",
+      "uploaded_sha1": "73175ecc209e8081a71d37b0a5e063b0f832d244",
+      "match": true
+    },
+    {
+      "path": "online/live-server.js",
+      "sha1": "bb535b4437228d32fe31ad77d34d2f64b65cf218",
+      "uploaded_sha1": "bb535b4437228d32fe31ad77d34d2f64b65cf218",
+      "match": true
+    },
+    {
+      "path": "online/live-store.js",
+      "sha1": "770143c1d94bde92c5ede19fa3c3c5d77e73fd93",
+      "uploaded_sha1": "770143c1d94bde92c5ede19fa3c3c5d77e73fd93",
+      "match": true
+    },
+    {
+      "path": "online/ratings.js",
+      "sha1": "4c8c20e43508a9b3fddb6ba1cb8d36218fa08867",
+      "uploaded_sha1": "4c8c20e43508a9b3fddb6ba1cb8d36218fa08867",
+      "match": true
+    },
+    {
+      "path": "online/store.js",
+      "sha1": "31862d03d769131e2b80e0b2920e37fc238634f7",
+      "uploaded_sha1": "31862d03d769131e2b80e0b2920e37fc238634f7",
+      "match": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha1": "f8713e96a46099a48fee91a12197a5784884297d",
+      "uploaded_sha1": "f8713e96a46099a48fee91a12197a5784884297d",
+      "match": true
+    },
+    {
+      "path": "package.json",
+      "sha1": "5604705638a00ae71aeeba53229e69a78595c02c",
+      "uploaded_sha1": "5604705638a00ae71aeeba53229e69a78595c02c",
+      "match": true
+    },
+    {
+      "path": "play.command",
+      "sha1": "f32f3088f69ea9d06c3ee33db8988b7f32fbd877",
+      "uploaded_sha1": "f32f3088f69ea9d06c3ee33db8988b7f32fbd877",
+      "match": true
+    },
+    {
+      "path": "playwright.auth.config.js",
+      "sha1": "915c7556d398ecba5a9cf3c0d989651908c39e5d",
+      "uploaded_sha1": "915c7556d398ecba5a9cf3c0d989651908c39e5d",
+      "match": true
+    },
+    {
+      "path": "playwright.config.js",
+      "sha1": "24e0e32d39269cb9058836005fd7571d121712ff",
+      "uploaded_sha1": "24e0e32d39269cb9058836005fd7571d121712ff",
+      "match": true
+    },
+    {
+      "path": "privacy.html",
+      "sha1": "978797b36e1f53fdbfe06f558d1ec722183f79f0",
+      "uploaded_sha1": "978797b36e1f53fdbfe06f558d1ec722183f79f0",
+      "match": true
+    },
+    {
+      "path": "public-media.js",
+      "sha1": "5659b58b0ddc987224ed49ca43cba6c2e9f512a9",
+      "uploaded_sha1": "5659b58b0ddc987224ed49ca43cba6c2e9f512a9",
+      "match": true
+    },
+    {
+      "path": "scripts/auth-dev.js",
+      "sha1": "de86064b47bacca7bea8476f52c48b543fa02d31",
+      "uploaded_sha1": "de86064b47bacca7bea8476f52c48b543fa02d31",
+      "match": true
+    },
+    {
+      "path": "scripts/benchmark-http.js",
+      "sha1": "a7f4b3413ff0c2bc0106d2365c6b1b0f69b07054",
+      "uploaded_sha1": "a7f4b3413ff0c2bc0106d2365c6b1b0f69b07054",
+      "match": true
+    },
+    {
+      "path": "scripts/benchmark-online.js",
+      "sha1": "634d8799763f186ed56e05391280454b0f5b3a68",
+      "uploaded_sha1": "634d8799763f186ed56e05391280454b0f5b3a68",
+      "match": true
+    },
+    {
+      "path": "scripts/build.js",
+      "sha1": "e6a102b56c676200337eedc5b87f39e8ec36621e",
+      "uploaded_sha1": "e6a102b56c676200337eedc5b87f39e8ec36621e",
+      "match": true
+    },
+    {
+      "path": "scripts/capture-announcement-trailer.js",
+      "sha1": "4796295e053c3ebc1e0f682482046950b43e7f40",
+      "uploaded_sha1": "4796295e053c3ebc1e0f682482046950b43e7f40",
+      "match": true
+    },
+    {
+      "path": "scripts/capture-public-demo.js",
+      "sha1": "f4f131bb8ea3f9d5fba5ea494e65d15a59f12d3b",
+      "uploaded_sha1": "f4f131bb8ea3f9d5fba5ea494e65d15a59f12d3b",
+      "match": true
+    },
+    {
+      "path": "scripts/check.js",
+      "sha1": "0e11fe16a36c5811ce6cebc9cf0e9ef31d2bfbdb",
+      "uploaded_sha1": "0e11fe16a36c5811ce6cebc9cf0e9ef31d2bfbdb",
+      "match": true
+    },
+    {
+      "path": "scripts/edit-announcement-trailer.py",
+      "sha1": "cb01a18856f59ae128829b53df1b07a7d03e6630",
+      "uploaded_sha1": "cb01a18856f59ae128829b53df1b07a7d03e6630",
+      "match": true
+    },
+    {
+      "path": "scripts/live-server.js",
+      "sha1": "aa54460de5008e33e8e91441c676a4edf8caa16e",
+      "uploaded_sha1": "aa54460de5008e33e8e91441c676a4edf8caa16e",
+      "match": true
+    },
+    {
+      "path": "scripts/measure-live-capacity.js",
+      "sha1": "ea73f26a7855a82b1b81ea7e6bfe0d5b615ba16b",
+      "uploaded_sha1": "ea73f26a7855a82b1b81ea7e6bfe0d5b615ba16b",
+      "match": true
+    },
+    {
+      "path": "scripts/online-dev.js",
+      "sha1": "f1e98303f6285d3ecb0e36847b77914ca31ebad8",
+      "uploaded_sha1": "f1e98303f6285d3ecb0e36847b77914ca31ebad8",
+      "match": true
+    },
+    {
+      "path": "scripts/test-convex.js",
+      "sha1": "5548d4d2a0292afa9dd1631142ce02bd9a6f87af",
+      "uploaded_sha1": "5548d4d2a0292afa9dd1631142ce02bd9a6f87af",
+      "match": true
+    },
+    {
+      "path": "scripts/verify-capacity.js",
+      "sha1": "27009070bb7a5e454adcf71d550e39f120c14e41",
+      "uploaded_sha1": "27009070bb7a5e454adcf71d550e39f120c14e41",
+      "match": true
+    },
+    {
+      "path": "scripts/verify-dns.js",
+      "sha1": "ee77dc72216851f3015f4fa01c1255550efb8106",
+      "uploaded_sha1": "ee77dc72216851f3015f4fa01c1255550efb8106",
+      "match": true
+    },
+    {
+      "path": "scripts/verify-install.js",
+      "sha1": "f9a5b5981e77fa28ff235c37fd0a1ad651d8261c",
+      "uploaded_sha1": "f9a5b5981e77fa28ff235c37fd0a1ad651d8261c",
+      "match": true
+    },
+    {
+      "path": "scripts/verify-online.js",
+      "sha1": "8aa126392dc8f03055507ca05351dccedcdaf0ad",
+      "uploaded_sha1": "8aa126392dc8f03055507ca05351dccedcdaf0ad",
+      "match": true
+    },
+    {
+      "path": "scripts/verify-room-join.js",
+      "sha1": "c26dcf76ce70e3a8911623b2c7f1932f9e77b97e",
+      "uploaded_sha1": "c26dcf76ce70e3a8911623b2c7f1932f9e77b97e",
+      "match": true
+    },
+    {
+      "path": "scripts/verify-web-mcp.js",
+      "sha1": "0511ed98f8f2019d7ec9c0218045c5fd37eb0f2e",
+      "uploaded_sha1": "0511ed98f8f2019d7ec9c0218045c5fd37eb0f2e",
+      "match": true
+    },
+    {
+      "path": "server.js",
+      "sha1": "9350ef8800fd093d1ac927d97a02d2ccf6615dd0",
+      "uploaded_sha1": "9350ef8800fd093d1ac927d97a02d2ccf6615dd0",
+      "match": true
+    },
+    {
+      "path": "sim.js",
+      "sha1": "c03ab3219c5332e016eb84351113d6a6a5193fd3",
+      "uploaded_sha1": "c03ab3219c5332e016eb84351113d6a6a5193fd3",
+      "match": true
+    },
+    {
+      "path": "spikes/space.html",
+      "sha1": "5574f6081e994f85a1605bd74b7fcbc07b07ee4f",
+      "uploaded_sha1": "5574f6081e994f85a1605bd74b7fcbc07b07ee4f",
+      "match": true
+    },
+    {
+      "path": "spikes/swarm.html",
+      "sha1": "e055828e0021e0ca8142934c2d7c98e79ade67e3",
+      "uploaded_sha1": "e055828e0021e0ca8142934c2d7c98e79ade67e3",
+      "match": true
+    },
+    {
+      "path": "terms.html",
+      "sha1": "76a877709f7138c8544e4454258be6013a0e01ad",
+      "uploaded_sha1": "76a877709f7138c8544e4454258be6013a0e01ad",
+      "match": true
+    },
+    {
+      "path": "test/accounts.test.js",
+      "sha1": "aac25658e0bf27f361d4af50d208910c28fe82e7",
+      "uploaded_sha1": "aac25658e0bf27f361d4af50d208910c28fe82e7",
+      "match": true
+    },
+    {
+      "path": "test/announcement-trailer.test.js",
+      "sha1": "f8f0b4b766eaf2a76af983040679491c53dd40df",
+      "uploaded_sha1": "f8f0b4b766eaf2a76af983040679491c53dd40df",
+      "match": true
+    },
+    {
+      "path": "test/auth-limit.test.js",
+      "sha1": "0cf32945aea2ec38027801b8f94dbd9bec5b4798",
+      "uploaded_sha1": "0cf32945aea2ec38027801b8f94dbd9bec5b4798",
+      "match": true
+    },
+    {
+      "path": "test/auth.test.js",
+      "sha1": "3b655c496ccadada0e3774c2fb96389ec8c32093",
+      "uploaded_sha1": "3b655c496ccadada0e3774c2fb96389ec8c32093",
+      "match": true
+    },
+    {
+      "path": "test/convex-cache.test.js",
+      "sha1": "cc143ed48f363b760b8ed52790081384ef557682",
+      "uploaded_sha1": "cc143ed48f363b760b8ed52790081384ef557682",
+      "match": true
+    },
+    {
+      "path": "test/convex-store.test.js",
+      "sha1": "6841be0c7187be185a7faf4b37c8c0e7ff3f7ab3",
+      "uploaded_sha1": "6841be0c7187be185a7faf4b37c8c0e7ff3f7ab3",
+      "match": true
+    },
+    {
+      "path": "test/elo-board.test.js",
+      "sha1": "a044c212b9df419d1c12e797a524d5e879884d4e",
+      "uploaded_sha1": "a044c212b9df419d1c12e797a524d5e879884d4e",
+      "match": true
+    },
+    {
+      "path": "test/elo.test.js",
+      "sha1": "d31aee6be026b32d86aa21ab335dbc29fefebef5",
+      "uploaded_sha1": "d31aee6be026b32d86aa21ab335dbc29fefebef5",
+      "match": true
+    },
+    {
+      "path": "test/guided-first-match.test.js",
+      "sha1": "4f2d99f1e1af0242c5f3482e26e0361024113c08",
+      "uploaded_sha1": "4f2d99f1e1af0242c5f3482e26e0361024113c08",
+      "match": true
+    },
+    {
+      "path": "test/http.test.js",
+      "sha1": "d9aff1912403a75d9998638e1c03f2236b398367",
+      "uploaded_sha1": "d9aff1912403a75d9998638e1c03f2236b398367",
+      "match": true
+    },
+    {
+      "path": "test/install.test.js",
+      "sha1": "17a5983d16fbe3ec3c23b46199303f6f4c4e97a3",
+      "uploaded_sha1": "17a5983d16fbe3ec3c23b46199303f6f4c4e97a3",
+      "match": true
+    },
+    {
+      "path": "test/live-account.test.js",
+      "sha1": "331fbcacc446039a5314737f7ea82bd996dc52d5",
+      "uploaded_sha1": "331fbcacc446039a5314737f7ea82bd996dc52d5",
+      "match": true
+    },
+    {
+      "path": "test/live-elo.test.js",
+      "sha1": "fed78c7540ee381f8b1900ca6815429493c9b02e",
+      "uploaded_sha1": "fed78c7540ee381f8b1900ca6815429493c9b02e",
+      "match": true
+    },
+    {
+      "path": "test/live-integrity.test.js",
+      "sha1": "79502a1d6b23e1a820f346b522118187213cdbae",
+      "uploaded_sha1": "79502a1d6b23e1a820f346b522118187213cdbae",
+      "match": true
+    },
+    {
+      "path": "test/live-session-retention.test.js",
+      "sha1": "e9171d1df38ac4dbf1f87f121282e2b24717c905",
+      "uploaded_sha1": "e9171d1df38ac4dbf1f87f121282e2b24717c905",
+      "match": true
+    },
+    {
+      "path": "test/live-wire.test.js",
+      "sha1": "a6719f4c33004e3537149cb4d3d7203f58c4c52e",
+      "uploaded_sha1": "a6719f4c33004e3537149cb4d3d7203f58c4c52e",
+      "match": true
+    },
+    {
+      "path": "test/live.test.js",
+      "sha1": "3a9ba5f5a081c568bc1ab9d3a1293d5c617b793c",
+      "uploaded_sha1": "3a9ba5f5a081c568bc1ab9d3a1293d5c617b793c",
+      "match": true
+    },
+    {
+      "path": "test/local.test.js",
+      "sha1": "a1048c727468689ddc0bd808b4e635a93b6b93a9",
+      "uploaded_sha1": "a1048c727468689ddc0bd808b4e635a93b6b93a9",
+      "match": true
+    },
+    {
+      "path": "test/mcp-auth.test.js",
+      "sha1": "5f8ed8f046109392d8da3dc05ccff1060416c73d",
+      "uploaded_sha1": "5f8ed8f046109392d8da3dc05ccff1060416c73d",
+      "match": true
+    },
+    {
+      "path": "test/mcp-deploy.test.js",
+      "sha1": "fa609894cd797de1a938e9e8f746a96dceb47409",
+      "uploaded_sha1": "fa609894cd797de1a938e9e8f746a96dceb47409",
+      "match": true
+    },
+    {
+      "path": "test/mcp-oauth.test.js",
+      "sha1": "a3aa7e15430de7c9737ec652e2e7b1038e27a99d",
+      "uploaded_sha1": "a3aa7e15430de7c9737ec652e2e7b1038e27a99d",
+      "match": true
+    },
+    {
+      "path": "test/offline-browser.test.js",
+      "sha1": "4d40cab9a2809543c16e97ba1520aa4da530a5a3",
+      "uploaded_sha1": "4d40cab9a2809543c16e97ba1520aa4da530a5a3",
+      "match": true
+    },
+    {
+      "path": "test/online-regressions.test.js",
+      "sha1": "46c6f13573a54e2008d802cdd01b4e6113a4e057",
+      "uploaded_sha1": "46c6f13573a54e2008d802cdd01b4e6113a4e057",
+      "match": true
+    },
+    {
+      "path": "test/online.test.js",
+      "sha1": "863697a258301408af223c08aba29c293f3a00a5",
+      "uploaded_sha1": "863697a258301408af223c08aba29c293f3a00a5",
+      "match": true
+    },
+    {
+      "path": "test/public-demo.test.js",
+      "sha1": "8fb181c5764ac843fda94df9d6bca58e53558692",
+      "uploaded_sha1": "8fb181c5764ac843fda94df9d6bca58e53558692",
+      "match": true
+    },
+    {
+      "path": "test/public-pages.test.js",
+      "sha1": "2235eebff107a94fe1ce706a289ca723312f2c1a",
+      "uploaded_sha1": "2235eebff107a94fe1ce706a289ca723312f2c1a",
+      "match": true
+    },
+    {
+      "path": "test/sim.test.js",
+      "sha1": "4e890fb577a11491c9a244e0c6c85881f8413544",
+      "uploaded_sha1": "4e890fb577a11491c9a244e0c6c85881f8413544",
+      "match": true
+    },
+    {
+      "path": "test/swarm-invariants.test.js",
+      "sha1": "7e5c42a004d83c16750b7f6d988883564d00cc5e",
+      "uploaded_sha1": "7e5c42a004d83c16750b7f6d988883564d00cc5e",
+      "match": true
+    },
+    {
+      "path": "test/web-mcp.test.js",
+      "sha1": "837224388476746fb96e4929402427a944dbd16e",
+      "uploaded_sha1": "837224388476746fb96e4929402427a944dbd16e",
+      "match": true
+    },
+    {
+      "path": "vercel.json",
+      "sha1": "2021f28225eab4431db829093cbf744344d18b19",
+      "uploaded_sha1": "2021f28225eab4431db829093cbf744344d18b19",
+      "match": true
+    },
+    {
+      "path": "vitest.config.js",
+      "sha1": "d5c67afe1510facc843f6d9078759a517911ef80",
+      "uploaded_sha1": "d5c67afe1510facc843f6d9078759a517911ef80",
+      "match": true
+    },
+    {
+      "path": "web-mcp.js",
+      "sha1": "584bf4265646e5f39fa24906f03cc20e62281f6f",
+      "uploaded_sha1": "584bf4265646e5f39fa24906f03cc20e62281f6f",
+      "match": true
+    }
+  ],
+  "uploaded_source_files": [
+    "out/api/index",
+    "src/.github/workflows/pr-ci.yml",
+    "src/.vercelignore",
+    "src/DESIGN.md",
+    "src/DOCTRINE.md",
+    "src/IDEA.md",
+    "src/README.md",
+    "src/api/index.js",
+    "src/browser-live.js",
+    "src/client.js",
+    "src/convex/auth.js",
+    "src/convex/convex.config.js",
+    "src/convex/crons.js",
+    "src/convex/http.js",
+    "src/convex/liveAuth.js",
+    "src/convex/schema.js",
+    "src/convex/store.js",
+    "src/deploy/Caddyfile",
+    "src/deploy/Dockerfile",
+    "src/deploy/compose.yaml",
+    "src/deploy/mcp-compose.yaml",
+    "src/deploy/mcp-entry.js",
+    "src/deploy/mcp.Dockerfile",
+    "src/docs/auth-live-candidate.md",
+    "src/docs/auth-live-session-retention.md",
+    "src/docs/auth-production-activation.md",
+    "src/docs/auth-verification.md",
+    "src/docs/auth.md",
+    "src/docs/colyseus.md",
+    "src/docs/contributions/agent-reapproval-recovery.md",
+    "src/docs/contributions/announcement-trailer-capture.json",
+    "src/docs/contributions/announcement-trailer-contrast.md",
+    "src/docs/contributions/announcement-trailer-edit.json",
+    "src/docs/contributions/announcement-trailer-music.json",
+    "src/docs/contributions/announcement-trailer-production.md",
+    "src/docs/contributions/announcement-trailer-sol-film-01.md",
+    "src/docs/contributions/announcement-trailer-verification.md",
+    "src/docs/contributions/announcement-trailer.md",
+    "src/docs/contributions/client-chooser-mobile-guide.md",
+    "src/docs/contributions/doctrine-save-recovery.md",
+    "src/docs/contributions/guide-install-test-integration.md",
+    "src/docs/contributions/guide-targeted-install.md",
+    "src/docs/contributions/guided-first-match.md",
+    "src/docs/contributions/in-match-keyboard-navigation.md",
+    "src/docs/contributions/install-client-target.md",
+    "src/docs/contributions/local-input-atomicity.md",
+    "src/docs/contributions/narrow-map-layout.md",
+    "src/docs/contributions/pr-ci.md",
+    "src/docs/contributions/preferences-first-tick-ci-repair.md",
+    "src/docs/contributions/primary-map-input.md",
+    "src/docs/contributions/public-demo-artifacts.json",
+    "src/docs/contributions/public-demo-capture.json",
+    "src/docs/contributions/public-demo-r1-verification.md",
+    "src/docs/contributions/public-demo-verification.md",
+    "src/docs/contributions/public-demo.md",
+    "src/docs/contributions/result-sharing.md",
+    "src/docs/contributions/saved-preferences-recovery.md",
+    "src/docs/evidence/account-executions-5f34d62.jsonl.gz",
+    "src/docs/evidence/account-function-measurement-5f34d62.json",
+    "src/docs/evidence/mcp-oauth-local-verification.json",
+    "src/docs/evidence/web-mcp-https-verification.json",
+    "src/docs/install-verification.json",
+    "src/docs/install-verification.md",
+    "src/docs/install.md",
+    "src/docs/mcp-oauth.md",
+    "src/docs/public-pages-release.md",
+    "src/docs/public-pages.md",
+    "src/docs/pvp-benchmark.json",
+    "src/docs/pvp-colyseus-release.json",
+    "src/docs/pvp-convex-assets.json",
+    "src/docs/pvp-convex-browser.txt",
+    "src/docs/pvp-convex-capacity.json",
+    "src/docs/pvp-convex-mcp.json",
+    "src/docs/pvp-convex-reduction.json",
+    "src/docs/pvp-convex-usage.json",
+    "src/docs/pvp-convex-verification.json",
+    "src/docs/pvp-http-benchmark.json",
+    "src/docs/pvp-local-verification.json",
+    "src/docs/pvp-preview-verification.json",
+    "src/docs/pvp-production-mcp.json",
+    "src/docs/pvp-production-staged.json",
+    "src/docs/pvp-public-browser.txt",
+    "src/docs/pvp-public-mcp.json",
+    "src/docs/pvp-public-release.json",
+    "src/docs/pvp-release.md",
+    "src/docs/pvp-room-join-repair.json",
+    "src/docs/pvp-spec.md",
+    "src/docs/pvp-two-machine-pass.json",
+    "src/docs/reviews/browser-backend-isolation.md",
+    "src/docs/reviews/swarm-depth-00fc4b6.md",
+    "src/docs/reviews/swarm-depth-a1449ad.md",
+    "src/docs/reviews/swarm-depth-repair.md",
+    "src/docs/reviews/swarm-oauth-integration.md",
+    "src/docs/superpowers/plans/2026-10-18-announcement-trailer.md",
+    "src/docs/superpowers/plans/2026-10-18-final-ownership-contrast.md",
+    "src/docs/superpowers/plans/2026-10-18-sol-film-01.md",
+    "src/docs/web-mcp-pilot.md",
+    "src/e2e/auth.spec.js",
+    "src/e2e/backend-isolation.spec.js",
+    "src/e2e/build.js",
+    "src/e2e/fixtures.js",
+    "src/e2e/guide-targeted-install.spec.js",
+    "src/e2e/install.spec.js",
+    "src/e2e/mode-picker.spec.js",
+    "src/e2e/narrow-map-layout.spec.js",
+    "src/e2e/online.spec.js",
+    "src/e2e/preview.js",
+    "src/e2e/public-demo.spec.js",
+    "src/e2e/public-pages.spec.js",
+    "src/e2e/result-sharing.spec.js",
+    "src/guide.html",
+    "src/house.md",
+    "src/index.html",
+    "src/install.js",
+    "src/integration/auth.test.js",
+    "src/integration/live-auth.test.js",
+    "src/integration/live-cutover.test.js",
+    "src/mcp-oauth.js",
+    "src/media/public-demo-poster.jpg",
+    "src/media/public-demo.vtt",
+    "src/media/public-demo.webm",
+    "src/online/auth-options.js",
+    "src/online/auth.js",
+    "src/online/game.js",
+    "src/online/http.js",
+    "src/online/live-cookie.js",
+    "src/online/live-durable.js",
+    "src/online/live-runtime.js",
+    "src/online/live-server.js",
+    "src/online/live-store.js",
+    "src/online/ratings.js",
+    "src/online/store.js",
+    "src/package-lock.json",
+    "src/package.json",
+    "src/play.command",
+    "src/playwright.auth.config.js",
+    "src/playwright.config.js",
+    "src/privacy.html",
+    "src/public-media.js",
+    "src/scripts/auth-dev.js",
+    "src/scripts/benchmark-http.js",
+    "src/scripts/benchmark-online.js",
+    "src/scripts/build.js",
+    "src/scripts/capture-announcement-trailer.js",
+    "src/scripts/capture-public-demo.js",
+    "src/scripts/check.js",
+    "src/scripts/edit-announcement-trailer.py",
+    "src/scripts/live-server.js",
+    "src/scripts/measure-live-capacity.js",
+    "src/scripts/online-dev.js",
+    "src/scripts/test-convex.js",
+    "src/scripts/verify-capacity.js",
+    "src/scripts/verify-dns.js",
+    "src/scripts/verify-install.js",
+    "src/scripts/verify-online.js",
+    "src/scripts/verify-room-join.js",
+    "src/scripts/verify-web-mcp.js",
+    "src/server.js",
+    "src/sim.js",
+    "src/spikes/space.html",
+    "src/spikes/swarm.html",
+    "src/terms.html",
+    "src/test/accounts.test.js",
+    "src/test/announcement-trailer.test.js",
+    "src/test/auth-limit.test.js",
+    "src/test/auth.test.js",
+    "src/test/convex-cache.test.js",
+    "src/test/convex-store.test.js",
+    "src/test/elo-board.test.js",
+    "src/test/elo.test.js",
+    "src/test/guided-first-match.test.js",
+    "src/test/http.test.js",
+    "src/test/install.test.js",
+    "src/test/live-account.test.js",
+    "src/test/live-elo.test.js",
+    "src/test/live-integrity.test.js",
+    "src/test/live-session-retention.test.js",
+    "src/test/live-wire.test.js",
+    "src/test/live.test.js",
+    "src/test/local.test.js",
+    "src/test/mcp-auth.test.js",
+    "src/test/mcp-deploy.test.js",
+    "src/test/mcp-oauth.test.js",
+    "src/test/offline-browser.test.js",
+    "src/test/online-regressions.test.js",
+    "src/test/online.test.js",
+    "src/test/public-demo.test.js",
+    "src/test/public-pages.test.js",
+    "src/test/sim.test.js",
+    "src/test/swarm-invariants.test.js",
+    "src/test/web-mcp.test.js",
+    "src/vercel.json",
+    "src/vitest.config.js",
+    "src/web-mcp.js"
+  ]
+}
