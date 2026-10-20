@@ -1,0 +1,41 @@
+{
+  "observed_at_utc": "2026-10-20T07:36:02.128188+00:00",
+  "task": "t_abfb2be1",
+  "approved_candidate": "bb249e1c6bcb8670751ffc935012e41c530b1ae3",
+  "approved_tree": "c31dca916ca1ab94237f7c759c57253e2ccba4b5",
+  "head": "bb249e1c6bcb8670751ffc935012e41c530b1ae3",
+  "base": "cd5dadea98d28f266b53e708e3b8d309215c7765",
+  "mergeable_state": "behind",
+  "potential_merge_commit": "6fe3dec56b73bbb1370f1c535ec292e46f26edc1",
+  "calculated_merged_tree": "cdb30579a72fe9b1cbd47b7b77163b52313cee31",
+  "exact_head_ci": {
+    "id": 39384790056,
+    "head_sha": "bb249e1c6bcb8670751ffc935012e41c530b1ae3",
+    "conclusion": "success",
+    "url": "https://github.com/Zacaria/botters/actions/runs/39384790056"
+  },
+  "health": {
+    "status": "ok",
+    "build": "9f18817db70e739928ce3952ab7580ac4b198037",
+    "transport": "colyseus",
+    "activeMatches": 0,
+    "convex": {
+      "query": 149,
+      "mutation": 5,
+      "subscription": 7,
+      "updates": 16
+    },
+    "memory": 98209792
+  },
+  "review_archive_sha256": "2daf8ad8a1673d8b467d80a6d1f0fa87d495f020499c85d2dd3bbc9024db5639",
+  "production_mutations": [],
+  "release_blocker": "Protected target includes PR17 OAuth MCP; proposed merge tree is not approved tree. Preserve both features, obtain signed successor exact-candidate independent PASS and fresh required CI before release. Never deploy stale source over newer runtime or change sibling MCP service.",
+  "not_run": [
+    "Deployment",
+    "Production gameplay",
+    "Legacy aggregate query",
+    "Production asset parity",
+    "Local test reruns (existing exact-candidate review reused)"
+  ],
+  "deletions": []
+}
