@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.js'
 import { authorizePreview, state } from './preview.js'
 
 const modes = ['1v1', '2v2', 'ffa4', 'ffa6']

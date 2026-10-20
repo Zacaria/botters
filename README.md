@@ -84,7 +84,7 @@ npm test
 npm run check
 npm run build
 node scripts/verify-install.js # real Claude/Codex, isolated HOME, packed npx + MCP tools/list only
-npm run test:browser       # two isolated Brave contexts; local accelerated clock, no live data
+npm run test:browser       # fresh ephemeral backend per test; Brave, accelerated clock, no live data
 npm run test:auth:browser  # real Better Auth + captured test mail, isolated loopback only
 npm run test:auth:convex   # actual Convex component + proxy, isolated test database
 BOTTERS_SERVER=https://PREVIEW_URL npm run test:online # two real stdio MCP clients, full wall-clock match

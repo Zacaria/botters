@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.js'
 import net from 'node:net'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'

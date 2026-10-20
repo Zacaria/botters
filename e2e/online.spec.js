@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.js'
 import { authorizePreview, liveURL, state } from './preview.js'
 test.beforeEach(async ({ context }) => authorizePreview(context))
 const remote = !!process.env.BOTTERS_SERVER
