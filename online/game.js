@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, TYPES, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { transaction, checkDeadline } from './store.js'
 import { rankPairs } from './ratings.js'
 
@@ -26,17 +26,23 @@ const cleanInput = b => {
     if (!Number.isSafeInteger(b.order?.swarm) || !Number.isFinite(b.order?.x) || !Number.isFinite(b.order?.y)) fail(400, 'Send a swarm ID and finite x/y coordinates.')
     input.order = { swarm: b.order.swarm, x: Math.max(0, Math.min(W, b.order.x)), y: Math.max(0, Math.min(H, b.order.y)) }
   }
+  if (b.morph !== undefined) {
+    if (!Number.isSafeInteger(b.morph?.swarm) || !TYPES.includes(b.morph?.type)) fail(400, `Send a swarm ID and a type: ${TYPES.join(', ')}.`)
+    input.morph = { swarm: b.morph.swarm, type: b.morph.type }
+  }
   if (!Object.keys(input).length) fail(400, 'Send a gambit change or swarm action.')
   return input
 }
 const parsePlay = b => {
   if (b.opening != null && checkGambits(b.opening)) fail(400, checkGambits(b.opening))
+  if (matchOptions(b).mode !== '1v1' && b.vs === 'player') fail(400, '2v2 and free-for-all are played against house bots for now. Pick Easy, Normal or Hard.')
   return { ...matchOptions(b), vs: [...Object.keys(HOUSE), 'player'].includes(b.vs) ? b.vs : 'normal', planning: PLANNING.includes(b.planning) ? b.planning : 20,
     withAgent: b.withAgent !== false, opening: b.opening ? canonicalRules(b.opening) : null,
     anyMinutes: b.minutes === 'any', anyPlanets: b.planets === 'any' }
 }
-const sharedSettings = req => ({ ...matchOptions(req), planning: req.planning, vs: 'player' })
-const opponent = (m, side) => m.players.find(p => p.side !== side)
+const sharedSettings = req => ({ ...matchOptions(req), mode: '1v1', planning: req.planning, vs: 'player' }) // human rooms and the queue are duels
+const foes = (m, side) => m.players.filter(p => m.s.teams[p.side] !== m.s.teams[side])
+const opponent = (m, side) => { const f = foes(m, side); return f.length > 1 ? { ...f[0], name: `${f.length} house bots (${f[0].name.replace(/^house \(|\)$/g, '')})` } : f[0] }
 const emit = (m, p, message) => { p.events.push({ seq: ++p.seq, t: Math.floor(m.s.tick / TPS), text: message }); p.events = p.events.slice(-200) }
 const feed = (m, p, who, message) => { p.feed.push({ t: Math.floor(m.s.tick / TPS), who, text: message }); p.feed = p.feed.slice(-12) }
 
@@ -47,13 +53,14 @@ function diffEvents(m, p) {
   if (!was) return
   for (const e of v.enemies) if (e.n >= 1500 && !was.enemies.some(o => o.id === e.id)) emit(m, p, `enemy swarm ${e.id} (${e.n}) spotted at (${e.x},${e.y})`)
   for (const pl of v.planets) if (pl.owner !== was.planets[pl.id].owner && pl.massLeft > 0) emit(m, p, `${pl.owner || 'neutral'} captured planet ${pl.id} (${pl.x},${pl.y})`)
+  for (const c of v.swarms) if (c.hunger >= 1 && !was.swarms.some(o => o.id === c.id && o.hunger >= 1)) emit(m, p, `swarm ${c.id} (${c.type}) is starving at (${c.x},${c.y}): it has not touched a planet or killed anything for too long`)
   for (const c of was.swarms) if (c.n >= 500 && c.fighting && !v.swarms.some(o => o.id === c.id)) emit(m, p, `your swarm ${c.id} was destroyed near (${c.x},${c.y})`)
   if ((v.totals.you < v.totals.enemy) !== (was.totals.you < was.totals.enemy)) emit(m, p, `lead changed: ${v.totals.you} vs ${v.totals.enemy} particles`)
   if (v.secondsLeft === 60) emit(m, p, '1 minute left.')
 }
 
 function whatIf(m, p, log, deadline) {
-  const result = s => { const t = totals(s), enemy = opponent(m, p.side).side; return { result: s.ended.winner === p.side ? 'won' : s.ended.winner === null ? 'draw' : 'lost', you: t[p.side], enemy: t[enemy] } }
+  const result = s => { const t = view(s, p.side).totals; return { result: s.ended.winner === s.teams[p.side] ? 'won' : s.ended.winner === null ? 'draw' : 'lost', you: t.you, enemy: t.enemy } }
   const count = role => log.filter(l => l.side === p.side && l.role === role).length
   const boundedReplay = entries => {
     if (!Number.isFinite(deadline)) return replay(m.s.seed, entries, m.s.opts)
@@ -113,7 +120,7 @@ export class OnlineGame {
         }
         const log = chunks.flat().slice(0, m.logCount)
         m.report = m.players.map(p => p.session ? whatIf(m, p, log, this.deadline) : null)
-        const rated = !this.requireAccount || m.players.every(p => p.accountId) && m.players[0].accountId !== m.players[1].accountId
+        const rated = m.players.length === 2 && (!this.requireAccount || m.players.every(p => p.accountId) && m.players[0].accountId !== m.players[1].accountId)
         if (rated) {
           const ratings = await Promise.all(m.players.map(async p => {
             const key = hash(JSON.stringify([this.requireAccount ? p.accountId : p.name, p.setup]))
@@ -150,6 +157,7 @@ export class OnlineGame {
       }
       const start = async (entries, req, roomCode = null) => {
         const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, planning: req.planning, startsAt: now + req.planning * 1000 }
+        entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
         for (const [side, e] of entries.entries()) {
           const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
             agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', events: [], seq: 0, sent: [], humanSent: [], calls: [], feed: [], prev: null, seen: now,
@@ -158,7 +166,7 @@ export class OnlineGame {
           const opening = e ? e.req.opening : HOUSE[req.vs]
           if (opening) { const input = { gambits: canonicalRules(opening) }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
-          emit(m, p, `match starts in ${req.planning}s. Home on the ${side ? 'right' : 'left'}. ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
+          emit(m, p, `match starts in ${req.planning}s. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with one swarm of each type (locust, carapace, spore). ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
         }
         await tx.set(`match:${m.id}`, m)
         return m
@@ -410,7 +418,7 @@ export class OnlineGame {
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
         const input = cleanInput(body)
-        if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
+        if (now < m.startsAt && (input.order || input.morph || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
         const candidate = structuredClone(m.s)
         const result = applyInput(candidate, s.side, input)
         if (!result.ok) fail(400, result.error)
@@ -423,7 +431,7 @@ export class OnlineGame {
           emit(m, p, `HUMAN ${body.gambits ? `rewrote gambits: ${list.map(describe).join('; ')}` : JSON.stringify(input)}`)
           if (body.order) p.calls = p.calls.filter(c => c.swarm !== body.order.swarm)
         }
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${body.gambits ? 'rewrote gambits' : body.toggle !== undefined ? 'switched a rule' : body.order ? `ordered swarm ${body.order.swarm}` : body.split !== undefined ? 'split a swarm' : 'released a swarm'}${why ? `: ${why}` : ''}`)
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${body.gambits ? 'rewrote gambits' : body.toggle !== undefined ? 'switched a rule' : body.order ? `ordered swarm ${body.order.swarm}` : body.morph ? `changed swarm ${body.morph.swarm} to ${body.morph.type}` : body.split !== undefined ? 'split a swarm' : 'released a swarm'}${why ? `: ${why}` : ''}`)
         return { ok: true }
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {

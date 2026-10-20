@@ -62,9 +62,11 @@ Then plug your agent. The full guide is at `http://localhost:8787/guide`.
 
 ## Rules
 
-- Map 1200×700, mirrored planets plus one home planet per side. Each side starts with 3 swarms of 3,000 particles.
+- Map 1200×700, mirrored planets plus one home planet per side, included in the selected total of 16, 28 or 40 planets in every mode. Six-side maps include a mirrored pair on the horizontal centreline to keep the exact total. Each side starts with 3 swarms of 3,000 particles.
 - Owned planets are slowly eaten and turned into particles for their owner. Most particles at the end wins; no swarms and no planets left loses at once.
-- Fights follow the square law: touching swarms lose particles in proportion to the enemy's size. Big swarms move slower. Overlapping friendly swarms merge.
+- Fights use the contact front: only the front of two touching swarms fights (width = the smaller swarm's diameter) and a swarm much bigger than its enemy wraps it. Half of what a swarm kills joins it but is digested slowly, which also slows it. Simultaneous attackers share each target's actual losses in proportion to their damage; they cannot digest the same particles twice. A swarm that touches no planet and kills nothing for too long starves (gambit conditions `hungry` and `full`). Big swarms move slower. Overlapping friendly swarms of the same type merge.
+- Types: each side starts with one locust, one carapace and one spore swarm. Locust (fast, fast eater, starves early) beats spore, spore (hits 45 beyond contact, weak in melee) beats carapace, carapace (slow, starves late) beats locust. Change type with `morph_swarm`, the gambit action `counter` or the keys L / C / P (10% of the particles, 3 s cocoon, 15 s cooldown). Splitting preserves both morph timers; merging keeps the latest cocoon end and cooldown of either swarm.
+- Modes: `1v1`, `2v2` (you and a house ally against two house bots), `ffa4` and `ffa6` (free-for-all against house bots). Human-versus-human queue and rooms stay duels. Allies share vision and never fight. Colour is the camp (your team pink, each enemy team its own colour); shape and motion are the type.
 - Fog of war: you see enemies within 150 of your swarms and 80 of your planets.
 - Gambits: up to 10 rules per side, first enabled match wins, re-evaluated every 0.5 s. Conditions and actions: `GET /rules`.
 - A swarm grabbed by hand (by you or your agent) ignores the gambits until released.
@@ -88,7 +90,7 @@ npm test
 npm run check
 npm run build
 node scripts/verify-install.js # real Claude/Codex, isolated HOME, packed npx + MCP tools/list only
-npm run test:browser       # two isolated Brave contexts; local accelerated clock, no live data
+npm run test:browser       # fresh ephemeral backend per test; Brave, accelerated clock, no live data
 npm run test:auth:browser  # real Better Auth + captured test mail, isolated loopback only
 npm run test:auth:convex   # actual Convex component + proxy, isolated test database
 BOTTERS_SERVER=https://PREVIEW_URL npm run test:online # two real stdio MCP clients, full wall-clock match

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.js'
 
 // These literals are the public installer contract, not derived from guide DOM.
 const clients = [

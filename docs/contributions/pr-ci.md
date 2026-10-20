@@ -34,7 +34,7 @@ No dependency or lockfile changes are necessary.
 | `npm run check` | Repository JS/inline browser syntax and JSON checks; not a separate linter/type checker/formatter. |
 | `npm run build` | Copies five public assets and uses installed esbuild to bundle the live browser client; no deployment. |
 | `npm test` | Existing Node tests, including a real offline browser match, local HTTP/MCP/auth/Colyseus fixtures and engine tests. Requires Chromium via `BOTTERS_BROWSER`. |
-| `npm run test:browser` | Existing local Colyseus browser suite, public pages and installer guide. Starts/builds its own fixture on 8788, no remote service. |
+| `npm run test:browser` | Local Colyseus browser suite, public pages and installer guide. Builds once and starts a fresh ephemeral loopback backend per test; no shared lobby budget or remote service. |
 | `npm run test:auth:browser` | Existing two-origin Better Auth/Colyseus browser fixture on 8789/8790; captured mail and ephemeral memory storage, not real accounts/email. |
 | `npm run test:auth:convex` | Existing Vitest/convex-test component integration; a fresh checkout lacks ignored `convex/_generated/api.js`. Excluded from this minimal job, not reported as PASS. |
 | `npm run test:online` | External-target verification command; excluded. No production target or credential is supplied. |

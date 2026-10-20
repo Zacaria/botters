@@ -5,7 +5,7 @@ import http from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
 import { servePublicMedia } from './public-media.js'
-import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, HOUSE, TPS, W, H, MAX_GAMBITS } from './sim.js'
+import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, TYPES, HOUSE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
@@ -32,6 +32,7 @@ const live = s => s.match && !s.match.s.ended
 
 function parsePlay(b) { // validated match request from the lobby (or a script)
   const vs = [...LEVELS, 'player'].includes(b.vs) ? b.vs : 'normal'
+  if (matchOptions(b).mode !== '1v1' && vs === 'player') b = { ...b, mode: '1v1' } // 2v2 and free-for-all are played against house bots for now
   return { vs, ...matchOptions(b), planning: PLANNING.includes(b.planning) ? b.planning : 20, withAgent: b.withAgent !== false, opening: Array.isArray(b.opening) ? b.opening : null }
 }
 
@@ -45,8 +46,10 @@ function play(s, req) {
 }
 
 // ---------- matches ----------
+const foe = (m, side) => { const f = m.players.filter(p => m.s.teams[p.side] !== m.s.teams[side]); return { name: f.length > 1 ? `${f.length} house bots` : f[0].name, setup: f.length > 1 ? 'fixed gambits' : f[0].setup } }
 function startMatch(entries, req) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
   const delay = FORCED_DELAY ?? req.planning * 1000
+  entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
   const m = { id: id(), s: createMatch(randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
     const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
@@ -57,7 +60,7 @@ function startMatch(entries, req) { // entries[1] === null: the house plays side
     if (opening) { applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role: e ? 'human' : 'house', input: { gambits: opening } }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
     if (e) { e.s.match = m; e.s.side = side }
   })
-  for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is on the ${p.side ? 'right' : 'left'}. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits: keep them unless the situation demands a change.' : 'Write your opening gambits from the doctrine now.'}`)
+  for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[p.side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with one swarm of each type (locust, carapace, spore). ${p.openingBy === 'human' ? 'Your human wrote the opening gambits: keep them unless the situation demands a change.' : 'Write your opening gambits from the doctrine now.'}`)
   m.timer = setInterval(() => {
     if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
     step(m.s)
@@ -72,7 +75,7 @@ function startMatch(entries, req) { // entries[1] === null: the house plays side
 const frame = (m, side) => {
   const p = m.players[side]
   return { view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
-    me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: { name: m.players[1 - side].name, setup: m.players[1 - side].setup }, options: m.s.opts }
+    me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: foe(m, side), options: m.s.opts }
 }
 const send = (st, m) => st.res.write(`data: ${JSON.stringify(frame(m, st.side))}\n\n`)
 
@@ -81,14 +84,16 @@ function finish(m) {
   clearInterval(m.timer)
   for (const p of m.players) diffEvents(m, p)
   const [a, b] = m.players, w = m.s.ended.winner
-  const ra = elo.get(a.name) ?? 1000, rb = elo.get(b.name) ?? 1000
-  const exp = 1 / (1 + 10 ** ((rb - ra) / 400)), got = w === 0 ? 1 : w === 1 ? 0 : 0.5
-  elo.set(a.name, Math.round(ra + 32 * (got - exp))); elo.set(b.name, Math.round(rb - 32 * (got - exp)))
+  if (m.players.length === 2) {
+    const ra = elo.get(a.name) ?? 1000, rb = elo.get(b.name) ?? 1000
+    const exp = 1 / (1 + 10 ** ((rb - ra) / 400)), got = w === 0 ? 1 : w === 1 ? 0 : 0.5
+    elo.set(a.name, Math.round(ra + 32 * (got - exp))); elo.set(b.name, Math.round(rb - 32 * (got - exp)))
+  }
   m.report = m.players.map(p => p.session && whatIf(m, p))
-  for (const p of m.players) if (p.session) p.session.history = [{ ...m.report[p.side], reason: m.s.ended.reason, at: Math.round(m.s.tick / TPS), vs: m.players[1 - p.side].name, withAgent: p.withAgent }, ...p.session.history].slice(0, 10)
+  for (const p of m.players) if (p.session) p.session.history = [{ ...m.report[p.side], reason: m.s.ended.reason, at: Math.round(m.s.tick / TPS), vs: foe(m, p.side).name, withAgent: p.withAgent }, ...p.session.history].slice(0, 10)
   for (const st of m.streams) send(st, m)
   setTimeout(() => { for (const p of m.players) if (p.session?.match === m) p.session.match = null }, FINISHED_TTL)
-  console.error(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${b.name} (${b.setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0] }))
+  console.error(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${foe(m, 0).name} (${foe(m, 0).setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0] }))
 }
 
 // Who won it? Replay the match without this side's human inputs, then without its agent's. Same seed, same opponent inputs.
@@ -96,7 +101,7 @@ function finish(m) {
 // ponytail: synchronous replays (~0.5 s each) at match end block the server loop; move to a worker if matches overlap.
 function whatIf(m, p) {
   const side = p.side
-  const res = s => { const t = totals(s), w = s.ended.winner; return { result: w === side ? 'won' : w === null ? 'draw' : 'lost', you: t[side], enemy: t[1 - side] } }
+  const res = s => { const t = view(s, side).totals, w = s.ended.winner; return { result: w === s.teams[side] ? 'won' : w === null ? 'draw' : 'lost', you: t.you, enemy: t.enemy } }
   const without = role => res(replay(m.s.seed, m.log.filter(l => l.side !== side || l.role !== role), m.s.opts))
   const count = role => m.log.filter(l => l.side === side && l.role === role).length
   return { actual: res(m.s), humanInputs: count('human'), agentInputs: count('agent'), withoutHuman: without('human'), withoutAgent: p.withAgent ? without('agent') : null }
@@ -130,7 +135,7 @@ function diffEvents(m, p) { // once per second: turn state changes into things a
 function joinInfo(s) { // what the agent learns when it joins its session's match
   const m = s.match, p = m.players[s.side]
   p.agentJoined = true
-  return { side: s.side, opponent: `${m.players[1 - s.side].name} (${m.players[1 - s.side].setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
+  return { side: s.side, opponent: `${foe(m, s.side).name} (${foe(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
     startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)), state: view(m.s, s.side) }
 }
 
@@ -221,8 +226,8 @@ const routes = {
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
     }
-    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release }
-    if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
+    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release, morph: b.morph }
+    if (now < m.startsAt && (input.order || input.morph || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
     const candidate = structuredClone(m.s)
     const r = applyInput(candidate, side, input)
     if (r.ok) {
@@ -235,6 +240,7 @@ const routes = {
         if (b.gambits) feed(m, side, 'agent', `rewrote the gambits${why && `: ${why}`}`)
         if (b.order) feed(m, side, 'agent', `took swarm ${b.order.swarm} to (${Math.round(b.order.x)},${Math.round(b.order.y)})${why && `: ${why}`}`)
         if (b.split !== undefined) feed(m, side, 'agent', `split swarm ${b.split}${why && `: ${why}`}`)
+        if (b.morph) feed(m, side, 'agent', `changed swarm ${b.morph.swarm} to ${b.morph.type}${why && `: ${why}`}`)
         if (b.release !== undefined) feed(m, side, 'agent', `gave swarm ${b.release} back to the gambits`)
       } else {
         if (b.gambits) { emit(m, side, `HUMAN rewrote the gambits:\n${list.map((r, i) => `${i + 1}. ${describe(r)}`).join('\n')}`); feed(m, side, 'you', 'rewrote the gambits') }

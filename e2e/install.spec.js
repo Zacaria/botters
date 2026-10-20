@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.js'
 
 const allClientsCommand = page => page.locator('pre').filter({ hasText: /^npx -y github:Zacaria\/botters install(?:copy|copied)?$/ })
 const manualFallback = page => page.locator('details').filter({ has: page.locator('summary').filter({ hasText: /^Manual setup fallback$/ }) })

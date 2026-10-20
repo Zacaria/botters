@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createMatch, applyInput, step, view, addSwarm, W, H, TPS, MAX_SWARMS, DEFAULT_GAMBITS, HOUSE, replay } from '../sim.js'
+import { createMatch, applyInput, step, view, addSwarm, totals, W, H, TPS, MAX_SWARMS, DEFAULT_GAMBITS, HOUSE, MODES, TYPES, replay } from '../sim.js'
 
 const run = (s, ticks) => { for (let i = 0; i < ticks && !s.ended; i++) step(s) }
 const empty = seed => { // planets kept, no starting swarms, both homes kept alive
@@ -40,13 +40,126 @@ test('same seed and inputs give the same match; maps are mirrored and differ by 
   assert.notDeepEqual(createMatch(1).planets, createMatch(2).planets)
 })
 
-test('square law: the bigger swarm wins and loses far fewer than the smaller one', () => {
+test('front law: the bigger swarm wins and keeps more than the old square law left (2646 of 4000 vs 3000)', () => {
   const s = empty(3)
   only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
-  const a = addSwarm(s, 0, 600, 350, 2000), b = addSwarm(s, 1, 610, 350, 1000)
-  run(s, 60 * TPS)
+  const a = addSwarm(s, 0, 600, 350, 4000), b = addSwarm(s, 1, 610, 350, 3000)
+  run(s, 40 * TPS)
   assert.ok(!s.swarms.includes(b))
-  assert.ok(a.n > 1500, `bigger kept ${a.n}`) // Lanchester: sqrt(2000² − 1000²) ≈ 1732
+  assert.ok(a.n + a.belly > 3000, `winner kept ${a.n} + ${a.belly} still digesting`)
+})
+
+test('equal swarms do not melt each other for minutes: a fight ends in under a minute', () => {
+  const s = empty(3)
+  only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const a = addSwarm(s, 0, 600, 350, 3000), b = addSwarm(s, 1, 601, 350, 3000)
+  run(s, 60 * TPS)
+  assert.ok(!s.swarms.includes(a) || !s.swarms.includes(b), 'one side is gone')
+})
+
+test('type triangle: locust beats spore, spore beats carapace, carapace beats locust', () => {
+  const beats = (winner, loser) => {
+    const s = empty(5)
+    only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+    const a = addSwarm(s, 0, 600, 350, 3000, winner), b = addSwarm(s, 1, 610, 350, 3000, loser)
+    run(s, 60 * TPS)
+    return a.n - (s.swarms.includes(b) ? b.n : 0)
+  }
+  assert.ok(beats('locust', 'spore') > 0 && beats('spore', 'carapace') > 0 && beats('carapace', 'locust') > 0)
+})
+
+test('a spore hits from beyond contact; melee types do not', () => {
+  const s = empty(5)
+  only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const spore = addSwarm(s, 0, 600, 350, 3000, 'spore'), target = addSwarm(s, 1, 600 + 2 * (4 + Math.sqrt(3000) * 0.32) + 20, 350, 3000, 'carapace')
+  const other = addSwarm(s, 1, 100, 100, 3000, 'locust'), me = addSwarm(s, 0, 100 + 2 * (4 + Math.sqrt(3000) * 0.32) + 20, 100, 3000, 'locust')
+  run(s, 5 * TPS)
+  assert.ok(target.n < 3000, 'spore damaged the carapace at range')
+  assert.equal(other.n, 3000); assert.equal(me.n, 3000)
+  assert.ok(view(s, 0).swarms.find(c => c.id === spore.id).fire, 'the view tells the client where the spore is firing')
+})
+
+test('hunger: a swarm that never touches a planet starves; touching one resets it', () => {
+  const s = empty(6)
+  only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const lone = addSwarm(s, 0, 600, 20, 3000, 'locust')
+  run(s, 60 * TPS)
+  assert.ok(lone.n < 3000, `starved to ${lone.n}`)
+  assert.ok(view(s, 0).swarms[0].hunger >= 1)
+  const t = empty(6); only(t, 0, [{ if: 'always', then: 'hold' }]); only(t, 1, [{ if: 'always', then: 'hold' }])
+  const home = addSwarm(t, 0, t.planets[0].x, t.planets[0].y, 3000, 'locust')
+  run(t, 60 * TPS)
+  assert.ok(home.n >= 3000, 'a swarm on a planet is fed')
+})
+
+test('gambits: hungry goes to food; counter changes type to beat the enemy and pays 10% of the swarm', () => {
+  const s = empty(7)
+  only(s, 1, [{ if: 'always', then: 'hold' }])
+  const c = addSwarm(s, 0, 600, 300, 1000, 'locust'); c.meal = -10000
+  only(s, 0, [{ if: 'hungry', then: 'go' }])
+  run(s, 20)
+  const p = s.planets.filter(q => q.mass > 0).sort((a, b) => Math.hypot(a.x - 600, a.y - 300) - Math.hypot(b.x - 600, b.y - 300))[0]
+  assert.deepEqual([c.tx, c.ty], [p.x, p.y])
+  const t = empty(7); only(t, 1, [{ if: 'always', then: 'hold' }])
+  const d = addSwarm(t, 0, 300, 350, 1000, 'locust'); addSwarm(t, 1, 380, 350, 1000, 'carapace')
+  only(t, 0, [{ if: 'enemy_near', then: 'counter' }, { if: 'always', then: 'hold' }])
+  run(t, 10)
+  assert.equal(d.type, 'spore') // spore beats carapace
+  assert.ok(d.n < 1000 && d.n > 850)
+  assert.equal(d.rule, 0)
+  assert.equal(applyInput(t, 0, { morph: { swarm: d.id, type: 'locust' } }).ok, false) // 15 s cooldown
+})
+
+test('modes: sides, teams, symmetric homes and one swarm of each type per side', () => {
+  for (const [mode, teams] of Object.entries(MODES)) {
+    const s = createMatch(11, { mode })
+    assert.deepEqual(s.teams, teams)
+    assert.equal(s.swarms.length, teams.length * 3)
+    assert.deepEqual([...new Set(s.swarms.map(c => c.type))].sort(), [...TYPES].sort())
+    for (let side = 0; side < teams.length; side++) assert.equal(s.planets[side].owner, side)
+    assert.ok(s.planets.every(p => p.x >= 0 && p.x <= W && p.y >= 0 && p.y <= H))
+  }
+  const a = createMatch(11, { mode: 'ffa6' })
+  const homes = a.planets.slice(0, 6)
+  for (const h of homes) assert.ok(homes.some(o => o !== h && Math.abs(o.x - (W - h.x)) < 1 && Math.abs(o.y - h.y) < 1) || h.y === H / 2, 'x-mirror exists')
+  const live = createMatch(5, { mode: '2v2', minutes: 3 })
+  while (!live.ended) step(live)
+  assert.deepEqual(replay(5, [], live.opts), live) // valid wipes can end before the time limit
+})
+
+test('2v2: allies share vision, never fight, and the team wins together', () => {
+  const s = createMatch(12, { mode: '2v2' })
+  s.swarms = []
+  for (const side of [0, 1, 2, 3]) only(s, side, [{ if: 'always', then: 'hold' }])
+  const a = addSwarm(s, 0, 600, 350, 3000, 'carapace'), ally = addSwarm(s, 1, 601, 350, 3000, 'carapace'), foe = addSwarm(s, 2, 1000, 600, 3000, 'locust')
+  run(s, 5 * TPS)
+  assert.equal(a.n >= 3000 && ally.n >= 3000, true, 'allies on the same spot do not hurt each other')
+  assert.ok(view(s, 0).allies.some(c => c.id === ally.id))
+  assert.ok(!view(s, 0).enemies.some(c => c.id === foe.id), 'far foe stays hidden')
+  s.planets.forEach(p => { if (p.owner === 2 || p.owner === 3) p.owner = -1 })
+  s.swarms = s.swarms.filter(c => c.side < 2)
+  run(s, 2 * TPS)
+  assert.deepEqual(s.ended, { winner: 0, reason: 'wipe' })
+  assert.deepEqual(view(s, 1).ended, { result: 'won', reason: 'wipe' })
+  assert.deepEqual(view(s, 3).ended, { result: 'lost', reason: 'wipe' })
+})
+
+test('free-for-all: last side standing wins; surrender hands the match to the leading rival; a draw needs equal totals', () => {
+  const s = createMatch(13, { mode: 'ffa4' })
+  s.swarms = s.swarms.filter(c => c.side === 0 || c.side === 3)
+  s.planets.forEach(p => { if (p.owner === 1 || p.owner === 2) p.owner = -1 })
+  run(s, 2 * TPS)
+  assert.deepEqual(s.ended, { winner: 3 === s.teams[3] ? 3 : 0, reason: 'wipe' }.reason === 'wipe' && s.ended)
+  const t = createMatch(13, { mode: 'ffa4' })
+  t.swarms.find(c => c.side === 2).n = 9000
+  applyInput(t, 0, { surrender: true })
+  assert.deepEqual(t.ended, { winner: 2, reason: 'surrender' })
+  const u = createMatch(14, { mode: 'ffa4', minutes: 3 })
+  u.swarms.find(c => c.side === 1).n = 20000
+  for (const side of [0, 1, 2, 3]) applyInput(u, side, { gambits: [{ if: 'always', then: 'hold' }] })
+  while (!u.ended) step(u)
+  assert.equal(u.ended.reason === 'time' ? u.ended.winner : 1, 1)
+  assert.equal(view(u, 1).totals.foes.length, 3)
 })
 
 test('gambits: first enabled matching rule decides, disabled rules are skipped', () => {

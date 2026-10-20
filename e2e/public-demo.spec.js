@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.js'
 
 // Removing the static paths/transcript, clipping the page or moving them behind
 // bootAccount must break this test even when the application cannot execute JS.

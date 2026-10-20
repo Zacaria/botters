@@ -84,6 +84,8 @@ async function gateway(t, options = {}) {
   return { app, request, connect }
 }
 const data = result => JSON.parse(result.content[0].text)
+const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'morph_swarm', 'release_swarm', 'call_human'].sort()
+const assertTools = tools => assert.deepEqual(tools.map(t => t.name).sort(), toolNames)
 
 test('OAuth protects every MCP request before allocating a child and advertises its canonical resource', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'botters-oauth-gateway-'))
@@ -145,7 +147,7 @@ test('approved OAuth grants own their real SDK sessions and children through ref
   }
   const alice = await login('alice'), bob = await login('bob')
   const a = await g.connect(alice.tokens.access_token), b = await g.connect(bob.tokens.access_token)
-  assert.equal((await a.client.listTools()).tools.length, 7)
+  assertTools((await a.client.listTools()).tools)
   assert.equal(data(await a.client.callTool({ name: 'join_match', arguments: {} })).waiting, true)
   const ownSession = { 'mcp-session-id': a.transport.sessionId }
   for (const method of ['GET', 'POST', 'DELETE']) {
@@ -156,10 +158,10 @@ test('approved OAuth grants own their real SDK sessions and children through ref
   assert.ok(rotated.access_token)
   const tools = await g.request('/mcp', { method: 'POST', headers: { ...ownSession, authorization: 'Bearer ' + rotated.access_token, 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 9999, method: 'tools/list' }) })
   assert.equal(tools.status, 200)
-  assert.equal((await tools.json()).result.tools.length, 7)
+  assertTools((await tools.json()).result.tools)
   assert.equal((await form('/revoke', { client_id: alice.client.client_id, token: rotated.refresh_token })).status, 200)
   assert.equal((await g.request('/mcp', { headers: { ...ownSession, authorization: 'Bearer ' + rotated.access_token } })).status, 401)
-  assert.equal((await b.client.listTools()).tools.length, 7)
+  assertTools((await b.client.listTools()).tools)
   assert.equal(data(await b.client.callTool({ name: 'join_match', arguments: {} })).waiting, true)
   assert.equal(pairRequests, 2, 'stdio children must reuse their approved grants, never create another pairing')
 })
@@ -214,13 +216,13 @@ test('repeated discovery cannot exhaust slots or evict a pending game approval',
   const pending = data(await player.client.callTool({ name: 'join_match', arguments: {} }))
   assert.equal(pending.waiting, true)
   const discovery = await g.connect()
-  assert.equal((await discovery.client.listTools()).tools.length, 7)
+  assertTools((await discovery.client.listTools()).tools)
   let latest
   for (let i = 0; i < 9; i++) {
     // Real SDK clients inspect tools without sending DELETE, as separate discovery consumers can.
     latest = await g.connect()
-    assert.equal((await latest.client.listTools()).tools.length, 7)
-    assert.equal((await player.client.listTools()).tools.length, 7)
+    assertTools((await latest.client.listTools()).tools)
+    assertTools((await player.client.listTools()).tools)
   }
   assert.equal((await g.request('/mcp', { headers: { 'mcp-session-id': discovery.transport.sessionId } })).status, 404)
   assert.equal(data(await player.client.callTool({ name: 'join_match', arguments: {} })).tell_the_human, pending.tell_the_human)
@@ -237,14 +239,14 @@ test('tool errors and a dead child cannot poison another HTTP session', { timeou
   const two = await g.connect()
   const refused = await one.client.callTool({ name: 'not_a_tool', arguments: {} })
   assert.equal(refused.isError, true)
-  assert.equal((await two.client.listTools()).tools.length, 7)
+  assertTools((await two.client.listTools()).tools)
   if (process.platform === 'linux') {
     assert.equal(owned.length, 1)
     process.kill(owned[0], 'SIGKILL')
     await exited(owned)
     for (let i = 0; i < 30 && (await g.request('/health').then(r => r.json())).sessions !== 1; i++) await sleep(25)
     assert.equal((await g.request('/health').then(r => r.json())).sessions, 1)
-    assert.equal((await two.client.listTools()).tools.length, 7)
+    assertTools((await two.client.listTools()).tools)
     await assert.rejects(one.client.listTools())
   }
 })
@@ -259,7 +261,7 @@ test('CLI consumes explicit configuration, binds loopback, and SIGTERM reaps its
   assert.ok(ready)
   const transport = new StreamableHTTPClientTransport(new URL(local + '/mcp'), { requestInit: { headers: { host: 'pilot.example' } }, fetch: tunnelFetch })
   const client = new Client({ name: 'cli-test', version: '1' }); t.after(() => client.close()); await client.connect(transport)
-  assert.equal((await client.listTools()).tools.length, 7)
+  assertTools((await client.listTools()).tools)
   const owned = await children(child.pid)
   if (process.platform === 'linux') assert.equal(owned.length, 1)
   const finished = new Promise(r => child.once('exit', r)); child.kill('SIGTERM'); await finished
@@ -278,7 +280,7 @@ test('configuration requires explicit safe origins and finite resource bounds', 
   ]) assert.throws(() => createWebMcp(options))
 })
 
-test('real HTTP/stdio gateway discovers and executes seven tools with isolated lobby identities', { timeout: 30000 }, async t => {
+test('real HTTP/stdio gateway discovers and executes eight tools with isolated lobby identities', { timeout: 30000 }, async t => {
   const f = await fixture(t), g = await gateway(t, { server: f.upstream })
   const directTransport = new StdioClientTransport({ command: process.execPath, args: childArgs, cwd: root, env: { BOTTERS_SERVER: f.upstream, BOTTERS_OPEN: '0' }, stderr: 'ignore' })
   const direct = new Client({ name: 'schema-reference', version: '1' }); t.after(() => direct.close()); await direct.connect(directTransport)
@@ -295,7 +297,7 @@ test('real HTTP/stdio gateway discovers and executes seven tools with isolated l
   assert.ok(one.responses.some(r => r.method === 'GET' && r.status === 200 && r.type.includes('text/event-stream')))
   assert.ok(one.responses.some(r => r.method === 'POST' && r.status === 200 && r.type.includes('application/json')))
   streamAbort.abort()
-  assert.equal(listed.tools.length, 7)
+  assertTools(listed.tools)
   assert.deepEqual(listed.tools.map(({ annotations, ...tool }) => tool), reference.tools)
   for (const tool of listed.tools) {
     assert.equal(tool.annotations.openWorldHint, true)
@@ -315,6 +317,7 @@ test('real HTTP/stdio gateway discovers and executes seven tools with isolated l
     ['set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'offline fixture' }],
     ['order_swarm', { swarm, x: 100, y: 100, why: 'offline fixture' }],
     ['split_swarm', { swarm, why: 'offline fixture' }],
+    ['morph_swarm', { swarm, type: 'spore', why: 'offline fixture' }],
     ['release_swarm', { swarm }],
     ['call_human', { message: 'offline fixture' }],
   ]) {
@@ -326,6 +329,7 @@ test('real HTTP/stdio gateway discovers and executes seven tools with isolated l
   const frame = await fetch(`${f.origin}/state?token=${token}`).then(r => r.json())
   assert.ok(frame.calls.some(c => c.message === 'offline fixture'))
   assert.deepEqual(frame.view.gambits, [{ if: 'always', then: 'hold', on: true }])
+  assert.equal(frame.view.swarms.find(s => s.id === swarm).type, 'spore')
   assert.equal((await g.request('/health').then(r => r.json())).sessions, 2)
   await one.transport.terminateSession()
   assert.equal((await g.request('/health').then(r => r.json())).sessions, 1)
