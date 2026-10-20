@@ -1,0 +1,50 @@
+{
+  "endpoint": "https://presidential-recruitment-pour-celebrities.trycloudflare.com/mcp",
+  "before": {
+    "sessions": 0
+  },
+  "fullMatch": "not_performed",
+  "claudeWeb": "not_performed",
+  "chatgpt": "not_performed",
+  "tools": [
+    {
+      "name": "join_match",
+      "readOnly": false
+    },
+    {
+      "name": "wait_for_event",
+      "readOnly": true
+    },
+    {
+      "name": "set_gambits",
+      "readOnly": false
+    },
+    {
+      "name": "order_swarm",
+      "readOnly": false
+    },
+    {
+      "name": "split_swarm",
+      "readOnly": false
+    },
+    {
+      "name": "release_swarm",
+      "readOnly": false
+    },
+    {
+      "name": "call_human",
+      "readOnly": false
+    }
+  ],
+  "connected": {
+    "sessions": 1
+  },
+  "pairing": {
+    "waitingForExplicitApproval": true,
+    "origin": "https://botters.havesomecode.io",
+    "path": "/"
+  },
+  "after": {
+    "sessions": 0
+  }
+}

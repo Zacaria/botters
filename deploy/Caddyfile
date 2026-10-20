@@ -1,13 +1,26 @@
 play.botters.havesomecode.io {
     # No access log: query strings carry short private game capabilities.
-    request_body {
-        max_size 16KB
+    header -Server
+    @mcp path /mcp /authorize /token /register /revoke /.well-known/oauth-authorization-server /.well-known/oauth-protected-resource/mcp /consent /consent/*
+    handle @mcp {
+        request_body {
+            max_size 64KB
+        }
+        # Preserve OAuth's route-specific CSP and Referrer-Policy.
+        reverse_proxy botters-mcp:8798 {
+            # This agent service must never receive the human live-host proof cookie.
+            header_up Cookie "(^|;[ ]*)__Host-botters-live=[^;]*" ""
+        }
     }
-    header {
-        Referrer-Policy no-referrer
-        X-Content-Type-Options nosniff
-        Cache-Control no-store
-        -Server
+    handle {
+        request_body {
+            max_size 16KB
+        }
+        header {
+            Referrer-Policy no-referrer
+            X-Content-Type-Options nosniff
+            Cache-Control no-store
+        }
+        reverse_proxy game:2567
     }
-    reverse_proxy game:2567
 }

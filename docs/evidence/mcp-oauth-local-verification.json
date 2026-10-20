@@ -1,0 +1,54 @@
+{
+  "kind": "local_oauth_source_verification",
+  "baseline": "56cef85",
+  "workspace": "web-mcp-pilot",
+  "application_sha256": {
+    "mcp-oauth.js": "524baaf0e970994ab7734a79b75d0dd2a3ebd3823e4a6fc0fea0f3dc7bc037a8",
+    "web-mcp.js": "80c4f0dc5cfe8d93a78f7bbdd9fc1c88711591369952684b8567728dcc5c2e2b",
+    "client.js": "7d1cfb198d5c637b4883e6201669f7dfe70fac5f9eb81e8d27226e31d3aa0428"
+  },
+  "test_sha256": {
+    "test/mcp-oauth.test.js": "cc6df0bad10af47e597ee7624f3d99c7595c6750c61a60e4df8c17752f508df3",
+    "test/web-mcp.test.js": "497b1b5fd6b0f0d7943a480f8ecbabf583b4b1fe6b1fcd638f5da3489eb363c2",
+    "test/mcp-auth.test.js": "1b6f04d23e27e0dd08fd4a2c156e68c8b1e328a81140af632464cb0d31e23b6f"
+  },
+  "checks": [
+    { "command": "node --test test/mcp-oauth.test.js test/web-mcp.test.js", "exit_code": 0, "passed": 22, "failed": 0 },
+    { "command": "npm test", "exit_code": 0, "passed": 217, "failed": 0 },
+    { "command": "npm run check", "exit_code": 0, "javascript_files": 86 },
+    { "command": "npm run build", "exit_code": 0, "public_assets": 8 },
+    { "command": "npm run test:browser", "exit_code": 0, "passed": 44, "failed": 0, "environment": "isolated loopback, Brave" },
+    { "command": "npm run test:auth:browser", "exit_code": 0, "passed": 4, "failed": 0, "environment": "isolated loopback, real Better Auth test sessions" },
+    { "command": "git diff --check", "exit_code": 0 }
+  ],
+  "behavior": [
+    "Actual HTTP OAuth registration, SDK S256 PKCE and one-use code exchange gated by explicit OnlineGame approval using isolated test identities",
+    "Actual Brave consent polling with HttpOnly browser binding, registered callback navigation, narrow layout and native form cancellation",
+    "Two approved accounts, real SDK transports and real stdio children: same-grant refresh retains the session; other grants cannot use or delete it",
+    "Rotating refresh tokens, replay invalidation, revocation and private issuer-bound state survive restart",
+    "No bearer token creates no child; revoked child capabilities cannot fall back to anonymous pairing"
+  ],
+  "independent_security_review": {
+    "verdict": "PASS",
+    "mustfix": [],
+    "review_handle": "deleg_a458cabd",
+    "source_hashes": "all six supplied hashes matched before and after independent tests and probes; owning agent reverified working tree and index",
+    "focused_tests_passed": 54,
+    "additional_probes": [
+      "simultaneous consent completes once; cancellation fences in-flight completion",
+      "revocation fences in-flight refresh; incorrect same-length PKCE fails",
+      "null-Origin consent fails; callback query/state survive",
+      "OAuth access/refresh credentials persist only as hashes"
+    ],
+    "scope_limit": "offline source review; production connector/account activation remains unverified"
+  },
+  "limits": {
+    "new_dependencies": 0,
+    "deleted_files": [],
+    "production_changes": "none",
+    "real_chatgpt_oauth_connection": "not_performed",
+    "real_claude_web_oauth_connection": "not_performed",
+    "model_played_match": "not_performed",
+    "persistence": "single-process private local state; pending consent is not durable"
+  }
+}

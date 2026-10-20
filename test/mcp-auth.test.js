@@ -103,7 +103,7 @@ const gameplay = [
 
 // Execute the real callbacks without stdio/startup. Only HTTP faults and timing
 // are injected; OnlineGame/MemoryStore retain real authorization and gameplay.
-async function callbackFixture({ supplied = false } = {}) {
+async function callbackFixture({ supplied = false, bound = false } = {}) {
   const origin = 'http://127.0.0.1:8790', identity = { id: 'fixture-owner', name: 'Fixture', emailVerified: true }
   let now = 1800000000000, fault = null
   const store = new MemoryStore(() => now), requests = [], tools = new Map()
@@ -113,7 +113,7 @@ async function callbackFixture({ supplied = false } = {}) {
   if (initial) await request(identity, 'POST', '/agent/approve', human.humanToken, { id: initial.id })
   const source = await readFile(new URL('../client.js', import.meta.url), 'utf8')
   const context = vm.createContext({
-    SERVER: origin, serverURL: new URL(origin), env: initial ? { BOTTERS_AGENT_TOKEN: initial.agentToken } : {}, URL, AbortSignal, z,
+    SERVER: origin, serverURL: new URL(origin), env: { ...(initial ? { BOTTERS_AGENT_TOKEN: initial.agentToken } : {}), ...(bound ? { BOTTERS_REQUIRE_AGENT_TOKEN: '1' } : {}) }, URL, AbortSignal, z,
     openUrl: () => {}, log: () => {},
     McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
     fetch: async (target, options = {}) => {
@@ -224,6 +224,17 @@ test('an externally supplied agent capability is forgotten after real revocation
   assert.equal(JSON.parse(await f.call('join_match')).waiting, true)
   assert.equal(f.S.inMatch, false)
   assert.equal(f.requests.filter(r => r.path === '/agent/pair').length, 1)
+})
+
+test('OAuth-bound clients never fall back to anonymous pairing after their approved capability is revoked', async () => {
+  const f = await callbackFixture({ supplied: true, bound: true }); await f.join()
+  await f.revoke()
+  assert.match(await f.call('join_match'), /Reconnect Botters in your assistant/)
+  disconnected(f.S)
+  const sent = f.requests.length
+  await assert.rejects(f.call('join_match'), /Reconnect Botters in your assistant/)
+  assert.equal(f.requests.length, sent, 'no account or pairing requests may escape the OAuth grant')
+  assert.equal(f.requests.filter(r => r.path === '/agent/pair').length, 0)
 })
 
 test('transport failure does not revoke a still-valid agent connection', async () => {
