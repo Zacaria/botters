@@ -1,0 +1,49 @@
+name: botters-mcp
+services:
+  mcp:
+    image: botters-mcp:${BOTTERS_MCP_RELEASE:?Set the exact source commit}
+    build:
+      context: ..
+      dockerfile: deploy/mcp.Dockerfile
+      args:
+        REVISION: ${BOTTERS_MCP_RELEASE:?Set the exact source commit}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: '8798'
+      BOTTERS_SERVER: https://botters.havesomecode.io
+      BOTTERS_MCP_ORIGIN: https://play.botters.havesomecode.io
+      BOTTERS_MCP_OAUTH_STATE: /state/oauth.json
+    expose: ['8798']
+    volumes:
+      - type: bind
+        source: ${BOTTERS_MCP_STATE_DIR:?Create the private absolute state directory first}
+        target: /state
+        bind:
+          create_host_path: false
+    networks:
+      botters:
+        aliases: [botters-mcp]
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.75
+    pids_limit: 128
+    read_only: true
+    tmpfs: ['/tmp:size=16m,noexec,nosuid']
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    stop_grace_period: 20s
+    healthcheck:
+      test: [CMD, node, -e, "require('http').get({host:'127.0.0.1',port:8798,path:'/health',headers:{host:'play.botters.havesomecode.io'}},r=>{r.resume();process.exitCode=r.statusCode===200?0:1}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options: { max-size: 5m, max-file: '2' }
+networks:
+  botters:
+    external: true
+    name: botters_default
