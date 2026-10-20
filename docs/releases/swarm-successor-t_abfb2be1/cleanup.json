@@ -1,0 +1,15 @@
+{
+  "path": "/srv/hermes-ssd/workspaces/botters/swarm-release-verification-t_abfb2be1",
+  "action": "git -C /home/hermes/repos/botters worktree remove /srv/hermes-ssd/workspaces/botters/swarm-release-verification-t_abfb2be1",
+  "removed": true,
+  "apparent_bytes_removed": 208970039,
+  "allocated_bytes_removed": 245559296,
+  "guest_free_before": 176976449536,
+  "guest_free_after": 177222008832,
+  "live_cwd_consumers_detected": [],
+  "unreadable_or_exited_proc_cwds": 195,
+  "consumer_scan_limit": "No readable process cwd pointed into the replay; cannot assert anything about unreadable/exited process cwds. Both owned Playwright browsers were closed, the browser-use tab was closed, and the replay's only intended consumer finished.",
+  "retained": "Reviewer report/archive, probes and verification receipts committed signed and remote-read back at bd78568d5b68cfe8347f9cccd7cc0e8aeaca3e04 before cleanup; remote archive hash 9bc9a14e66d0db8d04f185a45200a9fc5b00f203e1ff0a841a5503f2e0b828b6 verified by fetched blob.",
+  "not_removed": "Canonical repository, release evidence workspace, reviewer workspace and all production sources/containers/data",
+  "host_free_space": "Not measured; no hypervisor access used"
+}
