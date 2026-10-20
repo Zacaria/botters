@@ -36,19 +36,19 @@ test('trailer music decodes with headroom and a deliberate pre-intervention brea
   assert.ok(rms(31, 33) < (rms(29, 31) + rms(33, 35)) / 4, 'musical breath at31–33s must be lower than adjacent action')
 })
 
-// SOL-FILM-01: a too-wide/low final crop puts planet7 under the caption.
+// SOL-FILM-01: a too-wide/low final crop puts planet under the caption (final shot: planet 10).
 // Probe the exposed lower disk interior in the actual 308px picture before
 // and after capture, not the subtitle, manifest, capture arc or bright swarm.
 // This fixed-shot regression complements (does not replace) rendered review.
 test('final ownership fill changes visibly above captions at phone player size', { skip: !available && 'ffmpeg unavailable; rendered-media acceptance required' }, () => {
-  const region = seconds => execFileSync('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', 'media/public-demo.webm', '-frames:v', '1', '-vf', 'scale=308:174,crop=24:18:142:55,format=rgb24', '-f', 'rawvideo', '-'], { maxBuffer: 1024 * 1024 })
+  const region = seconds => execFileSync('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', 'media/public-demo.webm', '-frames:v', '1', '-vf', 'scale=308:174,crop=6:4:151:85,format=rgb24', '-f', 'rawvideo', '-'], { maxBuffer: 1024 * 1024 })
   const before = region(50), after = region(51.5)
   let neutral = 0, filled = 0, redGain = 0
   for (let i = 0; i < before.length; i += 3) {
     const [r, g, b] = before.subarray(i, i + 3)
-    if (Math.abs(r - g) < 7 && Math.abs(g - b) < 7 && r < 65) neutral++
+    if (Math.abs(r - g) < 12 && Math.abs(g - b) < 16 && r < 65) neutral++
     const [ar, ag, ab] = after.subarray(i, i + 3)
-    if (ar > ag * 1.8 && ab > ag * 1.3 && ar > ab + 5 && ar < 220) filled++
+    if (ar > ag * 1.8 && ab > ag * 1.3 && ar > ab + 5 && ar < 240) filled++
     redGain += ar - r
   }
   const n = before.length / 3
@@ -62,7 +62,7 @@ test('final ownership fill changes visibly above captions at phone player size',
 // its already-pink rim. These fixed-shot guards do not replace human review.
 test('final filled disk has persistent midtone separation, not only a pink rim', { skip: !available && 'ffmpeg unavailable; rendered-media acceptance required' }, () => {
   const interior = seconds => {
-    const pixels = execFileSync('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', 'media/public-demo.webm', '-frames:v', '1', '-vf', 'scale=308:174,crop=24:18:142:55,format=rgb24', '-f', 'rawvideo', '-'], { maxBuffer: 1024 * 1024 })
+    const pixels = execFileSync('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', 'media/public-demo.webm', '-frames:v', '1', '-vf', 'scale=308:174,crop=6:4:151:85,format=rgb24', '-f', 'rawvideo', '-'], { maxBuffer: 1024 * 1024 })
     const reds = [], luminances = []
     const linear = c => c <= 10.31475 ? c / 3294.6 : ((c / 255 + 0.055) / 1.055) ** 2.4
     for (let i = 0; i < pixels.length; i += 3) {

@@ -1,80 +1,84 @@
 {
-  "capture": ".cache/trailer/take-2026-10-18T11-15-07-470Z/capture.json",
-  "rawVideoSha256": "e392b82e34f353ca385fe61b6e87e399ade1ceaa9d9a747098c09910d411d3dd",
-  "trimStartSeconds": 9.835,
+  "capture": ".cache/trailer/take-2026-10-20T19-39-11-245Z/capture.json",
+  "rawVideoSha256": "15ccc83b81a8822622ba41e7e1d2db6350ec2c27335cd712f417e23e754cc307",
+  "trimStartSeconds": 9.594,
   "outputSeconds": 60,
   "dimensions": [
     1920,
     1080
+  ],
+  "sourceDimensions": [
+    3840,
+    2160
   ],
   "fps": 30,
   "shots": [
     {
       "outputStart": 0,
       "outputEnd": 3,
-      "matchStart": 0.5,
-      "matchEnd": 3.5,
-      "rawStart": 10.335,
+      "matchStart": 1,
+      "matchEnd": 4,
+      "rawStart": 10.594,
       "crop": [
         60,
         330,
         800,
         450
       ],
-      "purpose": "Immediate live map plus enlarged native rule4 free_planet → go",
+      "purpose": "Home planet and first swarms; enlarged native rule4 free_planet → go",
       "speed": 1
     },
     {
       "outputStart": 3,
       "outputEnd": 8,
-      "matchStart": 2.5,
-      "matchEnd": 7.5,
-      "rawStart": 12.335,
+      "matchStart": 6.5,
+      "matchEnd": 11.5,
+      "rawStart": 16.094,
       "crop": [
-        60,
-        470,
+        0,
+        150,
         640,
         360
       ],
-      "purpose": "Swarm reaches planet14; actual neutral→pink at5.32s",
+      "purpose": "Swarm reaches planet24; actual neutral→pink at 8.8s",
       "speed": 1
     },
     {
       "outputStart": 8,
       "outputEnd": 15,
-      "matchStart": 8,
-      "matchEnd": 15,
-      "rawStart": 17.835,
+      "matchStart": 12.5,
+      "matchEnd": 19.5,
+      "rawStart": 22.094,
       "crop": [
-        80,
-        340,
+        150,
+        300,
         800,
         450
       ],
-      "purpose": "Planet18 capture12.38s; growing pink swarms",
+      "purpose": "Planet4 capture at 14.6s; growing pink swarms",
       "speed": 1
     },
     {
       "outputStart": 15,
       "outputEnd": 20,
-      "matchStart": 25,
-      "matchEnd": 30,
-      "rawStart": 34.835,
+      "matchStart": 29,
+      "matchEnd": 34,
+      "rawStart": 38.594,
       "crop": [
         0,
         105,
         1520,
         855
       ],
-      "purpose": "Wider conquest and visible approaching blue opponent",
+      "purpose": "Wider conquest (planets 20, 22) and visible approaching blue opponent",
       "speed": 1
     },
     {
       "outputStart": 20,
       "outputEnd": 23,
-      "matchStart": 31,
-      "matchEnd": 34,
-      "rawStart": 40.835,
+      "matchStart": 44,
+      "matchEnd": 47,
+      "rawStart": 53.594,
       "crop": [
         400,
         430,
@@ -87,9 +91,9 @@
     {
       "outputStart": 23,
       "outputEnd": 31,
-      "matchStart": 33,
-      "matchEnd": 41,
-      "rawStart": 42.835,
+      "matchStart": 47,
+      "matchEnd": 55,
+      "rawStart": 56.594,
       "crop": [
         400,
         430,
@@ -102,12 +106,12 @@
     {
       "outputStart": 31,
       "outputEnd": 33,
-      "matchStart": 63,
-      "matchEnd": 65,
-      "rawStart": 72.835,
+      "matchStart": 62,
+      "matchEnd": 64,
+      "rawStart": 71.594,
       "crop": [
-        350,
-        280,
+        240,
+        455,
         800,
         450
       ],
@@ -119,14 +123,14 @@
       "outputEnd": 46,
       "matchStart": 65,
       "matchEnd": 78,
-      "rawStart": 74.835,
+      "rawStart": 74.594,
       "crop": [
         400,
-        280,
+        330,
         800,
         450
       ],
-      "purpose": "Native selection/order and visible217 long-distance travel",
+      "purpose": "Native selection/order and visible 200-unit travel",
       "speed": 1
     },
     {
@@ -134,10 +138,10 @@
       "outputEnd": 49,
       "matchStart": 78,
       "matchEnd": 81,
-      "rawStart": 87.835,
+      "rawStart": 87.594,
       "crop": [
         400,
-        280,
+        330,
         800,
         450
       ],
@@ -147,16 +151,16 @@
     {
       "outputStart": 49,
       "outputEnd": 53,
-      "matchStart": 144,
-      "matchEnd": 148,
-      "rawStart": 153.835,
+      "matchStart": 154.5,
+      "matchEnd": 158.5,
+      "rawStart": 164.094,
       "crop": [
-        723,
-        360,
-        256,
-        144
+        421,
+        407,
+        384,
+        216
       ],
-      "purpose": "Later planet7 turns pink at146.22s; not instant manual conquest",
+      "purpose": "Planet10 turns pink at 156.1s; not instant manual conquest",
       "speed": 1,
       "grade": "curves=all='0/0 0.2/0.15 0.42/0.82 1/1':interp=pchip"
     },
@@ -165,7 +169,7 @@
       "outputEnd": 60,
       "matchStart": 171,
       "matchEnd": 178,
-      "rawStart": 180.835,
+      "rawStart": 180.594,
       "crop": [
         0,
         105,
@@ -255,18 +259,18 @@
   },
   "media": {
     "public-demo.webm": {
-      "sha256": "46b35b8a24b91ecad90bcfb472ae46c7685f1238ce35fa2fba79e30d42a3c610",
-      "bytes": 14482092
+      "sha256": "f3694f043cc42dbb7adf3402700c22aa84cf316aa3bf2f2e1a52080f1d8cf351",
+      "bytes": 18258141
     },
     "public-demo.vtt": {
       "sha256": "dd62274548b65c2b90380a893e85bdb51a0ff943682be67aca2563dc59b9c82b",
       "bytes": 823
     },
     "public-demo-poster.jpg": {
-      "sha256": "0b24f79618f4300f193b16f3afee65357e573f540e25ee10baf068b3be39d6fe",
-      "bytes": 55026
+      "sha256": "e837b799a5caa9bc3b86aa4c9867156c51f3d0dd4597b083cbbdad7f9094a850",
+      "bytes": 56773
     }
   },
   "master": ".cache/trailer/edit/botters-announcement-1080p.mp4",
-  "masterSha256": "603c9078a84b0b1b50495353a0a1147b7e0a0e69d88999e291b1ce3354d50f3c"
+  "masterSha256": "26175b312c53b9eb6877dabcd77e60c6fab829e12f21672a91904d4f572126d3"
 }

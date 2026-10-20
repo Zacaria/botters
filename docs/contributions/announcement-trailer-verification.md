@@ -1,5 +1,15 @@
 # Announcement trailer — executed local verification (run 919)
 
+## HQ re-render (20 Oct 2026) — supersedes the figures below
+
+Cause of the pixelated shots: the game canvas is 1200×700; the old edit cropped and enlarged it up to 3×. Fix: capture-only `scripts/hq-render.js` draws the same canvas ×3 (simulation, rules and inputs untouched) in a headed kiosk Brave at device scale 2 on a 3840×2160 Xvfb, grabbed by ffmpeg (x11grab, H.264 4:4:4). Brave's analytics notice is pre-acknowledged in the profile; otherwise a banner shifts the frame.
+
+New take `take-2026-10-20T19-39-11-245Z` (random match, house normal): time/won, pink 35,483 vs blue 8,532 at 170 s; manual order on swarm 1 at 65.06 s, displacement 200.5, release 80.2 s. Selection rule (`.cache/judge.py`): no defeat or wipe, first conquest before 16 s, manual displacement >100, a late conquest, pink ≥ 80% of blue at 170 s; 3 of 6 earlier takes were lost or wiped, 2 crashed before writing a receipt.
+
+Re-timed shots (match seconds): rule 4 at 1 s; planet 24 flips at 8.8 s; planet 4 at 14.6 s; retreat battle 44–55 s; manual order/travel 65–78 s; release 78–81 s; "later" shot 154.5–158.5 s, planet 10 turns pink at 156.1 s (film ≈ 50.6 s); invitation over 171–178 s. Crops are applied to the 3840×2160 source (layout px ×2).
+
+Shipped bytes: `public-demo.webm` 18,258,141 bytes, SHA256 `f3694f043cc42dbb7adf3402700c22aa84cf316aa3bf2f2e1a52080f1d8cf351`; poster SHA256 `e837b799a5caa9bc3b86aa4c9867156c51f3d0dd4597b083cbbdad7f9094a850`; VTT unchanged. `npm test` 86/86 after re-aiming the two ownership-fill probes at planet 10 (6×4 px window). Not rerun on this revision: `npm run check`, build, pack, browser/auth suites, full-decode/loudness, 390 px player checks. Wide shots are sharp; the 3× close crops (shots 1–3, 10) still show the particle grain of the game itself. No Luna/Sol review of these bytes yet.
+
 ## Identity and scope
 
 Task t_1e2be52d; native session `20261018_111025_4722ef`, run919, profile contrib-superpowers, model gpt-6.1-sol/provider openai-codex. Existing isolated checkout/branch only. Production base `d8bef777dd31ae1362d26c3095fd1625381d88d0`; original product base `8871d4842eaf900362052ea1ed3879027a1fa5aa`; inherited reviewed CI baseline `3e0c15df37b584c2a688332a09759495c4a71bf0`. Exact final signed commit/tree and SHA256(git archive tar) fingerprint are in the native handoff/recovery capsule, avoiding a circular self-hash in this source document.

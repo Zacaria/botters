@@ -5,7 +5,8 @@
 import assert from 'node:assert/strict'
 import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
+import { hq, S } from './hq-render.js'
 import { chromium } from '@playwright/test'
 
 const origin = 'http://127.0.0.1:39872'
@@ -33,13 +34,21 @@ assert.ok(joined.match)
 assert.equal((await request('/input', { gambits: opening, why: 'Expand. Split above 5000. Avoid larger enemies.' }, session.agentToken)).ok, true)
 const state = () => request('/state', null, session.agentToken)
 const errors = [], observed = [], humanRequests = [], marks = []
-let browser, context, page, video, recordStart, clipStart, manual = null, released = false
+let context, page, raw, stopGrab, recordStart, clipStart, manual = null, released = false
 const sha = async p => createHash('sha256').update(await readFile(p)).digest('hex')
 try {
-  browser = await chromium.launch({ executablePath: process.env.BOTTERS_BROWSER || '/usr/bin/brave-browser', args: ['--no-sandbox', '--disable-dev-shm-usage'] })
-  context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, recordVideo: { dir: out, size: { width: 1920, height: 1080 } } })
+  // HQ: headed kiosk browser at device scale 2 on a 3840x2160 Xvfb (DISPLAY); the canvas is rendered x${S} (hq-render.js).
+  // ffmpeg grabs the screen, so every enlarged trailer crop keeps real pixels. Layout stays 1920x1080 CSS px.
+  // Pre-acknowledge Brave's analytics notice, otherwise a white banner shifts the whole frame.
+  await mkdir(`${out}/profile`, { recursive: true })
+  await writeFile(`${out}/profile/Local State`, JSON.stringify({ brave: { p3a: { enabled: false, notice_acknowledged: true } } }))
+  context = await chromium.launchPersistentContext(`${out}/profile`, { viewport: null, executablePath: process.env.BOTTERS_BROWSER || '/usr/bin/brave-browser', headless: false, ignoreDefaultArgs: ['--enable-automation'], args: ['--no-sandbox', '--disable-dev-shm-usage', '--test-type', '--kiosk', '--window-position=0,0', '--window-size=1920,1080', '--force-device-scale-factor=2'] })
+  raw = `${out}/raw.mkv`
+  const grab = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'x11grab', '-framerate', '30', '-video_size', '3840x2160', '-i', process.env.DISPLAY, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '12', '-pix_fmt', 'yuv444p', raw], { stdio: ['pipe', 'inherit', 'inherit'] })
+  stopGrab = () => new Promise(r => { grab.on('close', r); grab.stdin.write('q') })
   recordStart = Date.now()
-  page = await context.newPage(); video = page.video()
+  page = context.pages()[0] ?? await context.newPage()
+  await page.route(u => u.origin + u.pathname === origin + '/', async r => { const resp = await r.fetch(); await r.fulfill({ response: resp, body: hq(await resp.text()) }) })
   page.on('pageerror', e => errors.push(e.message))
   page.on('request', r => { if (new URL(r.url()).pathname === '/input') humanRequests.push({ seconds: clipStart ? (Date.now() - clipStart) / 1000 : null, input: JSON.parse(r.postData()) }) })
   await page.goto(`${origin}/?s=${session.humanToken}`)
@@ -94,8 +103,8 @@ try {
   }
   assert.ok(manual && released)
   assert.deepEqual(errors, [])
+  await stopGrab()
   await context.close()
-  const raw = await video.path()
   const result = {
     sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     sourceHashes: Object.fromEntries(await Promise.all(['index.html', 'sim.js', 'server.js', 'scripts/capture-announcement-trailer.js'].map(async f => [f, await sha(f)]))),
@@ -104,8 +113,8 @@ try {
     inference: 'Operator selected opening once; this script makes no model calls. No continuous inference or human participant.',
     opponent: 'house normal fixed gambits', options, opening, humanRequests, manual, marks, observed, errors,
     rawVideo: raw, rawVideoSha256: await sha(raw), trimStartSeconds: (clipStart - recordStart) / 1000,
-    capture: 'Native1920x1080 viewport; real-time20Hz simulation, genuine UI inputs, no game-state replacement or fabricated gameplay frames',
+    capture: `Native 1920x1080 layout, canvas x${S}, 3840x2160 screen grab; real-time20Hz simulation, genuine UI inputs, no game-state replacement or fabricated gameplay frames`,
   }
   await writeFile(`${out}/capture.json`, JSON.stringify(result, null, 2) + '\n')
   console.log(JSON.stringify({ out, raw, manual, marks, end: observed.at(-1).view.ended, errors }, null, 2))
-} finally { await browser?.close() }
+} finally { await context?.close().catch(() => {}) }

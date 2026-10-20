@@ -14,17 +14,18 @@ out = pathlib.Path('.cache/trailer/edit'); out.mkdir(parents=True, exist_ok=True
 media = pathlib.Path('media'); trim = capture['trimStartSeconds']
 # output duration, match-wallclock start, native source crop x/y/w/h, purpose.
 # Capture remains real-time; hard cuts omit time, never alter simulation.
+F = 2  # raw capture is 3840x2160 for a 1920x1080 layout: crop coordinates below are layout px
 shots = [
- (3, 0.5, (60, 330, 800, 450), 'Immediate live map plus enlarged native rule4 free_planet → go'),
- (5, 2.5, (60, 470, 640, 360), 'Swarm reaches planet14; actual neutral→pink at5.32s'),
- (7, 8, (80, 340, 800, 450), 'Planet18 capture12.38s; growing pink swarms'),
- (5, 25, (0, 105, 1520, 855), 'Wider conquest and visible approaching blue opponent'),
- (3, 31, (400, 430, 800, 450), 'Battle plus enlarged native priority1 bigger_enemy_near → retreat'),
- (8, 33, (400, 430, 800, 450), 'Actual pink/blue confrontation and retreat behavior'),
- (2, 63, (350, 280, 800, 450), 'Pressure around the later selected swarm'),
- (13, 65, (400, 280, 800, 450), 'Native selection/order and visible217 long-distance travel'),
- (3, 78, (400, 280, 800, 450), 'Same swarm released with G; native control returns'),
- (4, 144, (723, 360, 256, 144), 'Later planet7 turns pink at146.22s; not instant manual conquest'),
+ (3, 1, (60, 330, 800, 450), 'Home planet and first swarms; enlarged native rule4 free_planet → go'),
+ (5, 6.5, (0, 150, 640, 360), 'Swarm reaches planet24; actual neutral→pink at 8.8s'),
+ (7, 12.5, (150, 300, 800, 450), 'Planet4 capture at 14.6s; growing pink swarms'),
+ (5, 29, (0, 105, 1520, 855), 'Wider conquest (planets 20, 22) and visible approaching blue opponent'),
+ (3, 44, (400, 430, 800, 450), 'Battle plus enlarged native priority1 bigger_enemy_near → retreat'),
+ (8, 47, (400, 430, 800, 450), 'Actual pink/blue confrontation and retreat behavior'),
+ (2, 62, (240, 455, 800, 450), 'Pressure around the later selected swarm'),
+ (13, 65, (400, 330, 800, 450), 'Native selection/order and visible 200-unit travel'),
+ (3, 78, (400, 330, 800, 450), 'Same swarm released with G; native control returns'),
+ (4, 154.5, (421, 407, 384, 216), 'Planet10 turns pink at 156.1s; not instant manual conquest'),
  (7, 171, (0, 105, 1520, 855), 'Held invitation over continuing actual late-match gameplay'),
 ]
 assert sum(s[0] for s in shots) == 60
@@ -52,21 +53,22 @@ final_shot_grade = "curves=all='0/0 0.2/0.15 0.42/0.82 1/1':interp=pchip"
 parts=[]; timeline=[]; cursor=0
 for i,(duration,start,crop,purpose) in enumerate(shots):
     part=out/f'part-{i:02}.mp4'; x,y,w,h=crop
-    vf=f'crop={w}:{h}:{x}:{y},scale=1920:1080:flags=lanczos,setsar=1,fps=30'
+    vf=f'crop={w*F}:{h*F}:{x*F}:{y*F},scale=1920:1080:flags=lanczos,setsar=1,fps=30'
     if i in (0,4):
         hx,hy,hw,hh=(1534,180,260,26) if i==0 else (1534,98,350,26)
         iw=1300 if i==0 else 1470
         vf=(f'split[game][rule];[game]{vf}[main];'
-            f'[rule]crop={hw}:{hh}:{hx}:{hy},scale={iw}:130:flags=lanczos[inset];'
+            f'[rule]crop={hw*F}:{hh*F}:{hx*F}:{hy*F},scale={iw}:130:flags=lanczos[inset];'
             f'[main][inset]overlay={(1920-iw)//2}:155')
     if i in (7,8):
         # Enlarge only the actual contemporaneous native control status. No
         # retyped/fabricated UI: source pixels from the same viewport interval.
-        hx,hy,hw,hh=(322,50,206,20) if i==7 else (1532,410,228,20)
-        delay=0.8 if i==7 else 1.4
+        hx,hy,hw,hh=(10,50,500,20) if i==7 else (1532,410,228,20)
+        ih_w,ih_h=(1500,60) if i==7 else (1026,100)
+        delay=0.8 if i==7 else 2.4
         vf=(f'split[game][hud];[game]{vf}[main];'
-            f'[hud]crop={hw}:{hh}:{hx}:{hy},scale=1026:100:flags=lanczos[inset];'
-            f"[main][inset]overlay=447:155:enable='gte(t,{delay})'")
+            f'[hud]crop={hw*F}:{hh*F}:{hx*F}:{hy*F},scale={ih_w}:{ih_h}:flags=lanczos[inset];'
+            f"[main][inset]overlay={(1920-ih_w)//2}:155:enable='gte(t,{delay})'")
     # Static whole-shot midtone lift: same curve on every pixel and frame,
     # before captions; no mask, ownership-dependent recolour or painted state.
     if i==9: vf+=','+final_shot_grade
@@ -125,6 +127,6 @@ run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',master,'-c:v','libvpx
 run(['ffmpeg','-hide_banner','-loglevel','error','-y','-ss','4.5','-i',media/'public-demo.webm','-frames:v','1','-q:v','3',media/'public-demo-poster.jpg'])
 def vttstamp(t): return f'00:{int(t)//60:02}:{int(t)%60:02}.000'
 (media/'public-demo.vtt').write_text('WEBVTT\n\n'+'\n\n'.join(f'{vttstamp(a)} --> {vttstamp(b)}\n{txt}' for a,b,txt in captions)+'\n')
-manifest={'capture':str(capture_path),'rawVideoSha256':capture['rawVideoSha256'],'trimStartSeconds':trim,'outputSeconds':60,'dimensions':[1920,1080],'fps':30,'shots':timeline,'captions':[{'start':a,'end':b,'text':t} for a,b,t in captions],'burnedCaptions':True,'audio':{'track':'Resonance','author':'Scott Buckley','inputSha256':hashlib.sha256(music.read_bytes()).hexdigest(),'sourceStart':145,'sourceEnd':205,'filter':audio,'subjectiveListening':False},'media':{p.name:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in [media/'public-demo.webm',media/'public-demo.vtt',media/'public-demo-poster.jpg']},'master':str(master),'masterSha256':hashlib.sha256(master.read_bytes()).hexdigest()}
+manifest={'capture':str(capture_path),'rawVideoSha256':capture['rawVideoSha256'],'trimStartSeconds':trim,'outputSeconds':60,'dimensions':[1920,1080],'sourceDimensions':[3840,2160],'fps':30,'shots':timeline,'captions':[{'start':a,'end':b,'text':t} for a,b,t in captions],'burnedCaptions':True,'audio':{'track':'Resonance','author':'Scott Buckley','inputSha256':hashlib.sha256(music.read_bytes()).hexdigest(),'sourceStart':145,'sourceEnd':205,'filter':audio,'subjectiveListening':False},'media':{p.name:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in [media/'public-demo.webm',media/'public-demo.vtt',media/'public-demo-poster.jpg']},'master':str(master),'masterSha256':hashlib.sha256(master.read_bytes()).hexdigest()}
 pathlib.Path('docs/contributions/announcement-trailer-edit.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps({'master':str(master),'media':manifest['media']},indent=2))
