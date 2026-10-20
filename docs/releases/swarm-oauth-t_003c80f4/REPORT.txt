@@ -1,0 +1,53 @@
+Botters swarm + OAuth MCP integration — t_003c80f4
+
+Candidate
+  PR: https://github.com/Zacaria/botters/pull/18
+  Signed SHA: 581ce19d05e3d1fde122049cdfe9f74a40ed34f7
+  Tree: 04d55305ba1beadeb6233683e8b3afd481aa44ef
+  Scoped remote refs: feat/swarm-depth and repair/swarm-oauth-successor-abfb2be1
+  Baseline: cd5dadea98d28f266b53e708e3b8d309215c7765
+
+History and boundaries
+  Signed merge 8e174bb64690b0dd9dce2b1df78ccb839e2e2fe1 has parents bb249e1c6bcb8670751ffc935012e41c530b1ae3 and cd5dadea98d28f266b53e708e3b8d309215c7765.
+  Signed final merge 581ce19 has parents 8e174bb and default's concurrent signed 1a44d32f3c9700909c56c7851458d7f25a7283e0. Conflict resolution retains exact-name assertions instead of count-only assertions. Its tree is exactly identical to 8e174bb and the locally tested bytes.
+  Default's original a918e9c automatic merge was reproduced with git merge-tree and matched its recorded tree 7b5f7a7dcc342d64d2e33b4266ce4cfe58b599d8. It omitted bb249e1; it was not used as the implementation base.
+  No default workspace edit, force push, PR merge, branch protection change, production deployment, provider/Convex mutation, spending, data reset or sibling MCP service operation.
+
+Changes
+  Automatic merge preserves the OAuth-bound no-anonymous-fallback client behavior alongside morph_swarm and all swarm gameplay. Gateway, OAuth implementation and deployment files are byte-identical to the OAuth baseline.
+  Relative to default's 1a44d32 integration, only three paths differ:
+    docs/reviews/swarm-oauth-integration.md — accepted integration contract and release boundary.
+    test/web-mcp.test.js — exact eight-tool names, real HTTP/stdio morph execution and resulting swarm type.
+    test/mcp-auth.test.js — pending/revoked morph coverage, revoked OAuth-bound denial and named tool lookup instead of the now-stale call_human array index.
+  Full path allowlists relative to swarm and OAuth baselines are in artifact-verification.json. No source file was deleted.
+
+Fresh local verification
+  npm ci --ignore-scripts --no-audit --no-fund: PASS.
+  npm run check: PASS; 92 JS files, inline scripts and JSON.
+  npm run build: PASS; public assets and browser bundle.
+  npm test: PASS; 253/253, zero skips/failures/cancellations.
+  npm run test:browser: PASS; 51/51 in Brave, including real-button persistence/start of 1v1, 2v2, ffa4 and ffa6 and human queue/rooms remaining duels after ffa6 selection.
+  npm run test:auth:browser: PASS; 4/4, captured-mail local Better Auth/Colyseus fixtures, account verification/reset/logout, delegation/revocation and socket security.
+  npm run test:auth:convex: PASS; 3 files, 4/4 actual offline Convex component integration tests.
+  Production-config build: PASS with BOTTERS_LIVE_URL=https://play.botters.havesomecode.io and BOTTERS_REQUIRE_ACCOUNT=1. No network deployment occurs in this build.
+  Source/public byte parity, public path inventory and exact live-config.json: PASS (artifact-verification.json).
+  git diff --check, staged diff check, clean status, both signed commits, and ancestry of swarm/baseline/default integration: PASS.
+  No separate lint, type or format command is configured.
+
+Warnings, preparation and limits
+  Initial automatic merge had five gateway failures because historical tests expected seven tools rather than eight. Retained all original security/lifecycle assertions and added stronger complete-name checks plus morph execution/denial assertions.
+  Initial full Node run timed out the unchanged two-process MCP reapproval test at 125 seconds; focused replay passed at 72 seconds and the final complete suite passed without timeout changes. Final full suite took about 125 seconds total. This timing sensitivity remains a warning, not a claimed permanent performance repair.
+  One intermediate run failed the unreadable-/call assertion because adding morph shifted a positional test lookup. The final candidate looks tools up by name there; final complete suite passes.
+  Fresh worktrees lack ignored convex/_generated helpers. Hosted codegen was not run. Verified Convex source equality against 8840ddb9 and the pvp worktree, plus identical locked Convex/convex-test/Better Auth entries; copied only existing SDK-generated api.js/server.js read-only into this candidate's ignored directory. SHA-256: api.js f513058549831e85376f8d19cafaf2a4a770b6eb1b859fb371141f2c9dec0d70; server.js 0cdd1d842b9458d8a6f2444c35eb9929312316a384ca76a4b1d964bedde8a6f2.
+  Auth socket tests intentionally log denied stale authorization and socket close. They pass.
+  No real Google login, external email delivery, model-played Claude/ChatGPT match, remote online test or live production state validation is claimed. No screenshot or manual visual-design claim; browser evidence is real Playwright Brave interaction/assertions.
+
+Remote verification
+  Exact-head required CI: PASS, run 39389931993, https://github.com/Zacaria/botters/actions/runs/39389931993 (Botters local checks, 8m4s).
+  GitHub API confirms run/check head SHA exactly 581ce19d05e3d1fde122049cdfe9f74a40ed34f7, success/completed, and the required check-name set equals branch protection. At the first successful CI readback PR status was CLEAN and both scoped remote refs matched the candidate; base was cd5dade. GitHub commit signature is verified/valid and its tree matches the local candidate.
+  Subsequent final readback detected an external PR #18 merge at 2026-10-20T08:06:31Z by GitHub account Zacaria. Protected pvp-online is now d6630fca9b252948088ea06f9c3b6329ff72ded8, parents cd5dade and 581ce19, with exactly the same tree 04d55305ba1beadeb6233683e8b3afd481aa44ef (git diff is empty). GitHub verifies the merge signature; local GPG lacks GitHub's public key. This builder did not run the PR merge. Review t_c274105c had not yet run; its independent exact-tree review remains required before the board's release lane. No production state is inferred from a source merge. Postmerge API receipts are included.
+  CI Node totals: 253 tests, 248 passed, 5 skipped, zero failures. The five unchanged media checks skip because ffmpeg/ffprobe are unavailable on the runner; all five pass locally in the 253/253 zero-skip run. CI browser totals: 51/51 plus auth 4/4. CI uses installed Chromium; local browser suites use Brave.
+  CI run JSON, check-run API result, branch-protection required names, PR/remote readbacks and complete CI log are included in this evidence archive.
+
+Next release step
+  Independent reviewer t_c274105c must pin and review this exact SHA/tree and CI. Completion releases that review child only. After its PASS, existing release card t_abfb2be1 may resume its authorized preflight, including zero active Lightsail rooms and sibling MCP preservation. Do not deploy this builder artifact directly.
