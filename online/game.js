@@ -88,6 +88,23 @@ export class OnlineGame {
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
+    if (method === 'GET' && path === '/agent/poll' && this.requireAccount) {
+      const bearer = q.get('token') || ''
+      if (!/^[\w-]{32}$/.test(bearer)) fail(401, 'Invalid pairing token.')
+      const key = `token:${hash(bearer)}`, pendingKey = `pending:${hash(bearer)}`
+      const values = await this.store.readToken(key, [pendingKey], { deadline: this.deadline })
+      checkDeadline(this.deadline)
+      const read = k => values.get(k) ? JSON.parse(values.get(k)) : null
+      const grant = read(key), now = this.now()
+      if (grant?.role === 'agent') {
+        const owner = read(`session:${grant.id}`)
+        if (!owner || owner.agentVersion !== grant.version || grant.expires <= now) fail(401, 'Agent access was revoked or expired.')
+        return { approved: true }
+      }
+      const pending = read(pendingKey)
+      if (!pending || pending.expires <= now) fail(410, 'Pairing expired. Start a new request.')
+      return { approved: false }
+    }
     const frameRead = method === 'GET' && path === '/state'
     return transaction(this.store, async tx => {
 
@@ -180,19 +197,6 @@ export class OnlineGame {
         await tx.set(`pair:${id}`, { secretHash: hash(agentToken), setup, expires: now + 600000 }, 600)
         await tx.set(`pending:${hash(agentToken)}`, { id, expires: now + 600000 }, 600)
         return { id, agentToken, approvalUrl: `${this.origin}/?pair=${id}`, expiresIn: 600 }
-      }
-      if (method === 'GET' && path === '/agent/poll' && this.requireAccount) {
-        const bearer = q.get('token') || ''
-        if (!/^[\w-]{32}$/.test(bearer)) fail(401, 'Invalid pairing token.')
-        const grant = await tx.get(`token:${hash(bearer)}`)
-        if (grant?.role === 'agent') {
-          const owner = await loadSession(grant.id)
-          if (!owner || owner.agentVersion !== grant.version || grant.expires <= now) fail(401, 'Agent access was revoked or expired.')
-          return { approved: true }
-        }
-        const pending = await tx.get(`pending:${hash(bearer)}`)
-        if (!pending || pending.expires <= now) fail(410, 'Pairing expired. Start a new request.')
-        return { approved: false }
       }
       if (method === 'GET' && path === '/leaderboard') {
         if (this.requireAccount && !this.identity) fail(401, 'Sign in to play online.')

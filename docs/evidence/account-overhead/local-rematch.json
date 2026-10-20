@@ -1,0 +1,91 @@
+{
+  "localOnly": true,
+  "scope": "warm rematch matching the hosted baseline",
+  "clock": "real wall clock",
+  "minutes": 8,
+  "twoActualStdioClients": true,
+  "start": "2026-10-16T14:56:27.507Z",
+  "adapterBefore": {
+    "query": 33,
+    "mutation": 11,
+    "subscription": 13,
+    "updates": 24
+  },
+  "reloadAt": "2026-10-16T14:58:31.381Z",
+  "matchId": "mby_ci0eO_vSTxiZi0wPT6N5Jcuoroyt",
+  "finishedAt": "2026-10-16T15:04:38.207Z",
+  "reportTick": 9600,
+  "adapterAfter": {
+    "query": 57,
+    "mutation": 14,
+    "subscription": 14,
+    "updates": 31
+  },
+  "end": "2026-10-16T15:04:38.310Z",
+  "persistedReportsBoth": true,
+  "wallClockSeconds": 490.8029999732971,
+  "measurementSource": "actual isolated loopback Convex backend completion stream; not hosted production",
+  "completions": 55,
+  "cachedCompletions": 3,
+  "scheduledHousekeepingCompletions": 8,
+  "uncachedNonHousekeepingCompletions": 44,
+  "meets50InThisWindow": true,
+  "failedCompletions": 0,
+  "adapterDelta": {
+    "query": 24,
+    "mutation": 3,
+    "subscription": 1,
+    "updates": 7
+  },
+  "adapterCalls": 34,
+  "functions": [
+    {
+      "component": "app",
+      "function": "GET /api/auth/*",
+      "cached": false,
+      "calls": 2
+    },
+    {
+      "component": "app",
+      "function": "liveAuth:exchange",
+      "cached": false,
+      "calls": 1
+    },
+    {
+      "component": "app",
+      "function": "store:authorize",
+      "cached": false,
+      "calls": 27
+    },
+    {
+      "component": "app",
+      "function": "store:commit",
+      "cached": false,
+      "calls": 4
+    },
+    {
+      "component": "app",
+      "function": "store:expire",
+      "cached": false,
+      "calls": 8
+    },
+    {
+      "component": "app",
+      "function": "store:get",
+      "cached": false,
+      "calls": 9
+    },
+    {
+      "component": "betterAuth",
+      "function": "adapter:findOne",
+      "cached": false,
+      "calls": 1
+    },
+    {
+      "component": "betterAuth",
+      "function": "adapter:findOne",
+      "cached": true,
+      "calls": 3
+    }
+  ]
+}
