@@ -899,9 +899,21 @@ $('calls').onclick = e => {
 }
 const at = e => ({ x: (e.clientX - ox) / k, y: (e.clientY - oy) / k })
 const pings = []
+function bodyHit(c, point) {
+  const p = pos.get(c.id); if (!p) return false
+  const a = cur(p), dx = point.x - a.x, dy = point.y - a.y, rr = rad(c.n)
+  if (Math.hypot(dx, dy) < rr + 8) return true // retain the forgiving centre target for every type
+  if (c.type !== 'locust') return false
+  const hd = p.hd ?? 0, hx = Math.cos(hd), hy = Math.sin(hd), f = dx * hx + dy * hy, s = -dx * hy + dy * hx
+  // Match draw's nose ellipse and narrow tail, not a larger circle that steals map orders.
+  // Four world pixels cover raster rounding and the three-pixel motion streak.
+  if (f >= 0 && (f / (rr * 1.35 + 4)) ** 2 + (s / (rr * 0.55 + 4)) ** 2 < 1) return true
+  const tail = Math.max(-rr * 2.4, Math.min(-rr * 0.8, f))
+  return Math.hypot(f - tail, s) < rr * 0.55 * 0.25 + 4
+}
 cv.onmousedown = e => {
   if (e.button !== 0 || !v || v.ended) return
-  const p = at(e), hit = v.swarms.find(c => { const a = cur(pos.get(c.id)); return Math.hypot(a.x - p.x, a.y - p.y) < rad(c.n) + 8 })
+  const p = at(e), hit = v.swarms.find(c => bodyHit(c, p))
   if (hit && hit.id !== sel) { sel = hit.id; return panel() }
   if (sel !== null) return act({ order: { swarm: sel, x: Math.round(p.x), y: Math.round(p.y) } }, `swarm #${sel} → (${Math.round(p.x)},${Math.round(p.y)})`)
   if (!F.me.withAgent) return
