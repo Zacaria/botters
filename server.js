@@ -226,8 +226,8 @@ const routes = {
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
     }
-    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release, morph: b.morph }
-    if (now < m.startsAt && (input.order || input.morph || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
+    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release, morph: b.morph, regroup: b.regroup, produce: b.produce }
+    if (now < m.startsAt && (input.order || input.morph || input.regroup || input.produce || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
     const candidate = structuredClone(m.s)
     const r = applyInput(candidate, side, input)
     if (r.ok) {
@@ -241,6 +241,8 @@ const routes = {
         if (b.order) feed(m, side, 'agent', `took swarm ${b.order.swarm} to (${Math.round(b.order.x)},${Math.round(b.order.y)})${why && `: ${why}`}`)
         if (b.split !== undefined) feed(m, side, 'agent', `split swarm ${b.split}${why && `: ${why}`}`)
         if (b.morph) feed(m, side, 'agent', `changed swarm ${b.morph.swarm} to ${b.morph.type}${why && `: ${why}`}`)
+        if (b.regroup) feed(m, side, 'agent', `${b.regroup.with !== undefined ? `put swarm ${b.regroup.swarm} in swarm ${b.regroup.with}'s group` : `took swarm ${b.regroup.swarm} out of its group`}${why && `: ${why}`}`)
+        if (b.produce) feed(m, side, 'agent', `planet ${b.produce.planet} now makes ${b.produce.type ?? 'whatever is scarcest'}${why && `: ${why}`}`)
         if (b.release !== undefined) feed(m, side, 'agent', `gave swarm ${b.release} back to the gambits`)
       } else {
         if (b.gambits) { emit(m, side, `HUMAN rewrote the gambits:\n${list.map((r, i) => `${i + 1}. ${describe(r)}`).join('\n')}`); feed(m, side, 'you', 'rewrote the gambits') }

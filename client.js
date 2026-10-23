@@ -153,8 +153,8 @@ mcp.registerTool('wait_for_event', {
 })
 
 mcp.registerTool('set_gambits', {
-  description: 'Replace your side\'s whole gambit list (1 to 10 rules, first match wins, applies to every swarm not held by hand). Each rule: { if: condition, p?: number tuning the condition, then: action, on?: false to keep it written but disabled }. Keep the rules your human switched off, off. Say why in one short sentence: your human sees it live.',
-  inputSchema: { gambits: z.array(GAMBIT).min(1).max(10), why: z.string().max(120) },
+  description: 'Replace your side\'s whole gambit list (1 to 12 rules, first match wins, applies to every group not held by hand). Each rule: { if: condition, p?: number tuning the condition, then: action, on?: false to keep it written but disabled }. Keep the rules your human switched off, off. Say why in one short sentence: your human sees it live.',
+  inputSchema: { gambits: z.array(GAMBIT).min(1).max(12), why: z.string().max(120) },
 }, async ({ gambits, why }) => need() || input({ gambits, why }))
 
 mcp.registerTool('order_swarm', {
@@ -171,6 +171,16 @@ mcp.registerTool('morph_swarm', {
   description: 'Change one of your swarms into another type: locust beats spore, spore beats carapace, carapace beats locust. Costs 10% of its particles, 3 s cocoon (cannot move), 15 s cooldown. Not before the match starts.',
   inputSchema: { swarm: z.number(), type: z.enum(['locust', 'carapace', 'spore']), why: z.string().max(120) },
 }, async ({ swarm, type, why }) => need() || input({ morph: { swarm, type }, why }))
+
+mcp.registerTool('regroup_swarm', {
+  description: 'Swarms never merge; they travel in groups (a group is any set of your swarms that share a target, of one type or mixed). Orders, release and gambits act on a whole group, which moves at its slowest swarm pace. Put one of your swarms in the group of another one (with), or leave with out to take it out into a group of its own.',
+  inputSchema: { swarm: z.number(), with: z.number().optional(), why: z.string().max(120) },
+}, async ({ swarm, with: other, why }) => need() || input({ regroup: { swarm, ...(other !== undefined && { with: other }) }, why }))
+
+mcp.registerTool('set_production', {
+  description: 'Choose what one of your planets makes: locust, carapace or spore, or null for whatever you have least of (the default). New particles go to your nearest swarm of that type, or to a new swarm if you have none close. Gambits can change it for every planet with produce_locust, produce_carapace, produce_spore and produce_auto. Not before the match starts.',
+  inputSchema: { planet: z.number(), type: z.enum(['locust', 'carapace', 'spore']).nullable(), why: z.string().max(120) },
+}, async ({ planet, type, why }) => need() || input({ produce: { planet, type }, why }))
 
 mcp.registerTool('release_swarm', {
   description: 'Give a hand-held swarm back to the gambits.',

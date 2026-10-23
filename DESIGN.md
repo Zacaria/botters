@@ -138,6 +138,16 @@ Owner, after 5 played matches vs Codex: "I don't understand how we can influence
 - End screen with a one-line verdict and Play again; history of the last 10 matches and leaderboard in the lobby.
 - `/guide`: how to plug Claude Code, Codex, any MCP client, or a plain HTTP script.
 
+## Groups, production and no merging (2026-10-23)
+
+Owner: types make swarms non-homogeneous, so they cannot merge, and there is no need for merging. "More like StarCraft: groups of units, mixed or not. Then the question is how units are made and how they handle each other, in the gambits and so on." Accepted recommendation:
+
+- **Group**: any set of a side's swarms (one type or mixed) that share a target. A match starts with one mixed group. Swarms stay single-type, so the combat engine is unchanged; what changes is who decides. Orders, release and gambits act on a whole group, which moves at its slowest swarm's pace; locusts ride the flanks and, closing in, every swarm converges on the target. `regroup` moves a swarm between groups; `split` makes the new half its own group; `join` (replaces the old merge-on-contact) parks a small group into a bigger one.
+- **Production**: each planet makes one type. Default `auto` = the type the side has least of. Chosen by the player (`produce` input, Shift+click) and overridable by gambits (`produce_locust/carapace/spore/auto`; they hand over to the next rule). Particles reinforce the nearest swarm of that type within 300, else make a new swarm that joins the nearest group.
+- **Gambits** read a group as one force: total size, centre of mass, biggest type; `counter_near`/`prey_near` compare against any swarm of the group; new conditions `enemy_locusts`, `enemy_carapaces`, `enemy_spores` let a rule answer the enemy's composition. MAX_GAMBITS 10 → 12.
+- **What fell out of measuring** (24 seeds, 3 min, 28 planets, default list vs house): without changes the fragmented army lost almost every game because (1) wrapping compared swarm to swarm, so a bigger enemy blob wrapped each fragment separately (fixed: wrapping compares group totals); (2) fragments that were not on a planet starved while the group was fed (fixed: a group eats as one); (3) production sprayed small swarms (fixed: reinforce the nearest swarm of the type). The old `big → split` and per-type `counter` rules hurt the default list and were dropped from it; adaptive production (`ADAPT`) replaced them. The house levels are now styles, not a strict ladder: the default list wins about 13 of 24 vs easy and 11-12 vs normal and hard.
+- Not done: type-specific formation depth (carapace ahead, spore behind). Speeds are equal inside a group, so offsets only show near the target.
+
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 
 | Role | Model | Speed | Does |

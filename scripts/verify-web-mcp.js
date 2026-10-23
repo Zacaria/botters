@@ -7,7 +7,7 @@ const endpoint = new URL(process.env.BOTTERS_MCP_URL)
 assert.equal(endpoint.protocol, 'https:')
 assert.equal(endpoint.pathname, '/mcp')
 assert.ok(!endpoint.username && !endpoint.password && !endpoint.search && !endpoint.hash)
-const expected = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
+const expected = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'morph_swarm', 'regroup_swarm', 'set_production', 'release_swarm', 'call_human'].sort()
 const health = async () => {
   const response = await fetch(new URL('/health', endpoint), { signal: AbortSignal.timeout(10000) })
   assert.equal(response.status, 200)

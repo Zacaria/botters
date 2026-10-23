@@ -261,7 +261,7 @@
     </div>
     <div id="toast"></div>
     <p class="dim">
-      <b>bodies</b>: comet = locust · hexagon = carapace · mist = spore; colour is the camp<br><b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>L</b>/<b>C</b>/<b>P</b> turn it into locust / carapace / spore (−10%, 15 s cooldown) · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> from the map: next swarm · <b>Shift+Tab</b>: reach controls, then Tab/Shift+Tab to navigate · </span><b>Esc</b> drop<br>
+      <b>bodies</b>: comet = locust · hexagon = carapace · mist = spore; colour is the camp<br><b>click a pink swarm</b>: grab it and its group · <b>click the map</b>: send the group there · <b>Shift+click</b> another swarm: join its group · <b>U</b> leave the group · <b>Shift+click</b> your planet: choose what it makes · <b>S</b> split · <b>L</b>/<b>C</b>/<b>P</b> turn it into locust / carapace / spore (−10%, 15 s cooldown) · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> from the map: next swarm · <b>Shift+Tab</b>: reach controls, then Tab/Shift+Tab to navigate · </span><b>Esc</b> drop<br>
       <span id="pingHelp"><b>click the map with nothing grabbed</b>: ping your agent there<br></span>
       <button id="leave" title="Return to the menu; the match keeps running">← menu</button>
       <button id="surrender" hidden>Surrender</button>
@@ -773,7 +773,12 @@ function draw() {
     if (Math.abs(p.capture) < 1 && p.capture !== 0) { g.strokeStyle = p.capture > 0 ? CSS.you : cssOf('enemy', p.k); g.lineWidth = 2; g.beginPath(); g.arc(p.x, p.y, p.r + 4, -1.57, -1.57 + Math.abs(p.capture) * 6.283); g.stroke() }
     g.globalAlpha = 1
   }
-  for (const c of v.swarms) if (c.manual || c.id === sel) {
+  g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 1; g.setLineDash([2, 4]) // swarms of one group are linked, and the selected swarm's whole group is lit
+  const lead = new Map(); for (const c of v.swarms) { const a = cur(pos.get(c.id)), l = lead.get(c.group); if (l) { g.beginPath(); g.moveTo(l.x, l.y); g.lineTo(a.x, a.y); g.stroke() } else lead.set(c.group, a) }
+  g.setLineDash([])
+  for (const p of v.planets) if (p.owner === 'you' && p.massLeft > 0 && p.producing) { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '10px monospace'; g.textAlign = 'center'; g.fillText(p.producing[0].toUpperCase() + (p.make ? '' : '·'), p.x, p.y + p.r + 12); g.textAlign = 'start' }
+  const selGroup = sel !== null ? v.swarms.find(c => c.id === sel)?.group : undefined
+  for (const c of v.swarms) if (c.manual || c.id === sel || (selGroup !== undefined && c.group === selGroup)) {
     const a = cur(pos.get(c.id))
     g.strokeStyle = c.id === sel ? '#fff' : 'rgba(255,255,255,.4)'; g.lineWidth = 1
     g.beginPath(); g.arc(a.x, a.y, rad(c.n) + 5, 0, 7); g.stroke()
@@ -847,7 +852,7 @@ function panel() {
   $('agentBox').hidden = !agent; $('pingHelp').hidden = !agent
   $('hud').innerHTML = `<b class="you">${esc(F.me.name)} ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP + teamP} planets${v.allies.length ? ` · team with ${v.allies.length} allied swarm${v.allies.length > 1 ? 's' : ''}` : ''}      ${v.totals.foes.length > 1 ? 'vs ' + v.totals.foes.map(f => `<b style="color:${cssOf('enemy', f.k)}">${n(f.n)}</b>`).join(' · ') + ` · ${esc(F.opponent.name)}` : `<b class="foe">${v.allies.length || v.totals.you !== undefined && F.opponent.name.includes('bots') ? 'vs ' : ''}${esc(F.opponent.name)} ${n(v.totals.enemy)}</b>`} · ${theirP} planets · ${esc(F.opponent.setup || '')}${F.opponent.connected === false ? ' · reconnecting' : ''}` +
     `\n${clock(v.secondsLeft)} left · most particles at the end wins · ${agent ? (F.me.agentJoined ? `<span class="agent">agent: ${esc(F.me.setup)}</span>` : '<span class="warn">agent not joined yet</span>') : 'no agent'}\n` +
-    (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
+    (s ? `grabbed: swarm #${s.id} (${s.type}) · ${n(s.n)} particles · group of ${v.swarms.filter(c => c.group === s.group).length} · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take its group'} · U leaves the group, shift-click a swarm to join it` : '')
   if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('copyResult').onclick = copyResult; $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : L?.online && F.opponent.human ? 'REMATCH' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode || L?.online && F.opponent.human) { show('lobby'); roomAction('/rooms/rematch', { ...playOptions(), matchId: F.matchId }) } else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
   else $('big').innerHTML = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : 'you lose') : F.startsIn > 0 ? `starts in ${F.startsIn}s<div style="font-size:15px">${agent && F.gambitsBy.who === 'default' ? 'your agent is writing the opening gambits' : 'edit your gambits now if you want'}</div>` : ''
 
@@ -902,6 +907,10 @@ const pings = []
 cv.onmousedown = e => {
   if (e.button !== 0 || !v || v.ended) return
   const p = at(e), hit = v.swarms.find(c => { const a = cur(pos.get(c.id)); return Math.hypot(a.x - p.x, a.y - p.y) < rad(c.n) + 8 })
+  const mine = hit && sel !== null && hit.id !== sel
+  if (e.shiftKey && mine) return act({ regroup: { swarm: sel, with: hit.id } }, `swarm #${sel} joins swarm #${hit.id}'s group`)
+  const own = e.shiftKey && v.planets.find(q => q.owner === 'you' && q.massLeft > 0 && Math.hypot(q.x - p.x, q.y - p.y) < q.r + 6) // shift-click on your planet: what it makes next
+  if (own) { const order = [null, 'locust', 'carapace', 'spore'], next = order[(order.indexOf(own.make ?? null) + 1) % 4]; return act({ produce: { planet: own.id, type: next } }, `planet makes ${next ?? 'what you have least of'}`) }
   if (hit && hit.id !== sel) { sel = hit.id; return panel() }
   if (sel !== null) return act({ order: { swarm: sel, x: Math.round(p.x), y: Math.round(p.y) } }, `swarm #${sel} → (${Math.round(p.x)},${Math.round(p.y)})`)
   if (!F.me.withAgent) return
@@ -916,6 +925,7 @@ onkeydown = e => {
   if (key === 'escape') sel = null
   if (key === 'g' && sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`)
   if (key === 's' && sel !== null) act({ split: sel }, `swarm #${sel} split`)
+  if (key === 'u' && sel !== null) act({ regroup: { swarm: sel } }, `swarm #${sel} leaves its group`)
   const T3 = { l: 'locust', c: 'carapace', p: 'spore' }
   if (T3[key] && sel !== null) act({ morph: { swarm: sel, type: T3[key] } }, `swarm #${sel} → ${T3[key]}`)
   if (key === 'tab' && !guidance && !e.shiftKey && (e.target === document.body || e.target === cv)) { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }

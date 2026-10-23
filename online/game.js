@@ -30,6 +30,14 @@ const cleanInput = b => {
     if (!Number.isSafeInteger(b.morph?.swarm) || !TYPES.includes(b.morph?.type)) fail(400, `Send a swarm ID and a type: ${TYPES.join(', ')}.`)
     input.morph = { swarm: b.morph.swarm, type: b.morph.type }
   }
+  if (b.regroup !== undefined) {
+    if (!Number.isSafeInteger(b.regroup?.swarm) || (b.regroup.with !== undefined && !Number.isSafeInteger(b.regroup.with))) fail(400, 'Send a swarm ID and optionally the ID of a swarm whose group it joins.')
+    input.regroup = { swarm: b.regroup.swarm, ...(b.regroup.with !== undefined && { with: b.regroup.with }) }
+  }
+  if (b.produce !== undefined) {
+    if (!Number.isSafeInteger(b.produce?.planet) || (b.produce.type !== null && !TYPES.includes(b.produce.type))) fail(400, `Send a planet ID and a type: ${TYPES.join(', ')}, or null for auto.`)
+    input.produce = { planet: b.produce.planet, type: b.produce.type }
+  }
   if (!Object.keys(input).length) fail(400, 'Send a gambit change or swarm action.')
   return input
 }
@@ -418,7 +426,7 @@ export class OnlineGame {
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
         const input = cleanInput(body)
-        if (now < m.startsAt && (input.order || input.morph || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
+        if (now < m.startsAt && (input.order || input.morph || input.regroup || input.produce || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
         const candidate = structuredClone(m.s)
         const result = applyInput(candidate, s.side, input)
         if (!result.ok) fail(400, result.error)

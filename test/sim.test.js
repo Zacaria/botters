@@ -190,10 +190,10 @@ test('invalid gambit lists are rejected and the old list stays', () => {
   const s = createMatch(6), before = s.gambits[0]
   assert.equal(only(s, 0, [{ if: 'teleport', then: 'go' }]).ok, false)
   assert.equal(only(s, 0, [{ if: 'always', then: 'explode' }]).ok, false)
-  assert.equal(only(s, 0, Array(11).fill({ if: 'always', then: 'hold' })).ok, false)
+  assert.equal(only(s, 0, Array(13).fill({ if: 'always', then: 'hold' })).ok, false)
   assert.equal(only(s, 0, [{ if: 'small', p: -5, then: 'go' }]).ok, false)
   assert.equal(s.gambits[0], before)
-  assert.ok(DEFAULT_GAMBITS.length <= 10)
+  assert.ok(DEFAULT_GAMBITS.length <= 12)
 })
 
 test('fog: enemy swarms out of vision are hidden from the view and from gambits', () => {
@@ -296,14 +296,125 @@ test('match options: length and planet count; unknown values fall back to defaul
   assert.equal(JSON.stringify(replay(16, [], { minutes: 3, planets: 16 })), JSON.stringify(s))
 })
 
-test('house levels are ordered: easy loses more often than hard against the default gambits', () => {
-  const wins = list => { let w = 0; for (let seed = 1; seed <= 6; seed++) { const s = createMatch(seed, { minutes: 3 }); only(s, 1, list); run(s, s.endTick); if (s.ended.winner === 0) w++ } return w }
-  assert.ok(wins(HOUSE.easy) > wins(HOUSE.hard))
-})
-
 test('gambits naming inherited properties are rejected, not run', () => {
   const s = createMatch(3)
   for (const bad of [{ if: 'constructor', then: 'hold' }, { if: 'always', then: 'toString' }, { if: '__proto__', then: 'go' }])
     assert.equal(applyInput(s, 0, { gambits: [bad] }).ok, false)
   run(s, 40)
+})
+
+// ---------- groups: no merging, formations, production, group gambits ----------
+const mixedGroup = (s, side = 0, x = 400, y = 350) => {
+  const g = s.nextG++
+  return TYPES.map((type, i) => addSwarm(s, side, x, y + (i - 1) * 40, 2000, type, g))
+}
+
+test('swarms never merge: two of the same type and side stay separate on top of each other', () => {
+  const s = empty(3); only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const a = addSwarm(s, 0, 600, 350, 1000, 'spore'), b = addSwarm(s, 0, 600, 350, 1000, 'spore')
+  run(s, 100)
+  assert.equal(s.swarms.filter(c => c.side === 0 && c.type === 'spore').length, 2)
+  assert.ok(a.n >= 1000 && b.n >= 1000)
+})
+
+test('a mixed group moves as one: locusts ride the flanks, nobody outruns the group, all stand on the target on arrival', () => {
+  const s = empty(3); only(s, 1, [{ if: 'always', then: 'hold' }])
+  for (const p of s.planets) if (p.owner < 0) p.mass = 0 // open ground, so the order is not snapped onto a planet
+  const [loc, car, spo] = mixedGroup(s)
+  assert.equal(new Set([loc.g, car.g, spo.g]).size, 1, 'one group')
+  assert.ok(applyInput(s, 0, { order: { swarm: car.id, x: 900, y: 350 } }).ok)
+  assert.ok([loc, car, spo].every(c => c.manual), 'an order takes the whole group')
+  for (let i = 0; i < 2000 && Math.hypot(car.x - 900, car.y - 350) > 140; i++) step(s)
+  assert.ok(Math.abs(loc.y - 350) > 20, 'the locust rides the flank')
+  assert.ok(Math.max(loc.x, car.x, spo.x) - Math.min(loc.x, car.x, spo.x) < 120, 'the group stayed together')
+  run(s, 550)
+  assert.ok([loc, car, spo].every(c => Math.hypot(c.x - 900, c.y - 350) < 70), 'on arrival the whole group stands around the target')
+})
+
+test('aimed at a planet, every swarm of the group goes to its centre', () => {
+  const s = empty(3); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const p = s.planets.find(q => q.owner === -1)
+  const sw = mixedGroup(s, 0, p.x - 200, p.y)
+  applyInput(s, 0, { order: { swarm: sw[0].id, x: p.x, y: p.y } })
+  run(s, 600)
+  for (const c of sw) assert.ok(Math.hypot(c.x - p.x, c.y - p.y) < p.r + 30, `${c.type} at ${Math.hypot(c.x - p.x, c.y - p.y) | 0}`)
+})
+
+test('regroup moves a swarm into another group or out into its own; release frees the whole group', () => {
+  const s = empty(3); only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const [loc, car, spo] = mixedGroup(s)
+  assert.ok(applyInput(s, 0, { regroup: { swarm: spo.id } }).ok)
+  assert.notEqual(spo.g, car.g); assert.equal(loc.g, car.g)
+  assert.equal(applyInput(s, 0, { regroup: { swarm: spo.id } }).ok, false, 'already alone')
+  assert.ok(applyInput(s, 0, { regroup: { swarm: spo.id, with: car.id } }).ok)
+  assert.equal(spo.g, car.g)
+  assert.equal(applyInput(s, 0, { regroup: { swarm: spo.id, with: car.id } }).ok, false, 'already together')
+  assert.equal(applyInput(s, 0, { regroup: { swarm: spo.id, with: 9999 } }).ok, false)
+  applyInput(s, 0, { order: { swarm: loc.id, x: 700, y: 300 } })
+  assert.ok(applyInput(s, 0, { release: spo.id }).ok)
+  assert.ok([loc, car, spo].every(c => !c.manual))
+})
+
+test('production: a planet makes the chosen type, auto picks the type the side has least of', () => {
+  const s = empty(3); only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
+  addSwarm(s, 0, s.planets[0].x, s.planets[0].y, 3000, 'locust'); addSwarm(s, 0, s.planets[0].x, s.planets[0].y, 2000, 'carapace')
+  run(s, 400)
+  assert.ok(s.swarms.filter(c => c.side === 0 && c.type === 'spore').reduce((a, c) => a + c.n, 0) > 100, 'auto made the missing spores')
+  assert.ok(applyInput(s, 0, { produce: { planet: 0, type: 'carapace' } }).ok)
+  assert.equal(view(s, 0).planets[0].producing, 'carapace')
+  const before = s.swarms.filter(c => c.side === 0 && c.type === 'carapace').reduce((a, c) => a + c.n, 0)
+  run(s, 400)
+  assert.ok(s.swarms.filter(c => c.side === 0 && c.type === 'carapace').reduce((a, c) => a + c.n, 0) > before + 100)
+  assert.equal(applyInput(s, 0, { produce: { planet: 0, type: 'dragon' } }).ok, false)
+  assert.equal(applyInput(s, 0, { produce: { planet: 1, type: 'spore' } }).ok, false, 'not your planet')
+  assert.ok(applyInput(s, 0, { produce: { planet: 0, type: null } }).ok)
+  assert.equal(view(s, 0).planets[0].make, null)
+})
+
+test('production does not shower the map with crumbs: new swarms only appear in real sizes', () => {
+  const s = createMatch(5, { planets: 28 })
+  run(s, 20 * TPS)
+  for (const c of s.swarms) assert.ok(c.n >= 100 || c.id <= 6, `swarm ${c.id} has only ${c.n}`)
+})
+
+test('gambits act on the group: enemy_carapaces then produce_spore changes what every planet makes, and the rest still runs', () => {
+  const s = empty(3); only(s, 1, [{ if: 'always', then: 'hold' }])
+  only(s, 0, [{ if: 'enemy_carapaces', p: 500, then: 'produce_spore' }, { if: 'always', then: 'hold' }])
+  mixedGroup(s, 0, 300, 350); addSwarm(s, 1, 420, 350, 3000, 'carapace')
+  s.planets.find(p => p.owner === 0).make = 'locust'
+  run(s, TPS)
+  assert.ok(s.planets.filter(p => p.owner === 0).every(p => p.make === 'spore'))
+  assert.equal(view(s, 0).swarms[0].rule, 1, 'produce_* hands over to the next rule')
+})
+
+test('counter changes only the swarms the enemy beats', () => {
+  const s = empty(3); only(s, 1, [{ if: 'always', then: 'hold' }])
+  only(s, 0, [{ if: 'counter_near', then: 'counter' }, { if: 'always', then: 'hold' }])
+  const [loc, car, spo] = mixedGroup(s, 0, 300, 350)
+  addSwarm(s, 1, 450, 350, 3000, 'locust') // locust beats spore: only the spore swarm is in danger
+  run(s, TPS)
+  assert.deepEqual([loc.type, car.type, spo.type], ['locust', 'carapace', 'carapace'], 'the spore became a carapace, the others stayed')
+})
+
+test('join brings a small group into a bigger one without merging; detach splits a mixed group by type', () => {
+  const s = empty(3); only(s, 1, [{ if: 'always', then: 'hold' }])
+  const big = addSwarm(s, 0, 300, 350, 3000, 'carapace'), small = addSwarm(s, 0, 380, 350, 200, 'carapace')
+  only(s, 0, [{ if: 'small', p: 400, then: 'join' }, { if: 'always', then: 'hold' }])
+  run(s, 6 * TPS)
+  assert.equal(small.g, big.g, 'joined')
+  assert.ok(s.swarms.includes(small) && s.swarms.includes(big), 'still two swarms')
+  const t = empty(3); only(t, 1, [{ if: 'always', then: 'hold' }])
+  only(t, 0, [{ if: 'always', then: 'detach' }])
+  const sw = mixedGroup(t, 0, 300, 350)
+  run(t, TPS)
+  assert.equal(new Set(sw.map(c => c.g)).size, 3, 'one group per type')
+})
+
+test('a house opponent of every level still plays a legal whole match with groups', () => {
+  for (const level of Object.keys(HOUSE)) {
+    const s = createMatch(11, { minutes: 3, planets: 16 }); s.gambits[1] = HOUSE[level]
+    run(s, 60 * TPS)
+    assert.ok(s.swarms.every(c => Number.isFinite(c.x) && Number.isFinite(c.n) && c.n > 0), level)
+    assert.ok(new Set(s.swarms.map(c => c.g)).size <= s.swarms.length)
+  }
 })

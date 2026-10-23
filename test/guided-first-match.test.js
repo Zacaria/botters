@@ -85,8 +85,10 @@ test('optional local guidance requires capture, disabled gambit, manual order an
   await page.locator('#guideSend').focus(); await page.keyboard.press('Enter')
   await expect(step).toHaveText('4 / 4 · Return to gambits')
   await page.keyboard.press('Escape')
-  // Releasing a different swarm cannot satisfy the tracked swarm's release.
+  // Releasing a different swarm cannot satisfy the tracked swarm's release. Orders act on whole groups, so swarm 2 first leaves swarm 1's group (key U).
   await page.locator('#guideSwarm').selectOption('2')
+  await page.evaluate(() => document.activeElement.blur()); await page.keyboard.press('u')
+  await expect.poll(async () => { const w = (await state()).view.swarms; return w.find(s => s.id === 2)?.group !== w.find(s => s.id === 1)?.group }).toBe(true)
   await page.locator('#guidePlanet').selectOption('0')
   await page.locator('#guideSend').focus(); await page.keyboard.press('Enter')
   await expect.poll(async () => (await state()).view.swarms.find(s => s.id === 2)?.manual).toBe(true)

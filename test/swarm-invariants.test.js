@@ -45,36 +45,12 @@ test('split inherits cocoon and cooldown: child cannot move or remorph early', (
   assert.equal(morph(s, child, 'spore'), true)
 })
 
-for (const restrictedFirst of [false, true]) {
-  test(`merge preserves the latest morph restrictions (${restrictedFirst ? 'restricted' : 'fresh'} survivor)`, () => {
-    const s = arena()
-    const a = addSwarm(s, 0, 600, 350, 1000, restrictedFirst ? 'locust' : 'carapace')
-    const b = addSwarm(s, 0, 604, 350, 1000, restrictedFirst ? 'carapace' : 'locust')
-    addSwarm(s, 1, 1100, 650, 1000)
-    assert.ok(morph(s, restrictedFirst ? a : b, 'carapace'))
-    step(s)
-    assert.equal(s.swarms.filter(c => c.side === 0).length, 1)
-    const start = [a.x, a.y]
-    order(s, a)
-    assert.equal(morph(s, a, 'spore'), false)
-    runTo(s, T.COCOON - 1)
-    assert.deepEqual([a.x, a.y], start)
-    step(s)
-    assert.ok(a.x > start[0])
-    runTo(s, T.MORPH_CD - 1)
-    assert.equal(morph(s, a, 'spore'), false)
-    step(s)
-    assert.equal(morph(s, a, 'spore'), true)
-  })
-}
-
-for (const victims of [1, 3, 100]) for (const merging of [true, false]) {
-  test(`simultaneous attackers digest only actual kills (${victims} particles, merge=${merging})`, () => {
+for (const victims of [1, 3, 100]) {
+  test(`simultaneous attackers digest only actual kills (${victims} particles)`, () => {
     const play = () => {
       const s = arena(), attackers = []
       for (let i = 0; i < 10; i++) {
         const a = addSwarm(s, 0, 600 + i / 100, 350, 1000, 'spore')
-        if (!merging) a.noMerge = 100
         attackers.push(a)
       }
       const target = addSwarm(s, 1, 630, 350, victims, 'locust')
@@ -84,10 +60,8 @@ for (const victims of [1, 3, 100]) for (const merging of [true, false]) {
       assert.ok(fed > 0 && fed <= killed * T.G + 1e-9, `credited ${fed} for ${killed} kills`)
       assert.ok(s.swarms.every(c => Number.isFinite(c.n) && c.n >= 0 && Number.isFinite(c.belly) && c.belly >= 0))
       assert.ok(target.n >= 0, 'dead target is not overdrawn')
-      if (!merging) {
-        const credits = attackers.map(c => c.n + c.belly - 1000)
-        assert.ok(Math.max(...credits) - Math.min(...credits) < 1e-9, 'equal capped hits get equal shares')
-      }
+      const credits = attackers.map(c => c.n + c.belly - 1000)
+      assert.ok(Math.max(...credits) - Math.min(...credits) < 1e-9, 'equal capped hits get equal shares')
       return s
     }
     assert.deepEqual(play(), play(), 'same fixture gives identical attribution and state')
@@ -105,7 +79,7 @@ test('mutually killed swarms never digest into negative bellies', () => {
 })
 
 for (const mode of Object.keys(MODES)) {
-  test(`morph/split/merge/order/cooldown full replay: ${mode}`, () => {
+  test(`morph/split/order/cooldown full replay: ${mode}`, () => {
     const s = createMatch(7, { mode, minutes: 3, planets: 16 }), log = []
     const send = (side, input) => {
       log.push({ tick: s.tick, side, input })
@@ -118,7 +92,7 @@ for (const mode of Object.keys(MODES)) {
     const child = s.swarms.at(-1)
     assert.equal(send(0, { morph: { swarm: child.id, type: 'spore' } }), false)
     runTo(s, 81)
-    assert.ok(!s.swarms.includes(child), 'split halves merge again after their no-merge interval')
+    assert.ok(s.swarms.includes(child), 'split halves never merge back')
     assert.ok(send(0, { order: { swarm: parent.id, x: 600, y: 350 } }))
     runTo(s, T.MORPH_CD - 1)
     assert.equal(send(0, { morph: { swarm: parent.id, type: 'spore' } }), false)

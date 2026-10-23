@@ -98,6 +98,8 @@ const gameplay = [
   ['order_swarm', { swarm: 1, x: 100, y: 100, why: 'fixture' }],
   ['split_swarm', { swarm: 1, why: 'fixture' }],
   ['morph_swarm', { swarm: 1, type: 'spore', why: 'fixture' }],
+  ['regroup_swarm', { swarm: 1, why: 'fixture' }],
+  ['set_production', { planet: 0, type: null, why: 'fixture' }],
   ['release_swarm', { swarm: 1 }],
   ['call_human', { message: 'fixture' }],
 ]

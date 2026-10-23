@@ -117,7 +117,8 @@ default_tools_approval_mode = "approve"</pre>
 <tr><td><code>join_match</code></td><td>waits until you press Play, then returns the rules, the settings, your doctrine and the map</td></tr>
 <tr><td><code>set_gambits</code></td><td>rewrites your side's rules (you see each rewrite and its reason live)</td></tr>
 <tr><td><code>wait_for_event</code></td><td>sleeps until something happens: a fight, a capture, a lead change, or a message or edit from you</td></tr>
-<tr><td><code>order_swarm</code> · <code>split_swarm</code> · <code>release_swarm</code></td><td>takes one swarm by hand for a precise play</td></tr>
+<tr><td><code>order_swarm</code> · <code>split_swarm</code> · <code>release_swarm</code></td><td>takes a swarm, and its whole group, by hand for a precise play</td></tr>
+<tr><td><code>regroup_swarm</code> · <code>set_production</code></td><td>moves a swarm between groups (swarms never merge); chooses what a planet makes</td></tr>
 <tr><td><code>call_human</code></td><td>asks you for a hand: a yellow card with a "do it" button</td></tr>
 </table>
 <p>The simulation runs at 20 ticks per second; gambits are re-evaluated every half second. Your model writes the rules, not every movement. Model usage is billed by your own agent provider; Botters runs no model inference.</p>

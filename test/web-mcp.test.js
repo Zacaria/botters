@@ -84,7 +84,7 @@ async function gateway(t, options = {}) {
   return { app, request, connect }
 }
 const data = result => JSON.parse(result.content[0].text)
-const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'morph_swarm', 'release_swarm', 'call_human'].sort()
+const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'morph_swarm', 'regroup_swarm', 'set_production', 'release_swarm', 'call_human'].sort()
 const assertTools = tools => assert.deepEqual(tools.map(t => t.name).sort(), toolNames)
 
 test('OAuth protects every MCP request before allocating a child and advertises its canonical resource', async t => {
@@ -318,6 +318,7 @@ test('real HTTP/stdio gateway discovers and executes eight tools with isolated l
     ['order_swarm', { swarm, x: 100, y: 100, why: 'offline fixture' }],
     ['split_swarm', { swarm, why: 'offline fixture' }],
     ['morph_swarm', { swarm, type: 'spore', why: 'offline fixture' }],
+    ['regroup_swarm', { swarm, why: 'offline fixture' }],
     ['release_swarm', { swarm }],
     ['call_human', { message: 'offline fixture' }],
   ]) {
