@@ -60,9 +60,9 @@ const S = { session: env.BOTTERS_AGENT_TOKEN ? { agentToken: env.BOTTERS_AGENT_T
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
-  yourSwarms: v.swarms.map(c => `#${c.id} ${c.type} n${c.n}${c.hunger >= 0.5 ? ` HUNGRY ${Math.round(c.hunger * 100)}%` : ''}${c.belly > c.n * 0.1 ? ' digesting' : ''}${c.cocoon ? ' cocoon' : ''} at (${c.x},${c.y}) → (${c.tx},${c.ty}) ${c.manual ? 'BY HAND' : c.rule >= 0 ? `rule ${c.rule + 1}` : 'no rule'}${c.fighting ? ' FIGHTING' : ''}`),
-  allies: v.allies.map(c => `#${c.id} ${c.type} n${c.n} at (${c.x},${c.y})`),
-  visibleEnemies: v.enemies.map(c => `#${c.id} team${c.k} ${c.type} n${c.n} at (${c.x},${c.y})${c.fighting ? ' FIGHTING' : ''}`),
+  yourSwarms: v.swarms.map(c => `#${c.id} n${c.n}${c.hunger >= 0.5 ? ` HUNGRY ${Math.round(c.hunger * 100)}%` : ''}${c.belly > c.n * 0.1 ? ' digesting' : ''}${c.cocoon ? ' cocoon' : ''} at (${c.x},${c.y}) → (${c.tx},${c.ty}) ${c.manual ? 'BY HAND' : c.rule >= 0 ? `rule ${c.rule + 1}` : 'no rule'}${c.fighting ? ' FIGHTING' : ''}`),
+  allies: v.allies.map(c => `#${c.id} n${c.n} at (${c.x},${c.y})`),
+  visibleEnemies: v.enemies.map(c => `#${c.id} team${c.k} n${c.n} at (${c.x},${c.y})${c.fighting ? ' FIGHTING' : ''}`),
   planets: v.planets.filter(p => p.massLeft > 0).map(p => `${p.id} (${p.x},${p.y}) ${p.owner || 'free'} mass ${p.massLeft}${Math.abs(p.capture) > 0 && Math.abs(p.capture) < 1 ? ` capture ${p.capture}` : ''}`),
   gambits: v.gambits.map((r, i) => `${i + 1}. ${rule(r)}`),
 })
@@ -91,7 +91,6 @@ mcp.registerTool('join_match', {
 Call this first, and again after each match. It opens your human's lobby in their browser and waits until they press Play (they pick the opponent, match length and map there). If they have not pressed Play yet it returns {waiting: true}: tell them the lobby link once, then call join_match again. Pass vs to start a match yourself without waiting (headless play).
 THE GAME: each side starts with 3 swarms of 3,000 particles next to its home planet. Owned planets are slowly eaten and turned into new particles for their owner. Most particles at the end wins; a side with no swarms and no planets left loses at once.
 Only the front of two touching swarms fights, and a swarm much bigger than its enemy wraps it and wins big. Half of what a swarm kills joins it but is digested slowly (the swarm is slow meanwhile). A swarm that touches no planet and kills nothing for too long starves (hunger 0 to 1 in the state). Big swarms move slower.
-TYPES: each side starts with one swarm of each type. locust: fast, captures planets 1.5x faster, starves in 3/4 of the time, beats spore. carapace: slow, starves 3x later, beats locust. spore: hits 45 beyond contact without being hit back, weak in melee, beats carapace. Change a swarm's type with morph_swarm (10% of its particles, 3 s cocoon, 15 s cooldown), or use the gambit action counter.
 MODES: pass mode '1v1' (default), '2v2' (you and a house ally against two house bots), 'ffa4' or 'ffa6' (free-for-all against house bots). Allies share vision and never fight each other; the last team standing wins. Fog of war: you only see enemies near your swarms and planets.
 YOU DO NOT MOVE SWARMS ONE BY ONE. Every swarm follows your side's gambits: an ordered list of "IF condition → action" rules, first matching rule wins, re-evaluated every 0.5 s. Your job: rewrite the gambits as the match evolves (set_gambits), take a swarm by hand only for a precise play (order_swarm), and ask your human for help (call_human).
 The result includes the rules, the match settings and your human's doctrine (their strategy, in their words). Before the countdown ends, turn the doctrine into opening gambits with set_gambits, unless your human already wrote them.`,
@@ -166,11 +165,6 @@ mcp.registerTool('split_swarm', {
   description: 'Split one of your swarms in two (needs ≥200 particles, max 40 swarms). The new half heads for the second-nearest planet you do not own.',
   inputSchema: { swarm: z.number(), why: z.string().max(120) },
 }, async ({ swarm, why }) => need() || input({ split: swarm, why }))
-
-mcp.registerTool('morph_swarm', {
-  description: 'Change one of your swarms into another type: locust beats spore, spore beats carapace, carapace beats locust. Costs 10% of its particles, 3 s cocoon (cannot move), 15 s cooldown. Not before the match starts.',
-  inputSchema: { swarm: z.number(), type: z.enum(['locust', 'carapace', 'spore']), why: z.string().max(120) },
-}, async ({ swarm, type, why }) => need() || input({ morph: { swarm, type }, why }))
 
 mcp.registerTool('release_swarm', {
   description: 'Give a hand-held swarm back to the gambits.',

@@ -84,7 +84,7 @@ async function gateway(t, options = {}) {
   return { app, request, connect }
 }
 const data = result => JSON.parse(result.content[0].text)
-const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'morph_swarm', 'release_swarm', 'call_human'].sort()
+const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
 const assertTools = tools => assert.deepEqual(tools.map(t => t.name).sort(), toolNames)
 
 test('OAuth protects every MCP request before allocating a child and advertises its canonical resource', async t => {
@@ -280,7 +280,7 @@ test('configuration requires explicit safe origins and finite resource bounds', 
   ]) assert.throws(() => createWebMcp(options))
 })
 
-test('real HTTP/stdio gateway discovers and executes eight tools with isolated lobby identities', { timeout: 30000 }, async t => {
+test('real HTTP/stdio gateway discovers and executes seven tools with isolated lobby identities', { timeout: 30000 }, async t => {
   const f = await fixture(t), g = await gateway(t, { server: f.upstream })
   const directTransport = new StdioClientTransport({ command: process.execPath, args: childArgs, cwd: root, env: { BOTTERS_SERVER: f.upstream, BOTTERS_OPEN: '0' }, stderr: 'ignore' })
   const direct = new Client({ name: 'schema-reference', version: '1' }); t.after(() => direct.close()); await direct.connect(directTransport)
@@ -317,7 +317,6 @@ test('real HTTP/stdio gateway discovers and executes eight tools with isolated l
     ['set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'offline fixture' }],
     ['order_swarm', { swarm, x: 100, y: 100, why: 'offline fixture' }],
     ['split_swarm', { swarm, why: 'offline fixture' }],
-    ['morph_swarm', { swarm, type: 'spore', why: 'offline fixture' }],
     ['release_swarm', { swarm }],
     ['call_human', { message: 'offline fixture' }],
   ]) {
@@ -329,7 +328,6 @@ test('real HTTP/stdio gateway discovers and executes eight tools with isolated l
   const frame = await fetch(`${f.origin}/state?token=${token}`).then(r => r.json())
   assert.ok(frame.calls.some(c => c.message === 'offline fixture'))
   assert.deepEqual(frame.view.gambits, [{ if: 'always', then: 'hold', on: true }])
-  assert.equal(frame.view.swarms.find(s => s.id === swarm).type, 'spore')
   assert.equal((await g.request('/health').then(r => r.json())).sessions, 2)
   await one.transport.terminateSession()
   assert.equal((await g.request('/health').then(r => r.json())).sessions, 1)

@@ -97,7 +97,6 @@ const gameplay = [
   ['set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'fixture' }],
   ['order_swarm', { swarm: 1, x: 100, y: 100, why: 'fixture' }],
   ['split_swarm', { swarm: 1, why: 'fixture' }],
-  ['morph_swarm', { swarm: 1, type: 'spore', why: 'fixture' }],
   ['release_swarm', { swarm: 1 }],
   ['call_human', { message: 'fixture' }],
 ]
@@ -230,7 +229,7 @@ test('an externally supplied agent capability is forgotten after real revocation
 test('OAuth-bound clients never fall back to anonymous pairing after their approved capability is revoked', async () => {
   const f = await callbackFixture({ supplied: true, bound: true }); await f.join()
   await f.revoke()
-  assert.match(await f.call('morph_swarm', { swarm: 1, type: 'spore', why: 'revoked OAuth grant' }), /Reconnect Botters in your assistant/)
+  assert.match(await f.call('split_swarm', { swarm: 1, why: 'revoked OAuth grant' }), /Reconnect Botters in your assistant/)
   disconnected(f.S)
   const sent = f.requests.length
   for (const [name, args] of gameplay) assert.match(await f.call(name, args), /join_match/)

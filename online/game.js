@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, TYPES, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { transaction, checkDeadline } from './store.js'
 import { rankPairs } from './ratings.js'
 
@@ -26,10 +26,6 @@ const cleanInput = b => {
     if (!Number.isSafeInteger(b.order?.swarm) || !Number.isFinite(b.order?.x) || !Number.isFinite(b.order?.y)) fail(400, 'Send a swarm ID and finite x/y coordinates.')
     input.order = { swarm: b.order.swarm, x: Math.max(0, Math.min(W, b.order.x)), y: Math.max(0, Math.min(H, b.order.y)) }
   }
-  if (b.morph !== undefined) {
-    if (!Number.isSafeInteger(b.morph?.swarm) || !TYPES.includes(b.morph?.type)) fail(400, `Send a swarm ID and a type: ${TYPES.join(', ')}.`)
-    input.morph = { swarm: b.morph.swarm, type: b.morph.type }
-  }
   if (!Object.keys(input).length) fail(400, 'Send a gambit change or swarm action.')
   return input
 }
@@ -53,7 +49,7 @@ function diffEvents(m, p) {
   if (!was) return
   for (const e of v.enemies) if (e.n >= 1500 && !was.enemies.some(o => o.id === e.id)) emit(m, p, `enemy swarm ${e.id} (${e.n}) spotted at (${e.x},${e.y})`)
   for (const pl of v.planets) if (pl.owner !== was.planets[pl.id].owner && pl.massLeft > 0) emit(m, p, `${pl.owner || 'neutral'} captured planet ${pl.id} (${pl.x},${pl.y})`)
-  for (const c of v.swarms) if (c.hunger >= 1 && !was.swarms.some(o => o.id === c.id && o.hunger >= 1)) emit(m, p, `swarm ${c.id} (${c.type}) is starving at (${c.x},${c.y}): it has not touched a planet or killed anything for too long`)
+  for (const c of v.swarms) if (c.hunger >= 1 && !was.swarms.some(o => o.id === c.id && o.hunger >= 1)) emit(m, p, `swarm ${c.id} is starving at (${c.x},${c.y}): it has not touched a planet or killed anything for too long`)
   for (const c of was.swarms) if (c.n >= 500 && c.fighting && !v.swarms.some(o => o.id === c.id)) emit(m, p, `your swarm ${c.id} was destroyed near (${c.x},${c.y})`)
   if ((v.totals.you < v.totals.enemy) !== (was.totals.you < was.totals.enemy)) emit(m, p, `lead changed: ${v.totals.you} vs ${v.totals.enemy} particles`)
   if (v.secondsLeft === 60) emit(m, p, '1 minute left.')
@@ -418,7 +414,7 @@ export class OnlineGame {
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
         const input = cleanInput(body)
-        if (now < m.startsAt && (input.order || input.morph || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
+        if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
         const candidate = structuredClone(m.s)
         const result = applyInput(candidate, s.side, input)
         if (!result.ok) fail(400, result.error)

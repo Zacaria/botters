@@ -138,6 +138,15 @@ Owner, after 5 played matches vs Codex: "I don't understand how we can influence
 - End screen with a one-line verdict and Play again; history of the last 10 matches and leaderboard in the lobby.
 - `/guide`: how to plug Claude Code, Codex, any MCP client, or a plain HTTP script.
 
+## Back to one kind of swarm (2026-10-24)
+
+Owner, after playing the typed and grouped version: "I don't like the rendering at all compared to the system without types. Go back and work on it more deeply, so the base version is secured and in players' hands. Still adjust the combat functions, I did not like the square system."
+
+- `feat/swarm-core` = the shipped swarm-depth engine **minus swarm types**: N sides and teams (1v1, 2v2, ffa4, ffa6 vs house), contact-front combat with wrapping (no square law), digestion and hunger, merging of overlapping friendly swarms, seven MCP tools (no `morph_swarm`).
+- The typed work is kept, unmerged, on `feat/swarm-looks` (#19) and `feat/swarm-groups` (#20), as source for the next iteration.
+- House levels re-measured without types (24 seeds, 3 min, 28 planets, default list wins): easy 20, normal 14, hard 7. `normal` now defends its planets first.
+- Next: spike where every particle is a unit (own speed, blockers and flankers, detachable battalions). Worst case to design for: 3,000 units per side (a throwaway probe measured about 6 ms per tick for that, against a 50 ms budget; 9,000 per side did not fit).
+
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 
 | Role | Model | Speed | Does |
