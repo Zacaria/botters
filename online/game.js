@@ -162,7 +162,7 @@ export class OnlineGame {
           const opening = e ? e.req.opening : HOUSE[req.vs]
           if (opening) { const input = { gambits: canonicalRules(opening) }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
-          emit(m, p, `match starts in ${req.planning}s. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with one swarm of each type (locust, carapace, spore). ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
+          emit(m, p, `match starts in ${req.planning}s. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with three swarms of 3,000 particles. ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
         }
         await tx.set(`match:${m.id}`, m)
         return m
@@ -427,7 +427,7 @@ export class OnlineGame {
           emit(m, p, `HUMAN ${body.gambits ? `rewrote gambits: ${list.map(describe).join('; ')}` : JSON.stringify(input)}`)
           if (body.order) p.calls = p.calls.filter(c => c.swarm !== body.order.swarm)
         }
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${body.gambits ? 'rewrote gambits' : body.toggle !== undefined ? 'switched a rule' : body.order ? `ordered swarm ${body.order.swarm}` : body.morph ? `changed swarm ${body.morph.swarm} to ${body.morph.type}` : body.split !== undefined ? 'split a swarm' : 'released a swarm'}${why ? `: ${why}` : ''}`)
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${body.gambits ? 'rewrote gambits' : body.toggle !== undefined ? 'switched a rule' : body.order ? `ordered swarm ${body.order.swarm}` : body.split !== undefined ? 'split a swarm' : 'released a swarm'}${why ? `: ${why}` : ''}`)
         return { ok: true }
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {

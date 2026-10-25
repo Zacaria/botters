@@ -60,7 +60,7 @@ const S = { session: env.BOTTERS_AGENT_TOKEN ? { agentToken: env.BOTTERS_AGENT_T
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
-  yourSwarms: v.swarms.map(c => `#${c.id} n${c.n}${c.hunger >= 0.5 ? ` HUNGRY ${Math.round(c.hunger * 100)}%` : ''}${c.belly > c.n * 0.1 ? ' digesting' : ''}${c.cocoon ? ' cocoon' : ''} at (${c.x},${c.y}) → (${c.tx},${c.ty}) ${c.manual ? 'BY HAND' : c.rule >= 0 ? `rule ${c.rule + 1}` : 'no rule'}${c.fighting ? ' FIGHTING' : ''}`),
+  yourSwarms: v.swarms.map(c => `#${c.id} n${c.n}${c.hunger >= 0.5 ? ` HUNGRY ${Math.round(c.hunger * 100)}%` : ''}${c.belly > c.n * 0.1 ? ' digesting' : ''} at (${c.x},${c.y}) → (${c.tx},${c.ty}) ${c.manual ? 'BY HAND' : c.rule >= 0 ? `rule ${c.rule + 1}` : 'no rule'}${c.fighting ? ' FIGHTING' : ''}`),
   allies: v.allies.map(c => `#${c.id} n${c.n} at (${c.x},${c.y})`),
   visibleEnemies: v.enemies.map(c => `#${c.id} team${c.k} n${c.n} at (${c.x},${c.y})${c.fighting ? ' FIGHTING' : ''}`),
   planets: v.planets.filter(p => p.massLeft > 0).map(p => `${p.id} (${p.x},${p.y}) ${p.owner || 'free'} mass ${p.massLeft}${Math.abs(p.capture) > 0 && Math.abs(p.capture) < 1 ? ` capture ${p.capture}` : ''}`),
