@@ -39,3 +39,23 @@ test('original JS golden traces: 24 seeds per mode, all house levels and scripte
     assert.deepEqual(trace(seed, mode), expected[key], key)
   }
 })
+
+
+export function naturalTrace(seed, mode, minutes, planets) {
+  const s = createMatch(seed, { mode, minutes, planets })
+  for (let side = 0; side < s.teams.length; side++) {
+    assert.deepEqual(applyInput(s, side, { gambits: HOUSE.easy }), { ok: true })
+  }
+  const checksums = []
+  while (!s.ended) {
+    step(s)
+    if (s.tick % 100 === 0) checksums.push(hash(s))
+  }
+  return { seed, mode, minutes, planets, tick: s.tick, checksums, final: hash(s) }
+}
+
+test('natural full-length matches match the original JS checksums', () => {
+  const expected = JSON.parse(readFileSync(new URL('./fixtures/sim-natural.json', import.meta.url)))
+  assert.equal(expected.length, 8)
+  for (const e of expected) assert.deepEqual(naturalTrace(e.seed, e.mode, e.minutes, e.planets), e)
+})
