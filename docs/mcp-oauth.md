@@ -18,7 +18,7 @@ Issue opaque short-lived access tokens and rotating refresh tokens, bound to one
 
 Persist client registrations and grant/token state atomically to an explicitly configured private state file outside the source tree. Keep its parent private, the file mode 0600, and bind state to this issuer and upstream origin. Store hashes of OAuth secrets; upstream agent capabilities must remain private to the gateway. Bound clients, pending approvals, grants and token history. This first version is a single-process gateway, not a horizontally shared authorization service.
 
-Every MCP request needs a valid bearer token, including initialized sessions, GET streams and DELETE. Bind each transport session and stdio child to its OAuth grant. Token refresh preserves that grant; another grant cannot reuse or delete the session. Pass only its approved agent capability to the existing child through its already-supported `BOTTERS_AGENT_TOKEN` setting. A revoked grant must not silently fall back to the child's anonymous pairing flow. Keep the discovery-session admission repair and the existing hard child/session ceiling.
+Every MCP request needs a valid bearer token, including initialized sessions, GET streams and DELETE. Bind each transport session and in-process tool instance to its OAuth grant. All sessions of one grant share a single tool instance, so match state survives assistants (ChatGPT) that open a new MCP session per tool call; a grant keeps at most eight sessions (oldest idle one dropped; HTTP 429 with retry-after: 1 if all are busy) and the gateway limit counts instances, not sessions. Token refresh preserves that grant; another grant cannot reuse or delete the session. Pass only its approved agent capability directly to its tool instance. A revoked grant must not silently fall back to the instance's anonymous pairing flow. Keep the discovery-session admission repair and the existing hard instance/session ceiling.
 
 ## Run the gateway
 
@@ -47,13 +47,13 @@ The state file must be outside the checkout, owned by the service user and mode 
 
 The implemented endpoints are `/.well-known/oauth-protected-resource/mcp`, `/.well-known/oauth-authorization-server`, `/register`, `/authorize`, `/token`, `/revoke`, `/consent`, `/consent/complete` and `/consent/cancel`. Connectors use OAuth with automatic dynamic registration, client-authentication method `none`, scope `botters:play` and resource `<origin>/mcp`. A client must explicitly register method `none`; confidential client secrets and OIDC scopes are not supported. No provider API key is required.
 
-Access tokens last ten minutes; codes two minutes; consent requests ten minutes. Grants and refresh history expire after at most seven days and fail sooner when Botters revokes the underlying agent. Refresh tokens rotate without extending that grant. The private store is capped at 8 MiB, 256 registrations, 512 grants, 256 outstanding codes and 4,096 token-history entries; pending consent is capped at 128. Exhaustion fails closed rather than erasing clients or granting more resources. The gateway still caps live MCP children at eight and reclaims unused discovery sessions. Capacity or multi-instance operation requires an explicit operator change, not a silent reset of account/delegation state.
+Access tokens last ten minutes; codes two minutes; consent requests ten minutes. Grants and refresh history expire after at most seven days and fail sooner when Botters revokes the underlying agent. Refresh tokens rotate without extending that grant. The private store is capped at 8 MiB, 256 registrations, 512 grants, 256 outstanding codes and 4,096 token-history entries; pending consent is capped at 128. Exhaustion fails closed rather than erasing clients or granting more resources. The standalone gateway defaults to eight live MCP instances (the container caps them at 128) and reclaims unused discovery sessions. Capacity or multi-instance operation requires an explicit operator change, not a silent reset of account/delegation state.
 
 The existing site asks the verified player to approve the agent in a separate tab; the consent tab returns to the connector automatically. Cancel returns `access_denied`. The consent page uses `Referrer-Policy: same-origin` to preserve Chromium's native-form Origin header without sending a referrer to another origin; its CSP permits the form's redirect only to the registered callback origin. Other OAuth responses keep `no-referrer`.
 
 ## Verification
 
-Use real local HTTP routes, the installed SDK, the existing account-protected OnlineGame handler with isolated test identities and real stdio children. Observe failing tests before implementation. Cover OAuth discovery and challenge, no-token denial before spawning, PKCE and redirect/resource/scope binding, explicit pending/approved consent, cancellation/expiry, refresh rotation/reuse, revocation, persistence/restart, cross-grant session isolation and upstream revocation. Run repository checks and obtain independent read-only security review of the final bytes before signing and pushing.
+Use real local HTTP routes, the installed SDK, the existing account-protected OnlineGame handler with isolated test identities and real in-process tools. Observe failing tests before implementation. Cover OAuth discovery and challenge, no-token denial before spawning, PKCE and redirect/resource/scope binding, explicit pending/approved consent, cancellation/expiry, refresh rotation/reuse, revocation, persistence/restart, cross-grant session isolation and upstream revocation. Run repository checks and obtain independent read-only security review of the final bytes before signing and pushing.
 
 These offline checks do not prove a production account login, ChatGPT or Claude connection, or a model-played match. Those remain separate activation checks. No provider subscription, production secret or deployment is needed to implement and verify the source.
 
@@ -62,3 +62,21 @@ These offline checks do not prove a production account login, ChatGPT or Claude 
 - MCP authorization: https://modelcontextprotocol.io/specification/latest/basic/authorization
 - OpenAI MCP authentication: https://developers.openai.com/apps-sdk/build/auth
 - Installed implementation contracts: `@modelcontextprotocol/sdk/server/auth/router.js`, `provider.d.ts` and the existing `client.js` capability injection.
+
+
+## Deploying the website
+
+Production Vercel builds bake `public/live-config.json` from build-time variables. Deploy with `vercel deploy --prod --build-env BOTTERS_LIVE_URL=https://play.botters.havesomecode.io --build-env BOTTERS_REQUIRE_ACCOUNT=1`, then check `curl https://botters.havesomecode.io/live-config.json` returns the live URL. Without them the lobby calls the control site and every signed-in player gets HTTP 410. Each new MCP tool instance reads that file on creation; existing instances keep their current configuration.
+
+## In-process memory measurement
+
+Local Node process, separate local game server: each agent joined a headless match and called `wait_for_event`. RSS was sampled after garbage collection; baseline was 85.1 MiB. These are process-level observations, not a production capacity guarantee.
+
+| Agents | RSS MiB | Growth MiB | Growth MiB/agent |
+| ---: | ---: | ---: | ---: |
+| 1 | 95.8 | 10.7 | 10.69 |
+| 8 | 98.0 | 12.9 | 1.62 |
+| 32 | 106.5 | 21.4 | 0.67 |
+| 64 | 123.1 | 38.1 | 0.59 |
+
+The container allows 128 instances with a 512 MiB memory/swap limit; remeasure under actual traffic before raising it. The game server's separate 24-match limit is unchanged.

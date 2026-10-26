@@ -2,9 +2,10 @@
 // Loopback-only remote bridge; OAuth reuses Botters' verified player approval.
 import http from 'node:http'
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import { createBottersTools } from './tools.js'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { InitializeRequestSchema, ListToolsRequestSchema, ListToolsResultSchema, CallToolRequestSchema, CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -31,31 +32,49 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
     if (status === 401) res.setHeader('www-authenticate', `Bearer resource_metadata="${publicURL.origin}/.well-known/oauth-protected-resource/mcp", scope="botters:play"${supplied ? ', error="invalid_token"' : ''}`)
     return send(res, status, status === 401 ? 'Authentication required' : 'Authorization unavailable')
   }
+  // One tool instance per OAuth grant: hosted assistants (ChatGPT) open a new MCP
+  // session per tool call, and match state lives in the instance. Unauthenticated
+  // sessions keep one instance each.
+  const instances = new Map()
+  function acquire(key, principal) {
+    let instance = instances.get(key)
+    if (!instance) {
+      const [bridge, tools] = InMemoryTransport.createLinkedPair()
+      const client = new Client({ name: 'botters-web-bridge', version: '0.1.0' })
+      instance = { key, client, refs: 0 }
+      instances.set(key, instance)
+      instance.ready = (async () => {
+        const mcp = await createBottersTools({ server: game.origin, setup: 'web-mcp', agentToken: principal?.agentToken, requireAgentToken: !!principal })
+        await Promise.all([mcp.connect(tools), client.connect(bridge, { timeout: 10000 })])
+        client.onclose = () => { if (instances.get(key) === instance) instances.delete(key); for (const e of entries) if (e.instance === instance) void dispose(e) }
+      })()
+      instance.ready.catch(() => { if (instances.get(key) === instance) instances.delete(key) })
+    }
+    instance.refs++
+    return instance
+  }
+  async function release(instance) {
+    if (--instance.refs > 0) return
+    if (instances.get(instance.key) === instance) instances.delete(instance.key)
+    await instance.ready.catch(() => {})
+    await instance.client.close()
+  }
   function dispose(entry) {
     if (entry.closing) return entry.closing
     entry.closing = (async () => {
       sessions.delete(entry.id)
       await entry.ready?.catch(() => {})
-      await Promise.allSettled([entry.client.close(), entry.mcp.close()])
+      await Promise.allSettled([release(entry.instance), entry.mcp.close()])
       entries.delete(entry)
     })()
     return entry.closing
   }
   async function startSession(principal) {
-    const id = randomUUID()
-    const stdio = new StdioClientTransport({
-      command: process.execPath,
-      // client.js normally reads .env. Disable that loader before importing it:
-      // this gateway must never gain credentials from the checkout or parent.
-      args: ['--input-type=module', '--eval', `process.loadEnvFile = () => {}; await import(${JSON.stringify(new URL('./client.js', import.meta.url).href)})`],
-      cwd: fileURLToPath(new URL('.', import.meta.url)),
-      env: { BOTTERS_SERVER: game.origin, BOTTERS_OPEN: '0', BOTTERS_SETUP: 'web-mcp', ...(principal ? { BOTTERS_AGENT_TOKEN: principal.agentToken, BOTTERS_REQUIRE_AGENT_TOKEN: '1' } : {}) },
-      stderr: 'ignore',
-    })
-    const client = new Client({ name: 'botters-web-bridge', version: '0.1.0' })
+    const id = randomUUID(), key = principal?.grantId || id
+    const instance = acquire(key, principal), client = instance.client
     const mcp = new Server({ name: 'botters', version: '0.2.0' }, { capabilities: { tools: {} } })
-    const entry = { id, client, mcp, lastUsed: Date.now(), initialized: false, usedTools: false, busy: 0, grantId: principal?.grantId, clientId: principal?.clientId }
-    entries.add(entry) // Reserve capacity before any async child startup.
+    const entry = { id, instance, client, mcp, lastUsed: Date.now(), initialized: false, usedTools: false, busy: 0, grantId: principal?.grantId, clientId: principal?.clientId }
+    entries.add(entry) // Reserve capacity before any async instance startup.
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => id, enableJsonResponse: true,
       onsessioninitialized: () => sessions.set(id, entry),
@@ -81,9 +100,8 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
     })
     mcp.setRequestHandler(CallToolRequestSchema, (request, extra) => forward(request, CallToolResultSchema, extra))
     entry.ready = (async () => {
-      await client.connect(stdio, { timeout: 10000 })
+      await instance.ready
       await mcp.connect(transport)
-      client.onclose = () => { void dispose(entry) }
       mcp.onclose = () => { void dispose(entry) }
     })()
     try { await entry.ready; return entry }
@@ -130,17 +148,26 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
       }
       if (!entry) {
         if (req.method !== 'POST' || !InitializeRequestSchema.safeParse(body).success) return send(res, 400, 'Initialize a session first')
-        if (entries.size >= maxSessions) {
+        // maxSessions bounds tool instances (agents); a grant's extra sessions share its instance.
+        const full = () => !instances.has(principal?.grantId) && instances.size >= maxSessions
+        if (full()) {
           // Discovery has no game capability; a tool session may own approval or a live match.
-          const discovery = [...entries].filter(e => e.initialized && !e.usedTools && !e.busy && !e.closing).sort((a, b) => a.lastUsed - b.lastUsed)[0]
+          const discovery = [...entries].filter(e => e.initialized && !e.usedTools && !e.busy && !e.closing && e.instance.refs === 1).sort((a, b) => a.lastUsed - b.lastUsed)[0]
           if (discovery) await dispose(discovery)
           // Cleanup yielded: another initializer may already have reserved the released slot.
-          if (entries.size >= maxSessions) { res.setHeader('retry-after', '1'); return send(res, 429, 'Session limit reached') }
+          if (full()) { res.setHeader('retry-after', '1'); return send(res, 429, 'Session limit reached') }
+        }
+        // Reserve synchronously: at eight sessions, evict the oldest idle one or reject.
+        const own = principal ? [...entries].filter(e => e.instance.key === principal.grantId && !e.closing) : []
+        if (own.length >= 8) {
+          const idle = own.filter(e => !e.busy).sort((a, b) => a.lastUsed - b.lastUsed)[0]
+          if (!idle) { res.setHeader('retry-after', '1'); return send(res, 429, 'Session limit reached') }
+          void dispose(idle)
         }
         entry = created = await startSession(principal)
         if (stopping || res.destroyed) { await dispose(entry); return send(res, 503, 'Gateway stopping') }
       }
-      // Body reads/child startup yielded; another request may have revoked this grant.
+      // Body reads/instance startup yielded; another request may have revoked this grant.
       if (principal && (!authorization.isActive(principal.grantId) || principal.expiresAt <= Date.now())) {
         if (entry) await dispose(entry)
         return unauthenticated(res, 401, true)
@@ -154,7 +181,7 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
       }
     } catch {
       if (created) await dispose(created)
-      send(res, 500, 'MCP request failed') // Never log arguments, results or child errors.
+      send(res, 500, 'MCP request failed') // Never log arguments, results or internal errors.
     }
   })
   server.requestTimeout = 15000

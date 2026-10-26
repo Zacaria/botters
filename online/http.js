@@ -40,11 +40,12 @@ export function createHandler(store, options = {}) {
       const gameOrigin = options.requireAccount ? options.env?.BOTTERS_AUTH_ORIGIN || process.env.BOTTERS_AUTH_ORIGIN || 'https://botters.havesomecode.io' : origin
       game = options.runtime || new OnlineGame(store.scoped?.() || store, { ...options, identity, origin: gameOrigin, deadline })
       if (req.method === 'POST' && ['/session', '/agent/pair'].includes(path)) {
+        // Every OAuth connection pairs from the one MCP gateway IP, so pairing gets a larger shared budget.
         const ip = req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown'
         const key = `session-limit:${createHash('sha256').update(String(ip)).digest('hex')}:${Math.floor(Date.now() / 600000)}`
         await transaction(store, async tx => {
           const rate = await tx.get(key, { n: 0 }, 600)
-          if (rate.n >= 20) throw Object.assign(new Error('Too many new lobbies. Retry in ten minutes.'), { status: 429 })
+          if (rate.n >= (path === '/agent/pair' ? 200 : 20)) throw Object.assign(new Error('Too many new lobbies. Retry in ten minutes.'), { status: 429 })
           rate.n++
         }, { deadline })
       }

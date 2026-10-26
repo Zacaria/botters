@@ -87,13 +87,13 @@ const data = result => JSON.parse(result.content[0].text)
 const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
 const assertTools = tools => assert.deepEqual(tools.map(t => t.name).sort(), toolNames)
 
-test('OAuth protects every MCP request before allocating a child and advertises its canonical resource', async t => {
+test('OAuth protects every MCP request before allocating an instance and advertises its canonical resource', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'botters-oauth-gateway-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   const g = await gateway(t, { oauth: { stateFile: join(dir, 'state', 'oauth.json') } })
   for (const method of ['GET', 'POST', 'DELETE']) {
     const r = await g.request('/mcp', { method })
-    assert.equal(r.status, 401, `${method} must require a token before parsing or starting a child`)
+    assert.equal(r.status, 401, `${method} must require a token before parsing or starting an instance`)
     assert.match(r.headers.get('www-authenticate'), /resource_metadata="https:\/\/pilot\.example\/\.well-known\/oauth-protected-resource\/mcp"/)
     assert.match(r.headers.get('www-authenticate'), /scope="botters:play"/)
   }
@@ -107,13 +107,15 @@ test('OAuth protects every MCP request before allocating a child and advertises 
   })
 })
 
-test('approved OAuth grants own their real SDK sessions and children through refresh and revocation', { timeout: 20000 }, async t => {
+test('approved OAuth grants own their real SDK sessions and instances through refresh and revocation', { timeout: 20000 }, async t => {
   const dir = await mkdtemp(join(tmpdir(), 'botters-oauth-isolation-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   const accounts = Object.fromEntries(['alice', 'bob'].map(id => [id, { id: `oauth-isolation-${id}`, name: id, emailVerified: true }]))
-  let handler, pairRequests = 0
+  let handler, pairRequests = 0, holdEvents = false
+  const heldEvents = []
   const upstreamServer = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://localhost')
+    if (holdEvents && u.pathname === '/events') { heldEvents.push(() => handler(req, res)); return }
     if (u.pathname === '/next') { u.searchParams.set('timeout', '0'); req.url = u.pathname + u.search }
     if (u.pathname === '/agent/pair') pairRequests++
     handler(req, res)
@@ -143,12 +145,58 @@ test('approved OAuth grants own their real SDK sessions and children through ref
     const { redirect } = await completed.json()
     const issued = await form('/token', { client_id: client.client_id, grant_type: 'authorization_code', code: new URL(redirect).searchParams.get('code'), code_verifier: verifier, redirect_uri: client.redirect_uris[0], resource: 'https://pilot.example/mcp' })
     assert.equal(issued.status, 200)
-    return { client, tokens: await issued.json() }
+    return { client, tokens: await issued.json(), human, humanPost }
   }
   const alice = await login('alice'), bob = await login('bob')
+  await t.test('one grant retains at most eight sessions after concurrent initialization', async () => {
+    const headers = { authorization: 'Bearer ' + alice.tokens.access_token, 'content-type': 'application/json', accept: 'application/json, text/event-stream' }
+    const initialize = () => g.request('/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'limit-test', version: '1' } } }) })
+    const first = await initialize()
+    assert.equal(first.status, 200)
+    const firstId = first.headers.get('mcp-session-id')
+    for (let i = 0; i < 8; i++) assert.equal((await initialize()).status, 200)
+    assert.equal((await g.request('/mcp', { headers: { ...headers, 'mcp-session-id': firstId } })).status, 404)
+    const responses = await Promise.all(Array.from({ length: 12 }, initialize))
+    assert.ok(responses.every(r => r.status === 200))
+    const ids = responses.map(r => r.headers.get('mcp-session-id'))
+    const statuses = await Promise.all(ids.map(id => g.request('/mcp', { headers: { ...headers, 'mcp-session-id': id } }).then(r => r.status)))
+    assert.ok(statuses.filter(status => status !== 404).length <= 8, `live sessions: ${statuses.filter(status => status !== 404).length}`)
+    await Promise.all(ids.map(id => g.request('/mcp', { method: 'DELETE', headers: { ...headers, 'mcp-session-id': id } })))
+  })
+  const before = await children()
   const a = await g.connect(alice.tokens.access_token), b = await g.connect(bob.tokens.access_token)
+  assert.deepEqual((await children()).filter(pid => !before.includes(pid)), [])
   assertTools((await a.client.listTools()).tools)
-  assert.equal(data(await a.client.callTool({ name: 'join_match', arguments: {} })).waiting, true)
+  // ChatGPT opens a new MCP session per tool call: the grant's sessions share one instance (and its match state).
+  const pids = await children(), again = await g.connect(alice.tokens.access_token)
+  assertTools((await again.client.listTools()).tools)
+  assert.deepEqual((await children()).filter(pid => !pids.includes(pid)), [])
+  const waiting = data(await a.client.callTool({ name: 'join_match', arguments: {} }))
+  assert.equal(waiting.waiting, true)
+  assert.deepEqual(data(await again.client.callTool({ name: 'join_match', arguments: {} })), waiting)
+  assert.deepEqual(await alice.humanPost('/play?token=' + alice.human.humanToken, { vs: 'easy', withAgent: true, planning: 10 }), { ok: true })
+  assert.ok(data(await a.client.callTool({ name: 'join_match', arguments: {} })).state)
+  await t.test('a grant with eight busy sessions rejects another initialization', async () => {
+    const extra = []
+    for (let i = 0; i < 6; i++) extra.push(await g.connect(alice.tokens.access_token))
+    holdEvents = true
+    const calls = [a, again, ...extra].map(s => s.client.callTool({ name: 'wait_for_event', arguments: { timeout_s: 1 } }))
+    try {
+      for (let i = 0; i < 200 && heldEvents.length < 8; i++) await sleep(10)
+      assert.equal(heldEvents.length, 8)
+      const r = await g.request('/mcp', { method: 'POST', headers: { authorization: 'Bearer ' + alice.tokens.access_token, 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'limit-test', version: '1' } } }) })
+      assert.equal(r.status, 429)
+      assert.equal(r.headers.get('retry-after'), '1')
+      assert.deepEqual(await r.json(), { error: 'Session limit reached' })
+    } finally {
+      holdEvents = false
+      heldEvents.splice(0).forEach(release => release())
+      await Promise.allSettled(calls)
+      await Promise.all(extra.map(s => s.client.close()))
+    }
+  })
+  assert.ok(data(await again.client.callTool({ name: 'wait_for_event', arguments: { timeout_s: 1 } })).state)
+  assert.match((await b.client.callTool({ name: 'wait_for_event', arguments: {} })).content[0].text, /Not in a match/)
   const ownSession = { 'mcp-session-id': a.transport.sessionId }
   for (const method of ['GET', 'POST', 'DELETE']) {
     assert.equal((await g.request('/mcp', { method, headers: ownSession })).status, 401)
@@ -163,7 +211,19 @@ test('approved OAuth grants own their real SDK sessions and children through ref
   assert.equal((await g.request('/mcp', { headers: { ...ownSession, authorization: 'Bearer ' + rotated.access_token } })).status, 401)
   assertTools((await b.client.listTools()).tools)
   assert.equal(data(await b.client.callTool({ name: 'join_match', arguments: {} })).waiting, true)
-  assert.equal(pairRequests, 2, 'stdio children must reuse their approved grants, never create another pairing')
+  assert.equal(pairRequests, 2, 'instances must reuse their approved grants, never create another pairing')
+})
+
+test('each new tool instance reads current live configuration', async t => {
+  let configReads = 0
+  const upstreamServer = http.createServer((req, res) => {
+    if (req.url === '/live-config.json') { configReads++; res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{}') }
+    res.writeHead(404); res.end()
+  })
+  const upstream = await listen(upstreamServer); t.after(() => stop(upstreamServer))
+  const g = await gateway(t, { server: upstream })
+  await g.connect(); assert.equal(configReads, 1)
+  await g.connect(); assert.equal(configReads, 2)
 })
 
 test('boundary checks reject wrong host/origin, oversized bodies and missing/invalid/unknown sessions', async t => {
@@ -188,7 +248,7 @@ test('boundary checks reject wrong host/origin, oversized bodies and missing/inv
   assert.equal((await g.request('/health').then(r => r.json())).sessions, 0)
 })
 
-test('bounded admission, idle expiry and process cleanup use real MCP children', { timeout: 15000 }, async t => {
+test('bounded admission, idle expiry and instance cleanup', { timeout: 15000 }, async t => {
   const f = await fixture(t), g = await gateway(t, { server: f.upstream, maxSessions: 1, idleMs: 1000 })
   const before = await children()
   const admissions = await Promise.allSettled([g.connect(), g.connect()])
@@ -196,6 +256,7 @@ test('bounded admission, idle expiry and process cleanup use real MCP children',
   assert.equal(admissions.find(r => r.status === 'rejected').reason.code, 429)
   const first = admissions.find(r => r.status === 'fulfilled').value
   const owned = (await children()).filter(pid => !before.includes(pid))
+  assert.deepEqual(owned, [])
   assert.equal(data(await first.client.callTool({ name: 'join_match', arguments: {} })).waiting, true)
   await assert.rejects(g.connect(), { code: 429 })
   const id = first.transport.sessionId
@@ -232,7 +293,7 @@ test('repeated discovery cannot exhaust slots or evict a pending game approval',
   assert.deepEqual(await g.request('/health').then(r => r.json()), { sessions: 2, toolSessions: 2, discoverySessions: 0 })
 })
 
-test('tool errors and a dead child cannot poison another HTTP session', { timeout: 15000 }, async t => {
+test('tool errors cannot poison another HTTP session', { timeout: 15000 }, async t => {
   const f = await fixture(t), g = await gateway(t, { server: f.upstream })
   const before = await children(), one = await g.connect()
   const owned = (await children()).filter(pid => !before.includes(pid))
@@ -240,18 +301,11 @@ test('tool errors and a dead child cannot poison another HTTP session', { timeou
   const refused = await one.client.callTool({ name: 'not_a_tool', arguments: {} })
   assert.equal(refused.isError, true)
   assertTools((await two.client.listTools()).tools)
-  if (process.platform === 'linux') {
-    assert.equal(owned.length, 1)
-    process.kill(owned[0], 'SIGKILL')
-    await exited(owned)
-    for (let i = 0; i < 30 && (await g.request('/health').then(r => r.json())).sessions !== 1; i++) await sleep(25)
-    assert.equal((await g.request('/health').then(r => r.json())).sessions, 1)
-    assertTools((await two.client.listTools()).tools)
-    await assert.rejects(one.client.listTools())
-  }
+  assert.deepEqual(owned, [])
+  assertTools((await one.client.listTools()).tools)
 })
 
-test('CLI consumes explicit configuration, binds loopback, and SIGTERM reaps its real client', { timeout: 15000 }, async t => {
+test('CLI consumes explicit configuration, binds loopback, and SIGTERM closes its sessions', { timeout: 15000 }, async t => {
   const f = await fixture(t), probe = http.createServer(), local = await listen(probe)
   await stop(probe)
   const child = spawn(process.execPath, ['web-mcp.js'], { cwd: root, stdio: 'ignore', env: { PATH: process.env.PATH, BOTTERS_SERVER: f.upstream, BOTTERS_MCP_ORIGIN: 'https://pilot.example', BOTTERS_MCP_ALLOW_NO_AUTH: '1', PORT: new URL(local).port } })
@@ -263,7 +317,7 @@ test('CLI consumes explicit configuration, binds loopback, and SIGTERM reaps its
   const client = new Client({ name: 'cli-test', version: '1' }); t.after(() => client.close()); await client.connect(transport)
   assertTools((await client.listTools()).tools)
   const owned = await children(child.pid)
-  if (process.platform === 'linux') assert.equal(owned.length, 1)
+  if (process.platform === 'linux') assert.equal(owned.length, 0)
   const finished = new Promise(r => child.once('exit', r)); child.kill('SIGTERM'); await finished
   await exited(owned)
 })
@@ -280,14 +334,14 @@ test('configuration requires explicit safe origins and finite resource bounds', 
   ]) assert.throws(() => createWebMcp(options))
 })
 
-test('real HTTP/stdio gateway discovers and executes seven tools with isolated lobby identities', { timeout: 30000 }, async t => {
+test('real HTTP/in-process gateway discovers and executes seven tools with isolated lobby identities', { timeout: 30000 }, async t => {
   const f = await fixture(t), g = await gateway(t, { server: f.upstream })
   const directTransport = new StdioClientTransport({ command: process.execPath, args: childArgs, cwd: root, env: { BOTTERS_SERVER: f.upstream, BOTTERS_OPEN: '0' }, stderr: 'ignore' })
   const direct = new Client({ name: 'schema-reference', version: '1' }); t.after(() => direct.close()); await direct.connect(directTransport)
   const before = await children()
   const one = await g.connect(), two = await g.connect()
   const owned = (await children()).filter(pid => !before.includes(pid))
-  if (process.platform === 'linux') assert.equal(owned.length, 2, 'one actual stdio child per session')
+  if (process.platform === 'linux') assert.equal(owned.length, 0, 'gateway spawns no children')
   assert.notEqual(one.transport.sessionId, two.transport.sessionId)
   assert.match(one.transport.sessionId, /^[0-9a-f-]{36}$/)
   const listed = await one.client.listTools(), reference = await direct.listTools()
