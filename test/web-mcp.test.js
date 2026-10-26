@@ -111,9 +111,11 @@ test('approved OAuth grants own their real SDK sessions and instances through re
   const dir = await mkdtemp(join(tmpdir(), 'botters-oauth-isolation-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   const accounts = Object.fromEntries(['alice', 'bob'].map(id => [id, { id: `oauth-isolation-${id}`, name: id, emailVerified: true }]))
-  let handler, pairRequests = 0
+  let handler, pairRequests = 0, holdEvents = false
+  const heldEvents = []
   const upstreamServer = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://localhost')
+    if (holdEvents && u.pathname === '/events') { heldEvents.push(() => handler(req, res)); return }
     if (u.pathname === '/next') { u.searchParams.set('timeout', '0'); req.url = u.pathname + u.search }
     if (u.pathname === '/agent/pair') pairRequests++
     handler(req, res)
@@ -146,6 +148,21 @@ test('approved OAuth grants own their real SDK sessions and instances through re
     return { client, tokens: await issued.json(), human, humanPost }
   }
   const alice = await login('alice'), bob = await login('bob')
+  await t.test('one grant retains at most eight sessions after concurrent initialization', async () => {
+    const headers = { authorization: 'Bearer ' + alice.tokens.access_token, 'content-type': 'application/json', accept: 'application/json, text/event-stream' }
+    const initialize = () => g.request('/mcp', { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'limit-test', version: '1' } } }) })
+    const first = await initialize()
+    assert.equal(first.status, 200)
+    const firstId = first.headers.get('mcp-session-id')
+    for (let i = 0; i < 8; i++) assert.equal((await initialize()).status, 200)
+    assert.equal((await g.request('/mcp', { headers: { ...headers, 'mcp-session-id': firstId } })).status, 404)
+    const responses = await Promise.all(Array.from({ length: 12 }, initialize))
+    assert.ok(responses.every(r => r.status === 200))
+    const ids = responses.map(r => r.headers.get('mcp-session-id'))
+    const statuses = await Promise.all(ids.map(id => g.request('/mcp', { headers: { ...headers, 'mcp-session-id': id } }).then(r => r.status)))
+    assert.ok(statuses.filter(status => status !== 404).length <= 8, `live sessions: ${statuses.filter(status => status !== 404).length}`)
+    await Promise.all(ids.map(id => g.request('/mcp', { method: 'DELETE', headers: { ...headers, 'mcp-session-id': id } })))
+  })
   const before = await children()
   const a = await g.connect(alice.tokens.access_token), b = await g.connect(bob.tokens.access_token)
   assert.deepEqual((await children()).filter(pid => !before.includes(pid)), [])
@@ -159,6 +176,25 @@ test('approved OAuth grants own their real SDK sessions and instances through re
   assert.deepEqual(data(await again.client.callTool({ name: 'join_match', arguments: {} })), waiting)
   assert.deepEqual(await alice.humanPost('/play?token=' + alice.human.humanToken, { vs: 'easy', withAgent: true, planning: 10 }), { ok: true })
   assert.ok(data(await a.client.callTool({ name: 'join_match', arguments: {} })).state)
+  await t.test('a grant with eight busy sessions rejects another initialization', async () => {
+    const extra = []
+    for (let i = 0; i < 6; i++) extra.push(await g.connect(alice.tokens.access_token))
+    holdEvents = true
+    const calls = [a, again, ...extra].map(s => s.client.callTool({ name: 'wait_for_event', arguments: { timeout_s: 1 } }))
+    try {
+      for (let i = 0; i < 200 && heldEvents.length < 8; i++) await sleep(10)
+      assert.equal(heldEvents.length, 8)
+      const r = await g.request('/mcp', { method: 'POST', headers: { authorization: 'Bearer ' + alice.tokens.access_token, 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'limit-test', version: '1' } } }) })
+      assert.equal(r.status, 429)
+      assert.equal(r.headers.get('retry-after'), '1')
+      assert.deepEqual(await r.json(), { error: 'Session limit reached' })
+    } finally {
+      holdEvents = false
+      heldEvents.splice(0).forEach(release => release())
+      await Promise.allSettled(calls)
+      await Promise.all(extra.map(s => s.client.close()))
+    }
+  })
   assert.ok(data(await again.client.callTool({ name: 'wait_for_event', arguments: { timeout_s: 1 } })).state)
   assert.match((await b.client.callTool({ name: 'wait_for_event', arguments: {} })).content[0].text, /Not in a match/)
   const ownSession = { 'mcp-session-id': a.transport.sessionId }

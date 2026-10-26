@@ -71,9 +71,6 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
   }
   async function startSession(principal) {
     const id = randomUUID(), key = principal?.grantId || id
-    // ponytail: 8 sessions per grant, oldest idle one dropped; its client re-initializes on 404.
-    const own = [...entries].filter(e => e.instance?.key === key && !e.busy && !e.closing).sort((a, b) => a.lastUsed - b.lastUsed)
-    for (const old of own.slice(0, Math.max(0, own.length - 7))) await dispose(old)
     const instance = acquire(key, principal), client = instance.client
     const mcp = new Server({ name: 'botters', version: '0.2.0' }, { capabilities: { tools: {} } })
     const entry = { id, instance, client, mcp, lastUsed: Date.now(), initialized: false, usedTools: false, busy: 0, grantId: principal?.grantId, clientId: principal?.clientId }
@@ -159,6 +156,13 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
           if (discovery) await dispose(discovery)
           // Cleanup yielded: another initializer may already have reserved the released slot.
           if (full()) { res.setHeader('retry-after', '1'); return send(res, 429, 'Session limit reached') }
+        }
+        // Reserve synchronously: at eight sessions, evict the oldest idle one or reject.
+        const own = principal ? [...entries].filter(e => e.instance.key === principal.grantId && !e.closing) : []
+        if (own.length >= 8) {
+          const idle = own.filter(e => !e.busy).sort((a, b) => a.lastUsed - b.lastUsed)[0]
+          if (!idle) { res.setHeader('retry-after', '1'); return send(res, 429, 'Session limit reached') }
+          void dispose(idle)
         }
         entry = created = await startSession(principal)
         if (stopping || res.destroyed) { await dispose(entry); return send(res, 503, 'Gateway stopping') }
