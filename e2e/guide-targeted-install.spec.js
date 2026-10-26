@@ -195,8 +195,8 @@ test('global setup, manual fallbacks and truthful connection paths remain usable
   await expect(fallback.locator('..')).toContainText('"mcpServers"')
   await page.keyboard.press('Enter')
   for (const [link, section, text] of [
-    ['Web interface', '#web-client', 'do not paste the install command into a web chat'],
-    ['Phone', '#phone', 'does not establish touch-gameplay support'],
+    ['ChatGPT', '#web-client', 'https://play.botters.havesomecode.io/mcp'],
+    ['Phone', '#phone', 'have not been tested'],
   ]) {
     await tabTo(page, page.getByRole('link', { name: link, exact: true }))
     await page.keyboard.press('Enter')

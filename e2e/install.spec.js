@@ -64,14 +64,14 @@ for (const viewport of [{ width: 320, height: 640 }, { width: 390, height: 844 }
         const paths = page.getByRole('navigation', { name: 'Connection paths' })
         await expect(paths.getByRole('link')).toHaveCount(3)
         if (!javaScriptEnabled) await page.screenshot({ path: testInfo.outputPath(`chooser-${viewport.width}.png`) })
-        for (const [name, id] of [['Local client', 'local-client'], ['Web interface', 'web-client'], ['Phone', 'phone']]) {
+        for (const [name, id] of [['Local client', 'local-client'], ['ChatGPT', 'web-client'], ['Phone', 'phone']]) {
           await paths.getByRole('link', { name, exact: true }).click()
           await expect(page).toHaveURL(new RegExp(`#${id}$`))
           await expect(page.locator(`#${id}`)).toBeInViewport()
         }
         for (const id of ['web-client', 'phone']) {
           const route = page.locator(`#${id}`)
-          await expect(route).toContainText('does not demonstrate a direct MCP connection')
+          await expect(route).toContainText(id === 'web-client' ? 'https://play.botters.havesomecode.io/mcp' : 'have not been tested')
           await route.getByRole('link', { name: 'Go to local client setup' }).click()
           await expect(page).toHaveURL(/#local-client$/)
         }
@@ -108,8 +108,8 @@ test('guide paths and manual fallback work with the keyboard without JavaScript'
     await page.goto('/guide')
     const paths = page.getByRole('navigation', { name: 'Connection paths' })
     await paths.getByRole('link', { name: 'Local client', exact: true }).focus()
-    await page.keyboard.press('Tab')
-    await expect(paths.getByRole('link', { name: 'Web interface', exact: true })).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(paths.getByRole('link', { name: 'ChatGPT', exact: true })).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/#web-client$/)
     await page.locator('#web-client').getByRole('link', { name: 'Go to local client setup' }).focus()
