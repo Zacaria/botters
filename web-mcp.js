@@ -31,30 +31,57 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
     if (status === 401) res.setHeader('www-authenticate', `Bearer resource_metadata="${publicURL.origin}/.well-known/oauth-protected-resource/mcp", scope="botters:play"${supplied ? ', error="invalid_token"' : ''}`)
     return send(res, status, status === 401 ? 'Authentication required' : 'Authorization unavailable')
   }
+  // One stdio child per OAuth grant: hosted assistants (ChatGPT) open a new MCP
+  // session per tool call, and match state lives in the child. Unauthenticated
+  // sessions keep one child each.
+  const children = new Map()
+  function acquire(key, principal) {
+    let child = children.get(key)
+    if (!child) {
+      const stdio = new StdioClientTransport({
+        command: process.execPath,
+        // client.js normally reads .env. Disable that loader before importing it:
+        // this gateway must never gain credentials from the checkout or parent.
+        args: ['--input-type=module', '--eval', `process.loadEnvFile = () => {}; await import(${JSON.stringify(new URL('./client.js', import.meta.url).href)})`],
+        cwd: fileURLToPath(new URL('.', import.meta.url)),
+        env: { BOTTERS_SERVER: game.origin, BOTTERS_OPEN: '0', BOTTERS_SETUP: 'web-mcp', ...(principal ? { BOTTERS_AGENT_TOKEN: principal.agentToken, BOTTERS_REQUIRE_AGENT_TOKEN: '1' } : {}) },
+        stderr: 'ignore',
+      })
+      const client = new Client({ name: 'botters-web-bridge', version: '0.1.0' })
+      child = { key, client, refs: 0 }
+      children.set(key, child)
+      child.ready = client.connect(stdio, { timeout: 10000 }).then(() => {
+        client.onclose = () => { if (children.get(key) === child) children.delete(key); for (const e of entries) if (e.child === child) void dispose(e) }
+      })
+      child.ready.catch(() => { if (children.get(key) === child) children.delete(key) })
+    }
+    child.refs++
+    return child
+  }
+  async function release(child) {
+    if (--child.refs > 0) return
+    if (children.get(child.key) === child) children.delete(child.key)
+    await child.ready.catch(() => {})
+    await child.client.close()
+  }
   function dispose(entry) {
     if (entry.closing) return entry.closing
     entry.closing = (async () => {
       sessions.delete(entry.id)
       await entry.ready?.catch(() => {})
-      await Promise.allSettled([entry.client.close(), entry.mcp.close()])
+      await Promise.allSettled([release(entry.child), entry.mcp.close()])
       entries.delete(entry)
     })()
     return entry.closing
   }
   async function startSession(principal) {
-    const id = randomUUID()
-    const stdio = new StdioClientTransport({
-      command: process.execPath,
-      // client.js normally reads .env. Disable that loader before importing it:
-      // this gateway must never gain credentials from the checkout or parent.
-      args: ['--input-type=module', '--eval', `process.loadEnvFile = () => {}; await import(${JSON.stringify(new URL('./client.js', import.meta.url).href)})`],
-      cwd: fileURLToPath(new URL('.', import.meta.url)),
-      env: { BOTTERS_SERVER: game.origin, BOTTERS_OPEN: '0', BOTTERS_SETUP: 'web-mcp', ...(principal ? { BOTTERS_AGENT_TOKEN: principal.agentToken, BOTTERS_REQUIRE_AGENT_TOKEN: '1' } : {}) },
-      stderr: 'ignore',
-    })
-    const client = new Client({ name: 'botters-web-bridge', version: '0.1.0' })
+    const id = randomUUID(), key = principal?.grantId || id
+    // ponytail: 8 sessions per grant, oldest idle one dropped; its client re-initializes on 404.
+    const own = [...entries].filter(e => e.child?.key === key && !e.busy && !e.closing).sort((a, b) => a.lastUsed - b.lastUsed)
+    for (const old of own.slice(0, Math.max(0, own.length - 7))) await dispose(old)
+    const child = acquire(key, principal), client = child.client
     const mcp = new Server({ name: 'botters', version: '0.2.0' }, { capabilities: { tools: {} } })
-    const entry = { id, client, mcp, lastUsed: Date.now(), initialized: false, usedTools: false, busy: 0, grantId: principal?.grantId, clientId: principal?.clientId }
+    const entry = { id, child, client, mcp, lastUsed: Date.now(), initialized: false, usedTools: false, busy: 0, grantId: principal?.grantId, clientId: principal?.clientId }
     entries.add(entry) // Reserve capacity before any async child startup.
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => id, enableJsonResponse: true,
@@ -81,9 +108,8 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
     })
     mcp.setRequestHandler(CallToolRequestSchema, (request, extra) => forward(request, CallToolResultSchema, extra))
     entry.ready = (async () => {
-      await client.connect(stdio, { timeout: 10000 })
+      await child.ready
       await mcp.connect(transport)
-      client.onclose = () => { void dispose(entry) }
       mcp.onclose = () => { void dispose(entry) }
     })()
     try { await entry.ready; return entry }
@@ -130,12 +156,14 @@ export function createWebMcp({ server: upstream, origin, oauth = {}, maxSessions
       }
       if (!entry) {
         if (req.method !== 'POST' || !InitializeRequestSchema.safeParse(body).success) return send(res, 400, 'Initialize a session first')
-        if (entries.size >= maxSessions) {
+        // maxSessions bounds child processes (agents); a grant's extra sessions share its child.
+        const full = () => !children.has(principal?.grantId) && children.size >= maxSessions
+        if (full()) {
           // Discovery has no game capability; a tool session may own approval or a live match.
-          const discovery = [...entries].filter(e => e.initialized && !e.usedTools && !e.busy && !e.closing).sort((a, b) => a.lastUsed - b.lastUsed)[0]
+          const discovery = [...entries].filter(e => e.initialized && !e.usedTools && !e.busy && !e.closing && e.child.refs === 1).sort((a, b) => a.lastUsed - b.lastUsed)[0]
           if (discovery) await dispose(discovery)
           // Cleanup yielded: another initializer may already have reserved the released slot.
-          if (entries.size >= maxSessions) { res.setHeader('retry-after', '1'); return send(res, 429, 'Session limit reached') }
+          if (full()) { res.setHeader('retry-after', '1'); return send(res, 429, 'Session limit reached') }
         }
         entry = created = await startSession(principal)
         if (stopping || res.destroyed) { await dispose(entry); return send(res, 503, 'Gateway stopping') }

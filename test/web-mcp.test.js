@@ -148,6 +148,10 @@ test('approved OAuth grants own their real SDK sessions and children through ref
   const alice = await login('alice'), bob = await login('bob')
   const a = await g.connect(alice.tokens.access_token), b = await g.connect(bob.tokens.access_token)
   assertTools((await a.client.listTools()).tools)
+  // ChatGPT opens a new MCP session per tool call: the grant's sessions share one child (and its match state).
+  const pids = await children(), again = await g.connect(alice.tokens.access_token)
+  assertTools((await again.client.listTools()).tools)
+  assert.deepEqual((await children()).filter(pid => !pids.includes(pid)), [])
   assert.equal(data(await a.client.callTool({ name: 'join_match', arguments: {} })).waiting, true)
   const ownSession = { 'mcp-session-id': a.transport.sessionId }
   for (const method of ['GET', 'POST', 'DELETE']) {

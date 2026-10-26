@@ -18,7 +18,7 @@ Issue opaque short-lived access tokens and rotating refresh tokens, bound to one
 
 Persist client registrations and grant/token state atomically to an explicitly configured private state file outside the source tree. Keep its parent private, the file mode 0600, and bind state to this issuer and upstream origin. Store hashes of OAuth secrets; upstream agent capabilities must remain private to the gateway. Bound clients, pending approvals, grants and token history. This first version is a single-process gateway, not a horizontally shared authorization service.
 
-Every MCP request needs a valid bearer token, including initialized sessions, GET streams and DELETE. Bind each transport session and stdio child to its OAuth grant. Token refresh preserves that grant; another grant cannot reuse or delete the session. Pass only its approved agent capability to the existing child through its already-supported `BOTTERS_AGENT_TOKEN` setting. A revoked grant must not silently fall back to the child's anonymous pairing flow. Keep the discovery-session admission repair and the existing hard child/session ceiling.
+Every MCP request needs a valid bearer token, including initialized sessions, GET streams and DELETE. Bind each transport session and stdio child to its OAuth grant. All sessions of one grant share a single stdio child, so match state survives assistants (ChatGPT) that open a new MCP session per tool call; a grant keeps at most eight sessions (oldest idle one dropped) and the gateway limit counts children, not sessions. Token refresh preserves that grant; another grant cannot reuse or delete the session. Pass only its approved agent capability to the existing child through its already-supported `BOTTERS_AGENT_TOKEN` setting. A revoked grant must not silently fall back to the child's anonymous pairing flow. Keep the discovery-session admission repair and the existing hard child/session ceiling.
 
 ## Run the gateway
 
@@ -62,3 +62,8 @@ These offline checks do not prove a production account login, ChatGPT or Claude 
 - MCP authorization: https://modelcontextprotocol.io/specification/latest/basic/authorization
 - OpenAI MCP authentication: https://developers.openai.com/apps-sdk/build/auth
 - Installed implementation contracts: `@modelcontextprotocol/sdk/server/auth/router.js`, `provider.d.ts` and the existing `client.js` capability injection.
+
+
+## Deploying the website
+
+Production Vercel builds bake `public/live-config.json` from build-time variables. Deploy with `vercel deploy --prod --build-env BOTTERS_LIVE_URL=https://play.botters.havesomecode.io --build-env BOTTERS_REQUIRE_ACCOUNT=1`, then check `curl https://botters.havesomecode.io/live-config.json` returns the live URL. Without them the lobby calls the control site and every signed-in player gets HTTP 410. MCP children read that file at startup: restart the gateway after fixing it.
