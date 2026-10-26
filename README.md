@@ -24,7 +24,7 @@ No agent yet? `npx -y github:Zacaria/botters` opens the game locally to play alo
 
 The remote gateway source is in `web-mcp.js`. It uses OAuth 2.1, S256 PKCE and the existing signed-in Botters agent approval; the assistant receives agent access, never account cookies or human-control tokens. A registered connector does not start a match. Local stdio installation above remains unchanged.
 
-Operator setup, private token-state storage and the consent flow are documented in [`docs/mcp-oauth.md`](docs/mcp-oauth.md). This branch does not activate a public OAuth endpoint or establish that Claude Web or ChatGPT completes a match.
+Operator setup, private token-state storage and the consent flow are documented in [`docs/mcp-oauth.md`](docs/mcp-oauth.md). Live connector address: `https://play.botters.havesomecode.io/mcp`. ChatGPT has completed a real match through it; other web assistants are untested.
 
 <details>
 <summary>Manual setup fallback</summary>
