@@ -111,9 +111,9 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
   const human = await request(identity, 'POST', '/session')
   const initial = supplied ? await request(null, 'POST', '/agent/pair') : null
   if (initial) await request(identity, 'POST', '/agent/approve', human.humanToken, { id: initial.id })
-  const source = await readFile(new URL('../client.js', import.meta.url), 'utf8')
+  const source = await readFile(new URL('../tools.js', import.meta.url), 'utf8')
   const context = vm.createContext({
-    SERVER: origin, serverURL: new URL(origin), env: { ...(initial ? { BOTTERS_AGENT_TOKEN: initial.agentToken } : {}), ...(bound ? { BOTTERS_REQUIRE_AGENT_TOKEN: '1' } : {}) }, URL, AbortSignal, z,
+    SERVER: origin, serverURL: new URL(origin), agentToken: initial?.agentToken, requireAgentToken: bound, setup: 'agent', name: 'you', bypassSecret: undefined, URL, AbortSignal, z,
     openUrl: () => {}, log: () => {},
     McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
     fetch: async (target, options = {}) => {
@@ -124,7 +124,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
       catch (error) { return { ok: false, status: error.status || 500, json: async () => ({ error: error.message }) } }
     },
   })
-  const { S } = await new vm.Script(`(async () => { ${source.slice(source.indexOf('let liveServer ='), source.indexOf('if (!process.stdin.isTTY)'))}; return { S } })()`).runInContext(context)
+  const { S } = await new vm.Script(`(async () => { ${source.slice(source.indexOf('let liveServer ='), source.lastIndexOf('return mcp'))}; return { S } })()`).runInContext(context)
   const call = async (name, args = {}) => (await tools.get(name)(args)).content[0].text
   const approve = () => request(identity, 'POST', '/agent/approve', human.humanToken, { id: S.session.id })
   const join = async () => {

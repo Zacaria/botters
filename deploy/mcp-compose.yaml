@@ -25,8 +25,8 @@ services:
     networks:
       botters:
         aliases: [botters-mcp]
-    mem_limit: 1g
-    memswap_limit: 1g
+    mem_limit: 512m
+    memswap_limit: 512m
     cpus: 0.75
     pids_limit: 128
     read_only: true
