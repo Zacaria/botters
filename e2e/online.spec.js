@@ -20,6 +20,23 @@ test('agent play opens ChatGPT with a prepared prompt and waits for the agent', 
   await expect(page.locator('#big')).toContainText('waiting for your agent…')
   await expect(page.getByRole('button', { name: 'Start without agent' })).toBeVisible()
 })
+
+test('an authorized but idle agent still gets the Play with ChatGPT button', async ({ page, context, baseURL }) => {
+  const session = await (await context.request.post(`${baseURL}/session`, { data: { name: 'Idle agent player' } })).json()
+  await page.route('**/lobby?**', async route => {
+    const lobby = await (await route.fetch()).json()
+    await route.fulfill({ json: { ...lobby, agent: null, agentGranted: true } })
+  })
+  await page.goto('/')
+  await page.evaluate(token => {
+    localStorage.setItem('botters.session', token)
+    localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: true, assistant: 'ChatGPT' }))
+  }, session.humanToken)
+  await page.reload()
+  await expect(page.locator('#agentState')).toContainText('authorized')
+  await expect(page.getByRole('button', { name: 'Play with ChatGPT' })).toBeVisible()
+  await expect(page.locator('#play')).toBeHidden()
+})
 const remote = !!process.env.BOTTERS_SERVER
 const endTimeout = remote ? 240000 : 40000
 const errors = []
