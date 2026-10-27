@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, fromJSON, applyInput, step, advanceTo, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { transaction, checkDeadline } from './store.js'
 import { rankPairs } from './ratings.js'
 
@@ -62,9 +62,9 @@ function whatIf(m, p, log, deadline) {
     if (!Number.isFinite(deadline)) return replay(m.s.seed, entries, m.s.opts)
     const s = createMatch(m.s.seed, m.s.opts); let i = 0
     while (!s.ended) {
-      if (s.tick % 100 === 0) checkDeadline(deadline)
+      checkDeadline(deadline)
       for (; i < entries.length && entries[i].tick === s.tick; i++) applyInput(s, entries[i].side, entries[i].input)
-      step(s)
+      if (!s.ended) advanceTo(s, Math.min(s.tick + 100, entries[i]?.tick > s.tick ? entries[i].tick : Infinity))
     }
     return s
   }
@@ -80,7 +80,7 @@ function matchFrame(m, side, now) {
 }
 
 export class OnlineGame {
-  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId }
+  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId, handles = null } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId; this.handles = handles }
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
@@ -93,6 +93,18 @@ export class OnlineGame {
       const appendLog = async (m, entry) => {
         const chunk = await tx.get(`log:${m.id}:${Math.floor(m.logCount / 64)}`, [])
         chunk.push(entry); m.logCount++
+      }
+      const attachState = (m, state, initial = false) => {
+        delete m.s
+        Object.defineProperty(m, 's', { value: state, writable: true, configurable: true })
+        const original = state
+        tx.onRetry(() => { this.handles.get(m.id)?.free(); this.handles.delete(m.id) })
+        tx.beforeCommit(async () => {
+          if (initial || m.s !== original || (m.s.ended && !m.checkpointEnded) || m.s.tick - (m.checkpointTick ?? 0) >= 100) {
+            await tx.set(`state:${m.id}`, m.s.toJSON())
+            m.checkpointTick = m.s.tick; m.checkpointEnded = !!m.s.ended
+          }
+        })
       }
       const index = async () => {
         const idx = await tx.get('index', { queue: [], rooms: {} }, 0)
@@ -140,6 +152,16 @@ export class OnlineGame {
         if (!id) return null
         const m = await tx.get(`match:${id}`)
         if (!m) return null
+        if (typeof m.s?.toJSON !== 'function') {
+          const cached = this.handles?.get(id)
+          const checkpoint = cached ? null : (m.s || await tx.get(`state:${id}`))
+          const state = cached || fromJSON(checkpoint)
+          if (this.handles) {
+            // Reconstruct the already-reported interval without emitting it again.
+            if (!cached) while (state.tick < (m.stateTick ?? checkpoint.tick) && !state.ended) step(state)
+            this.handles.set(id, state); attachState(m, state, !!m.s)
+          } else m.s = state
+        }
         const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
 
         while (m.s.tick < target && !m.s.ended) {
@@ -148,11 +170,13 @@ export class OnlineGame {
           if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
         }
 
+        if (this.handles) m.stateTick = m.s.tick
         await finish(m)
         return m
       }
       const start = async (entries, req, roomCode = null) => {
         const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, planning: req.planning, startsAt: now + req.planning * 1000 }
+        if (this.handles) { m.options = m.s.opts; attachState(m, m.s, true) }
         entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
         for (const [side, e] of entries.entries()) {
           const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
@@ -165,6 +189,7 @@ export class OnlineGame {
           emit(m, p, `match starts in ${req.planning}s. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with three swarms of 3,000 particles. ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
         }
         await tx.set(`match:${m.id}`, m)
+        this.handles?.set(m.id, m.s)
         return m
       }
       if (method === 'INTERNAL' && path === '/tick') {
@@ -415,11 +440,13 @@ export class OnlineGame {
         p[sentKey].push(now)
         const input = cleanInput(body)
         if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
-        const candidate = structuredClone(m.s)
+        const candidate = fromJSON(m.s.toJSON())
         const result = applyInput(candidate, s.side, input)
-        if (!result.ok) fail(400, result.error)
-        if (JSON.stringify(candidate) === JSON.stringify(m.s)) return { ok: true }
+        if (!result.ok) { candidate.free(); fail(400, result.error) }
+        if (JSON.stringify(candidate) === JSON.stringify(m.s)) { candidate.free(); return { ok: true } }
+        m.s.free()
         m.s = candidate
+        this.handles?.set(m.id, candidate)
         await appendLog(m, { tick: m.s.tick, side: s.side, role: auth.role, input })
         const why = text(body.why, 120), list = m.s.gambits[s.side]
         if (body.gambits || body.toggle !== undefined) p.gambitsBy = { who: auth.role === 'agent' ? 'agent' : 'you', t: Math.floor(m.s.tick / TPS), why: why || (body.toggle !== undefined ? `switched rule ${body.toggle + 1}` : '') }

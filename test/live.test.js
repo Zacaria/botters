@@ -5,6 +5,24 @@ import { LiveRuntime } from '../online/live-runtime.js'
 import { MemoryStore } from '../online/store.js'
 const q = token => new URLSearchParams({ token })
 
+test('live frames reuse handles and restore between checkpoints', async t => {
+  let now = Date.now()
+  const store = new LiveStore(null, { now: () => now }), runtime = new LiveRuntime(store, { now: () => now })
+  t.after(() => runtime.close())
+  const player = await runtime.request('POST', '/session', undefined, { name: 'Checkpoint' })
+  await runtime.request('POST', '/play', q(player.humanToken), { minutes: 3, planning: 10 })
+  const first = await runtime.request('GET', '/state', q(player.humanToken)), id = first.matchId
+  const checkpoint = store.raw(`state:${id}`), handle = runtime.handles.get(id)
+  now += 10100
+  const frame = await runtime.request('GET', '/state', q(player.humanToken))
+  assert.equal(frame.view.tick, 2)
+  assert.equal(runtime.handles.get(id), handle)
+  assert.equal(store.raw(`state:${id}`), checkpoint)
+  assert.equal(JSON.parse(store.raw(`match:${id}`)).s, undefined)
+  runtime.clearHandles()
+  assert.deepEqual((await runtime.request('GET', '/state', q(player.humanToken))).view, frame.view)
+})
+
 test('live ticks, inputs and frames never touch durable storage; results persist once', async t => {
   let now = Date.now(), calls = 0
   const durable = new MemoryStore(() => now)
@@ -62,7 +80,7 @@ test('surrender persists once through a failed durable result boundary', async t
   const first = await runtime.request('GET', '/state', q(a.humanToken))
   fail = true
   await assert.rejects(runtime.request('POST', '/surrender', q(a.humanToken)), /offline/)
-  assert.equal(JSON.parse(store.raw(`match:${first.matchId}`)).s.ended, null)
+  assert.equal(JSON.parse(store.raw(`state:${first.matchId}`)).ended, null)
   fail = false
   await runtime.request('POST', '/surrender', q(a.humanToken))
   const end = await runtime.request('GET', '/state', q(a.humanToken))

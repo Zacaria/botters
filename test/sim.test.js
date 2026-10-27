@@ -3,10 +3,26 @@ import assert from 'node:assert/strict'
 import { createMatch, applyInput, step, view, addSwarm, totals, W, H, TPS, MAX_SWARMS, DEFAULT_GAMBITS, HOUSE, MODES, replay } from '../sim.js'
 
 const run = (s, ticks) => { for (let i = 0; i < ticks && !s.ended; i++) step(s) }
+const edit = (s, change) => { const json = s.toJSON(); change(json); s.load(json) }
+const tracked = (s, item, key = 'swarms') => new Proxy(item, {
+  get: (target, name) => s[key].find(o => o.id === target.id)?.[name] ?? target[name],
+  set: (target, name, value) => { edit(s, json => { json[key].find(o => o.id === target.id)[name] = value }); return true },
+})
 const empty = seed => { // planets kept, no starting swarms, both homes kept alive
-  const s = createMatch(seed); s.swarms = []; return s
+  const s = createMatch(seed); edit(s, json => { json.swarms = [] }); return s
 }
 const only = (s, side, gambits) => applyInput(s, side, { gambits })
+
+test('snapshot edits cannot mutate the match and load restores the exact state', () => {
+  const s = createMatch(42), original = JSON.stringify(s), data = s.toJSON()
+  data.swarms[0].n = 1234; data.planets[0].mass = 4567
+  assert.equal(JSON.stringify(s), original)
+  s.load(data)
+  assert.equal(s.swarms[0].n, 1234)
+  assert.equal(s.planets[0].mass, 4567)
+  s.load(original)
+  assert.equal(JSON.stringify(s), original)
+})
 
 test('surrender loses for either side, freezes the match and replays at the same tick', () => {
   for (const side of [0, 1]) for (const tick of [0, 40]) {
@@ -43,9 +59,9 @@ test('same seed and inputs give the same match; maps are mirrored and differ by 
 test('front law: the bigger swarm wins and keeps more than the old square law left (2646 of 4000 vs 3000)', () => {
   const s = empty(3)
   only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
-  const a = addSwarm(s, 0, 600, 350, 4000), b = addSwarm(s, 1, 610, 350, 3000)
+  const a = tracked(s, addSwarm(s, 0, 600, 350, 4000)), b = addSwarm(s, 1, 610, 350, 3000)
   run(s, 40 * TPS)
-  assert.ok(!s.swarms.includes(b))
+  assert.ok(!s.swarms.some(o => o.id === b.id))
   assert.ok(a.n + a.belly > 3000, `winner kept ${a.n} + ${a.belly} still digesting`)
 })
 
@@ -54,18 +70,18 @@ test('equal swarms do not melt each other for minutes: a fight ends in under a m
   only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
   const a = addSwarm(s, 0, 600, 350, 3000), b = addSwarm(s, 1, 601, 350, 3000)
   run(s, 60 * TPS)
-  assert.ok(!s.swarms.includes(a) || !s.swarms.includes(b), 'one side is gone')
+  assert.ok(!s.swarms.some(o => o.id === a.id) || !s.swarms.some(o => o.id === b.id), 'one side is gone')
 })
 
 test('hunger: a swarm that never touches a planet starves; touching one resets it', () => {
   const s = empty(6)
   only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
-  const lone = addSwarm(s, 0, 600, 20, 3000)
+  const lone = tracked(s, addSwarm(s, 0, 600, 20, 3000))
   run(s, 60 * TPS)
   assert.ok(lone.n < 3000, `starved to ${lone.n}`)
   assert.ok(view(s, 0).swarms[0].hunger >= 1)
   const t = empty(6); only(t, 0, [{ if: 'always', then: 'hold' }]); only(t, 1, [{ if: 'always', then: 'hold' }])
-  const home = addSwarm(t, 0, t.planets[0].x, t.planets[0].y, 3000)
+  const home = tracked(t, addSwarm(t, 0, t.planets[0].x, t.planets[0].y, 3000))
   run(t, 60 * TPS)
   assert.ok(home.n >= 3000, 'a swarm on a planet is fed')
 })
@@ -73,7 +89,7 @@ test('hunger: a swarm that never touches a planet starves; touching one resets i
 test('gambits: hungry goes to food', () => {
   const s = empty(7)
   only(s, 1, [{ if: 'always', then: 'hold' }])
-  const c = addSwarm(s, 0, 600, 300, 1000); c.meal = -10000
+  const c = tracked(s, addSwarm(s, 0, 600, 300, 1000)); c.meal = -10000
   only(s, 0, [{ if: 'hungry', then: 'go' }])
   run(s, 20)
   const p = s.planets.filter(q => q.mass > 0).sort((a, b) => Math.hypot(a.x - 600, a.y - 300) - Math.hypot(b.x - 600, b.y - 300))[0]
@@ -98,15 +114,14 @@ test('modes: sides, teams, symmetric homes and three swarms per side', () => {
 
 test('2v2: allies share vision, never fight, and the team wins together', () => {
   const s = createMatch(12, { mode: '2v2' })
-  s.swarms = []
+  edit(s, json => { json.swarms = [] })
   for (const side of [0, 1, 2, 3]) only(s, side, [{ if: 'always', then: 'hold' }])
-  const a = addSwarm(s, 0, 600, 350, 3000), ally = addSwarm(s, 1, 601, 350, 3000), foe = addSwarm(s, 2, 1000, 600, 3000)
+  const a = tracked(s, addSwarm(s, 0, 600, 350, 3000)), ally = tracked(s, addSwarm(s, 1, 601, 350, 3000)), foe = addSwarm(s, 2, 1000, 600, 3000)
   run(s, 5 * TPS)
   assert.equal(a.n >= 3000 && ally.n >= 3000, true, 'allies on the same spot do not hurt each other')
   assert.ok(view(s, 0).allies.some(c => c.id === ally.id))
   assert.ok(!view(s, 0).enemies.some(c => c.id === foe.id), 'far foe stays hidden')
-  s.planets.forEach(p => { if (p.owner === 2 || p.owner === 3) p.owner = -1 })
-  s.swarms = s.swarms.filter(c => c.side < 2)
+  edit(s, json => { json.planets.forEach(p => { if (p.owner === 2 || p.owner === 3) p.owner = -1 }); json.swarms = json.swarms.filter(c => c.side < 2) })
   run(s, 2 * TPS)
   assert.deepEqual(s.ended, { winner: 0, reason: 'wipe' })
   assert.deepEqual(view(s, 1).ended, { result: 'won', reason: 'wipe' })
@@ -115,16 +130,15 @@ test('2v2: allies share vision, never fight, and the team wins together', () => 
 
 test('free-for-all: last side standing wins; surrender hands the match to the leading rival; a draw needs equal totals', () => {
   const s = createMatch(13, { mode: 'ffa4' })
-  s.swarms = s.swarms.filter(c => c.side === 0 || c.side === 3)
-  s.planets.forEach(p => { if (p.owner === 1 || p.owner === 2) p.owner = -1 })
+  edit(s, json => { json.swarms = json.swarms.filter(c => c.side === 0 || c.side === 3); json.planets.forEach(p => { if (p.owner === 1 || p.owner === 2) p.owner = -1 }) })
   run(s, 2 * TPS)
   assert.deepEqual(s.ended, { winner: 3 === s.teams[3] ? 3 : 0, reason: 'wipe' }.reason === 'wipe' && s.ended)
   const t = createMatch(13, { mode: 'ffa4' })
-  t.swarms.find(c => c.side === 2).n = 9000
+  edit(t, json => { json.swarms.find(c => c.side === 2).n = 9000 })
   applyInput(t, 0, { surrender: true })
   assert.deepEqual(t.ended, { winner: 2, reason: 'surrender' })
   const u = createMatch(14, { mode: 'ffa4', minutes: 3 })
-  u.swarms.find(c => c.side === 1).n = 20000
+  edit(u, json => { json.swarms.find(c => c.side === 1).n = 20000 })
   for (const side of [0, 1, 2, 3]) applyInput(u, side, { gambits: [{ if: 'always', then: 'hold' }] })
   while (!u.ended) step(u)
   assert.equal(u.ended.reason === 'time' ? u.ended.winner : 1, 1)
@@ -134,7 +148,7 @@ test('free-for-all: last side standing wins; surrender hands the match to the le
 test('gambits: first enabled matching rule decides, disabled rules are skipped', () => {
   const s = empty(4)
   only(s, 1, [{ if: 'always', then: 'hold' }])
-  const c = addSwarm(s, 0, 300, 350, 1000)
+  const c = tracked(s, addSwarm(s, 0, 300, 350, 1000))
   addSwarm(s, 1, 380, 350, 5000) // visible, much bigger
   only(s, 0, [{ if: 'bigger_enemy_near', then: 'retreat' }, { if: 'always', then: 'hold' }])
   run(s, 20)
@@ -148,7 +162,7 @@ test('gambits: first enabled matching rule decides, disabled rules are skipped',
 test('gambit parameters change what a condition matches', () => {
   const s = empty(5)
   only(s, 1, [{ if: 'always', then: 'hold' }])
-  const c = addSwarm(s, 0, 300, 350, 1000)
+  const c = tracked(s, addSwarm(s, 0, 300, 350, 1000))
   addSwarm(s, 1, 380, 350, 1500)
   only(s, 0, [{ if: 'bigger_enemy_near', p: 2, then: 'retreat' }, { if: 'always', then: 'hold' }])
   run(s, 20)
@@ -161,15 +175,15 @@ test('invalid gambit lists are rejected and the old list stays', () => {
   assert.equal(only(s, 0, [{ if: 'always', then: 'explode' }]).ok, false)
   assert.equal(only(s, 0, Array(11).fill({ if: 'always', then: 'hold' })).ok, false)
   assert.equal(only(s, 0, [{ if: 'small', p: -5, then: 'go' }]).ok, false)
-  assert.equal(s.gambits[0], before)
+  assert.deepEqual(s.gambits[0], before)
   assert.ok(DEFAULT_GAMBITS.length <= 10)
 })
 
 test('fog: enemy swarms out of vision are hidden from the view and from gambits', () => {
   const s = empty(7)
   only(s, 1, [{ if: 'always', then: 'hold' }])
-  const c = addSwarm(s, 0, 300, 120, 1000)
-  const far = addSwarm(s, 1, 900, 600, 9000)
+  const c = tracked(s, addSwarm(s, 0, 300, 120, 1000))
+  const far = tracked(s, addSwarm(s, 1, 900, 600, 9000))
   assert.equal(view(s, 0).enemies.some(e => e.id === far.id), false)
   only(s, 0, [{ if: 'bigger_enemy_near', p: 1.2, then: 'retreat' }, { if: 'always', then: 'hold' }])
   run(s, 20)
@@ -181,7 +195,7 @@ test('fog: enemy swarms out of vision are hidden from the view and from gambits'
 test('a swarm parked on a free planet captures it and eats it into particles', () => {
   const s = empty(8)
   only(s, 0, [{ if: 'always', then: 'hold' }]); only(s, 1, [{ if: 'always', then: 'hold' }])
-  const p = s.planets.find(p => p.owner === -1)
+  const p = tracked(s, s.planets.find(p => p.owner === -1), 'planets')
   const c = addSwarm(s, 0, p.x, p.y, 1000)
   run(s, 60 * TPS)
   assert.equal(p.owner, 0)
@@ -195,7 +209,7 @@ test('hand control: orders override gambits until released; split halves a swarm
   const s = empty(9)
   only(s, 1, [{ if: 'always', then: 'hold' }])
   only(s, 0, [{ if: 'always', then: 'hold' }])
-  const c = addSwarm(s, 0, 300, 350, 2000)
+  const c = tracked(s, addSwarm(s, 0, 300, 350, 2000))
   assert.equal(applyInput(s, 0, { order: { swarm: c.id, x: 500, y: 350 } }).ok, true)
   run(s, 40)
   assert.ok(c.x > 330 && c.manual)
@@ -219,13 +233,12 @@ test('a side cannot command enemy swarms', () => {
 
 test('match ends by wipe, or at 5:00 by particle count', () => {
   let s = empty(11)
-  for (const p of s.planets) if (p.owner === 1) p.mass = 0
+  edit(s, json => { for (const p of json.planets) if (p.owner === 1) p.mass = 0 })
   addSwarm(s, 0, 100, 100, 500)
   step(s)
   assert.deepEqual(s.ended, { winner: 0, reason: 'wipe' })
   s = createMatch(12)
-  s.swarms.find(o => o.side === 1).n += 500
-  s.tick = s.endTick - 1
+  edit(s, json => { json.swarms.find(o => o.side === 1).n += 500; json.tick = json.endTick - 1 })
   step(s)
   assert.equal(s.ended.winner, 1)
   assert.equal(s.ended.reason, 'time')

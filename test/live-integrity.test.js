@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { LiveRuntime } from '../online/live-runtime.js'
+import { LiveRuntime, MAX_ROOMS } from '../online/live-runtime.js'
 import { LiveStore } from '../online/live-store.js'
 import { MemoryStore } from '../online/store.js'
 const q = token => new URLSearchParams({ token })
@@ -149,12 +149,12 @@ test('room capacity rejects play, start and rematch atomically, then a two-playe
   now += 200000
   assert.ok((await runtime.request('GET', '/state', q(a.humanToken))).report)
   runtime.rooms.delete(first) // Colyseus disposes completed rooms after the report grace period.
-  for (let i = 0; i < 24; i++) runtime.rooms.set(`occupied-${i}`, `room-${i}`)
+  for (let i = 0; i < MAX_ROOMS; i++) runtime.rooms.set(`occupied-${i}`, `room-${i}`)
   const rejectedWithoutMutation = async (path, bearer, body = {}) => {
     const before = structuredClone([...store.data])
     await assert.rejects(runtime.request('POST', path, q(bearer), body), e => e.status === 503 && /occupied/.test(e.message))
     assert.deepEqual([...store.data], before, `${path} must not change readiness, membership, sessions, queue or match records`)
-    assert.equal(runtime.rooms.size, 24)
+    assert.equal(runtime.rooms.size, MAX_ROOMS)
   }
   await rejectedWithoutMutation('/play', c.humanToken, { vs: 'player' })
   await rejectedWithoutMutation('/rooms/start', a.humanToken)
@@ -171,7 +171,7 @@ test('room capacity rejects play, start and rematch atomically, then a two-playe
   assert.equal((await runtime.request('GET', '/state', q(b.humanToken))).matchId, next)
   const after = await runtime.request('GET', '/room', q(a.humanToken))
   assert.deepEqual(after.ready, []); assert.equal(after.players.length, 2)
-  assert.equal(runtime.rooms.size, 24)
+  assert.equal(runtime.rooms.size, MAX_ROOMS)
 })
 
 test('a committed result with a lost response is recovered without double Elo or history', async t => {

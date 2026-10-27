@@ -52,7 +52,7 @@ const game = createHandler(store, { origin, now, requireAccount: true, liveExcha
   return session?.user?.emailVerified ? { id: session.user.id, name: session.user.name, emailVerified: true, authSessionId: session.session.id, authExpires: +new Date(session.session.expiresAt) } : null
 } })
 const bundle = (await build({ entryPoints: ['browser-live.js'], bundle: true, format: 'esm', write: false })).outputFiles[0].text
-const assets = { '/': ['index.html', 'text/html'], '/sim.js': ['sim.js', 'text/javascript'], '/guide': ['guide.html', 'text/html'], '/privacy': ['privacy.html', 'text/html'], '/terms': ['terms.html', 'text/html'] }
+const assets = { '/': ['index.html', 'text/html'], '/sim.js': ['sim.js', 'text/javascript'], '/sim/pkg/botters_sim.js': ['sim/pkg/botters_sim.js', 'text/javascript'], '/sim/pkg/botters_sim_bg.wasm': ['sim/pkg/botters_sim_bg.wasm', 'application/wasm'], '/guide': ['guide.html', 'text/html'], '/privacy': ['privacy.html', 'text/html'], '/terms': ['terms.html', 'text/html'] }
 const website = http.createServer(async (req, res) => {
   const url = new URL(req.url, origin)
   if (url.pathname === '/live-config.json') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ url: liveOrigin, accountRequired: true })) }

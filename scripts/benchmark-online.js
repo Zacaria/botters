@@ -1,17 +1,17 @@
 // Reproducible capacity fixture, not a claim about live deployment latency.
 import { performance } from 'node:perf_hooks'
-import { createMatch, step, applyInput, addSwarm, TPS } from '../sim.js'
+import { createMatch, fromJSON, step, applyInput, addSwarm, TPS } from '../sim.js'
 const samples = Number(process.env.SAMPLES || 8)
 const fixture = () => {
   const s = createMatch(631, { minutes: 8, planets: 40 })
-  s.swarms = []
+  const initial = s.toJSON(); initial.swarms = []; s.load(initial)
   for (const side of [0, 1]) {
     applyInput(s, side, { gambits: [{ if: 'always', then: 'hold' }] })
     for (let i = 0; i < 40; i++) {
-      const c = addSwarm(s, side, 40 + side * 650 + (i % 5) * 95, 35 + Math.floor(i / 5) * 85, 500)
-      c.noMerge = s.endTick + 1
+      addSwarm(s, side, 40 + side * 650 + (i % 5) * 95, 35 + Math.floor(i / 5) * 85, 500)
     }
   }
+  const data = s.toJSON(); for (const c of data.swarms) c.noMerge = s.endTick + 1; s.load(data)
   return s
 }
 const replay = [], checkpoint = [], serialized = []
@@ -21,9 +21,9 @@ for (let i = 0; i < samples; i++) {
   replay.push(performance.now() - start)
   const bytes = JSON.stringify(s); serialized.push(Buffer.byteLength(bytes))
   // Resume immediately before the final frame, retaining the 80-swarm fixture.
-  const nearEnd = fixture(); nearEnd.tick = nearEnd.endTick - 2
+  const nearEnd = fixture(), data = nearEnd.toJSON(); data.tick = data.endTick - 2; nearEnd.load(data)
   const snapshot = JSON.stringify(nearEnd), t = performance.now()
-  const resumed = JSON.parse(snapshot); step(resumed); step(resumed); JSON.stringify(resumed)
+  const resumed = fromJSON(snapshot); step(resumed); step(resumed); JSON.stringify(resumed)
   checkpoint.push(performance.now() - t)
 }
 const p95 = a => [...a].sort((a, b) => a - b)[Math.ceil(a.length * .95) - 1]

@@ -758,11 +758,11 @@ const bc = $('bg'), bgx = bc.getContext('2d'), BG_BUDGET = 14000
 let bs = null, bimg, bpx, tall = null // portrait screens get the battlefield turned on its side so both armies stay on screen
 function backdrop() {
   if (tall !== innerHeight > innerWidth) { tall = innerHeight > innerWidth; bc.width = tall ? 700 : 1200; bc.height = tall ? 1200 : 700; bimg = bgx.createImageData(bc.width, bc.height); bpx = new Uint32Array(bimg.data.buffer) }
-  if (!bs || bs.ended) { bs = createMatch((Math.random() * 2 ** 32) >>> 0, { minutes: 8, planets: 28 }); applyInput(bs, 0, { gambits: HOUSE.hard }); applyInput(bs, 1, { gambits: HOUSE.normal }) }
+  if (!bs || bs.ended) { bs?.free(); bs = createMatch((Math.random() * 2 ** 32) >>> 0, { minutes: 8, planets: 28 }); applyInput(bs, 0, { gambits: HOUSE.hard }); applyInput(bs, 1, { gambits: HOUSE.normal }) }
   step(bs)
   for (let i = 0; i < bpx.length; i++) bpx[i] = ((bpx[i] >>> 1) & 0x7f7f7f7f) | 0xff000000
-  const total = bs.swarms.reduce((a, c) => a + c.n, 0), scale = Math.min(1, BG_BUDGET / Math.max(1, total)), t = performance.now() * 0.06
-  for (const c of bs.swarms) {
+  const swarms = bs.swarms, total = swarms.reduce((a, c) => a + c.n, 0), scale = Math.min(1, BG_BUDGET / Math.max(1, total)), t = performance.now() * 0.06
+  for (const c of swarms) {
     const m = Math.ceil(c.n * scale), rr = rad(c.n), col = c.side ? COLS.enemy : COLS.you, seed = (c.id * 7919) & (TN - 1)
     for (let i = 0; i < m; i++) {
       const j = (seed + i) & (TN - 1), a = TA[j] + t * TW[j], r = TR[j] * rr

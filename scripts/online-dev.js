@@ -7,7 +7,7 @@ const port = Number(process.env.PORT || 8788), origin = `http://127.0.0.1:${port
 const speed = Number(process.env.BOTTERS_TEST_SPEED || 1), start = Date.now()
 const now = () => start + (Date.now() - start) * speed
 const remote = process.env.BOTTERS_DEV_CONVEX ? new LiveDurable() : null
-const staticFiles = { '/': ['index.html', 'text/html'], '/guide': ['guide.html', 'text/html'], '/guide.html': ['guide.html', 'text/html'], '/sim.js': ['sim.js', 'text/javascript'], '/live-client.js': ['public/live-client.js', 'text/javascript'], '/privacy': ['privacy.html', 'text/html'], '/privacy.html': ['privacy.html', 'text/html'], '/terms': ['terms.html', 'text/html'], '/terms.html': ['terms.html', 'text/html'] }
+const staticFiles = { '/': ['index.html', 'text/html'], '/guide': ['guide.html', 'text/html'], '/guide.html': ['guide.html', 'text/html'], '/sim.js': ['sim.js', 'text/javascript'], '/sim/pkg/botters_sim.js': ['sim/pkg/botters_sim.js', 'text/javascript'], '/sim/pkg/botters_sim_bg.wasm': ['sim/pkg/botters_sim_bg.wasm', 'application/wasm'], '/live-client.js': ['public/live-client.js', 'text/javascript'], '/privacy': ['privacy.html', 'text/html'], '/privacy.html': ['privacy.html', 'text/html'], '/terms': ['terms.html', 'text/html'], '/terms.html': ['terms.html', 'text/html'] }
 const service = await createLiveServer({ remote, now, origin, origins: [origin], authority: remote?.authority.bind(remote),
   staticHandler: async (req, res) => {
     const url = new URL(req.url, origin)
