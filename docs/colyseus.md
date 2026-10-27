@@ -14,7 +14,7 @@ Convex is used for session/capability checks and match start/end boundaries, Elo
 
 ## Limits and verification
 
-The existing input budgets remain five agent and fifteen human inputs per second. Live HTTP admission is 2,400 requests per minute per IP, with at most forty unknown-capability lookups per minute and twenty new sessions per ten minutes per IP. The process admits at most twenty-four rooms; that is a protective ceiling, not a measured throughput guarantee. Each imported capability expires at its own authorization deadline; both each frame emission and each queued mutation recheck that lease. Imported shared game sessions instead have a rolling one-day process-retention window, independent of the individual capability deadline. Authority adoption renews this window; account-mode game-session writes also use one day locally even though their durable session has no expiry. Anonymous game writes retain their existing bounded seven-day session TTL. A shorter human lease cannot evict another human or independently approved agent's match, side, private-room membership or preferences. Inactive local sessions are swept after their retention window; durable account/history retention is unchanged. Retaining game state never grants authorization. Faulted channels are closed so the next retry obtains fresh authority; generation fencing rejects late callbacks from retired channels. Authorization adoption preserves each player's process-local private-room preferences (solo/agent choice and opening gambits), including refreshes and newly opened agent channels. Those preferences are not included in peer room information. Admission rejects `/play`, `/rooms/start` and `/rooms/rematch` at the room ceiling before changing queue, readiness or membership; retrying after space frees preserves existing rematch votes. There is no common Colyseus state schema exposing the simulation.
+The existing input budgets remain five agent and fifteen human inputs per second. Live HTTP admission is 2,400 requests per minute per IP, with at most forty unknown-capability lookups per minute and twenty new sessions per ten minutes per IP. The process admits at most thirty-two rooms (`MAX_ROOMS`), set from the production-instance measurement below with margin; it is not a guarantee for full-length WAN matches. Each imported capability expires at its own authorization deadline; both each frame emission and each queued mutation recheck that lease. Imported shared game sessions instead have a rolling one-day process-retention window, independent of the individual capability deadline. Authority adoption renews this window; account-mode game-session writes also use one day locally even though their durable session has no expiry. Anonymous game writes retain their existing bounded seven-day session TTL. A shorter human lease cannot evict another human or independently approved agent's match, side, private-room membership or preferences. Inactive local sessions are swept after their retention window; durable account/history retention is unchanged. Retaining game state never grants authorization. Faulted channels are closed so the next retry obtains fresh authority; generation fencing rejects late callbacks from retired channels. Authorization adoption preserves each player's process-local private-room preferences (solo/agent choice and opening gambits), including refreshes and newly opened agent channels. Those preferences are not included in peer room information. Admission rejects `/play`, `/rooms/start` and `/rooms/rematch` at the room ceiling before changing queue, readiness or membership; retrying after space frees preserves existing rematch votes. There is no common Colyseus state schema exposing the simulation.
 
 `npm test`, `npm run check`, `npm run test:auth:convex` and `npm run test:browser` cover the canonical source. For a full timed match use `BOTTERS_SERVER=<website> BOTTERS_LIVE_SERVER=<live origin> BOTTERS_UNACCELERATED=1 npm run test:online`. The script uses two real stdio MCP clients with scripted policies, not model inference. `scripts/measure-live-capacity.js` is explicitly a stationary 80-swarm fixture; its short loopback sample does not prove sustained WAN traffic or simultaneous end-report replay capacity.
 
@@ -36,7 +36,21 @@ After the Rust-owned-state port, the same machine and fixture measured:
 | 48 | 110.59 | 11.07 | 118.84 | 367464448 |
 | 64 | 108.40 | 8.27 | 205.08 | 380444672 |
 
-The after series stops at 64 because minimum FPS fell below 10. This is a short synthetic loopback measurement, not a production throughput guarantee; admission remains capped at 24 rooms.
+The after series stops at 64 because minimum FPS fell below 10. This is a short synthetic loopback measurement, not a production throughput guarantee.
+
+On the production Lightsail instance (same fixture, Docker `--cpus 1.5 --memory 768m`, Node 22, no live matches running), 27 October 2026:
+
+| Build | Matches | CPU % of one core | Minimum FPS | Frame p95 ms |
+| --- | ---: | ---: | ---: | ---: |
+| JS `717ced7` | 16 | 116.0 | 12.48 | 150.5 |
+| JS `717ced7` | 24 | 115.3 | 10.17 | 171.9 |
+| Rust | 16 | 96.3 | 12.45 | 117.8 |
+| Rust | 24 | 123.8 | 12.45 | 143.8 |
+| Rust | 32 | 124.2 | 12.47 | 160.7 |
+| Rust | 36 | — | 12.26 | 132.8 |
+| Rust | 40 | — | 10.43 / below 10 | 175.4 |
+
+The JS build could not be measured above 24 because its fixture still hit admission. Rust holds 12+ FPS through 36 matches and is marginal at 40 (one run passed at 10.4, one fell below 10). Admission is therefore 32.
 
 Before replacing a container, `/health` must show no active rooms. Before moving the Vercel aliases, query `store:legacyActivity` with the production prefix and a fresh `now` nonce; require `complete: true` and `activeMatches: 0`. This query returns only aggregate counts and never writes or returns player records. Never deploy Convex from the Vercel-only release branch. For protected preview checks, keep the automation bypass credential scoped to the website; it must not be forwarded to the live host. A temporary exact preview origin may be allowed while testing and removed while the service is idle.
 

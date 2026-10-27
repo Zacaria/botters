@@ -3,6 +3,8 @@ import { OnlineGame } from './game.js'
 const hash = s => createHash('sha256').update(s).digest('hex')
 const unavailable = () => Object.assign(new Error('Online service is unavailable. Retry shortly.'), { status: 503 })
 
+// Measured on the production instance: 36 stationary 80-swarm matches kept >=12 FPS, 40 fell to ~10 (docs/colyseus.md).
+export const MAX_ROOMS = 32
 export class LiveRuntime {
   constructor(store, options = {}) {
     this.store = store; this.handles = new Map(); this.options = { ...options, handles: this.handles }; this.tail = Promise.resolve(); this.rooms = new Map(); this.authorities = new Map(); this.pending = new Map(); this.generations = new Map()
@@ -93,7 +95,7 @@ export class LiveRuntime {
     return this.serialize(async () => {
       if (!publicPath && this.options.authority && !this.ready(q.get('token'))) throw unavailable()
       if (!publicPath) this.check(q.get('token'), proof)
-      if (['/play', '/rooms/start', '/rooms/rematch'].includes(path) && this.rooms.size >= 24) throw Object.assign(new Error('All matches are occupied. Retry shortly.'), { status: 503 })
+      if (['/play', '/rooms/start', '/rooms/rematch'].includes(path) && this.rooms.size >= MAX_ROOMS) throw Object.assign(new Error('All matches are occupied. Retry shortly.'), { status: 503 })
       let result
       try { result = await new OnlineGame(this.store, { ...this.options, identity, startId }).request(method, path, q, body) }
       catch (error) { this.clearHandles(); throw error }
