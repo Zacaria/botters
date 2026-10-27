@@ -1,5 +1,8 @@
 Incomplete.
 
+- Current checkout baseline: `npm test` passed 256 tests in 100 seconds. No port changes were made in this round. Existing tests replace the swarm and planet arrays, mutate their elements, and retain entity references; the Rust-owned state adapter must preserve those observable behaviors.
+- Remaining, in order: implement Rust-owned match handles and port stepping, gambits, inputs, fog, views, totals and replay; verify all 104 golden traces without fixture changes; replace live-frame state serialization with a handle registry and release swept matches; pass the browser suite; measure the before/after capacity series and update the documentation. Keep the 24-room ceiling.
+
 Rust creates initial planet and swarm geometry, computes side totals, determines fog visibility, and calculates swarm movement and combat. Match state and the remaining simulation still live in JavaScript. Movement and combat use temporary arrays across the WASM boundary, so they do not satisfy the Rust-owned state requirement and are not evidence of a speedup.
 
 - This round: `npm run build:sim` succeeded; `npm test` passed all 256 tests; the separate golden suite passed both tests covering 104 traces. Fixtures were unchanged.
