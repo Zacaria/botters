@@ -38,6 +38,17 @@ pub fn side_totals(sides: usize, populations: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+// Team totals retain swarm insertion order, as in the JavaScript reduction.
+#[wasm_bindgen]
+pub fn team_totals(teams: &[u32], populations: &[f64]) -> Vec<f64> {
+    let mut totals = vec![0.0; teams.iter().copied().max().unwrap_or(0) as usize + 1];
+    for swarm in populations.chunks_exact(2) {
+        let team = teams[swarm[0] as usize] as usize;
+        totals[team] += swarm[1];
+    }
+    totals
+}
+
 // Each row is x, y, target x, target y, population, engaged, rolling, belly.
 #[wasm_bindgen]
 pub fn move_swarms(swarms: &[f64], slow: f64) -> Vec<f64> {

@@ -1,4 +1,4 @@
-import init, { initSync, initial_geometry, side_totals, visible_swarms, move_swarms, combat } from './sim/pkg/botters_sim.js'
+import init, { initSync, initial_geometry, side_totals, team_totals, visible_swarms, move_swarms, combat } from './sim/pkg/botters_sim.js'
 if (typeof process !== 'undefined' && process.versions?.node) {
   const { readFileSync } = await import('node:fs')
   initSync({ module: readFileSync(new URL('./sim/pkg/botters_sim_bg.wasm', import.meta.url)) })
@@ -227,7 +227,7 @@ export function replay(seed, log, opts) {
 }
 
 export const totals = s => Array.from(side_totals(s.teams.length, Float64Array.from(s.swarms.flatMap(c => [c.side, c.n])))) // per side
-const teamTotals = s => { const t = []; for (const c of s.swarms) t[s.teams[c.side]] = (t[s.teams[c.side]] || 0) + c.n; return [...Array(Math.max(...s.teams) + 1)].map((_, i) => t[i] || 0) } // per team, indexed by team id
+const teamTotals = s => Array.from(team_totals(Uint32Array.from(s.teams), Float64Array.from(s.swarms.flatMap(c => [c.side, c.n])))) // per team, indexed by team id
 
 // What one side may know: its swarms, its allies, visible enemy swarms, public planets and particle totals.
 // `k` numbers the enemy teams from this side's point of view (0, 1, ...), so a client can give each its own colour.

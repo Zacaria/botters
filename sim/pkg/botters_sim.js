@@ -1,5 +1,113 @@
 let wasm;
 
+let cachedUint32ArrayMemory0 = null;
+
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
+}
+
+let WASM_VECTOR_LEN = 0;
+
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getUint32ArrayMemory0().set(arg, ptr / 4);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+let cachedFloat64ArrayMemory0 = null;
+
+function getFloat64ArrayMemory0() {
+    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
+        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+    }
+    return cachedFloat64ArrayMemory0;
+}
+
+function passArrayF64ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 8, 8) >>> 0;
+    getFloat64ArrayMemory0().set(arg, ptr / 8);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function getArrayU32FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
+/**
+ * @param {number} side
+ * @param {Uint32Array} teams
+ * @param {Float64Array} swarms
+ * @param {Float64Array} planets
+ * @returns {Uint32Array}
+ */
+export function visible_swarms(side, teams, swarms, planets) {
+    const ptr0 = passArray32ToWasm0(teams, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArrayF64ToWasm0(swarms, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArrayF64ToWasm0(planets, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ret = wasm.visible_swarms(side, ptr0, len0, ptr1, len1, ptr2, len2);
+    var v4 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v4;
+}
+
+function getArrayF64FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+/**
+ * @param {number} sides
+ * @param {Float64Array} populations
+ * @returns {Float64Array}
+ */
+export function side_totals(sides, populations) {
+    const ptr0 = passArrayF64ToWasm0(populations, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.side_totals(sides, ptr0, len0);
+    var v2 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v2;
+}
+
+/**
+ * @param {Uint32Array} teams
+ * @param {Float64Array} populations
+ * @returns {Float64Array}
+ */
+export function team_totals(teams, populations) {
+    const ptr0 = passArray32ToWasm0(teams, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArrayF64ToWasm0(populations, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.team_totals(ptr0, len0, ptr1, len1);
+    var v3 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v3;
+}
+
+/**
+ * @param {Float64Array} swarms
+ * @param {number} contact
+ * @param {number} effect
+ * @param {number} growth
+ * @returns {Float64Array}
+ */
+export function combat(swarms, contact, effect, growth) {
+    const ptr0 = passArrayF64ToWasm0(swarms, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.combat(ptr0, len0, contact, effect, growth);
+    var v2 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+    return v2;
+}
+
 const cachedTextDecoder = (typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true, fatal: true }) : { decode: () => { throw Error('TextDecoder not available') } } );
 
 if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); };
@@ -36,42 +144,6 @@ export function initial_geometry(seed, sides, count) {
     }
 }
 
-let cachedFloat64ArrayMemory0 = null;
-
-function getFloat64ArrayMemory0() {
-    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
-        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
-    }
-    return cachedFloat64ArrayMemory0;
-}
-
-let WASM_VECTOR_LEN = 0;
-
-function passArrayF64ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 8, 8) >>> 0;
-    getFloat64ArrayMemory0().set(arg, ptr / 8);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
-}
-
-function getArrayF64FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
-}
-/**
- * @param {number} sides
- * @param {Float64Array} populations
- * @returns {Float64Array}
- */
-export function side_totals(sides, populations) {
-    const ptr0 = passArrayF64ToWasm0(populations, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.side_totals(sides, ptr0, len0);
-    var v2 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
-    return v2;
-}
-
 /**
  * @param {Float64Array} swarms
  * @param {number} slow
@@ -81,62 +153,6 @@ export function move_swarms(swarms, slow) {
     const ptr0 = passArrayF64ToWasm0(swarms, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.move_swarms(ptr0, len0, slow);
-    var v2 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
-    return v2;
-}
-
-let cachedUint32ArrayMemory0 = null;
-
-function getUint32ArrayMemory0() {
-    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
-        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
-    }
-    return cachedUint32ArrayMemory0;
-}
-
-function passArray32ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 4, 4) >>> 0;
-    getUint32ArrayMemory0().set(arg, ptr / 4);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
-}
-
-function getArrayU32FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
-}
-/**
- * @param {number} side
- * @param {Uint32Array} teams
- * @param {Float64Array} swarms
- * @param {Float64Array} planets
- * @returns {Uint32Array}
- */
-export function visible_swarms(side, teams, swarms, planets) {
-    const ptr0 = passArray32ToWasm0(teams, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArrayF64ToWasm0(swarms, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ptr2 = passArrayF64ToWasm0(planets, wasm.__wbindgen_malloc);
-    const len2 = WASM_VECTOR_LEN;
-    const ret = wasm.visible_swarms(side, ptr0, len0, ptr1, len1, ptr2, len2);
-    var v4 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
-    return v4;
-}
-
-/**
- * @param {Float64Array} swarms
- * @param {number} contact
- * @param {number} effect
- * @param {number} growth
- * @returns {Float64Array}
- */
-export function combat(swarms, contact, effect, growth) {
-    const ptr0 = passArrayF64ToWasm0(swarms, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.combat(ptr0, len0, contact, effect, growth);
     var v2 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
     return v2;
