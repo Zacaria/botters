@@ -1,6 +1,6 @@
-# Rust simulation progress
+Incomplete.
 
-Incomplete. Rust creates initial planet and swarm geometry and computes side totals; the rest of the simulation and all live match state remain in JavaScript.
+Rust creates initial planet and swarm geometry, computes side totals, and determines fog visibility. Match state and the remaining simulation still live in JavaScript.
 
 - Added a wasm-bindgen 0.2.100 crate with V8-style two-argument hypot, mulberry32, initial geometry and side totals, a WASM build script, source hash, and focused tests. Node and browsers load the same artifact; static builds, package and Docker include it.
 - Initial geometry and the remaining JavaScript simulator pass all 104 golden traces. Rust match parity is not established: stepping, inputs, gambits, fog and reports have not been ported. The golden fixtures and tests were not changed.
@@ -8,4 +8,5 @@ Incomplete. Rust creates initial planet and swarm geometry and computes side tot
 - Before-port benchmark (`MATCHES=16 SECONDS=10 node scripts/measure-live-capacity.js`): 16 matches, 80 swarms/match, 32 views, 103.44056906008441% CPU of one core, minimum 12.449938623351702 FPS, maximum frame p95 117.32376399999976 ms, peak RSS 258355200 bytes, passed.
 - Partial-port benchmark (same command): 16 matches, 80 swarms/match, 32 views, 102.25170479159416% CPU of one core, minimum 12.469882595401867 FPS, maximum frame p95 120.14898799999992 ms, peak RSS 271745024 bytes, passed. This is not an after-port measurement: stepping and live state remain in JavaScript.
 - Deleted code: the JavaScript map generator and RNG.
-- Remaining: Rust match state, stepping, inputs, gambits, fog, view, replay, live registry and lifecycle, full Rust golden parity and post-port benchmark. The 24-room ceiling remains unchanged.
+- Fog visibility now runs in Rust through a temporary array boundary; its JavaScript visibility algorithm was deleted. `npm run build:sim` succeeded and `npm test` passed 256 tests, including all 104 golden traces. This is not yet the Rust-owned state required by the contract.
+- Remaining: Rust match state and handle, stepping, inputs, gambits, view, replay, removal of the temporary fog array boundary, live registry and lifecycle, full Rust golden parity, browser suite, before/after benchmark series, and documentation updates. The 24-room ceiling remains unchanged.

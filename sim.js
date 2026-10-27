@@ -1,4 +1,4 @@
-import init, { initSync, initial_geometry, side_totals } from './sim/pkg/botters_sim.js'
+import init, { initSync, initial_geometry, side_totals, visible_swarms } from './sim/pkg/botters_sim.js'
 if (typeof process !== 'undefined' && process.versions?.node) {
   const { readFileSync } = await import('node:fs')
   initSync({ module: readFileSync(new URL('./sim/pkg/botters_sim_bg.wasm', import.meta.url)) })
@@ -18,7 +18,6 @@ export const MAX_SWARMS = 40, MAX_GAMBITS = 10
 export const T = { C: 0.2, E: 3, G: 0.5, DIG: 0.004, SLOW: 2, GRACE: 400, STARVE: 0.0008 }
 export const MODES = { '1v1': [0, 1], '2v2': [0, 0, 1, 1], ffa4: [0, 1, 2, 3], ffa6: [0, 1, 2, 3, 4, 5] } // team of each side
 const THINK = 10 // gambits are re-evaluated every 0.5 s
-const SWARM_VISION = 150, PLANET_VISION = 80
 
 export const rad = n => 4 + Math.sqrt(n) * 0.32
 const speed = c => (1.5 - Math.min(1, c.n / 15000) * 0.9) 
@@ -77,10 +76,9 @@ export function checkGambits(list) {
 let VIS = null // computed once per thinking tick, so gambits don't recompute vision per swarm
 export function seen(s, side) { // enemy swarms this side's team can see right now (teammates share vision)
   if (VIS) return VIS[side]
-  const mine = i => friendly(s, i, side)
-  const eyes = [...s.swarms.filter(o => mine(o.side)).map(o => ({ x: o.x, y: o.y, r: SWARM_VISION + rad(o.n) })),
-    ...s.planets.filter(p => p.owner >= 0 && mine(p.owner)).map(p => ({ x: p.x, y: p.y, r: p.r + PLANET_VISION }))]
-  return s.swarms.filter(o => !mine(o.side) && eyes.some(e => dist(e, o) < e.r + rad(o.n)))
+  const swarms = Float64Array.from(s.swarms.flatMap(c => [c.side, c.x, c.y, c.n]))
+  const planets = Float64Array.from(s.planets.flatMap(p => [p.owner, p.x, p.y, p.r]))
+  return Array.from(visible_swarms(side, Uint32Array.from(s.teams), swarms, planets), i => s.swarms[i])
 }
 
 // ---------- match ----------

@@ -38,6 +38,27 @@ pub fn side_totals(sides: usize, populations: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+// Return visible enemy indices in swarm insertion order. Each swarm is
+// [side, x, y, population] and each planet is [owner, x, y, radius].
+#[wasm_bindgen]
+pub fn visible_swarms(side: usize, teams: &[u32], swarms: &[f64], planets: &[f64]) -> Vec<u32> {
+    let friendly = |other: usize| teams[other] == teams[side];
+    let radius = |n: f64| 4.0 + n.sqrt() * 0.32;
+    let mut visible = Vec::new();
+    for (i, enemy) in swarms.chunks_exact(4).enumerate() {
+        if friendly(enemy[0] as usize) { continue; }
+        let enemy_radius = radius(enemy[3]);
+        let seen_by_swarm = swarms.chunks_exact(4).any(|eye| {
+            friendly(eye[0] as usize) && hypot(eye[1] - enemy[1], eye[2] - enemy[2]) < 150.0 + radius(eye[3]) + enemy_radius
+        });
+        let seen_by_planet = planets.chunks_exact(4).any(|eye| {
+            eye[0] >= 0.0 && friendly(eye[0] as usize) && hypot(eye[1] - enemy[1], eye[2] - enemy[2]) < eye[3] + 80.0 + enemy_radius
+        });
+        if seen_by_swarm || seen_by_planet { visible.push(i as u32); }
+    }
+    visible
+}
+
 struct Planet { x: f64, y: f64, r: f64, owner: i32 }
 
 #[wasm_bindgen]
