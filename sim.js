@@ -1,4 +1,4 @@
-import init, { initSync, initial_geometry, side_totals, visible_swarms } from './sim/pkg/botters_sim.js'
+import init, { initSync, initial_geometry, side_totals, visible_swarms, move_swarms, combat } from './sim/pkg/botters_sim.js'
 if (typeof process !== 'undefined' && process.versions?.node) {
   const { readFileSync } = await import('node:fs')
   initSync({ module: readFileSync(new URL('./sim/pkg/botters_sim_bg.wasm', import.meta.url)) })
@@ -20,7 +20,6 @@ export const MODES = { '1v1': [0, 1], '2v2': [0, 0, 1, 1], ffa4: [0, 1, 2, 3], f
 const THINK = 10 // gambits are re-evaluated every 0.5 s
 
 export const rad = n => 4 + Math.sqrt(n) * 0.32
-const speed = c => (1.5 - Math.min(1, c.n / 15000) * 0.9) 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
 const nearest = (c, list, max = Infinity) => { let b = null, bd = max; for (const o of list) { const d = dist(c, o); if (d < bd) { bd = d; b = o } } return b }
 const friendly = (s, a, b) => s.teams[a] === s.teams[b] // sides on the same team
@@ -154,9 +153,6 @@ export function applyInput(s, side, input) {
   return { ok: true }
 }
 
-// Damage x deals to y in one tick: the contact front (L) decides, and a swarm much bigger than its enemy (wrap, 0 to 1) bites from all sides.
-const hit = (y, L, wrap) => Math.min(y.n, T.C * L * (1 + T.E * wrap))
-
 export function step(s) {
   if (s.ended) return
   s.tick++
@@ -165,28 +161,15 @@ export function step(s) {
     for (const c of [...s.swarms]) if (!c.manual) think(s, c)
     VIS = null
   }
-  for (const c of s.swarms) {
-    const d = dist(c, { x: c.tx, y: c.ty }), v = Math.min(d, speed(c) * (c.eng && !c.roll ? 0.25 : 1) / (1 + T.SLOW * c.belly / c.n))
-    if (d > 1) { c.x += (c.tx - c.x) / d * v; c.y += (c.ty - c.y) / d * v }
+  const positions = move_swarms(Float64Array.from(s.swarms.flatMap(c => [c.x, c.y, c.tx, c.ty, c.n, +c.eng, +!!c.roll, c.belly])), T.SLOW)
+  for (let i = 0; i < s.swarms.length; i++) { s.swarms[i].x = positions[i * 2]; s.swarms[i].y = positions[i * 2 + 1] }
+  const battle = combat(Float64Array.from(s.swarms.flatMap(c => [s.teams[c.side], c.x, c.y, c.n])), T.C, T.E, T.G)
+  for (let i = 0; i < s.swarms.length; i++) {
+    const c = s.swarms[i], loss = battle[i * 4], gain = battle[i * 4 + 1]
+    c.eng = !!battle[i * 4 + 2]; c.roll = !!battle[i * 4 + 3]
+    if (c.eng) c.n = Math.max(0, c.n - loss)
+    if (c.n > 0 && gain > 0) { c.belly += gain; c.meal = s.tick }
   }
-  const loss = new Map(), gain = new Map(), hits = []
-  for (const c of s.swarms) { c.eng = false; c.roll = false }
-  for (let i = 0; i < s.swarms.length; i++) for (let j = i + 1; j < s.swarms.length; j++) {
-    const a = s.swarms[i], b = s.swarms[j]
-    if (friendly(s, a.side, b.side)) continue
-    const ra = rad(a.n), rb = rad(b.n), d = dist(a, b), contact = d < ra + rb
-    if (!contact) continue
-    // front law: only the contact front fights (width bounded by the smaller swarm); a much bigger swarm wraps the smaller one and bites from all sides
-    const L = 2 * Math.min(ra, rb), ka = hit(b, L, Math.min(1, Math.max(0, ra / rb - 1))), kb = hit(a, L, Math.min(1, Math.max(0, rb / ra - 1)))
-    loss.set(b, (loss.get(b) || 0) + ka); loss.set(a, (loss.get(a) || 0) + kb)
-    if (ka > 0) hits.push([a, b, ka])
-    if (kb > 0) hits.push([b, a, kb])
-    if (contact) { a.eng = b.eng = true; if (ka > kb) a.roll = true; if (kb > ka) b.roll = true }
-  }
-  // Share each target's actual losses proportionally among simultaneous attackers, before changing any population.
-  for (const [attacker, target, damage] of hits) gain.set(attacker, (gain.get(attacker) || 0) + T.G * damage * Math.min(1, target.n / loss.get(target)))
-  for (const [c, l] of loss) c.n = Math.max(0, c.n - l)
-  for (const [c, g] of gain) if (c.n > 0 && g > 0) { c.belly += g; c.meal = s.tick } // kills feed, but the meal is digested slowly
   for (const c of s.swarms) if (c.n > 0 && c.belly > 0) { const d = Math.min(c.belly, c.n * T.DIG); c.belly -= d; c.n += d }
   for (let i = 0; i < s.swarms.length; i++) for (let j = i + 1; j < s.swarms.length; j++) { // overlapping friends merge
     const a = s.swarms[i], b = s.swarms[j]
