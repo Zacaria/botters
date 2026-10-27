@@ -839,7 +839,7 @@ function panel() {
   else if (F.waitingForAgent) {
     if (!$('waitingAgent')) {
       const name = prefs.assistant === 'Claude' ? 'Claude' : 'ChatGPT'
-      $('big').innerHTML = `waiting for your agent…<div class="box" id="waitingAgent">opened ${name} in a new tab — <a href="${agentUrl(name)}" target="_blank" rel="noopener">reopen</a><br><button id="startWithoutAgent">Start without agent</button> <button id="cancelWaiting">Cancel</button></div>`
+      $('big').innerHTML = `waiting for your agent…<div class="box" id="waitingAgent">send the prompt in the ${name} tab — <a href="${agentUrl(name)}" target="_blank" rel="noopener">reopen</a><br><button id="startWithoutAgent">Start without agent</button> <button id="cancelWaiting">Cancel</button></div>`
       $('startWithoutAgent').onclick = async () => { const r = await api('POST', '/start-without-agent'); if (r.error) toast(r.error, false) }
       $('cancelWaiting').onclick = async () => { const r = await api('POST', '/cancel'); if (r.ok) { es?.close(); lobbyError = 'Match cancelled.'; lobby(false) } else toast(r.error, false) }
     }
