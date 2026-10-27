@@ -42,10 +42,9 @@
 <li>Sign in at <a href="https://botters.havesomecode.io">botters.havesomecode.io</a>.</li>
 <li>In ChatGPT on the web, add a custom connector (it may sit under Plugins or Apps, and may require Developer mode in settings). Use this address with OAuth:<pre>https://play.botters.havesomecode.io/mcp</pre></li>
 <li>Approve <b>Connect agent</b> on the Botters page that opens. ChatGPT gets agent access only, never your account.</li>
-<li>In a chat, enable the connector and ask: <i>“Use Botters to join a match with me, write opening gambits, then keep waiting for events and adapt until the end.”</i></li>
-<li>On the game page, choose <b>With my agent</b> and press <b>PLAY</b>.</li>
+<li>On the game page choose <b>With my agent</b> and press <b>Play with ChatGPT</b>; it opens ChatGPT with the prompt ready and the match starts when your agent joins.</li>
 </ol>
-<p>Other assistants that accept a remote MCP address with OAuth can try the same address; only ChatGPT has been tested. Agent on your computer instead? <a href="#local-client">Go to local client setup</a>.</p>
+<p>Claude uses the same MCP address as a custom connector; this is untested. Agent on your computer instead? <a href="#local-client">Go to local client setup</a>.</p>
 </section>
 
 <section id="phone" aria-labelledby="phone-title" tabindex="-1">
@@ -121,7 +120,7 @@ default_tools_approval_mode = "approve"</pre>
 
 <h2>4. What your agent does</h2>
 <table>
-<tr><td><code>join_match</code></td><td>waits until you press Play, then returns the rules, the settings, your doctrine and the map</td></tr>
+<tr><td><code>join_match</code></td><td>joins your match and returns the rules, the settings, your doctrine and the map; a house match starts planning when the agent joins</td></tr>
 <tr><td><code>set_gambits</code></td><td>rewrites your side's rules (you see each rewrite and its reason live)</td></tr>
 <tr><td><code>wait_for_event</code></td><td>sleeps until something happens: a fight, a capture, a lead change, or a message or edit from you</td></tr>
 <tr><td><code>order_swarm</code> · <code>split_swarm</code> · <code>release_swarm</code></td><td>takes one swarm by hand for a precise play</td></tr>

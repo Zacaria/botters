@@ -1,6 +1,25 @@
 import { test, expect } from './fixtures.js'
 import { authorizePreview, liveURL, state } from './preview.js'
 test.beforeEach(async ({ context }) => authorizePreview(context))
+
+test('agent play opens ChatGPT with a prepared prompt and waits for the agent', async ({ page, context, baseURL }) => {
+  const session = await (await context.request.post(`${baseURL}/session`, { data: { name: 'Agent player', setup: 'ChatGPT' } })).json()
+  await context.route('https://chatgpt.com/**', route => route.fulfill({ status: 200, body: 'intercepted' }))
+  await page.goto('/')
+  await page.evaluate(token => {
+    localStorage.setItem('botters.session', token)
+    localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: true, assistant: 'ChatGPT' }))
+  }, session.humanToken)
+  await page.reload()
+  const popupPromise = page.waitForEvent('popup')
+  await page.getByRole('button', { name: 'Play with ChatGPT' }).click()
+  const popup = await popupPromise
+  await popup.waitForURL('https://chatgpt.com/**')
+  expect(popup.url()).toContain('https://chatgpt.com/?q=')
+  expect(new URL(popup.url()).searchParams.get('q')).toContain('join_match')
+  await expect(page.locator('#big')).toContainText('waiting for your agent…')
+  await expect(page.getByRole('button', { name: 'Start without agent' })).toBeVisible()
+})
 const remote = !!process.env.BOTTERS_SERVER
 const endTimeout = remote ? 240000 : 40000
 const errors = []
