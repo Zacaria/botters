@@ -1,7 +1,16 @@
 Incomplete.
 
+- This session measured the before-port series and changed only the benchmark fixture and documentation. The Rust-owned match, runtime integration, after-port measurements, and required final test runs remain outstanding; no numerical parity blocker has been established.
+- Before-port baseline on this machine, commit `717ced7`, Node v24.21.0, 10-second stationary 80-swarm fixture. The benchmark bypasses the room admission guard only in its own process; the production limit remains 24. RSS is peak bytes. The series stops at 32 because minimum FPS falls below 10. No after-port measurement is available yet.
+
+| Matches | CPU % of one core | Minimum FPS | Frame p95 ms | Peak RSS bytes |
+| ---: | ---: | ---: | ---: | ---: |
+| 16 | 100.02 | 12.48 | 124.37 | 267452416 |
+| 24 | 107.63 | 12.03 | 152.93 | 291692544 |
+| 32 | 103.20 | 6.52 | 305.37 | 287305728 |
+
 - This round: team particle aggregation moved from JavaScript to Rust, preserving swarm iteration order; the WASM artifact was rebuilt. `npm test` passed 256 tests, including the 104 golden traces. Team aggregation still uses a temporary array boundary and is not a Rust-owned match state.
-- Current checkout baseline: `npm test` passed 256 tests in 100 seconds. No port changes were made in this round. Existing tests replace the swarm and planet arrays, mutate their elements, and retain entity references; the Rust-owned state adapter must preserve those observable behaviors.
+- Earlier checkout baseline: `npm test` passed 256 tests in 100 seconds. The operator has since authorized changing fixture mutations to use `toJSON()` and `load()` or `addSwarm`, so retaining mutable entity references is no longer required.
 - Remaining, in order: implement Rust-owned match handles and port stepping, gambits, inputs, fog, views, totals and replay; verify all 104 golden traces without fixture changes; replace live-frame state serialization with a handle registry and release swept matches; pass the browser suite; measure the before/after capacity series and update the documentation. Keep the 24-room ceiling.
 
 Rust creates initial planet and swarm geometry, computes side totals, determines fog visibility, and calculates swarm movement and combat. Match state and the remaining simulation still live in JavaScript. Movement and combat use temporary arrays across the WASM boundary, so they do not satisfy the Rust-owned state requirement and are not evidence of a speedup.

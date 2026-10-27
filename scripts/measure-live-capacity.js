@@ -6,6 +6,8 @@ import { createLiveServer } from '../online/live-server.js'
 import { createMatch, applyInput, addSwarm } from '../sim.js'
 const count = Number(process.env.MATCHES || 8), seconds = Number(process.env.SECONDS || 30)
 const service = await createLiveServer({ origin: 'http://127.0.0.1', origins: ['http://127.0.0.1'] })
+// Exercise capacity above the production admission limit without changing it.
+Object.defineProperty(service.runtime.rooms, 'size', { get: () => 0 })
 const { port } = await service.listen(), base = `http://127.0.0.1:${port}`, clients = [], views = [], tokens = []
 const query = token => new URLSearchParams({ token })
 const percentile = values => values.toSorted((a, b) => a - b)[Math.ceil(values.length * .95) - 1]

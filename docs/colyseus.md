@@ -18,6 +18,14 @@ The existing input budgets remain five agent and fifteen human inputs per second
 
 `npm test`, `npm run check`, `npm run test:auth:convex` and `npm run test:browser` cover the canonical source. For a full timed match use `BOTTERS_SERVER=<website> BOTTERS_LIVE_SERVER=<live origin> BOTTERS_UNACCELERATED=1 npm run test:online`. The script uses two real stdio MCP clients with scripted policies, not model inference. `scripts/measure-live-capacity.js` is explicitly a stationary 80-swarm fixture; its short loopback sample does not prove sustained WAN traffic or simultaneous end-report replay capacity.
 
+Before the Rust port, commit `717ced7` on this machine (Node v24.21.0, 10-second sample) measured the following. The fixture bypasses admission in its own process to measure above 24 rooms; the production ceiling remains 24. The series stops at 32 because minimum FPS fell below 10. An after-port comparison is still pending.
+
+| Matches | CPU % of one core | Minimum FPS | Frame p95 ms | Peak RSS bytes |
+| ---: | ---: | ---: | ---: | ---: |
+| 16 | 100.02 | 12.48 | 124.37 | 267452416 |
+| 24 | 107.63 | 12.03 | 152.93 | 291692544 |
+| 32 | 103.20 | 6.52 | 305.37 | 287305728 |
+
 Before replacing a container, `/health` must show no active rooms. Before moving the Vercel aliases, query `store:legacyActivity` with the production prefix and a fresh `now` nonce; require `complete: true` and `activeMatches: 0`. This query returns only aggregate counts and never writes or returns player records. Never deploy Convex from the Vercel-only release branch. For protected preview checks, keep the automation bypass credential scoped to the website; it must not be forwarded to the live host. A temporary exact preview origin may be allowed while testing and removed while the service is idle.
 
 ## Deployment
