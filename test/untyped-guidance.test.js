@@ -12,7 +12,7 @@ const modes = ['1v1', '2v2', 'ffa4', 'ffa6']
 const opening = [{ if: 'always', then: 'hold' }]
 const tools = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
 function startup(events, humanOpening, mode) {
-  const event = events.find(text => text.includes('match starts in'))
+  const event = events.find(text => text.includes('three swarms of 3,000 particles'))
   assert.ok(event, 'startup event reaches the agent')
   assert.doesNotMatch(event, removed)
   assert.match(event, /three swarms of 3,000 particles/)
@@ -75,6 +75,7 @@ test('OnlineGame startup events describe three untyped swarms in every mode', as
     }
     const first = await call('GET', '/events')
     assert.equal(first.state.swarms.length, 3)
+    assert.ok(first.events.some(event => event.text.includes('match starts in 10s')))
     startup(first.events.map(event => event.text), humanOpening, mode)
   })
 })

@@ -101,7 +101,7 @@ export class LiveRuntime {
       catch (error) { this.clearHandles(); throw error }
       if (this.createRoom) for (const [key, record] of this.store.data) if (key.startsWith('match:')) {
         const m = JSON.parse(record.value)
-        if (!m.report && !this.rooms.has(m.id)) this.rooms.set(m.id, await this.createRoom(m.id))
+        if (!m.cancelled && !m.report && !this.rooms.has(m.id)) this.rooms.set(m.id, await this.createRoom(m.id))
       }
       return result
     })
@@ -124,7 +124,7 @@ export class LiveRuntime {
         if (record.expires && record.expires <= this.now()) { if (key.startsWith('match:')) { const id = key.slice(6); this.handles.get(id)?.free(); this.handles.delete(id) }; this.store.data.delete(key); continue }
         if (!key.startsWith('match:')) continue
         const m = JSON.parse(record.value)
-        if (!m.report || this.now() - m.finishedAt < 900000) continue
+        if (!m.cancelled && (!m.report || this.now() - m.finishedAt < 900000)) continue
         this.handles.get(m.id)?.free(); this.handles.delete(m.id)
         this.store.data.delete(key)
         this.store.data.delete(`state:${m.id}`)

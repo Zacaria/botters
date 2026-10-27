@@ -132,7 +132,10 @@ test('primary map input ignores secondary buttons without changing engine contro
   await expect(page.locator('#withAgent [data-v="true"]')).toBeVisible({ timeout: 8000 })
   await page.locator('#withAgent [data-v="true"]').click()
   await expect(page.locator('#guidedHouse')).not.toBeChecked()
-  await page.locator('#play').click()
+  await page.context().route('https://chatgpt.com/**', route => route.fulfill({ status: 200, body: '' }))
+  const started = page.waitForResponse(r => new URL(r.url()).pathname === '/play' && r.request().method() === 'POST')
+  await page.getByRole('button', { name: 'Play with ChatGPT' }).click(); await started
+  await page.request.get(`${origin}/next?token=${agentToken}&timeout=0.001`)
   // After PLAY evaluations only read; all actions are native mouse/keyboard input.
   await expect(page.locator('#hud')).toContainText('swarms')
   await expect(page.locator('#guidePanel')).toBeHidden()
@@ -373,10 +376,14 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
         assert.equal(heartbeat.status(), 200)
         await poll()
         await page.locator('#withAgent [data-v="true"]').click()
-        await page.locator('#play').click()
+        await context.route('https://chatgpt.com/**', route => route.fulfill({ status: 200, body: '' }))
+        const started = page.waitForResponse(r => new URL(r.url()).pathname === '/play' && r.request().method() === 'POST')
+        await page.getByRole('button', { name: 'Play with ChatGPT' }).click(); await started
+        await context.request.get(`${origin}/next?token=${agentToken}&timeout=0.001`)
         await expect(page.locator('#hud')).toContainText('swarms')
         await page.locator('#agentBox summary').click()
         await expect(page.locator('#doctrine2')).toBeVisible()
+        await expect.poll(async () => (await state()).view.tick).toBeGreaterThan(0)
         first = await state(); assert.ok(first.view.tick > 0)
       }
       const field = page.locator(inMatch ? '#doctrine2' : '#doctrine')

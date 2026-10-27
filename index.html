@@ -168,6 +168,7 @@
     <div id="vs" class="choice" role="group" aria-label="Opponent"></div>
     <div id="withAgent" class="choice" role="group" aria-label="Who plays" hidden></div>
     <button class="main" id="play">PLAY</button>
+    <span id="agentPlay" hidden></span>
     <label id="guidedHouseOption" hidden><input type="checkbox" id="guidedHouse"> Teach me while I play</label>
     <div><button id="viewReport" hidden>View last report</button> <button id="cancel" hidden>cancel</button></div>
     <p id="lobbyMsg" class="warn" role="status"></p>
@@ -422,7 +423,7 @@ $('startSolo').onclick = async () => {
 $('startName').onkeydown = e => { if (e.key === 'Enter') $('startSolo').click() }
 
 // ---------- lobby ----------
-const prefs = { vs: 'normal', mode: '1v1', minutes: 5, planets: 28, planning: 20, withAgent: true, openingMine: false, opening: DEFAULT_GAMBITS }
+const prefs = { vs: 'normal', mode: '1v1', minutes: 5, planets: 28, planning: 20, withAgent: true, assistant: 'ChatGPT', openingMine: false, opening: DEFAULT_GAMBITS }
 try {
   const saved = JSON.parse(localStorage.getItem('botters.prefs') || '{}')
   if (saved && typeof saved === 'object' && !Array.isArray(saved)) Object.assign(prefs, saved)
@@ -441,6 +442,12 @@ function lobbyChoices() {
   $('openAgent').disabled = !(agentOk && prefs.withAgent)
   $('openEditor').hidden = !(prefs.openingMine || !agentOk || !prefs.withAgent)
   $('play').disabled = !!L?.queued || !!L?.room
+  const agentPlay = agentOk && prefs.withAgent && !L?.live
+  $('play').hidden = agentPlay; $('agentPlay').hidden = !agentPlay
+  if (agentPlay) {
+    const first = prefs.assistant === 'Claude' ? 'Claude' : 'ChatGPT'
+    $('agentPlay').innerHTML = [first, first === 'Claude' ? 'ChatGPT' : 'Claude'].map((name, i) => `<button ${i === 0 ? 'class="main"' : ''} data-assistant="${name}" ${L?.queued || L?.room ? 'disabled' : ''}>Play with ${name}</button>`).join(' ')
+  }
   for (const id of ['quick', 'createRoom', 'joinRoom']) $(id).disabled = !!L?.queued || !!L?.room || !!L?.live
 }
 $('openAgent').onclick = () => { prefs.openingMine = false; savePrefs(); lobbyChoices(); syncRoomPlayer() }
@@ -509,7 +516,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   $('agentState').innerHTML = agentOk ? `<span class="agent">● ${esc(L.agent)} connected</span>` : `<span class="dim">none connected · <a href="/guide" target="_blank">connect one</a></span>`
   $('history').innerHTML = L.history.length ? '<table>' + L.history.map(h => `<tr><td class="${h.actual.result === 'won' ? 'you' : 'dim'}">${h.actual.result.toUpperCase()}</td><td>vs ${esc(h.vs)}</td><td>${n(h.actual.you)}–${n(h.actual.enemy)}</td><td class="dim">without you: ${h.withoutHuman.result}</td></tr>`).join('') + '</table>' : 'none yet'
   $('board').innerHTML = L.leaderboard.length ? '<table>' + L.leaderboard.map((b, i) => `<tr><td>${i + 1}.</td><td>${esc(b.name)} <span class="dim">${esc(b.setup || '')}</span></td><td>${b.rating}</td></tr>`).join('') + '</table>' : 'empty'
-  $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError
+  $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError || L.notice || ''
   $('viewReport').hidden = !L.inMatch || L.live
   lobbyChoices()
   $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? 'PLAY HOUSE' : 'PLAY'
@@ -548,11 +555,19 @@ $('rematchRoom').onclick = () => roomAction('/rooms/rematch', playOptions())
 $('leaveRoom').onclick = () => roomAction('/rooms/leave')
 $('viewReport').onclick = () => { clearTimeout(lobbyTimer); match() }
 $('play').onclick = () => L?.live ? match() : startPlay()
+const agentPrompt = 'Use the Botters Live connector: call join_match, write opening gambits with set_gambits from the doctrine, then keep calling wait_for_event and adapt until the match ends. Finish with a two-line summary.'
+const agentUrl = name => (name === 'Claude' ? 'https://claude.ai/new?q=' : 'https://chatgpt.com/?q=') + encodeURIComponent(agentPrompt)
+$('agentPlay').onclick = e => {
+  const name = e.target.dataset.assistant
+  if (!name) return
+  window.open(agentUrl(name), '_blank')
+  prefs.assistant = name; savePrefs(); startPlay()
+}
 async function startPlay() {
   const withAgent = agentOk && prefs.withAgent, opening = !withAgent || prefs.openingMine ? openEd.get() : null
   const r = await api('POST', '/play', { vs: L?.online || prefs.mode !== '1v1' ? (prefs.vs === 'player' ? 'normal' : prefs.vs) : prefs.vs, mode: prefs.mode, minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent, opening })
   $('lobbyMsg').textContent = r.ok ? '' : r.error
-  if (r.ok) lobby()
+  if (r.ok) { lobbyError = ''; lobby() }
 }
 $('cancel').onclick = async () => { await api('POST', '/cancel'); lobby() }
 
@@ -659,6 +674,14 @@ function match() {
   $('surrender').hidden = true; $('surrender').disabled = false
   connectStream()
 }
+let waitingCheck = false
+setInterval(async () => {
+  if ($('game').hidden || !F?.waitingForAgent || waitingCheck) return
+  waitingCheck = true
+  const state = await api('GET', '/lobby')
+  waitingCheck = false
+  if (!$('game').hidden && F?.waitingForAgent && !state.error && !state.live) { es?.close(); lobbyError = state.notice || 'Match cancelled.'; lobby(false) }
+}, 3000)
 async function connectStream() {
   clearTimeout(streamRetry); es?.close()
   if ($('game').hidden || (v?.ended && F?.report)) return
@@ -804,7 +827,7 @@ function endScreen() {
 }
 function panel() {
   if (!F) return
-  $('surrender').hidden = !!v.ended
+  $('surrender').hidden = !!v.ended || !!F.waitingForAgent
   renderGuide()
   const mineP = v.planets.filter(p => p.owner === 'you' && p.massLeft > 0).length, theirP = v.planets.filter(p => p.owner === 'enemy' && p.massLeft > 0).length, teamP = v.planets.filter(p => p.owner === 'ally' && p.massLeft > 0).length
   const s = sel !== null && v.swarms.find(c => c.id === sel), agent = F.me.withAgent
@@ -812,8 +835,15 @@ function panel() {
   $('hud').innerHTML = `<b class="you">${esc(F.me.name)} ${n(v.totals.you)}</b> · ${v.swarms.length} swarms · ${mineP + teamP} planets${v.allies.length ? ` · team with ${v.allies.length} allied swarm${v.allies.length > 1 ? 's' : ''}` : ''}      ${v.totals.foes.length > 1 ? 'vs ' + v.totals.foes.map(f => `<b style="color:${cssOf('enemy', f.k)}">${n(f.n)}</b>`).join(' · ') + ` · ${esc(F.opponent.name)}` : `<b class="foe">${v.allies.length || v.totals.you !== undefined && F.opponent.name.includes('bots') ? 'vs ' : ''}${esc(F.opponent.name)} ${n(v.totals.enemy)}</b>`} · ${theirP} planets · ${esc(F.opponent.setup || '')}${F.opponent.connected === false ? ' · reconnecting' : ''}` +
     `\n${clock(v.secondsLeft)} left · most particles at the end wins · ${agent ? (F.me.agentJoined ? `<span class="agent">agent: ${esc(F.me.setup)}</span>` : '<span class="warn">agent not joined yet</span>') : 'no agent'}\n` +
     (s ? `grabbed: swarm #${s.id} · ${n(s.n)} particles · ${s.manual ? '<b>by hand</b> (G gives it back)' : 'on gambits: click the map to take it'}` : '')
-  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('copyResult').onclick = copyResult; $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : L?.online && F.opponent.human ? 'REMATCH' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode || L?.online && F.opponent.human) { show('lobby'); roomAction('/rooms/rematch', { ...playOptions(), matchId: F.matchId }) } else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
-  else $('big').innerHTML = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : 'you lose') : F.startsIn > 0 ? `starts in ${F.startsIn}s<div style="font-size:15px">${agent && F.gambitsBy.who === 'default' ? 'your agent is writing the opening gambits' : 'edit your gambits now if you want'}</div>` : ''
+  if (v.ended && F.report) { if (!$('again')) { $('big').innerHTML = endScreen(); $('copyResult').onclick = copyResult; $('again').textContent = F.roomCode ? 'REMATCH IN ROOM' : L?.online && F.opponent.human ? 'REMATCH' : 'PLAY AGAIN'; $('again').onclick = () => { if (F.roomCode || L?.online && F.opponent.human) { show('lobby'); roomAction('/rooms/rematch', { ...playOptions(), matchId: F.matchId }) } else if (agentOk && prefs.withAgent) lobby(false); else { show('lobby'); startPlay() } }; $('menu').onclick = () => lobby(false) } }
+  else if (F.waitingForAgent) {
+    if (!$('waitingAgent')) {
+      const name = prefs.assistant === 'Claude' ? 'Claude' : 'ChatGPT'
+      $('big').innerHTML = `waiting for your agent…<div class="box" id="waitingAgent">opened ${name} in a new tab — <a href="${agentUrl(name)}" target="_blank" rel="noopener">reopen</a><br><button id="startWithoutAgent">Start without agent</button> <button id="cancelWaiting">Cancel</button></div>`
+      $('startWithoutAgent').onclick = async () => { const r = await api('POST', '/start-without-agent'); if (r.error) toast(r.error, false) }
+      $('cancelWaiting').onclick = async () => { const r = await api('POST', '/cancel'); if (r.ok) { es?.close(); lobbyError = 'Match cancelled.'; lobby(false) } else toast(r.error, false) }
+    }
+  } else $('big').innerHTML = v.ended ? (v.ended.result === 'won' ? 'YOU WIN' : 'you lose') : F.startsIn > 0 ? `starts in ${F.startsIn}s<div style="font-size:15px">${agent && F.gambitsBy.who === 'default' ? 'your agent is writing the opening gambits' : 'edit your gambits now if you want'}</div>` : ''
 
   const by = F.gambitsBy, byKey = JSON.stringify(by)
   if (byKey !== lastBy) {

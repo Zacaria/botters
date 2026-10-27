@@ -8,7 +8,7 @@ const hash = s => createHash('sha256').update(s).digest('hex')
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }) }
 const text = (s, max, fallback = '') => typeof s === 'string' ? s.trim().slice(0, max) || fallback : fallback
 const connected = (s, now) => !!s.agentSeen && now - s.agentSeen < 90000
-const active = m => !!m && !m.s.ended
+const active = m => !!m && !m.cancelled && !m.s.ended
 const PLANNING = [10, 20, 30], SESSION_TTL = 7 * 86400
 const DEFAULT_DOCTRINE = 'Grab free planets fast, fight only when bigger, protect what we own.'
 const canonicalRules = list => {
@@ -75,7 +75,7 @@ function whatIf(m, p, log, deadline) {
 function matchFrame(m, side, now) {
   const p = m.players[side], foe = opponent(m, side)
   return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy,
-    startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
+    startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - now) / 1000)), waitingForAgent: !!m.waitingForAgent, me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
     opponent: { name: foe.name, setup: foe.setup, human: !!foe.session, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
 }
 
@@ -151,7 +151,15 @@ export class OnlineGame {
       const loadMatch = async id => {
         if (!id) return null
         const m = await tx.get(`match:${id}`)
-        if (!m) return null
+        if (!m || m.cancelled) return null
+        if (m.waitingForAgent && now >= m.createdAt + 300000) {
+          m.cancelled = true
+          for (const player of m.players) if (player.session) {
+            const session = await loadSession(player.session)
+            if (session?.match === m.id) { session.match = null; session.notice = 'Match cancelled: your agent did not join within 5 minutes.' }
+          }
+          return null
+        }
         if (typeof m.s?.toJSON !== 'function') {
           const cached = this.handles?.get(id)
           const checkpoint = cached ? null : (m.s || await tx.get(`state:${id}`))
@@ -162,7 +170,7 @@ export class OnlineGame {
             this.handles.set(id, state); attachState(m, state, !!m.s)
           } else m.s = state
         }
-        const target = Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
+        const target = m.waitingForAgent ? 0 : Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
 
         while (m.s.tick < target && !m.s.ended) {
           if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
@@ -174,8 +182,8 @@ export class OnlineGame {
         await finish(m)
         return m
       }
-      const start = async (entries, req, roomCode = null) => {
-        const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, planning: req.planning, startsAt: now + req.planning * 1000 }
+      const start = async (entries, req, roomCode = null, waitingForAgent = false) => {
+        const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, planning: req.planning, createdAt: now, waitingForAgent, startsAt: now + req.planning * 1000 }
         if (this.handles) { m.options = m.s.opts; attachState(m, m.s, true) }
         entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
         for (const [side, e] of entries.entries()) {
@@ -186,7 +194,7 @@ export class OnlineGame {
           const opening = e ? e.req.opening : HOUSE[req.vs]
           if (opening) { const input = { gambits: canonicalRules(opening) }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
-          emit(m, p, `match starts in ${req.planning}s. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with three swarms of 3,000 particles. ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
+          emit(m, p, `${waitingForAgent ? 'waiting for your agent; planning begins when they join' : `match starts in ${req.planning}s`}. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with three swarms of 3,000 particles. ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
         }
         await tx.set(`match:${m.id}`, m)
         this.handles?.set(m.id, m.s)
@@ -293,7 +301,7 @@ export class OnlineGame {
         const idx = await index(), queued = idx.queue.find(e => e.id === s.id)
         if (queued) queued.seen = now
         s.queued = queued ? queued.at : null
-        return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, agentGranted: !!s.agentGranted, doctrine: s.doctrine, history: s.history, live: active(m), inMatch: !!m,
+        return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, agentGranted: !!s.agentGranted, doctrine: s.doctrine, history: s.history, live: active(m), inMatch: !!m, notice: s.notice,
           queued: !!queued, queuedAt: s.queued, room: await roomInfo(idx), leaderboard: await board(), doctrineMax: 500,
           choices: { vs: Object.keys(HOUSE), ...OPTIONS, planning: PLANNING } }
       }
@@ -384,14 +392,22 @@ export class OnlineGame {
         return { ok: true }
       }
       if (method === 'POST' && path === '/cancel') {
-        const idx = await index(); idx.queue = idx.queue.filter(e => e.id !== s.id); s.queued = null; return { ok: true }
+        human(); const idx = await index(); idx.queue = idx.queue.filter(e => e.id !== s.id); s.queued = null
+        if (m?.waitingForAgent) { m.cancelled = true; s.match = null; s.notice = 'Match cancelled.' }
+        return { ok: true }
+      }
+      if (method === 'POST' && path === '/start-without-agent') {
+        human(); if (!m?.waitingForAgent) fail(409, 'Match is not waiting for an agent.')
+        m.waitingForAgent = false; m.startsAt = now + m.planning * 1000; p.withAgent = false; p.setup = 'no agent'
+        return { ok: true }
       }
       if (method === 'POST' && path === '/play') {
         if (active(m)) fail(409, 'already in a match')
         if (s.room) fail(409, 'Leave your room before starting another match.')
         const req = parsePlay(body), idx = await index()
         idx.queue = idx.queue.filter(e => e.id !== s.id)
-        if (req.vs !== 'player') { await start([{ s, req }, null], req); return { ok: true } }
+        s.notice = null
+        if (req.vs !== 'player') { await start([{ s, req }, null], req, null, auth.role === 'human' && body.withAgent === true); return { ok: true } }
         const entry = idx.queue.find(e => (e.req.anyMinutes || req.anyMinutes || e.req.minutes === req.minutes) && (e.req.anyPlanets || req.anyPlanets || e.req.planets === req.planets))
         if (entry) {
           const other = await loadSession(entry.id)
@@ -410,6 +426,7 @@ export class OnlineGame {
         agent()
         if (!active(m) || !p.withAgent) return { match: null }
         p.agentJoined = true
+        if (m.waitingForAgent) { m.waitingForAgent = false; m.startsAt = now + m.planning * 1000; emit(m, p, `match starts in ${m.planning}s.`) }
         return { match: { id: m.id, side: s.side, opponent: `${opponent(m, s.side).name} (${opponent(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
           startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), state: view(m.s, s.side) } }
       }
@@ -439,7 +456,7 @@ export class OnlineGame {
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
         const input = cleanInput(body)
-        if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
+        if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
         const candidate = fromJSON(m.s.toJSON())
         const result = applyInput(candidate, s.side, input)
         if (!result.ok) { candidate.free(); fail(400, result.error) }

@@ -159,7 +159,10 @@ test('offline native SSE house result is copyable and PLAY AGAIN clears it', asy
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   try {
-    await Promise.race([once(server.stderr, 'data'), once(server, 'exit').then(() => { throw new Error('Offline fixture exited before startup') })])
+    await Promise.race([
+      new Promise(resolve => { let output = ''; server.stderr.on('data', data => { output += data; if (output.includes(`botters server on ${origin}`)) resolve() }) }),
+      once(server, 'exit').then(() => { throw new Error('Offline fixture exited before startup') }),
+    ])
     await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
     await enter(page, 'Offline private player', origin)
     await page.locator('#play').click()

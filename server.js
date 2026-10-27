@@ -36,10 +36,11 @@ function parsePlay(b) { // validated match request from the lobby (or a script)
   return { vs, ...matchOptions(b), planning: PLANNING.includes(b.planning) ? b.planning : 20, withAgent: b.withAgent !== false, opening: Array.isArray(b.opening) ? b.opening : null }
 }
 
-function play(s, req) {
+function play(s, req, human = false) {
   if (live(s)) return { ok: false, error: 'already in a match' }
   if (req.opening) { const t = createMatch(1); const r = applyInput(t, 0, { gambits: req.opening }); if (!r.ok) return r }
-  if (req.vs !== 'player') return startMatch([{ s, req }, null], req), { ok: true }
+  s.notice = null
+  if (req.vs !== 'player') return startMatch([{ s, req }, null], req, human && req.withAgent), { ok: true }
   if (waiting && waiting.s !== s && waiting.s.queued) { const a = waiting; waiting = null; a.s.queued = null; startMatch([a, { s, req }], a.req); return { ok: true } }
   waiting = { s, req }; s.queued = Date.now()
   return { ok: true, queued: true }
@@ -47,10 +48,10 @@ function play(s, req) {
 
 // ---------- matches ----------
 const foe = (m, side) => { const f = m.players.filter(p => m.s.teams[p.side] !== m.s.teams[side]); return { name: f.length > 1 ? `${f.length} house bots` : f[0].name, setup: f.length > 1 ? 'fixed gambits' : f[0].setup } }
-function startMatch(entries, req) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
+function startMatch(entries, req, waitingForAgent = false) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
   const delay = FORCED_DELAY ?? req.planning * 1000
   entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
-  const m = { id: id(), s: createMatch(randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), startsAt: Date.now() + delay }
+  const m = { id: id(), s: createMatch(randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
     const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
       withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
@@ -62,6 +63,8 @@ function startMatch(entries, req) { // entries[1] === null: the house plays side
   })
   for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[p.side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with three swarms of 3,000 particles. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits: keep them unless the situation demands a change.' : 'Write your opening gambits from the doctrine now.'}`)
   m.timer = setInterval(() => {
+    if (m.waitingForAgent && Date.now() >= m.createdAt + 300000) return cancelMatch(m, 'Match cancelled: your agent did not join within 5 minutes.')
+    if (m.waitingForAgent) { for (const st of m.streams) send(st, m); return }
     if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
     step(m.s)
     if (m.s.ended) return finish(m)
@@ -72,9 +75,16 @@ function startMatch(entries, req) { // entries[1] === null: the house plays side
   return m
 }
 
+function cancelMatch(m, notice) {
+  clearInterval(m.timer)
+  for (const p of m.players) if (p.session?.match === m) { p.session.match = null; p.session.notice = notice }
+  for (const st of m.streams) st.res.end()
+  m.s.free()
+}
+
 const frame = (m, side) => {
   const p = m.players[side]
-  return { view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
+  return { view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
     me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: foe(m, side), options: m.s.opts }
 }
 const send = (st, m) => st.res.write(`data: ${JSON.stringify(frame(m, st.side))}\n\n`)
@@ -135,6 +145,7 @@ function diffEvents(m, p) { // once per second: turn state changes into things a
 function joinInfo(s) { // what the agent learns when it joins its session's match
   const m = s.match, p = m.players[s.side]
   p.agentJoined = true
+  if (m.waitingForAgent) { m.waitingForAgent = false; m.startsAt = Date.now() + m.delay }
   return { side: s.side, opponent: `${foe(m, s.side).name} (${foe(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
     startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)), state: view(m.s, s.side) }
 }
@@ -155,7 +166,7 @@ const routes = {
   'GET /lobby': (req, res, q) => {
     const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'unknown lobby (the server restarted?)' })
     const s = a.s
-    json(res, 200, { name: s.name, agent: agentConnected(s) ? s.setup : null, doctrine: s.doctrine, history: s.history, inMatch: !!s.match, live: live(s), queued: !!s.queued,
+    json(res, 200, { name: s.name, agent: agentConnected(s) ? s.setup : null, doctrine: s.doctrine, history: s.history, inMatch: !!s.match, live: live(s), queued: !!s.queued, notice: s.notice,
       leaderboard: leaderboard(), choices: { vs: [...LEVELS, 'player'], ...OPTIONS, planning: PLANNING }, doctrineMax: DOCTRINE_MAX })
   },
   'POST /profile': async (req, res, q) => { // human: name and doctrine
@@ -170,13 +181,21 @@ const routes = {
   },
   'POST /play': async (req, res, q) => { // human (or a headless script with its agent token): start a match or queue
     const a = auth(q); if (!a) return json(res, 401, { error: 'bad token' })
-    const r = play(a.s, parsePlay(await body(req)))
+    const b = await body(req), r = play(a.s, parsePlay(b), a.role === 'human' && b.withAgent === true)
     json(res, r.ok ? 200 : 400, r)
   },
   'POST /cancel': (req, res, q) => {
-    const a = auth(q); if (!a) return json(res, 401, { error: 'bad token' })
+    const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'bad token' })
     if (waiting?.s === a.s) waiting = null
     a.s.queued = null
+    if (a.s.match?.waitingForAgent) cancelMatch(a.s.match, 'Match cancelled.')
+    json(res, 200, { ok: true })
+  },
+  'POST /start-without-agent': (req, res, q) => {
+    const a = auth(q, 'human'), m = a?.s.match
+    if (!a) return json(res, 401, { error: 'bad token' })
+    if (!m?.waitingForAgent) return json(res, 409, { error: 'Match is not waiting for an agent.' })
+    m.waitingForAgent = false; m.startsAt = Date.now() + m.delay; m.players[a.s.side].withAgent = false; m.players[a.s.side].setup = 'no agent'
     json(res, 200, { ok: true })
   },
   'GET /next': (req, res, q) => { // agent: long-poll until its human starts a match
@@ -227,7 +246,7 @@ const routes = {
       p.sent.push(now)
     }
     const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release }
-    if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
+    if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
     const candidate = fromJSON(m.s.toJSON())
     const r = applyInput(candidate, side, input)
     if (r.ok) {

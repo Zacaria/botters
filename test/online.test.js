@@ -13,6 +13,49 @@ function fixture() {
   return { game, store, call, session, advance: ms => { now += ms } }
 }
 
+test('house match waits for agent, then gives the full planning window', async () => {
+  const f = fixture(), a = await f.session('a', 'agent')
+  await f.call(a, 'POST', '/play', { vs: 'normal', withAgent: true, planning: 20 })
+  f.advance(120000)
+  const waiting = await f.call(a, 'GET', '/state')
+  assert.equal(waiting.waitingForAgent, true); assert.equal(waiting.startsIn, null); assert.equal(waiting.view.tick, 0)
+  await assert.rejects(f.call(a, 'POST', '/input', { order: { swarm: 1, x: 100, y: 100 } }), { status: 409 })
+  const joined = await f.call(a, 'GET', '/next', {}, 'agent')
+  assert.equal(joined.match.startsIn, 20)
+  f.advance(5000)
+  const planning = await f.call(a, 'GET', '/state')
+  assert.equal(planning.waitingForAgent, false); assert.equal(planning.startsIn, 15); assert.equal(planning.view.tick, 0)
+})
+
+test('waiting house match expires or can be cancelled without results', async () => {
+  for (const timeout of [true, false]) {
+    const f = fixture(), a = await f.session('a', 'agent')
+    await f.call(a, 'POST', '/play', { withAgent: true })
+    const id = (await f.call(a, 'GET', '/state')).matchId
+    if (timeout) f.advance(300000); else await f.call(a, 'POST', '/cancel')
+    const lobby = await f.call(a, 'GET', '/lobby')
+    assert.equal(lobby.live, false); assert.equal(lobby.inMatch, false); assert.match(lobby.notice, /cancelled/i)
+    assert.deepEqual(lobby.history, []); assert.deepEqual(lobby.leaderboard, [])
+    const saved = JSON.parse(await f.store.get(`match:${id}`))
+    assert.equal(saved.cancelled, true); assert.equal(saved.report, undefined)
+    assert.equal([...f.store.data.keys()].some(key => key.startsWith('elo:')), false)
+  }
+})
+
+test('start without agent starts planning and rooms still start immediately', async () => {
+  const f = fixture(), a = await f.session('a', 'agent'), b = await f.session('b', 'agent')
+  await f.call(a, 'POST', '/play', { withAgent: true, planning: 10 })
+  f.advance(30000); await f.call(a, 'POST', '/start-without-agent')
+  const frame = await f.call(a, 'GET', '/state')
+  assert.equal(frame.startsIn, 10); assert.equal(frame.waitingForAgent, false); assert.equal(frame.me.withAgent, false)
+  await f.call(a, 'POST', '/surrender')
+  const room = await f.call(a, 'POST', '/rooms', { withAgent: true, planning: 10 })
+  await f.call(b, 'POST', '/rooms/join', { code: room.code, withAgent: true })
+  await f.call(a, 'POST', '/rooms/start', { withAgent: true, planning: 10 })
+  const roomFrame = await f.call(a, 'GET', '/state')
+  assert.equal(roomFrame.waitingForAgent, false); assert.equal(roomFrame.startsIn, 10)
+})
+
 test('role-scoped capabilities, validation, fog and server authority', async () => {
   const f = fixture(), a = await f.session('<A>', 'codex')
   assert.notEqual(a.humanToken, a.agentToken)
