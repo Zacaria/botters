@@ -1,7 +1,8 @@
 import { mkdir, copyFile } from 'node:fs/promises'
 import { PUBLIC_MEDIA } from '../public-media.js'
-const assets = ['index.html', 'guide.html', 'sim.js', 'privacy.html', 'terms.html', ...Object.keys(PUBLIC_MEDIA)]
+const assets = ['index.html', 'guide.html', 'sim.js', 'sim/pkg/botters_sim.js', 'sim/pkg/botters_sim_bg.wasm', 'privacy.html', 'terms.html', ...Object.keys(PUBLIC_MEDIA)]
 await mkdir('public/media', { recursive: true })
+await mkdir('public/sim/pkg', { recursive: true })
 await Promise.all(assets.map(file => copyFile(file, `public/${file}`)))
 console.log(`Built ${assets.length} public assets; API secrets and server modules are not public.`)
 const { build } = await import('esbuild')

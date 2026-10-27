@@ -281,6 +281,8 @@ const routes = {
   'GET /leaderboard': (req, res) => json(res, 200, leaderboard()),
   'GET /': page('index.html'),
   'GET /sim.js': page('sim.js'),
+  'GET /sim/pkg/botters_sim.js': page('sim/pkg/botters_sim.js'),
+  'GET /sim/pkg/botters_sim_bg.wasm': (req, res) => { res.writeHead(200, { 'content-type': 'application/wasm' }); res.end(readFileSync(new URL('sim/pkg/botters_sim_bg.wasm', import.meta.url))) },
   'GET /guide': page('guide.html'),
   'GET /privacy': page('privacy.html'),
   'GET /privacy.html': page('privacy.html'),

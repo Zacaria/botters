@@ -84,6 +84,8 @@ The default doctrine comes from `DOCTRINE.md`; each player edits their own in th
 
 ## Test
 
+The initial map generator is compiled from `sim/` to WebAssembly; the remaining match simulation runs in `sim.js`. The built artifact is included with the game. After changing the Rust sources, run `npm run build:sim` with the wasm32 target and wasm-bindgen CLI 0.2.100 installed.
+
 ```bash
 npm test
 npm run check

@@ -1,3 +1,9 @@
+import init, { initSync, initial_geometry, side_totals } from './sim/pkg/botters_sim.js'
+if (typeof process !== 'undefined' && process.versions?.node) {
+  const { readFileSync } = await import('node:fs')
+  initSync({ module: readFileSync(new URL('./sim/pkg/botters_sim_bg.wasm', import.meta.url)) })
+} else await init()
+
 // Botters simulation: space swarms conquer and eat planets. Pure and deterministic: state = f(seed, inputs by tick).
 // A swarm is a cohort (centre + particle count); individual particles only exist in the browser.
 // A match has 2 to 6 sides grouped in teams (1v1, 2v2, free-for-all). Every swarm follows its side's gambits
@@ -12,12 +18,7 @@ export const MAX_SWARMS = 40, MAX_GAMBITS = 10
 export const T = { C: 0.2, E: 3, G: 0.5, DIG: 0.004, SLOW: 2, GRACE: 400, STARVE: 0.0008 }
 export const MODES = { '1v1': [0, 1], '2v2': [0, 0, 1, 1], ffa4: [0, 1, 2, 3], ffa6: [0, 1, 2, 3, 4, 5] } // team of each side
 const THINK = 10 // gambits are re-evaluated every 0.5 s
-const SWARM_VISION = 150, PLANET_VISION = 80, START_N = 3000
-const HOMES = { // one home planet per side; every layout is mirror-symmetric on both axes, so no side gets a better map
-  2: [[90, 350], [1110, 350]],
-  4: [[130, 170], [130, 530], [1070, 170], [1070, 530]], // 2v2: sides 0,1 left, 2,3 right
-  6: [[100, 350], [350, 116], [850, 116], [1100, 350], [850, 584], [350, 584]],
-}
+const SWARM_VISION = 150, PLANET_VISION = 80
 
 export const rad = n => 4 + Math.sqrt(n) * 0.32
 const speed = c => (1.5 - Math.min(1, c.n / 15000) * 0.9) 
@@ -83,28 +84,10 @@ export function seen(s, side) { // enemy swarms this side's team can see right n
 }
 
 // ---------- match ----------
-function rng(seed) { // mulberry32
-  let a = seed >>> 0
-  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
-}
-
 export function createMatch(seed, options) {
-  const opts = matchOptions(options), r = rng(seed), teams = MODES[opts.mode], n = teams.length
-  const planets = HOMES[n].map(([x, y], side) => ({ x, y, r: 26, owner: side, cap: 1 }))
-  for (let tries = 0; planets.length < opts.planets && tries < 5000; tries++) { // six homes need a centreline pair before the mirrored quartets
-    const pair = n > 2 && (opts.planets - planets.length) % 4 === 2
-    const pr = Math.round(6 + r() * 16), x = 180 + r() * (W / 2 - 210), y = pair ? H / 2 : n === 2 ? 40 + r() * (H - 80) : 40 + r() * (H / 2 - 90 - pr)
-    const copies = n === 2 || pair ? [[x, y], [W - x, y]] : [[x, y], [W - x, y], [x, H - y], [W - x, H - y]]
-    if (planets.some(p => Math.hypot(p.x - x, p.y - y) < p.r + pr + 50)) continue
-    for (const [cx, cy] of copies) planets.push({ x: cx, y: cy, r: pr, owner: -1, cap: 0 })
-  }
-  planets.forEach((p, i) => { p.id = i; p.mass = p.m0 = p.r === 26 ? 15000 : p.r * p.r * 25; p.stock = 0; p.prog = 0; p.claim = -1; p.by = -1 })
-  const s = { seed, opts, teams, endTick: opts.minutes * 60 * TPS, tick: 0, nextId: 1, planets, swarms: [], gambits: teams.map(() => DEFAULT_GAMBITS), ended: null }
-  for (let side = 0; side < n; side++) { // three swarms, fanned out in front of home towards the centre
-    const h = planets[side], len = Math.hypot(W / 2 - h.x, H / 2 - h.y), ux = (W / 2 - h.x) / len, uy = (H / 2 - h.y) / len
-    for (let i = 0; i < 3; i++) addSwarm(s, side, h.x + ux * 45 - uy * (i - 1) * 70, h.y + uy * 45 + ux * (i - 1) * 70, START_N)
-  }
-  return s
+  const opts = matchOptions(options), teams = MODES[opts.mode]
+  const { planets, swarms } = JSON.parse(initial_geometry(seed >>> 0, teams.length, opts.planets))
+  return { seed, opts, teams, endTick: opts.minutes * 60 * TPS, tick: 0, nextId: swarms.length + 1, planets, swarms, gambits: teams.map(() => DEFAULT_GAMBITS), ended: null }
 }
 
 export function addSwarm(s, side, x, y, n) {
@@ -262,7 +245,7 @@ export function replay(seed, log, opts) {
   return s
 }
 
-export const totals = s => s.teams.map((_, side) => Math.round(s.swarms.reduce((a, c) => a + (c.side === side ? c.n : 0), 0))) // per side
+export const totals = s => Array.from(side_totals(s.teams.length, Float64Array.from(s.swarms.flatMap(c => [c.side, c.n])))) // per side
 const teamTotals = s => { const t = []; for (const c of s.swarms) t[s.teams[c.side]] = (t[s.teams[c.side]] || 0) + c.n; return [...Array(Math.max(...s.teams) + 1)].map((_, i) => t[i] || 0) } // per team, indexed by team id
 
 // What one side may know: its swarms, its allies, visible enemy swarms, public planets and particle totals.

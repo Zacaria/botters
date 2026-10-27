@@ -1,4 +1,7 @@
 node_modules/
+sim/target/
+sim/.cargo-home/
+.tmp/
 *.log
 .env
 .vercel
