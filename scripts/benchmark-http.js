@@ -10,16 +10,16 @@ const q = new URLSearchParams({ token: session.humanToken })
 await game.request('POST', '/play', q, { vs: 'easy', minutes: 8, planets: 40, withAgent: false })
 const first = await game.request('GET', '/state', q)
 const m = JSON.parse(await store.get(`match:${first.matchId}`))
-m.s = createMatch(631, { minutes: 8, planets: 40 }); m.s.swarms = []
+m.s = createMatch(631, { minutes: 8, planets: 40 }); { const data = m.s.toJSON(); data.swarms = []; m.s.load(data) }
 for (const side of [0, 1]) {
   applyInput(m.s, side, { gambits: [{ if: 'always', then: 'hold' }] })
   for (let i = 0; i < 40; i++) {
-    const c = addSwarm(m.s, side, 40 + side * 650 + i % 5 * 95, 35 + Math.floor(i / 5) * 85, 500)
-    c.noMerge = m.s.endTick + 1
+    addSwarm(m.s, side, 40 + side * 650 + i % 5 * 95, 35 + Math.floor(i / 5) * 85, 500)
   }
 }
 // Every sample starts at the same 479.5-second checkpoint and computes two real simulation ticks.
-m.s.tick = 9590; m.startsAt = now - 9592 * 50
+{ const data = m.s.toJSON(); data.tick = 9590; for (const c of data.swarms) c.noMerge = data.endTick + 1; m.s.load(data) }
+m.startsAt = now - 9592 * 50
 const checkpoint = JSON.stringify(m), samples = []
 let handler
 const server = http.createServer((req, res) => handler(req, res))

@@ -16,16 +16,15 @@ await Promise.all(sessions.map(s => request(`/play?token=${s.humanToken}`, { vs:
 const first = await request(`/state?token=${sessions[0].humanToken}`), key = `match:${first.matchId}`
 const original = JSON.parse(await store.get(key))
 const m = structuredClone(original)
-m.s = createMatch(631, { minutes: 8, planets: 40 }); m.s.swarms = []
+m.s = createMatch(631, { minutes: 8, planets: 40 }); { const data = m.s.toJSON(); data.swarms = []; m.s.load(data) }
 for (const side of [0, 1]) {
   applyInput(m.s, side, { gambits: [{ if: 'always', then: 'hold' }] })
   for (let i = 0; i < 40; i++) {
-    const c = addSwarm(m.s, side, 40 + side * 650 + i % 5 * 95, 35 + Math.floor(i / 5) * 85, 500)
-    c.noMerge = m.s.endTick + 1
+    addSwarm(m.s, side, 40 + side * 650 + i % 5 * 95, 35 + Math.floor(i / 5) * 85, 500)
   }
 }
 // Synthetic late checkpoint: capacity, not an eight-minute wall-clock gameplay claim.
-m.s.tick = 9400
+{ const data = m.s.toJSON(); data.tick = 9400; for (const c of data.swarms) c.noMerge = data.endTick + 1; m.s.load(data) }
 for (const p of m.players) p.prev = null
 const reset = async () => {
   m.startsAt = Date.now() - 9402 * 50

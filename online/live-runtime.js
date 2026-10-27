@@ -5,11 +5,12 @@ const unavailable = () => Object.assign(new Error('Online service is unavailable
 
 export class LiveRuntime {
   constructor(store, options = {}) {
-    this.store = store; this.options = options; this.tail = Promise.resolve(); this.rooms = new Map(); this.authorities = new Map(); this.pending = new Map(); this.generations = new Map()
+    this.store = store; this.handles = new Map(); this.options = { ...options, handles: this.handles }; this.tail = Promise.resolve(); this.rooms = new Map(); this.authorities = new Map(); this.pending = new Map(); this.generations = new Map()
     this.now = options.now || Date.now
     this.sweeper = setInterval(() => this.sweep(), 30000); this.sweeper.unref()
   }
   serialize(work) { const result = this.tail.then(work); this.tail = result.catch(() => {}); return result }
+  clearHandles() { for (const state of this.handles.values()) state.free(); this.handles.clear() }
   ready(bearer) {
     if (!/^[\w-]{32}$/.test(bearer || '')) return false
     const key = `token:${hash(bearer)}`
@@ -93,7 +94,9 @@ export class LiveRuntime {
       if (!publicPath && this.options.authority && !this.ready(q.get('token'))) throw unavailable()
       if (!publicPath) this.check(q.get('token'), proof)
       if (['/play', '/rooms/start', '/rooms/rematch'].includes(path) && this.rooms.size >= 24) throw Object.assign(new Error('All matches are occupied. Retry shortly.'), { status: 503 })
-      const result = await new OnlineGame(this.store, { ...this.options, identity, startId }).request(method, path, q, body)
+      let result
+      try { result = await new OnlineGame(this.store, { ...this.options, identity, startId }).request(method, path, q, body) }
+      catch (error) { this.clearHandles(); throw error }
       if (this.createRoom) for (const [key, record] of this.store.data) if (key.startsWith('match:')) {
         const m = JSON.parse(record.value)
         if (!m.report && !this.rooms.has(m.id)) this.rooms.set(m.id, await this.createRoom(m.id))
@@ -108,18 +111,21 @@ export class LiveRuntime {
       const m = JSON.parse(raw)
       for (const side of sides) if (m.players[side]) m.players[side].seen = this.now()
       this.store.put(key, JSON.stringify(m))
-      return new OnlineGame(this.store, this.options).request('INTERNAL', '/tick', undefined, { id })
+      try { return await new OnlineGame(this.store, this.options).request('INTERNAL', '/tick', undefined, { id }) }
+      catch (error) { this.clearHandles(); throw error }
     })
   }
   sweep() {
     for (const [key, entry] of this.authorities) if (Date.now() - (entry.usedAt || entry.checkedAt) > 120000 || Date.now() >= entry.expiresAt) { this.authorities.delete(key); this.generations.delete(key); void entry.close() }
     void this.serialize(() => {
       for (const [key, record] of this.store.data) {
-        if (record.expires && record.expires <= this.now()) { this.store.data.delete(key); continue }
+        if (record.expires && record.expires <= this.now()) { if (key.startsWith('match:')) { const id = key.slice(6); this.handles.get(id)?.free(); this.handles.delete(id) }; this.store.data.delete(key); continue }
         if (!key.startsWith('match:')) continue
         const m = JSON.parse(record.value)
         if (!m.report || this.now() - m.finishedAt < 900000) continue
+        this.handles.get(m.id)?.free(); this.handles.delete(m.id)
         this.store.data.delete(key)
+        this.store.data.delete(`state:${m.id}`)
         for (const log of [...this.store.data.keys()]) if (log.startsWith(`log:${m.id}:`)) this.store.data.delete(log)
         for (const p of m.players) {
           const sessionKey = `session:${p.session}`, raw = this.store.raw(sessionKey), s = raw && JSON.parse(raw)
@@ -128,5 +134,5 @@ export class LiveRuntime {
       }
     })
   }
-  async close() { clearInterval(this.sweeper); this.generations.clear(); await Promise.all([...this.authorities.values()].map(entry => entry.close())); this.authorities.clear() }
+  async close() { clearInterval(this.sweeper); this.generations.clear(); await Promise.all([...this.authorities.values()].map(entry => entry.close())); this.authorities.clear(); this.clearHandles() }
 }

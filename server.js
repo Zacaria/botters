@@ -5,7 +5,7 @@ import http from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
 import { servePublicMedia } from './public-media.js'
-import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, HOUSE, TPS, W, H, MAX_GAMBITS } from './sim.js'
+import { createMatch, fromJSON, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, HOUSE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
@@ -228,10 +228,10 @@ const routes = {
     }
     const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release }
     if (now < m.startsAt && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
-    const candidate = structuredClone(m.s)
+    const candidate = fromJSON(m.s.toJSON())
     const r = applyInput(candidate, side, input)
     if (r.ok) {
-      m.s = candidate
+      m.s.free(); m.s = candidate
       m.log.push({ tick: m.s.tick, side, role: a.role, input })
       const why = b.why ? String(b.why).slice(0, 120) : '', t = Math.floor(m.s.tick / TPS), list = m.s.gambits[side]
       if (b.gambits) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why }
@@ -248,7 +248,7 @@ const routes = {
         if (b.split !== undefined) emit(m, side, `HUMAN split swarm ${b.split}`)
         if (b.release !== undefined) emit(m, side, `HUMAN gave swarm ${b.release} back to the gambits`)
       }
-    }
+    } else candidate.free()
     json(res, r.ok ? 200 : 400, r)
   },
   'POST /call': async (req, res, q) => { // agent asks its human to take a swarm somewhere by hand

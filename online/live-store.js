@@ -60,7 +60,7 @@ export class LiveStore extends MemoryStore {
       return { ...e, raw: raws.get(e.key), value }
     })
     boundaries.forEach((b, i) => writes.push({ key: markers[i], raw: raws.get(markers[i]), value: JSON.stringify({ id: b.m.id, startsAt: b.m.startsAt, finishedAt: b.m.finishedAt || null,
-      players: b.m.players.map(({ session, side, name, setup, accountId }) => ({ session, side, name, setup, accountId })), report: b.m.report || null, options: b.m.s.opts }), ttl: 86400 }))
+      players: b.m.players.map(({ session, side, name, setup, accountId }) => ({ session, side, name, setup, accountId })), report: b.m.report || null, options: b.m.options || b.m.s.opts }), ttl: 86400 }))
     this.boundaryCalls++
     if (!await this.remote.commit(writes)) return 0
     // All callers and subscription adoption serialize around this local commit.

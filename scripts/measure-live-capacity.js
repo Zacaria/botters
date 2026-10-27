@@ -20,15 +20,17 @@ try {
     const frame = await service.runtime.request('GET', '/state', query(pair[0].humanToken))
     await service.runtime.serialize(() => {
       const key = `match:${frame.matchId}`, m = JSON.parse(service.store.raw(key)), s = createMatch(631 + i, { minutes: 8, planets: 40 })
-      s.swarms = []
+      const initial = s.toJSON(); initial.swarms = []; s.load(initial)
       for (const side of [0, 1]) {
         applyInput(s, side, { gambits: [{ if: 'always', then: 'hold' }] })
         for (let n = 0; n < 40; n++) {
-          const swarm = addSwarm(s, side, 40 + side * 650 + n % 5 * 95, 35 + Math.floor(n / 5) * 85, 500)
-          swarm.noMerge = s.endTick + 1
+          addSwarm(s, side, 40 + side * 650 + n % 5 * 95, 35 + Math.floor(n / 5) * 85, 500)
         }
       }
-      m.s = s; m.startsAt = Date.now(); service.store.put(key, JSON.stringify(m))
+      const fixture = s.toJSON(); for (const swarm of fixture.swarms) swarm.noMerge = s.endTick + 1; s.load(fixture)
+      service.runtime.handles.get(frame.matchId)?.free(); service.runtime.handles.set(frame.matchId, s)
+      m.checkpointTick = s.tick; m.stateTick = s.tick; m.startsAt = Date.now()
+      service.store.put(`state:${frame.matchId}`, JSON.stringify(s)); service.store.put(key, JSON.stringify(m))
     })
     for (const p of pair) {
       const stats = { first: 0, last: 0, frames: 0, intervals: [] }, room = await new Client(base).joinById(service.runtime.rooms.get(frame.matchId), { token: p.humanToken })

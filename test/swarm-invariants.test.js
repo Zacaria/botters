@@ -3,12 +3,6 @@ import assert from 'node:assert/strict'
 import { createMatch, applyInput, addSwarm, step, replay, MODES, OPTIONS, T, W, H } from '../sim.js'
 
 const hold = [{ if: 'always', then: 'hold' }]
-const arena = () => {
-  const s = createMatch(7)
-  s.swarms = []; s.planets = []; s.gambits = s.teams.map(() => hold)
-  return s
-}
-const order = (s, c) => applyInput(s, c.side, { order: { swarm: c.id, x: 800, y: 350 } })
 const runTo = (s, tick) => { while (s.tick < tick && !s.ended) step(s) }
 
 for (const mode of Object.keys(MODES)) {

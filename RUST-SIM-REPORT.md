@@ -1,30 +1,19 @@
-Incomplete.
+Complete.
 
-- This session measured the before-port series and changed only the benchmark fixture and documentation. The Rust-owned match, runtime integration, after-port measurements, and required final test runs remain outstanding; no numerical parity blocker has been established.
-- Before-port baseline on this machine, commit `717ced7`, Node v24.21.0, 10-second stationary 80-swarm fixture. The benchmark bypasses the room admission guard only in its own process; the production limit remains 24. RSS is peak bytes. The series stops at 32 because minimum FPS falls below 10. No after-port measurement is available yet.
+- `npm run build:sim` succeeded. `npm test` passed 258 tests.
+- The unchanged golden suite passed both tests covering 104 traces. The browser suite's saved result was `passed` with no failed tests; its local test list contains 51 tests. The context tool timed out after five minutes while Playwright continued, so the saved result and test listing provide the count and status.
+- Offline browser tests exercised a local match and the moving menu backdrop through the shared WASM simulator. View snapshots matched the before-port simulator across 40 matches in all four modes.
 
-| Matches | CPU % of one core | Minimum FPS | Frame p95 ms | Peak RSS bytes |
-| ---: | ---: | ---: | ---: | ---: |
-| 16 | 100.02 | 12.48 | 124.37 | 267452416 |
-| 24 | 107.63 | 12.03 | 152.93 | 291692544 |
-| 32 | 103.20 | 6.52 | 305.37 | 287305728 |
+The Rust struct owns match entities, gambits, tick and outcome. The JavaScript wrapper exposes snapshots and restore; live matches reuse process-local handles, write separate checkpoints and free handles on sweep. The live ceiling remains 24 rooms.
 
-- This round: team particle aggregation moved from JavaScript to Rust, preserving swarm iteration order; the WASM artifact was rebuilt. `npm test` passed 256 tests, including the 104 golden traces. Team aggregation still uses a temporary array boundary and is not a Rust-owned match state.
-- Earlier checkout baseline: `npm test` passed 256 tests in 100 seconds. The operator has since authorized changing fixture mutations to use `toJSON()` and `load()` or `addSwarm`, so retaining mutable entity references is no longer required.
-- Remaining, in order: implement Rust-owned match handles and port stepping, gambits, inputs, fog, views, totals and replay; verify all 104 golden traces without fixture changes; replace live-frame state serialization with a handle registry and release swept matches; pass the browser suite; measure the before/after capacity series and update the documentation. Keep the 24-room ceiling.
+Before: commit `717ced7`. After: this checkout. Both series ran on this machine with Node v24.21.0, `MATCHES=<n> SECONDS=10 node scripts/measure-live-capacity.js`, 80 swarms per match and two loopback views. The fixture bypasses room admission only in its process. Each series stopped at the first minimum FPS below 10. RSS is peak bytes; frame p95 is the maximum across views. The short synthetic sample is not a production capacity guarantee.
 
-Rust creates initial planet and swarm geometry, computes side totals, determines fog visibility, and calculates swarm movement and combat. Match state and the remaining simulation still live in JavaScript. Movement and combat use temporary arrays across the WASM boundary, so they do not satisfy the Rust-owned state requirement and are not evidence of a speedup.
+| Matches | Before CPU % of one core | Before min FPS | Before frame p95 ms | Before RSS bytes | After CPU % of one core | After min FPS | After frame p95 ms | After RSS bytes |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 | 100.02 | 12.48 | 124.37 | 267452416 | 77.05 | 12.50 | 120.66 | 281731072 |
+| 24 | 107.63 | 12.03 | 152.93 | 291692544 | 104.65 | 12.49 | 128.44 | 309194752 |
+| 32 | 103.20 | 6.52 | 305.37 | 287305728 | 107.55 | 12.47 | 137.12 | 246726656 |
+| 48 | — | — | — | — | 110.59 | 11.07 | 118.84 | 367464448 |
+| 64 | — | — | — | — | 108.40 | 8.27 | 205.08 | 380444672 |
 
-- This round: `npm run build:sim` succeeded; `npm test` passed all 256 tests; the separate golden suite passed both tests covering 104 traces. Fixtures were unchanged.
-- Deleted the JavaScript movement and combat calculation loops, replacing them with Rust calculations while keeping existing JavaScript swarm objects and tuning constants. The rest of `step` remains in JavaScript.
-
-- Added a wasm-bindgen 0.2.100 crate with V8-style two-argument hypot, mulberry32, initial geometry and side totals, a WASM build script, source hash, and focused tests. Node and browsers load the same artifact; static builds, package and Docker include it.
-- Initial geometry and the remaining JavaScript simulator pass all 104 golden traces. Rust match parity is not established: stepping, inputs, gambits, fog and reports have not been ported. The golden fixtures and tests were not changed.
-- The Node suite passed 256 tests in an isolated checkout copy with temporary files outside that copy but inside the worktree. The browser run before the totals change had 50 passed and one connection-refused failure; the failed offline result-sharing test passed on its isolated rerun. The browser suite has not been rerun since the totals change.
-- Before-port benchmark (`MATCHES=16 SECONDS=10 node scripts/measure-live-capacity.js`): 16 matches, 80 swarms/match, 32 views, 103.44056906008441% CPU of one core, minimum 12.449938623351702 FPS, maximum frame p95 117.32376399999976 ms, peak RSS 258355200 bytes, passed.
-- Partial-port benchmark (same command): 16 matches, 80 swarms/match, 32 views, 102.25170479159416% CPU of one core, minimum 12.469882595401867 FPS, maximum frame p95 120.14898799999992 ms, peak RSS 271745024 bytes, passed. This is not an after-port measurement: stepping and live state remain in JavaScript.
-- Deleted code: the JavaScript map generator and RNG.
-- Fog visibility now runs in Rust through a temporary array boundary; its JavaScript visibility algorithm was deleted. `npm run build:sim` succeeded and `npm test` passed 256 tests, including all 104 golden traces. This is not yet the Rust-owned state required by the contract.
-- Baseline rechecked in this checkout: `npm test` passed 256 tests, and a separate `node --test test/golden-sim.test.js` passed both golden tests (104 traces). No new port code has been added in this round.
-- Baseline rechecked again: `npm test` passed 256 tests in 97 seconds. Existing simulation tests directly replace and mutate `s.swarms` and `s.planets`, and retain swarm object references; the Rust handle adapter must preserve those behaviours as well as the field reads and JSON property order used by the golden checksums.
-- Remaining: Rust match state and handle, the rest of stepping, inputs, gambits, view, replay, removal of the temporary movement, combat and fog array boundaries, live registry and lifecycle, full Rust golden parity, browser suite, before/after benchmark series, and documentation updates. The 24-room ceiling remains unchanged.
+Deleted the JavaScript RNG and map generator, gambit decision and action logic, movement and combat loops, planet capture and growth, merge and starvation logic, fog and totals calculations, and the temporary per-tick movement/combat/fog array interfaces. Snapshot arrays now cross the boundary only for explicit state reads, restoration, and view output.

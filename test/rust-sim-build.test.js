@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { sourceHash } from '../scripts/build-sim.js'
-import { initSync, hypot, random_next, initial_geometry, side_totals } from '../sim/pkg/botters_sim.js'
-import { MODES } from '../sim.js'
+import { initSync, hypot, random_next, initial_geometry } from '../sim/pkg/botters_sim.js'
+import { MODES, createMatch, totals } from '../sim.js'
 
 initSync({ module: readFileSync(new URL('../sim/pkg/botters_sim_bg.wasm', import.meta.url)) })
 
@@ -36,5 +36,7 @@ test('Rust initial geometry matches JavaScript', () => {
 test('Rust totals preserve summation order and rounding', () => {
   const swarms = [{ side: 0, n: 1e16 }, { side: 0, n: 1 }, { side: 0, n: 1 }, { side: 1, n: 0.49999999999999994 }]
   const expected = [0, 1].map(side => Math.round(swarms.reduce((n, c) => n + (c.side === side ? c.n : 0), 0)))
-  assert.deepEqual(Array.from(side_totals(2, Float64Array.from(swarms.flatMap(c => [c.side, c.n])))), expected)
+  const s = createMatch(1), data = s.toJSON(), template = data.swarms[0]
+  data.swarms = swarms.map((c, id) => ({ ...template, ...c, id })); s.load(data)
+  assert.deepEqual(totals(s), expected)
 })
