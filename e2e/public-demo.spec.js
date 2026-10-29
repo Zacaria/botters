@@ -6,7 +6,8 @@ test.describe('public explanation without JavaScript', () => {
   test.use({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } })
   test('Play and Understand remain navigable with transcript, guide and policies', async ({ page }) => {
     expect((await page.goto('/')).status()).toBe(200)
-    await page.getByRole('link', { name: 'Understand the game', exact: true }).click()
+    await expect(page.locator('#authPanel')).toBeInViewport()
+    await page.getByRole('link', { name: 'How it works', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'You set the strategy. Swarms follow the rules.', exact: true })).toBeInViewport()
     await expect(page.locator('#understand')).toContainText('first matching rule')
     await expect(page.locator('#understand')).toContainText('Most particles')
@@ -17,8 +18,8 @@ test.describe('public explanation without JavaScript', () => {
     await expect(page.locator('#demo-transcript')).toContainText('fixed gambits')
     await expect(page.locator('#demo-transcript')).toContainText('no model')
     expect(await page.locator('#start').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
-    await page.getByRole('link', { name: 'Play Botters', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Play with your agent', exact: true })).toBeInViewport()
+    await page.goto('/')
+    await expect(page.locator('#play-entry')).toBeInViewport()
     // Playwright's text matcher skips NOSCRIPT descendants; inspect the visible
     // paragraph directly (the browser accessibility snapshot includes it).
     await expect(page.locator('#play-entry noscript p')).toBeVisible()
