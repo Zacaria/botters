@@ -38,10 +38,12 @@
   .hero h1 { font-size: 46px; letter-spacing: 8px }
   .hero .tag { color: #e4e4ec; font: 17px/1.45 system-ui, sans-serif; margin: 8px 0 24px }
   .choice { display: flex; gap: 8px; margin-top: 8px } .choice button { flex: 1; margin: 0; padding: 10px 4px; border-radius: 8px }
-  #lobby #play { display: block; width: 100%; margin: 18px 0 10px; padding: 16px; border-radius: 10px; font-size: 22px; letter-spacing: 4px; box-shadow: 0 0 32px #ff2e8866 }
   #lobby #play:not(:disabled):hover { box-shadow: 0 0 44px #ff2e88aa }
   #guidedHouseOption { display: block; cursor: pointer } #guidedHouse { accent-color: #ff2e88 } #lobby #lobbyMsg:empty { display: none }
-  #lobby #online { margin: 0 0 12px; text-align: left } #lobby #roomPanel { margin: 0 0 12px; text-align: left; overflow-wrap: anywhere }
+  #lobby #quick, #lobby #play { display: block; width: 100%; margin: 18px 0 10px; padding: 16px; border-radius: 10px; font-size: 22px; letter-spacing: 4px; box-shadow: 0 0 32px #ff2e8866 }
+  #lobby #online .row { justify-content: center } #lobby #joinCode { width: 8em }
+  #lobby.online #play { background: #1a1a22; color: #ddd; border-color: #444; font-size: 15px; letter-spacing: 1px; padding: 10px; margin: 10px 0; box-shadow: none }
+  #practiceTitle { margin: 22px 0 0; font-size: 13px; color: #8a8a96 } #lobby #roomPanel { margin: 0 0 12px; text-align: left; overflow-wrap: anywhere }
   details.more { text-align: left; border-top: 1px solid #1c1c24; padding: 10px 0 } details.more > summary { cursor: pointer; color: #ddd }
   details.more[open] > summary { margin-bottom: 8px } details.more li { margin-bottom: 6px } details.more :focus-visible { outline: 2px solid #ff2e88; outline-offset: 2px }
   #accountControls { justify-content: flex-end; padding: 8px 16px 0 } #lobby #pairApproval { max-width: 440px; margin: 16px auto 0 }
@@ -160,6 +162,12 @@
   <main class="hero">
     <h1><b>BOT</b><i>TERS</i></h1>
     <p class="tag">Your swarm eats planets.<br>Biggest swarm at the end wins.</p>
+    <div id="online" hidden>
+      <button class="main" id="quick">PLAY ONLINE</button>
+      <div class="row"><button id="createRoom">Create room</button><input id="joinCode" aria-label="Room code" placeholder="room code" maxlength="6" autocomplete="off"><button id="joinRoom">Join</button></div>
+      <label class="help"><input type="checkbox" id="anySettings"> Match any length and map</label>
+      <h3 id="practiceTitle">Or practice against the bot</h3>
+    </div>
     <div id="vs" class="choice" role="group" aria-label="Opponent"></div>
     <div id="withAgent" class="choice" role="group" aria-label="Who plays" hidden></div>
     <button class="main" id="play">PLAY</button>
@@ -167,13 +175,6 @@
     <label id="guidedHouseOption" hidden><input type="checkbox" id="guidedHouse"> Teach me while I play</label>
     <div><button id="viewReport" hidden>View last report</button> <button id="cancel" hidden>cancel</button></div>
     <p id="lobbyMsg" class="warn" role="status"></p>
-    <div id="online" class="card" hidden>
-        <h3>Online</h3>
-        <button class="main" id="quick">Play online</button><button id="createRoom">Create room</button>
-        <div class="row"><input id="joinCode" aria-label="Room code" placeholder="room code" maxlength="6" autocomplete="off"><button id="joinRoom">Join by code</button></div>
-        <label><input type="checkbox" id="anySettings"> Match any length and map</label>
-        <p class="help">Quick play uses your match settings above. No inference runs on the server.</p>
-      </div>
       <div id="roomPanel" class="card" hidden>
         <h3>Your room · <span id="roomCode"></span></h3>
         <p><a id="roomLink"></a> <button id="copyRoom">Copy link</button></p>
@@ -443,7 +444,7 @@ function lobbyChoices() {
   $('play').hidden = agentPlay; $('agentPlay').hidden = !agentPlay
   if (agentPlay) {
     const first = prefs.assistant === 'Claude' ? 'Claude' : 'ChatGPT'
-    $('agentPlay').innerHTML = [first, first === 'Claude' ? 'ChatGPT' : 'Claude'].map((name, i) => `<button ${i === 0 ? 'class="main"' : ''} data-assistant="${name}" ${L?.queued || L?.room ? 'disabled' : ''}>Play with ${name}</button>`).join(' ')
+    $('agentPlay').innerHTML = [first, first === 'Claude' ? 'ChatGPT' : 'Claude'].map((name, i) => `<button ${i === 0 && !L?.online ? 'class="main"' : ''} data-assistant="${name}" ${L?.queued || L?.room ? 'disabled' : ''}>Play with ${name}</button>`).join(' ')
   }
   for (const id of ['quick', 'createRoom', 'joinRoom']) $(id).disabled = !!L?.queued || !!L?.room || !!L?.live
 }
@@ -500,7 +501,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   if (first || document.activeElement !== $('name')) $('name').value = L.name
   if (!doctrineDirty && docRevision === doctrineRevision && !['doctrine', 'doctrine2'].includes(document.activeElement.id)) setDoctrine(L.doctrine)
   for (const k of ['vs', 'mode', 'minutes', 'planets', 'planning']) pick(k, L.choices[k])
-  $('online').hidden = !L.online || !!L.room
+  $('online').hidden = !L.online || !!L.room || !!L.live; $('lobby').classList.toggle('online', !$('online').hidden)
   renderRoom(L.room)
   agentOk = !!L.agent || !!L.agentGranted
   if (accountRequired) $('revokeAgent').disabled = !L.agentGranted
@@ -516,7 +517,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError || L.notice || ''
   $('viewReport').hidden = !L.inMatch || L.live
   lobbyChoices()
-  $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? 'PLAY HOUSE' : 'PLAY'
+  $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? 'Play the bot' : 'PLAY'
   if (L.live) $('play').disabled = false
   if (L.live && auto) return match()
   lobbyTimer = setTimeout(() => lobby(auto), L.queued ? 1000 : L.room ? 2000 : 5000)
