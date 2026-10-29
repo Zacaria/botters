@@ -2,11 +2,11 @@ import { test, expect } from './fixtures.js'
 
 // These literals are the public installer contract, not derived from guide DOM.
 const clients = [
-  ['Claude Code', 'npx -y github:Zacaria/botters#pvp-online install --client claude'],
-  ['Codex', 'npx -y github:Zacaria/botters#pvp-online install --client codex'],
-  ['Claude Desktop', 'npx -y github:Zacaria/botters#pvp-online install --client desktop'],
-  ['Cursor', 'npx -y github:Zacaria/botters#pvp-online install --client cursor'],
-  ['Windsurf', 'npx -y github:Zacaria/botters#pvp-online install --client windsurf'],
+  ['Claude Code', 'npx -y github:Zacaria/botters install --client claude'],
+  ['Codex', 'npx -y github:Zacaria/botters install --client codex'],
+  ['Claude Desktop', 'npx -y github:Zacaria/botters install --client desktop'],
+  ['Cursor', 'npx -y github:Zacaria/botters install --client cursor'],
+  ['Windsurf', 'npx -y github:Zacaria/botters install --client windsurf'],
 ]
 const viewports = [{ width: 390, height: 844 }, { width: 1440, height: 900 }]
 
