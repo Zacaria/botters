@@ -62,23 +62,23 @@
 <p>Choose your client below: <code>--client</code> limits configuration to this client only. Without <code>--client</code>, all detected clients are targeted. If your selected client is not detected, the installer reports an error without installing it or switching to another client; use the manual setup fallback below.</p>
 <details>
 <summary>Claude Code</summary>
-<pre>npx -y github:Zacaria/botters#pvp-online install --client claude</pre>
+<pre>npx -y github:Zacaria/botters install --client claude</pre>
 </details>
 <details>
 <summary>Codex</summary>
-<pre>npx -y github:Zacaria/botters#pvp-online install --client codex</pre>
+<pre>npx -y github:Zacaria/botters install --client codex</pre>
 </details>
 <details>
 <summary>Claude Desktop</summary>
-<pre>npx -y github:Zacaria/botters#pvp-online install --client desktop</pre>
+<pre>npx -y github:Zacaria/botters install --client desktop</pre>
 </details>
 <details>
 <summary>Cursor</summary>
-<pre>npx -y github:Zacaria/botters#pvp-online install --client cursor</pre>
+<pre>npx -y github:Zacaria/botters install --client cursor</pre>
 </details>
 <details>
 <summary>Windsurf</summary>
-<pre>npx -y github:Zacaria/botters#pvp-online install --client windsurf</pre>
+<pre>npx -y github:Zacaria/botters install --client windsurf</pre>
 </details>
 <h3>All detected clients</h3>
 <pre>npx -y github:Zacaria/botters install</pre>
@@ -91,9 +91,9 @@
 <summary>Manual setup fallback</summary>
 <p>If a client was not detected, add the server yourself. Project-level entries can override user setup; the installer does not change them.</p>
 <p><b>Claude Code</b></p>
-<pre>claude mcp add --scope user botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online</pre>
+<pre>claude mcp add --scope user botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters</pre>
 <p><b>Codex</b></p>
-<pre>codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online</pre>
+<pre>codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters</pre>
 <p>Add these lines under <code>[mcp_servers.botters]</code> in <code>~/.codex/config.toml</code>:</p>
 <pre>startup_timeout_sec = 60
 tool_timeout_sec = 60
@@ -103,7 +103,7 @@ default_tools_approval_mode = "approve"</pre>
   "mcpServers": {
     "botters": {
       "command": "npx",
-      "args": ["-y", "github:Zacaria/botters#pvp-online"],
+      "args": ["-y", "github:Zacaria/botters"],
       "env": { "BOTTERS_SERVER": "https://botters.havesomecode.io" }
     }
   }

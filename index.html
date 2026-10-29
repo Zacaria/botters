@@ -34,9 +34,9 @@
   #toast { min-height: 1.5em; margin-top: 6px }
   .screen { position: fixed; inset: 0; overflow: auto }
   #bg { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: default; pointer-events: none; opacity: .8; background: radial-gradient(ellipse at 50% 45%, #1a0a14 0, #050507 60%) }
-  #lobby .hero { box-sizing: border-box; max-width: 440px; margin: 9vh auto 18px; padding: 30px 28px 18px; text-align: center; background: #08080bb0; border: 1px solid #24242e; border-radius: 16px; backdrop-filter: blur(3px) }
-  #lobby h1 { font-size: 46px; letter-spacing: 8px }
-  #lobby .tag { color: #e4e4ec; font: 17px/1.45 system-ui, sans-serif; margin: 8px 0 24px }
+  .hero { box-sizing: border-box; width: min(440px, calc(100% - 24px)); margin: 9vh auto 18px; padding: 30px 28px 18px; text-align: center; background: #08080bb0; border: 1px solid #24242e; border-radius: 16px; backdrop-filter: blur(3px) }
+  .hero h1 { font-size: 46px; letter-spacing: 8px }
+  .hero .tag { color: #e4e4ec; font: 17px/1.45 system-ui, sans-serif; margin: 8px 0 24px }
   .choice { display: flex; gap: 8px; margin-top: 8px } .choice button { flex: 1; margin: 0; padding: 10px 4px; border-radius: 8px }
   #lobby #play { display: block; width: 100%; margin: 18px 0 10px; padding: 16px; border-radius: 10px; font-size: 22px; letter-spacing: 4px; box-shadow: 0 0 32px #ff2e8866 }
   #lobby #play:not(:disabled):hover { box-shadow: 0 0 44px #ff2e88aa }
@@ -70,7 +70,8 @@
   #start figcaption { margin-top: 10px }
   #start summary { cursor: pointer; color: #9fe8c0 }
   #start li { margin-bottom: 8px }
-  #authForm label { display: grid; gap: 6px; max-width: 300px }
+  #authForm label { display: grid; gap: 6px; text-align: left }
+  #authPanel h2 { font-size: 15px; margin: 0 0 10px } #googleLogin, #authSubmit { width: 100%; margin: 10px 0 0 }
   #authForm input { box-sizing: border-box; width: 100%; min-height: 36px; border-color: #686875 }
   #guidePanel { border: 1px solid #9fe8c0; padding: 8px; margin-bottom: 10px }
   #guidePanel p { margin: 6px 0 } #guidePanel select { max-width: 100% }
@@ -85,17 +86,37 @@
 
 <canvas id="bg" aria-hidden="true"></canvas>
 
-<!-- start: no lobby yet -->
+<!-- start: one card up front (sign in or local name); the explanation folds below -->
 <div id="start" class="screen">
+  <main id="play-entry" class="hero" tabindex="-1">
+    <h1><b>BOT</b><i>TERS</i></h1>
+    <p class="tag">Your swarm eats planets.<br>Your AI agent writes its rules.</p>
+    <div id="offlineEntry" hidden><div class="row" style="justify-content: center"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo" disabled>Enter</button></div>
+      <p class="help">To play with an agent locally, open the lobby link it gives you.</p></div>
+      <section id="authPanel" aria-labelledby="authTitle">
+        <h2 id="authTitle">Sign in to play online</h2>
+        <p id="canonicalLogin" hidden><a id="canonicalLink" href="https://botters.havesomecode.io">Continue to Botters sign-in →</a></p>
+        <div id="authControls">
+          <button id="googleLogin" type="button">Continue with Google</button>
+          <form id="authForm">
+            <p id="signupNameRow" hidden><label>Player name <input id="signupName" maxlength="24" autocomplete="nickname"></label></p>
+            <p id="emailRow"><label>Email <input id="authEmail" type="email" autocomplete="email" required maxlength="254"></label></p>
+            <p id="passwordRow"><label>Password <input id="authPassword" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label></p>
+            <button class="main" id="authSubmit">Sign in</button>
+          </form>
+          <p><button id="signinMode" type="button" hidden>Back to sign in</button> <button id="signupMode" type="button">Create account</button> <button id="forgotMode" type="button">Forgot password?</button></p>
+          <button id="resendVerify" type="button" hidden>Resend verification email</button>
+        </div>
+        <p id="authMessage" role="status"></p>
+      </section>
+      <p id="startError" class="warn" role="alert"></p>
+      <noscript><p>JavaScript is needed to play. The agent guide and policies are available without it.</p></noscript>
+    <p class="help"><a href="#understand">How it works</a> · <a href="/guide">Connect ChatGPT</a></p>
+  </main>
   <div class="wrap" style="grid-template-columns: 1fr">
-    <div>
-      <h1><b>BOT</b><i>TERS</i></h1>
-      <p>A real-time space strategy game you play <b>with your AI agent</b>. Swarms of particles conquer and eat planets.<br>
-      Your agent writes the rules every swarm follows. You set the strategy, edit the rules and grab a swarm when it matters.</p>
-      <nav class="paths" aria-label="Get started"><a href="#play-entry">Play Botters</a><a href="#understand">Understand the game</a></nav>
-    </div>
     <section id="understand" class="card" aria-labelledby="understand-title" tabindex="-1">
       <h2 id="understand-title">You set the strategy. Swarms follow the rules.</h2>
+      <p>A real-time space strategy game you play <b>with your AI agent</b>. Swarms of particles conquer and eat planets.</p>
       <ol>
         <li><b>Set your doctrine.</b> Tell your agent what matters: expand quickly, defend your planets, or avoid bigger enemies. Your own agent connects over MCP; the game server does not run model inference for you.</li>
         <li><b>Build gambits.</b> These are ordered IF condition → action rules, shared by your swarms. Every half second the first matching rule decides what each swarm does. For example: IF a bigger enemy is near → retreat.</li>
@@ -126,34 +147,8 @@
         </div>
       </details>
       <p><a href="/guide">Understand the agent connection and controls →</a></p>
+      <p class="help">Play without an account on your own computer: <code>npx -y github:Zacaria/botters</code></p>
     </section>
-    <div id="play-entry" class="card" tabindex="-1">
-      <h3>Play with your agent</h3>
-      <p>Connect Claude Code, Codex or any MCP client in one command, then tell it "let's play botters". It opens your lobby here.</p>
-      <p><a href="/guide" target="_blank">How to plug your agent →</a></p>
-      <div id="offlineEntry" hidden><h3>Or play alone first</h3><div class="row"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo" disabled>Enter</button></div>
-      <p class="help">To play with an agent locally, open the lobby link it gives you.</p></div>
-      <section id="authPanel" aria-labelledby="authTitle">
-        <h2 id="authTitle">Sign in to play online</h2>
-        <p>Keep your player name, matches and rating across devices. Play online with or without an agent.</p>
-        <p class="help">For login-free local house games, run <code>npx -y github:Zacaria/botters</code> on your computer.</p>
-        <p id="canonicalLogin" hidden><a id="canonicalLink" href="https://botters.havesomecode.io">Continue to Botters sign-in →</a></p>
-        <div id="authControls">
-          <button id="googleLogin" type="button">Continue with Google</button>
-          <form id="authForm">
-            <p id="signupNameRow" hidden><label>Player name <input id="signupName" maxlength="24" autocomplete="nickname"></label></p>
-            <p id="emailRow"><label>Email <input id="authEmail" type="email" autocomplete="email" required maxlength="254"></label></p>
-            <p id="passwordRow"><label>Password <input id="authPassword" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label></p>
-            <button class="main" id="authSubmit">Sign in</button>
-          </form>
-          <p><button id="signinMode" type="button" hidden>Back to sign in</button> <button id="signupMode" type="button">Create account</button> <button id="forgotMode" type="button">Forgot password?</button></p>
-          <button id="resendVerify" type="button" hidden>Resend verification email</button>
-        </div>
-        <p id="authMessage" role="status"></p>
-      </section>
-      <p id="startError" class="warn" role="alert"></p>
-      <noscript><p>JavaScript is needed to play. The agent guide and policies are available without it.</p></noscript>
-    </div>
     <nav class="policy-links" aria-label="Policies"><a href="/privacy">Privacy policy</a><a href="/terms">Terms of service</a><a href="mailto:z@havesomecode.io">Contact</a></nav>
   </div>
 </div>

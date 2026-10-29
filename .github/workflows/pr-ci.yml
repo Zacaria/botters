@@ -2,7 +2,7 @@ name: PR CI
 
 on:
   pull_request:
-    branches: [pvp-online]
+    branches: [master]
 
 permissions:
   contents: read

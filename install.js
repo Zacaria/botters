@@ -10,7 +10,7 @@ import { parse as parseToml, stringify as stringifyToml } from 'smol-toml'
 import { parse as parseJson, parseTree, modify, applyEdits } from 'jsonc-parser'
 import spawn from 'cross-spawn'
 
-const PACKAGE = 'github:Zacaria/botters#pvp-online'
+const PACKAGE = 'github:Zacaria/botters'
 const ONLINE = 'https://botters.havesomecode.io'
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const own = (value, key) => Object.hasOwn(value, key)

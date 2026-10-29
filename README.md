@@ -32,8 +32,8 @@ Operator setup, private token-state storage and the consent flow are documented 
 If your client was not detected, register the stdio server yourself:
 
 ```bash
-claude mcp add --scope user botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online
-codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters#pvp-online
+claude mcp add --scope user botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters
+codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters
 ```
 
 For Codex, add `startup_timeout_sec = 60`, `tool_timeout_sec = 60` and `default_tools_approval_mode = "approve"` under `[mcp_servers.botters]` in `~/.codex/config.toml`. Other clients: see the manual fallback at `/guide`.

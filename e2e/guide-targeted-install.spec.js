@@ -2,11 +2,11 @@ import { test, expect } from './fixtures.js'
 
 // These literals are the public installer contract, not derived from guide DOM.
 const clients = [
-  ['Claude Code', 'npx -y github:Zacaria/botters#pvp-online install --client claude'],
-  ['Codex', 'npx -y github:Zacaria/botters#pvp-online install --client codex'],
-  ['Claude Desktop', 'npx -y github:Zacaria/botters#pvp-online install --client desktop'],
-  ['Cursor', 'npx -y github:Zacaria/botters#pvp-online install --client cursor'],
-  ['Windsurf', 'npx -y github:Zacaria/botters#pvp-online install --client windsurf'],
+  ['Claude Code', 'npx -y github:Zacaria/botters install --client claude'],
+  ['Codex', 'npx -y github:Zacaria/botters install --client codex'],
+  ['Claude Desktop', 'npx -y github:Zacaria/botters install --client desktop'],
+  ['Cursor', 'npx -y github:Zacaria/botters install --client cursor'],
+  ['Windsurf', 'npx -y github:Zacaria/botters install --client windsurf'],
 ]
 const viewports = [{ width: 390, height: 844 }, { width: 1440, height: 900 }]
 
@@ -182,7 +182,7 @@ test('global setup, manual fallbacks and truthful connection paths remain usable
   await expect(local).toContainText('Without --client, all detected clients are targeted')
   await expect(local).toContainText('If your selected client is not detected, the installer reports an error without installing it or switching to another client')
   await expect(local.getByRole('heading', { name: 'All detected clients', exact: true })).toBeVisible()
-  const global = local.locator('pre').filter({ hasText: /^npx -y github:Zacaria\/botters install/ })
+  const global = local.locator('pre').filter({ hasText: /^npx -y github:Zacaria\/botters install/ }).filter({ hasNotText: '--client' })
   expect(await global.evaluate(el => el.firstChild.textContent)).toBe('npx -y github:Zacaria/botters install')
   await expect(local).toContainText('Node.js 22 or newer')
   await expect(local).toContainText('asks before writing')
