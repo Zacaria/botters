@@ -3,7 +3,7 @@ import { Client } from '@colyseus/sdk'
 const password = 'isolated-browser-password-326!'
 const live = 'http://127.0.0.1:8790'
 async function signup(page, email, name) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await page.goto('/'); await page.getByRole('button', { name: 'Continue with email', exact: true }).click(); await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await page.locator('#signupName').fill(name); await page.locator('#authEmail').fill(email); await page.locator('#authPassword').fill(password)
   await page.locator('#authSubmit').click(); await expect(page.locator('#authMessage')).toContainText('Check your email')
   const mail = await page.request.get(`/test/mail?email=${email}`).then(r => r.json())
@@ -22,6 +22,7 @@ test('signup verification, wrong password, reset/replay, account resume and logo
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(page.locator('#authPanel')).toBeVisible()
   expect((await page.request.get(`${live}/lobby?token=${token}`)).status()).toBe(401)
+  await expect(page.locator('#authForm')).toBeHidden(); await page.getByRole('button', { name: 'Continue with email', exact: true }).click()
   await page.locator('#authEmail').fill('auth-browser-one@example.test'); await page.locator('#authPassword').fill('a-wrong-password-123')
   await page.locator('#authSubmit').click(); await expect(page.locator('#authMessage')).toContainText('Invalid email or password')
   await page.getByRole('button', { name: 'Forgot password?' }).click(); await page.locator('#authSubmit').click()

@@ -71,7 +71,7 @@
   #start summary { cursor: pointer; color: #9fe8c0 }
   #start li { margin-bottom: 8px }
   #authForm label { display: grid; gap: 6px; text-align: left }
-  #authPanel h2 { font-size: 15px; margin: 0 0 10px } #googleLogin, #authSubmit { width: 100%; margin: 10px 0 0 }
+  #authPanel h2 { font-size: 15px; margin: 0 0 10px } #googleLogin, #emailLogin, #authSubmit { width: 100%; margin: 10px 0 0 }
   #authForm input { box-sizing: border-box; width: 100%; min-height: 36px; border-color: #686875 }
   #guidePanel { border: 1px solid #9fe8c0; padding: 8px; margin-bottom: 10px }
   #guidePanel p { margin: 6px 0 } #guidePanel select { max-width: 100% }
@@ -98,6 +98,8 @@
         <p id="canonicalLogin" hidden><a id="canonicalLink" href="https://botters.havesomecode.io">Continue to Botters sign-in →</a></p>
         <div id="authControls">
           <button id="googleLogin" type="button">Continue with Google</button>
+          <button id="emailLogin" type="button">Continue with email</button>
+          <div id="emailAuth" hidden>
           <form id="authForm">
             <p id="signupNameRow" hidden><label>Player name <input id="signupName" maxlength="24" autocomplete="nickname"></label></p>
             <p id="emailRow"><label>Email <input id="authEmail" type="email" autocomplete="email" required maxlength="254"></label></p>
@@ -106,6 +108,7 @@
           </form>
           <p><button id="signinMode" type="button" hidden>Back to sign in</button> <button id="signupMode" type="button">Create account</button> <button id="forgotMode" type="button">Forgot password?</button></p>
           <button id="resendVerify" type="button" hidden>Resend verification email</button>
+          </div>
         </div>
         <p id="authMessage" role="status"></p>
       </section>
@@ -116,26 +119,24 @@
   <div class="wrap" style="grid-template-columns: 1fr">
     <section id="understand" class="card" aria-labelledby="understand-title" tabindex="-1">
       <h2 id="understand-title">You set the strategy. Swarms follow the rules.</h2>
-      <p>A real-time space strategy game you play <b>with your AI agent</b>. Swarms of particles conquer and eat planets.</p>
+      <p>A real-time space strategy game you play <b>with your AI agent</b>.</p>
       <ol>
-        <li><b>Set your doctrine.</b> Tell your agent what matters: expand quickly, defend your planets, or avoid bigger enemies. Your own agent connects over MCP; the game server does not run model inference for you.</li>
-        <li><b>Build gambits.</b> These are ordered IF condition → action rules, shared by your swarms. Every half second the first matching rule decides what each swarm does. For example: IF a bigger enemy is near → retreat.</li>
-        <li><b>Take a swarm by hand.</b> Click a pink swarm, then the map to send it somewhere. Press G to give it back to the gambits. You can also edit or switch rules off during the match.</li>
+        <li><b>Tell your agent the plan:</b> expand, defend, avoid bigger enemies.</li>
+        <li><b>It writes the rules:</b> IF condition → action. Every half second, the first matching rule moves each swarm.</li>
+        <li><b>Take over any time:</b> click a pink swarm, then the map. G gives it back.</li>
       </ol>
-      <p>Capture planets to turn their mass into new particles. Larger swarms have an advantage in a fight; splitting helps you expand but makes each half weaker. Fog hides distant enemy swarms. <b>Most particles at the end wins</b>; losing every swarm and planet ends the match early.</p>
+      <p>Capture planets to grow. Bigger swarms win fights. <b>Most particles at the end wins.</b></p>
       <figure aria-labelledby="demo-title">
-        <h3 id="demo-title">Botters · bande-annonce · 60 secondes</h3>
-        <p id="demo-description" lang="fr">Une bande-annonce montée à partir d’une vraie partie : capturez des planètes pour agrandir votre essaim, définissez ses priorités et reprenez la main quand la bataille change. Musique et sous-titres français incrustés ; le récit reste lisible sans son. Rose : votre camp. Bleu : l’adversaire.</p>
+        <h3 id="demo-title">Trailer · 60 s</h3>
+        <p id="demo-description" lang="fr">La bande-annonce d’une vraie partie. Rose : vous. Bleu : l’adversaire.</p>
         <video id="demo-video" controls playsinline preload="none" width="1920" height="1080" poster="/media/public-demo-poster.jpg" tabindex="0" aria-label="Botters announcement trailer, French captions" aria-describedby="demo-description demo-provenance demo-music-credit">
           <source src="/media/public-demo.webm" type="video/webm; codecs=&quot;vp9, opus&quot;">
           <track kind="subtitles" src="/media/public-demo.vtt" srclang="fr" label="Français (déjà incrusté dans l’image)">
           Your browser cannot play this video. Read the transcript below or download the WebM.
         </video>
-        <figcaption id="demo-provenance">Real local gameplay, reframed and edited. An operator model chose the opening gambits once. A script submits those choices and sends automated human-side controls; there is no human participant or continuous AI inference in this recording. The opponent is <b>house (normal), fixed gambits</b>—not another model. Cuts omit time; the later capture is not an instant consequence of the manual order.</figcaption>
+        <figcaption id="demo-provenance">Recorded locally with scripted inputs against the house bot. No model plays during the recording.</figcaption>
       </figure>
-      <p><a href="/media/public-demo.webm" download>Download the announcement trailer (WebM with music)</a> · Native play, pause, seek and fullscreen controls. French captions are burned into the image; the optional subtitle track repeats them.</p>
-      <p id="demo-music-credit">'Resonance' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au<br>
-        <a href="https://www.scottbuckley.com.au/library/resonance/">Music source</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0 licence</a>. Musique adaptée : extrait 2:25–3:25, fondus et niveau ajusté. No endorsement or exclusivity is implied; retain this credit and the licence with downloaded copies.</p>
+      <p id="demo-music-credit" class="help">Music: 'Resonance' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au · excerpt 2:25–3:25, faded · <a href="https://www.scottbuckley.com.au/library/resonance/">source</a> · <a href="https://creativecommons.org/licenses/by/4.0/">licence</a> · <a href="/media/public-demo.webm" download>download</a></p>
       <details>
         <summary>Read the video transcript</summary>
         <div id="demo-transcript" lang="fr">
@@ -146,8 +147,7 @@
           <p><b>0:49–1:00.</b> « Plus tard : la planète bascule. » Un saut de montage explicitement annoncé montre la planète visée devenir rose, bien plus tard dans la même partie ; aucune victoire n’est revendiquée à l’image. BOTTERS, « Découvrez Botters. », botters.vercel.app et les crédits musicaux sont maintenus sept secondes. Le house opponent suit des fixed gambits ; no model runs during the match.</p>
         </div>
       </details>
-      <p><a href="/guide">Understand the agent connection and controls →</a></p>
-      <p class="help">Play without an account on your own computer: <code>npx -y github:Zacaria/botters</code></p>
+      <p><a href="/guide">Agent guide</a> · No account: <code>npx -y github:Zacaria/botters</code></p>
     </section>
     <nav class="policy-links" aria-label="Policies"><a href="/privacy">Privacy policy</a><a href="/terms">Terms of service</a><a href="mailto:z@havesomecode.io">Contact</a></nav>
   </div>
@@ -326,8 +326,10 @@ const authPost = async (path, body) => {
   try { const r = await fetch('/api/auth' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const data = await r.json(); return { ...data, status: r.status, ok: r.ok } }
   catch { return { ok: false, message: 'Sign-in is unavailable. Retry shortly.' } }
 }
+function openEmail() { $('emailLogin').hidden = true; $('emailAuth').hidden = false }
+$('emailLogin').onclick = () => { openEmail(); $('authEmail').focus() }
 function setAuthMode(mode) {
-  authMode = mode
+  authMode = mode; if (mode !== 'signin') openEmail()
   $('authTitle').textContent = { signin: 'Sign in to play online', signup: 'Create your player account', forgot: 'Reset your password', reset: 'Choose a new password' }[mode]
   $('authSubmit').textContent = { signin: 'Sign in', signup: 'Create account', forgot: 'Send reset email', reset: 'Save password' }[mode]
   $('signupNameRow').hidden = mode !== 'signup'; $('signupName').required = mode === 'signup'
