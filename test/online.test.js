@@ -86,6 +86,15 @@ test('atomic compatible matchmaking, any settings, cancellation, no duplicate/se
   await assert.rejects(f.call(a, 'POST', '/play', { vs: 'player' }), { status: 409 })
 })
 
+test('lobby shows players online in the last two minutes and the queue size', async () => {
+  const f = fixture(), a = await f.session('a'), b = await f.session('b')
+  await f.call(a, 'GET', '/lobby'); await f.call(b, 'POST', '/play', { vs: 'player' })
+  assert.deepEqual((({ playersOnline, inQueue }) => ({ playersOnline, inQueue }))(await f.call(a, 'GET', '/lobby')), { playersOnline: 2, inQueue: 1 })
+  f.advance(100000); await f.call(a, 'GET', '/lobby') // b stays queued but stops polling
+  f.advance(30000)
+  assert.deepEqual((({ playersOnline, inQueue }) => ({ playersOnline, inQueue }))(await f.call(a, 'GET', '/lobby')), { playersOnline: 1, inQueue: 0 })
+})
+
 test('matchmaking rematch keeps the same two players and settings, with separate human consent', async () => {
   const f = fixture(), a = await f.session('a', 'codex'), b = await f.session('b', 'claude'), c = await f.session('c')
   const prefs = { vs: 'player', minutes: 8, planets: 40, planning: 30, withAgent: false }

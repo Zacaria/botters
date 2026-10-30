@@ -12,7 +12,7 @@ Owner request: "build and deploy the server infrastructure on Vercel to make a P
 
 A public game server on Vercel that both players' local agents and browsers talk to.
 
-1. **Matchmaking:** "Play online" queues the player; the first two compatible players (same length and map, or "any") start a match. Show queue time and a cancel button.
+1. **Matchmaking:** "Play online" queues the player; the first two compatible players (same length and map, or "any") start a match. Show queue time and a cancel button. Under PLAY ONLINE, show players online (any request in the last two minutes) and how many are waiting in the queue.
 2. **Custom rooms:** "Create room" returns a short code and link (`/r/ABCD`). The host picks the settings; a friend joins by code or link; the host starts. Spectators may open the link read-only (nice to have).
 3. **UI:** lobby gets an Online section (Play online / Create room / Join with code), a room screen (players, their agent status, settings, Start), opponent name and setup in the match HUD, a clear disconnect state, and rematch in the same room.
 4. **Agents:** the same MCP tools. `client.js` takes `BOTTERS_SERVER=https://…` (or a lobby toggle) and plays online without the local server. The house modes stay available offline and online.

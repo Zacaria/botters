@@ -12,6 +12,7 @@ const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
 const RATE = 5, FINISHED_TTL = 10 * 60 * 1000, FRAME_EVERY = 2, DOCTRINE_MAX = 500, AGENT_SEEN_MS = 90000
 const PLANNING = [10, 20, 30] // seconds before the match starts: time for the agent to write opening gambits
 const FORCED_DELAY = process.env.BOTTERS_START_DELAY && Number(process.env.BOTTERS_START_DELAY) // ms, tests only
+const SEED = process.env.BOTTERS_SEED ? Number(process.env.BOTTERS_SEED) : undefined // fixed map, tests only
 const DOCTRINE_FILE = new URL('DOCTRINE.md', import.meta.url)
 const DEFAULT_DOCTRINE = (existsSync(DOCTRINE_FILE) ? readFileSync(DOCTRINE_FILE, 'utf8') : 'Grab free planets fast, fight only when bigger, protect what we own.').trim().slice(0, DOCTRINE_MAX)
 const LEVELS = Object.keys(HOUSE)
@@ -51,7 +52,7 @@ const foe = (m, side) => { const f = m.players.filter(p => m.s.teams[p.side] !==
 function startMatch(entries, req, waitingForAgent = false) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
   const delay = FORCED_DELAY ?? req.planning * 1000
   entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
-  const m = { id: id(), s: createMatch(randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
+  const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
     const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
       withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
