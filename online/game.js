@@ -266,7 +266,13 @@ export class OnlineGame {
         if (auth.role === 'agent' && !(method === 'GET' && ['/next', '/events', '/state'].includes(path) || method === 'POST' && ['/input', '/call'].includes(path))) fail(401, 'Agent access cannot perform human actions.')
       }
       if (!auth.touched || now - auth.touched >= 60000) auth.touched = now
-      if (!s.touched || now - s.touched >= 60000) s.touched = now
+      if (!s.touched || now - s.touched >= 60000) {
+        s.touched = now
+        // ponytail: one shared presence key, written once a minute per player; shard it if commit retries show up.
+        const seen = await tx.get('presence', {}, 0)
+        for (const [id, at] of Object.entries(seen)) if (now - at > 120000) delete seen[id]
+        seen[s.id] = now
+      }
       const human = () => { if (auth.role !== 'human') fail(401, 'Human token required.') }
       const agent = () => { if (auth.role !== 'agent') fail(401, 'Agent token required.') }
       if (path.startsWith('/agent/')) {
@@ -302,7 +308,8 @@ export class OnlineGame {
         if (queued) queued.seen = now
         s.queued = queued ? queued.at : null
         return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, agentGranted: !!s.agentGranted, doctrine: s.doctrine, history: s.history, live: active(m), inMatch: !!m, notice: s.notice,
-          queued: !!queued, queuedAt: s.queued, room: await roomInfo(idx), leaderboard: await board(), doctrineMax: 500,
+          queued: !!queued, queuedAt: s.queued, inQueue: idx.queue.length,
+          playersOnline: Object.values(await tx.get('presence', {}, 0)).filter(at => now - at <= 120000).length, room: await roomInfo(idx), leaderboard: await board(), doctrineMax: 500,
           choices: { vs: Object.keys(HOUSE), ...OPTIONS, planning: PLANNING } }
       }
       if (method === 'POST' && path === '/profile') {

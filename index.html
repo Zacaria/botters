@@ -164,6 +164,7 @@
     <p class="tag">Your swarm eats planets.<br>Biggest swarm at the end wins.</p>
     <div id="online" hidden>
       <button class="main" id="quick">PLAY ONLINE</button>
+      <p id="presence" class="help"></p>
       <div class="row"><button id="createRoom">Create room</button><input id="joinCode" aria-label="Room code" placeholder="room code" maxlength="6" autocomplete="off"><button id="joinRoom">Join</button></div>
       <label class="help"><input type="checkbox" id="anySettings"> Match any length and map</label>
       <h3 id="practiceTitle">Or practice against the bot</h3>
@@ -501,6 +502,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   if (first || document.activeElement !== $('name')) $('name').value = L.name
   if (!doctrineDirty && docRevision === doctrineRevision && !['doctrine', 'doctrine2'].includes(document.activeElement.id)) setDoctrine(L.doctrine)
   for (const k of ['vs', 'mode', 'minutes', 'planets', 'planning']) pick(k, L.choices[k])
+  $('presence').textContent = L.playersOnline ? `${L.playersOnline} online · ${L.inQueue} waiting for a match` : ''
   $('online').hidden = !L.online || !!L.room || !!L.live; $('lobby').classList.toggle('online', !$('online').hidden)
   renderRoom(L.room)
   agentOk = !!L.agent || !!L.agentGranted
