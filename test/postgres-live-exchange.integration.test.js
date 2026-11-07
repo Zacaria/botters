@@ -41,7 +41,30 @@ test('PostgreSQL exchanges one ticket only for the verified owning session', { s
     assert.equal(await store.get(ticketKey), null)
     assert.equal(JSON.parse(await store.get(tokenKey)).liveCookieHash, hash('c'))
     await write(ticketKey, { tokenKey }); await assert.rejects(store.exchange(hash('b'), hash('d')))
-    await write(tokenKey, grant); await request('/sign-out', {}, alice.cookie)
+    // The auth row can be locked by another process after the ticket is read.
+    // A ticket that expires during that wait must not be exchanged.
+    await write(tokenKey, grant)
+    await pool.query("UPDATE botters_records SET expires_at = clock_timestamp() + interval '2 seconds' WHERE namespace = $1 AND key = $2", ['exchange', ticketKey])
+    const blocker = await pool.connect()
+    try {
+      await blocker.query('BEGIN')
+      await blocker.query('SELECT id FROM session WHERE id = $1 FOR UPDATE', [alice.session.id])
+      const exchanging = store.exchange(hash('b'), hash('d'))
+      const deadline = Date.now() + 1500
+      let waiting = false
+      while (Date.now() < deadline) {
+        const result = await admin.query("SELECT 1 FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND wait_event_type = 'Lock' AND query LIKE '%FOR UPDATE OF s, u%'")
+        if (result.rowCount) { waiting = true; break }
+        await new Promise(resolve => setTimeout(resolve, 20))
+      }
+      assert.ok(waiting, 'exchange must wait on the real session row')
+      await new Promise(resolve => setTimeout(resolve, 2200))
+      await blocker.query('COMMIT')
+      await assert.rejects(exchanging, /Expired live/)
+      assert.equal(JSON.parse(await store.get(tokenKey)).liveCookieHash, undefined)
+    } finally { await blocker.query('ROLLBACK').catch(() => {}); blocker.release() }
+    await write(ticketKey, { tokenKey })
+    await request('/sign-out', {}, alice.cookie)
     await assert.rejects(store.exchange(hash('b'), hash('d')), 'revoked Better Auth session must fail')
     assert.ok(await store.get(ticketKey))
     await assert.rejects(store.exchange('invalid', hash('d')))

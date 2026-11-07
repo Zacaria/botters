@@ -38,8 +38,16 @@ export class PostgresStore {
       const owner = await row(`session:${auth.id}`), session = owner && JSON.parse(owner.value)
       if (!session || session.accountId !== auth.accountId) throw new Error('Expired live session')
       const verified = await client.query('SELECT s."expiresAt" FROM session s JOIN "user" u ON u.id = s."userId" WHERE s.id = $1 AND u.id = $2 AND u."emailVerified" = true AND s."expiresAt" > clock_timestamp() FOR UPDATE OF s, u', [auth.authSessionId, auth.accountId])
-      const now = Date.now(), expiresAt = Math.min(auth.expires, +new Date(token.expires_at), +new Date(verified.rows[0]?.expiresAt))
-      if (!Number.isFinite(expiresAt) || expiresAt <= now) throw new Error('Expired live session')
+      // A session-row lock can outlive any record's TTL. Recheck against the
+      // database clock after acquiring it, not only before the lock wait.
+      const valid = await client.query(`SELECT extract(epoch FROM clock_timestamp()) * 1000 AS now
+        WHERE EXISTS (SELECT 1 FROM botters_records WHERE namespace = $1 AND key = $2 AND expires_at > clock_timestamp())
+          AND EXISTS (SELECT 1 FROM botters_records WHERE namespace = $1 AND key = $3 AND expires_at > clock_timestamp())
+          AND EXISTS (SELECT 1 FROM botters_records WHERE namespace = $1 AND key = $4 AND expires_at > clock_timestamp())
+          AND EXISTS (SELECT 1 FROM session s JOIN "user" u ON u.id = s."userId" WHERE s.id = $5 AND u.id = $6 AND u."emailVerified" = true AND s."expiresAt" > clock_timestamp())`,
+      [this.namespace, ticketKey, tokenKey, `session:${auth.id}`, auth.authSessionId, auth.accountId])
+      const now = Number(valid.rows[0]?.now), expiresAt = Math.min(auth.expires, +new Date(token.expires_at), +new Date(verified.rows[0]?.expiresAt))
+      if (!Number.isFinite(now) || !Number.isFinite(expiresAt) || expiresAt <= now) throw new Error('Expired live session')
       await client.query('UPDATE botters_records SET value = $3, expires_at = $4 WHERE namespace = $1 AND key = $2', [this.namespace, tokenKey, JSON.stringify({ ...auth, liveCookieHash: cookieHash }), new Date(expiresAt)])
       await client.query('DELETE FROM botters_records WHERE namespace = $1 AND key = $2', [this.namespace, ticketKey])
       await client.query('COMMIT')
