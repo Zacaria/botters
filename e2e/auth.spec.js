@@ -17,6 +17,12 @@ test('signup verification, wrong password, reset/replay, account resume and logo
   expect((await page.request.post('/session', { data: { name: 'spoof', accountId: 'spoof' } })).status()).toBe(401)
   await signup(page, 'auth-browser-one@example.test', 'Alice')
   const token = await page.evaluate(() => localStorage.getItem('botters.session'))
+  if (process.env.BOTTERS_TEST_POSTGRES_URL) {
+    const evidence = await page.request.get('/test/storage').then(r => r.json())
+    expect(evidence.backend).toBe('postgres')
+    expect(evidence.users).toBeGreaterThan(0)
+    expect(evidence.records).toBeGreaterThan(0)
+  }
   await page.locator('#setup > summary').click(); await page.locator('#name').fill('Renamed Alice'); await page.locator('#name').dispatchEvent('change')
   await page.reload(); await expect(page.locator('#name')).toHaveValue('Renamed Alice')
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
@@ -90,7 +96,8 @@ test('two verified players pair an agent, play, reconnect, retain history and re
     await expect(p.locator('#viewReport')).toBeHidden()
     await expect(p.locator('#again')).toBeVisible({ timeout: 55000 }); await expect(q.locator('#again')).toBeVisible({ timeout: 55000 })
     await p.locator('#leave').click(); await expect(p.locator('#history')).toContainText('Shared name')
-    await p.locator('#revokeAgent').click(); expect((await p.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
+    await p.locator('#revokeAgent').click(); await expect(p.locator('#lobbyMsg')).toContainText('Agent disconnected')
+    await expect.poll(async () => (await p.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
     await p.reload(); await expect(p.locator('#history')).toContainText('Shared name')
     const current = await p.evaluate(() => localStorage.getItem('botters.session'))
     const board = await p.request.get(`${live}/leaderboard?token=${current}`).then(r => r.json()); expect(board.leaderboard).toHaveLength(2)
