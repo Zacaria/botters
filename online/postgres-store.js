@@ -76,7 +76,9 @@ export class PostgresStore {
     const auth = row?.token && JSON.parse(row.token), owner = row?.owner && JSON.parse(row.owner)
     const expiries = [auth?.expires, row?.token_expiry && +new Date(row.token_expiry), row?.owner_expiry && +new Date(row.owner_expiry), auth?.role === 'human' && row?.auth_expiry && +new Date(row.auth_expiry)].filter(Number.isFinite)
     const expiresAt = expiries.length ? Math.min(...expiries) : now + 60000
-    if (!auth || auth.role !== 'human' || !owner || !Number.isFinite(auth.expires) || expiresAt <= now || !auth.accountId || auth.accountId !== owner.accountId || !auth.liveCookieHash || !auth.authSessionId) return { token: null, session: null, expiresAt: now }
+    const human = auth?.role === 'human' && auth.accountId && auth.accountId === owner?.accountId && auth.liveCookieHash && auth.authSessionId
+    const agent = auth?.role === 'agent' && owner?.accountId && Number.isSafeInteger(auth.version) && auth.version >= 0 && auth.version === owner.agentVersion
+    if (!owner || !Number.isFinite(auth?.expires) || expiresAt <= now || !(human || agent)) return { token: null, session: null, expiresAt: now }
     return { token: row.token, session: row.owner, expiresAt }
   }
   scoped() { return this }

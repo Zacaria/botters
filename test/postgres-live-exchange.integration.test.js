@@ -84,7 +84,23 @@ test('PostgreSQL exchanges one ticket only for the verified owning session', { s
       assert.equal(JSON.parse(await store.get(tokenKey)).liveCookieHash, undefined)
     } finally { await blocker.query('ROLLBACK').catch(() => {}); blocker.release() }
     await write(ticketKey, { tokenKey })
+    const agentKey = `token:${hash('e')}`
+    const agent = { id: 'game-alice', role: 'agent', version: 1, expires: Date.now() + 30000 }
+    await write('session:game-alice', { id: 'game-alice', accountId: alice.user.id, agentVersion: 1 })
+    await write(agentKey, agent)
+    let agentAuthority = await store.authorize(agentKey)
+    assert.equal(JSON.parse(agentAuthority.token).role, 'agent')
+    assert.ok(agentAuthority.expiresAt <= agent.expires)
+    await write('session:game-alice', { id: 'game-alice', accountId: alice.user.id, agentVersion: 2 })
+    assert.equal((await store.authorize(agentKey)).token, null, 'revoked agent must fail closed')
+    await write(agentKey, { ...agent, version: undefined })
+    await write('session:game-alice', { id: 'game-alice', accountId: alice.user.id })
+    assert.equal((await store.authorize(agentKey)).token, null, 'missing versions must not match')
+    await write(agentKey, agent)
+    await write('session:game-alice', { id: 'game-alice', accountId: alice.user.id, agentVersion: 1 })
     await request('/sign-out', {}, alice.cookie)
+    agentAuthority = await store.authorize(agentKey)
+    assert.equal(JSON.parse(agentAuthority.token).role, 'agent', 'human sign-out must not revoke agent')
     await write(tokenKey, { ...grant, liveCookieHash: hash('c') })
     assert.equal((await store.authorize(tokenKey)).token, null, 'revoked auth session must fail closed')
     await write(tokenKey, grant)
