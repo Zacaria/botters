@@ -21,6 +21,34 @@ export class PostgresStore {
     )`, [this.namespace, limit])
     return result.rowCount
   }
+  async exchange(ticketHash, cookieHash) {
+    if (!/^[a-f0-9]{64}$/.test(ticketHash) || !/^[a-f0-9]{64}$/.test(cookieHash)) throw new Error('Invalid live ticket')
+    const client = await this.pool.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query("SET LOCAL statement_timeout = '8s'")
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', ['botters-record-store', this.namespace])
+      const row = async key => (await client.query('SELECT value, expires_at FROM botters_records WHERE namespace = $1 AND key = $2 AND expires_at > clock_timestamp()', [this.namespace, key])).rows[0]
+      const ticketKey = `live-ticket:${ticketHash}`, ticket = await row(ticketKey)
+      if (!ticket) throw new Error('Expired live ticket')
+      const { tokenKey } = JSON.parse(ticket.value)
+      if (!/^token:[a-f0-9]{64}$/.test(tokenKey || '')) throw new Error('Invalid live ticket')
+      const token = await row(tokenKey), auth = token && JSON.parse(token.value)
+      if (!auth || auth.role !== 'human' || !auth.accountId || !auth.authSessionId || auth.liveCookieHash) throw new Error('Expired live ticket')
+      const owner = await row(`session:${auth.id}`), session = owner && JSON.parse(owner.value)
+      if (!session || session.accountId !== auth.accountId) throw new Error('Expired live session')
+      const verified = await client.query('SELECT s."expiresAt" FROM session s JOIN "user" u ON u.id = s."userId" WHERE s.id = $1 AND u.id = $2 AND u."emailVerified" = true AND s."expiresAt" > clock_timestamp() FOR UPDATE OF s, u', [auth.authSessionId, auth.accountId])
+      const now = Date.now(), expiresAt = Math.min(auth.expires, +new Date(token.expires_at), +new Date(verified.rows[0]?.expiresAt))
+      if (!Number.isFinite(expiresAt) || expiresAt <= now) throw new Error('Expired live session')
+      await client.query('UPDATE botters_records SET value = $3, expires_at = $4 WHERE namespace = $1 AND key = $2', [this.namespace, tokenKey, JSON.stringify({ ...auth, liveCookieHash: cookieHash }), new Date(expiresAt)])
+      await client.query('DELETE FROM botters_records WHERE namespace = $1 AND key = $2', [this.namespace, ticketKey])
+      await client.query('COMMIT')
+      return { expiresAt }
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {})
+      throw error
+    } finally { client.release() }
+  }
   scoped() { return this }
   async get(key, { deadline = Infinity } = {}) {
     checkDeadline(deadline)
