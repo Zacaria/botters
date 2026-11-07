@@ -13,6 +13,14 @@ export class PostgresStore {
       namespace text NOT NULL, key text NOT NULL, value text NOT NULL,
       expires_at timestamptz, PRIMARY KEY (namespace, key))`)
   }
+  async expire(limit = 128) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 128) throw new Error('Invalid expiry batch size')
+    const result = await this.pool.query(`DELETE FROM botters_records WHERE ctid IN (
+      SELECT ctid FROM botters_records WHERE namespace = $1 AND expires_at IS NOT NULL
+        AND expires_at <= clock_timestamp() ORDER BY expires_at LIMIT $2 FOR UPDATE SKIP LOCKED
+    )`, [this.namespace, limit])
+    return result.rowCount
+  }
   scoped() { return this }
   async get(key, { deadline = Infinity } = {}) {
     checkDeadline(deadline)
