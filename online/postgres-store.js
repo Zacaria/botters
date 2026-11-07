@@ -57,6 +57,28 @@ export class PostgresStore {
       throw error
     } finally { client.release() }
   }
+  async authorize(key) {
+    if (!/^token:[a-f0-9]{64}$/.test(key)) throw new Error('Invalid capability key')
+    const result = await this.pool.query(`SELECT t.value AS token, t.expires_at AS token_expiry,
+      o.value AS owner, o.expires_at AS owner_expiry, s."expiresAt" AS auth_expiry,
+      extract(epoch FROM statement_timestamp()) * 1000 AS now
+      FROM botters_records t
+      LEFT JOIN botters_records o ON o.namespace = t.namespace
+        AND o.key = 'session:' || (t.value::jsonb ->> 'id')
+        AND (o.expires_at IS NULL OR o.expires_at > statement_timestamp())
+      LEFT JOIN session s ON s.id = t.value::jsonb ->> 'authSessionId'
+        AND s."userId" = t.value::jsonb ->> 'accountId' AND s."expiresAt" > statement_timestamp()
+      LEFT JOIN "user" u ON u.id = s."userId" AND u."emailVerified" = true
+      WHERE t.namespace = $1 AND t.key = $2
+        AND (t.expires_at IS NULL OR t.expires_at > statement_timestamp())
+        AND (t.value::jsonb ->> 'role' <> 'human' OR u.id IS NOT NULL)`, [this.namespace, key])
+    const row = result.rows[0], now = row ? Number(row.now) : Date.now()
+    const auth = row?.token && JSON.parse(row.token), owner = row?.owner && JSON.parse(row.owner)
+    const expiries = [auth?.expires, row?.token_expiry && +new Date(row.token_expiry), row?.owner_expiry && +new Date(row.owner_expiry), auth?.role === 'human' && row?.auth_expiry && +new Date(row.auth_expiry)].filter(Number.isFinite)
+    const expiresAt = expiries.length ? Math.min(...expiries) : now + 60000
+    if (!auth || auth.role !== 'human' || !owner || !Number.isFinite(auth.expires) || expiresAt <= now || !auth.accountId || auth.accountId !== owner.accountId || !auth.liveCookieHash || !auth.authSessionId) return { token: null, session: null, expiresAt: now }
+    return { token: row.token, session: row.owner, expiresAt }
+  }
   scoped() { return this }
   async get(key, { deadline = Infinity } = {}) {
     checkDeadline(deadline)
