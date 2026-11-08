@@ -167,3 +167,18 @@ test('local pre-start refusal still consumes the agent rate budget but permits h
   assert.deepEqual(await post(`/input?token=${session.humanToken}`, { gambits: [{ if: 'always', then: 'hold', on: false }] }), { ok: true })
   assert.deepEqual((await read()).view.gambits, [{ if: 'always', then: 'hold', on: false }])
 })
+
+test('local routes clear human calls and rejected mixed routes leave control intact', async t => {
+  const { origin, post, started } = await fixture(t), { session, read } = await started()
+  const swarm = (await read()).view.swarms[0].id, route = { swarm, points: [{ x: 400, y: 300 }, { x: 500, y: 300 }] }
+  await post(`/call?token=${session.agentToken}`, { swarm, message: 'take this' })
+  const before = await read(), prior = before.view.swarms.find(c => c.id === swarm)
+  const response = await fetch(`${origin}/input?token=${session.humanToken}`, { method: 'POST', body: JSON.stringify({ route, toggle: 999 }) })
+  assert.equal(response.status, 400)
+  const rejected = await read(), current = rejected.view.swarms.find(c => c.id === swarm)
+  assert.deepEqual([current.manual, current.tx, current.ty, current.route], [prior.manual, prior.tx, prior.ty, prior.route])
+  assert.deepEqual(rejected.calls, before.calls); assert.deepEqual(rejected.feed, before.feed)
+  assert.deepEqual(await post(`/input?token=${session.humanToken}`, { route }), { ok: true })
+  const accepted = await read(); assert.equal(accepted.calls.length, 0)
+  assert.deepEqual(accepted.view.swarms.find(c => c.id === swarm).route, route.points)
+})

@@ -10,7 +10,7 @@ import { MemoryStore } from '../online/store.js'
 const removed = /locust|carapace|spore|morph|cocoon|swarm types?|each type/i
 const modes = ['1v1', '2v2', 'ffa4', 'ffa6']
 const opening = [{ if: 'always', then: 'hold' }]
-const tools = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
+const tools = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'route_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
 function startup(events, humanOpening, mode) {
   const event = events.find(text => text.includes('three swarms of 3,000 particles'))
   assert.ok(event, 'startup event reaches the agent')

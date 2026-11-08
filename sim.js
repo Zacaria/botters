@@ -73,6 +73,7 @@ const rows = (values, size, make) => { const out = []; for (let i = 0; i < value
 const encodeRules = list => Float64Array.from(list.flatMap(r => [conditionNames.indexOf(r.if), actionNames.indexOf(r.then), r.p ?? CONDITIONS[r.if].p, +(r.on !== false), +(r.p !== undefined)]))
 const reasons = [null, 'wipe', 'time', 'surrender']
 const matchHandles = new WeakMap()
+const routes = new WeakMap()
 
 class Match {
   constructor(data) {
@@ -86,6 +87,7 @@ class Match {
   }
   load(data) {
     if (typeof data === 'string') data = JSON.parse(data)
+    routes.set(this, structuredClone(data.routes || []))
     const h = new RustMatch(data.seed, JSON.stringify(data.opts), Uint32Array.from(data.teams), data.tick, data.endTick, data.nextId,
       Float64Array.from(data.swarms.flatMap(swarmRow)), Float64Array.from(data.planets.flatMap(planetRow)))
     for (let side = 0; side < data.teams.length; side++) h.set_rules(side, encodeRules(data.gambits[side]))
@@ -104,7 +106,7 @@ class Match {
   get swarms() { return rows(matchHandles.get(this).swarm_snapshot(), 14, c => ({ id: c[0], side: c[1], x: c[2], y: c[3], n: c[4], tx: c[5], ty: c[6], manual: !!c[7], rule: c[8], noMerge: c[9], eng: !!c[10], belly: c[11], meal: c[12], ...(!Number.isNaN(c[13]) && { roll: !!c[13] }) })) }
   get planets() { return rows(matchHandles.get(this).planet_snapshot(), 12, p => ({ x: p[0], y: p[1], r: p[2], owner: p[3], cap: p[4], id: p[5], m0: p[6], mass: p[7], stock: p[8], prog: p[9], claim: p[10], by: p[11] })) }
   get gambits() { return this.teams.map((_, side) => rows(matchHandles.get(this).rule_snapshot(side), 5, r => ({ if: conditionNames[r[0]], ...(r[4] && { p: r[2] }), then: actionNames[r[1]], on: !!r[3] }))) }
-  toJSON() { return { seed: this.seed, opts: this.opts, teams: this.teams, endTick: this.endTick, tick: this.tick, nextId: this.nextId, planets: this.planets, swarms: this.swarms, gambits: this.gambits, ended: this.ended } }
+  toJSON() { const r = routes.get(this); return { seed: this.seed, opts: this.opts, teams: this.teams, endTick: this.endTick, tick: this.tick, nextId: this.nextId, planets: this.planets, swarms: this.swarms, gambits: this.gambits, ended: this.ended, ...(r.length && { routes: structuredClone(r) }) } }
 }
 export function createMatch(seed, options) {
   const opts = matchOptions(options), teams = MODES[opts.mode]
@@ -116,9 +118,25 @@ export const load = (s, json) => s.load(json)
 export function addSwarm(s, side, x, y, n) { const id = matchHandles.get(s).add_swarm(side, x, y, n); return id < 0 ? null : s.swarms.find(c => c.id === id) }
 export function seen(s, side) { const swarms = s.swarms; return Array.from(matchHandles.get(s).visible_indices(side), i => swarms[i]) }
 export function applyInput(s, side, input) {
+  if (input.surrender !== true && ['route', 'gambits', 'toggle', 'order', 'split', 'release'].filter(k => k === 'order' ? !!input[k] : input[k] !== undefined).length > 1) {
+    const candidate = fromJSON(s.toJSON())
+    try { const result = applyInputUnchecked(candidate, side, input); if (result.ok) s.load(candidate.toJSON()); return result } finally { candidate.free() }
+  }
+  return applyInputUnchecked(s, side, input)
+}
+function applyInputUnchecked(s, side, input) {
   if (s.ended) return { ok: false, error: 'match ended' }
   if (input.surrender === true) { matchHandles.get(s).surrender(side); return { ok: true } }
   const own = id => s.swarms.find(c => c.id === id && c.side === side)
+  const clearRoute = id => routes.set(s, routes.get(s).filter(r => r.swarm !== id))
+  if (input.route !== undefined) {
+    const { swarm, points } = input.route || {}
+    if (!own(swarm)) return { ok: false, error: 'no such swarm of yours' }
+    if (!Array.isArray(points) || points.length < 2 || points.length > 8 || points.some(p => !p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.x > W || p.y < 0 || p.y > H)) return { ok: false, error: 'route needs 2 to 8 points inside the map' }
+    clearRoute(swarm)
+    routes.get(s).push({ swarm, side, points: points.map(({ x, y }) => ({ x, y })) })
+    matchHandles.get(s).set_order(side, swarm, points[0].x, points[0].y)
+  }
   if (input.gambits !== undefined) { const err = checkGambits(input.gambits); if (err) return { ok: false, error: err }; matchHandles.get(s).set_rules(side, encodeRules(input.gambits)) }
   if (input.toggle !== undefined) {
     if (!s.gambits[side][input.toggle]) return { ok: false, error: 'no such gambit' }
@@ -128,6 +146,7 @@ export function applyInput(s, side, input) {
     const c = own(input.order.swarm), { x, y } = input.order
     if (!c) return { ok: false, error: `no swarm ${input.order.swarm} of yours (it may have merged or died)` }
     if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, error: 'x and y required' }
+    clearRoute(c.id)
     matchHandles.get(s).set_order(side, c.id, x, y)
   }
   if (input.split !== undefined) {
@@ -136,25 +155,40 @@ export function applyInput(s, side, input) {
   }
   if (input.release !== undefined) {
     const c = own(input.release); if (!c) return { ok: false, error: `no swarm ${input.release} of yours` }
+    clearRoute(c.id)
     matchHandles.get(s).release(side, c.id)
   }
   return { ok: true }
 }
-export function step(s) { matchHandles.get(s).advance() }
-export function advanceTo(s, tick) { matchHandles.get(s).advance_to(tick) }
+export function step(s) {
+  const h = matchHandles.get(s); h.advance()
+  if (!routes.get(s).length || s.ended) return
+  const swarms = s.swarms
+  for (const r of routes.get(s)) {
+    const c = swarms.find(c => c.id === r.swarm && c.side === r.side)
+    if (!c || !c.manual) { r.points = []; continue }
+    if (Math.hypot(c.x - r.points[0].x, c.y - r.points[0].y) < 3) {
+      r.points.shift()
+      if (r.points.length) h.set_order(r.side, r.swarm, r.points[0].x, r.points[0].y)
+    }
+  }
+  routes.set(s, routes.get(s).filter(r => r.points.length))
+}
+export function advanceTo(s, tick) { if (!routes.get(s).length) return matchHandles.get(s).advance_to(tick); while (s.tick < tick && !s.ended) step(s) }
 export function replay(seed, log, opts) {
   const s = createMatch(seed, opts); let i = 0
   while (i < log.length && !s.ended && log[i].tick >= s.tick) {
-    matchHandles.get(s).advance_to(log[i].tick)
+    advanceTo(s, log[i].tick)
     if (s.ended) break
     for (; i < log.length && log[i].tick === s.tick; i++) applyInput(s, log[i].side, log[i].input)
   }
-  matchHandles.get(s).finish(); return s
+  if (routes.get(s).length) advanceTo(s, s.endTick); else matchHandles.get(s).finish(); return s
 }
 export const totals = s => Array.from(matchHandles.get(s).populations())
 export function view(s, side) {
   const h = matchHandles.get(s), summary = h.view_totals(side), header = h.view_header(side)
   const own = rows(matchHandles.get(s).view_swarms(side, 0), 11, c => ({ id: c[0], x: c[1], y: c[2], n: c[3], tx: c[4], ty: c[5], manual: !!c[6], rule: c[7], fighting: !!c[8], belly: c[9], hunger: c[10] }))
+  for (const c of own) { const r = routes.get(s).find(r => r.side === side && r.swarm === c.id); if (r) c.route = structuredClone(r.points) }
   const allies = rows(matchHandles.get(s).view_swarms(side, 1), 5, c => ({ id: c[0], x: c[1], y: c[2], n: c[3], fighting: !!c[4] }))
   const enemies = rows(matchHandles.get(s).view_swarms(side, 2), 6, c => ({ id: c[0], k: c[1], x: c[2], y: c[3], n: c[4], fighting: !!c[5] }))
   const planets = rows(matchHandles.get(s).view_planets(side), 10, p => ({ id: p[0], x: p[1], y: p[2], r: p[3], owner: p[4] < 0 ? null : ['you', 'ally', 'enemy'][p[4]], k: p[5], massLeft: p[6], mass: p[7], capture: p[8], ck: p[9] }))

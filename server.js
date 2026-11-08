@@ -246,8 +246,8 @@ const routes = {
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
     }
-    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release }
-    if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
+    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, route: b.route, split: b.split, release: b.release }
+    if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.route !== undefined || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
     const candidate = fromJSON(m.s.toJSON())
     const r = applyInput(candidate, side, input)
     if (r.ok) {
@@ -257,11 +257,13 @@ const routes = {
       if (b.gambits) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why }
       if (b.toggle !== undefined) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why: `switched rule ${b.toggle + 1} ${list[b.toggle].on ? 'on' : 'off'}` }
       if (a.role === 'agent') {
+        if (b.route) feed(m, side, 'agent', `routed swarm ${b.route.swarm} through ${b.route.points.length} points${why && `: ${why}`}`)
         if (b.gambits) feed(m, side, 'agent', `rewrote the gambits${why && `: ${why}`}`)
         if (b.order) feed(m, side, 'agent', `took swarm ${b.order.swarm} to (${Math.round(b.order.x)},${Math.round(b.order.y)})${why && `: ${why}`}`)
         if (b.split !== undefined) feed(m, side, 'agent', `split swarm ${b.split}${why && `: ${why}`}`)
         if (b.release !== undefined) feed(m, side, 'agent', `gave swarm ${b.release} back to the gambits`)
       } else {
+        if (b.route) { p.calls = p.calls.filter(c => c.swarm !== b.route.swarm); emit(m, side, `HUMAN routed swarm ${b.route.swarm} through ${b.route.points.length} points`) }
         if (b.gambits) { emit(m, side, `HUMAN rewrote the gambits:\n${list.map((r, i) => `${i + 1}. ${describe(r)}`).join('\n')}`); feed(m, side, 'you', 'rewrote the gambits') }
         if (b.toggle !== undefined) emit(m, side, `HUMAN switched gambit ${b.toggle + 1} ${list[b.toggle].on ? 'ON' : 'OFF'}: ${describe(list[b.toggle])}`)
         if (b.order) { p.calls = p.calls.filter(c => c.swarm !== b.order.swarm); emit(m, side, `HUMAN took swarm ${b.order.swarm} by hand to (${Math.round(b.order.x)},${Math.round(b.order.y)})`) }

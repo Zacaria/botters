@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
+import net from 'node:net'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import { z } from 'zod'
@@ -11,9 +12,19 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 test('two actual MCP processes explicitly reapprove revoked agents and resume the same match', { timeout: 125000 }, async t => {
-  const origin = 'http://127.0.0.1:8790'
-  const liveOrigin = 'http://127.0.0.1:8791'
-  const fixture = spawn(process.execPath, ['scripts/auth-dev.js'], { env: { ...process.env, PORT: '8790' }, stdio: ['ignore', 'pipe', 'pipe'] })
+  // Probe an ephemeral adjacent pair; the child must bind both after release.
+  let port
+  for (;;) {
+    const first = net.createServer(), second = net.createServer()
+    await new Promise((resolve, reject) => first.once('error', reject).listen(0, '127.0.0.1', resolve))
+    port = first.address().port
+    const available = port < 65535 && await new Promise(resolve => second.once('error', () => resolve(false)).listen(port + 1, '127.0.0.1', () => resolve(true)))
+    await new Promise(resolve => first.close(resolve))
+    if (available) { await new Promise(resolve => second.close(resolve)); break }
+  }
+  const origin = `http://127.0.0.1:${port}`
+  const liveOrigin = `http://127.0.0.1:${port + 1}`
+  const fixture = spawn(process.execPath, ['scripts/auth-dev.js'], { env: { ...process.env, PORT: String(port), MCP_TEST_FAST: '1' }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
   t.after(() => fixture.kill())
   await Promise.race([once(fixture.stdout, 'data'), once(fixture, 'exit').then(() => { throw new Error('Isolated auth fixture exited early') })])
   const post = (path, data, cookie) => fetch(origin + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, ...(cookie ? { cookie } : {}) }, body: JSON.stringify(data) })
@@ -24,7 +35,7 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
     t.after(() => client.close())
     return client
   }))
-  const waiting = await Promise.all(clients.map(c => c.callTool({ name: 'join_match', arguments: {} }, undefined, { timeout: 30000 })))
+  const waiting = await Promise.all(clients.map(c => c.callTool({ name: 'join_match', arguments: {} }, undefined, { timeout: 10000 })))
   const humans = []
   for (const [i, result] of waiting.entries()) {
     const returned = JSON.parse(result.content[0].text)
@@ -82,6 +93,8 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
   }
   const after = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
   assert.equal(after.matchId, before.matchId, 'reapproval must not create another match')
+  fixture.send('finish-match')
+  assert.equal((await once(fixture, 'message'))[0], 'clock-advanced')
   let frame
   for (let i = 0; i < 250; i++) {
     frame = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())

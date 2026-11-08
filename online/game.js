@@ -26,6 +26,7 @@ const cleanInput = b => {
     if (!Number.isSafeInteger(b.order?.swarm) || !Number.isFinite(b.order?.x) || !Number.isFinite(b.order?.y)) fail(400, 'Send a swarm ID and finite x/y coordinates.')
     input.order = { swarm: b.order.swarm, x: Math.max(0, Math.min(W, b.order.x)), y: Math.max(0, Math.min(H, b.order.y)) }
   }
+  if (b.route !== undefined) input.route = b.route
   if (!Object.keys(input).length) fail(400, 'Send a gambit change or swarm action.')
   return input
 }
@@ -80,7 +81,7 @@ function matchFrame(m, side, now) {
 }
 
 export class OnlineGame {
-  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId, handles = null } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId; this.handles = handles }
+  constructor(store, { now = Date.now, seed = () => randomInt(2 ** 31), origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId, handles = null } = {}) { this.store = store; this.now = now; this.seed = seed; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId; this.handles = handles }
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
@@ -183,7 +184,7 @@ export class OnlineGame {
         return m
       }
       const start = async (entries, req, roomCode = null, waitingForAgent = false) => {
-        const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, planning: req.planning, createdAt: now, waitingForAgent, startsAt: now + req.planning * 1000 }
+        const m = { id: this.startId || token(), s: createMatch(this.seed(), req), players: [], logCount: 0, roomCode, planning: req.planning, createdAt: now, waitingForAgent, startsAt: now + req.planning * 1000 }
         if (this.handles) { m.options = m.s.opts; attachState(m, m.s, true) }
         entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
         for (const [side, e] of entries.entries()) {
@@ -463,10 +464,12 @@ export class OnlineGame {
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
         const input = cleanInput(body)
-        if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
+        if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.route !== undefined || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
         const candidate = fromJSON(m.s.toJSON())
         const result = applyInput(candidate, s.side, input)
         if (!result.ok) { candidate.free(); fail(400, result.error) }
+        if (input.route !== undefined) input.route = { swarm: input.route.swarm, points: input.route.points.map(({ x, y }) => ({ x, y })) }
+        if (auth.role === 'human' && (input.order || input.route)) p.calls = p.calls.filter(c => c.swarm !== input.order?.swarm && c.swarm !== input.route?.swarm)
         if (JSON.stringify(candidate) === JSON.stringify(m.s)) { candidate.free(); return { ok: true } }
         m.s.free()
         m.s = candidate
@@ -476,9 +479,8 @@ export class OnlineGame {
         if (body.gambits || body.toggle !== undefined) p.gambitsBy = { who: auth.role === 'agent' ? 'agent' : 'you', t: Math.floor(m.s.tick / TPS), why: why || (body.toggle !== undefined ? `switched rule ${body.toggle + 1}` : '') }
         if (auth.role === 'human') {
           emit(m, p, `HUMAN ${body.gambits ? `rewrote gambits: ${list.map(describe).join('; ')}` : JSON.stringify(input)}`)
-          if (body.order) p.calls = p.calls.filter(c => c.swarm !== body.order.swarm)
         }
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${body.gambits ? 'rewrote gambits' : body.toggle !== undefined ? 'switched a rule' : body.order ? `ordered swarm ${body.order.swarm}` : body.split !== undefined ? 'split a swarm' : 'released a swarm'}${why ? `: ${why}` : ''}`)
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${body.gambits ? 'rewrote gambits' : body.toggle !== undefined ? 'switched a rule' : body.order ? `ordered swarm ${body.order.swarm}` : input.route ? `routed swarm ${input.route.swarm} through ${input.route.points.length} points` : body.split !== undefined ? 'split a swarm' : 'released a swarm'}${why ? `: ${why}` : ''}`)
         return { ok: true }
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {

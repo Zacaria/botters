@@ -260,7 +260,8 @@
     </div>
     <div id="toast"></div>
     <p class="dim">
-      <b>colour</b> is the camp<br><b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> from the map: next swarm · <b>Shift+Tab</b>: reach controls, then Tab/Shift+Tab to navigate · </span><b>Esc</b> drop<br>
+      <b>colour</b> is the camp<br><b>click a pink swarm</b>: grab it · <b>click the map</b>: send it there · <b>S</b> split · <b>G</b> give it back to the gambits · <span id="swarmTabHelp"><b>Tab</b> from the map: next swarm · <b>Shift+Tab</b>: reach controls, then Tab/Shift+Tab to navigate · </span><b>Esc</b> cancel route/drop<br>
+      <b>Route:</b> select a swarm, hold <b>Shift</b> and drag on the map; release the mouse to send. <b>Esc</b> cancels.<br>
       <span id="pingHelp"><b>click the map with nothing grabbed</b>: ping your agent there<br></span>
       <button id="leave" title="Return to the menu; the match keeps running">← menu</button>
       <button id="surrender" hidden>Surrender</button>
@@ -592,10 +593,13 @@ function fit() {
 }
 fit(); onresize = fit
 
-let F = null, v = null, sel = null, frameAt = 0, es = null, streamRetry = null, editing = null, lastBy = '', prevRules = []
+let F = null, v = null, sel = null, frameAt = 0, es = null, streamRetry = null, editing = null, lastBy = '', prevRules = [], routeDraft = []
+let routeDrawing = false, actionQueue = Promise.resolve()
+const cancelRoute = () => { routeDraft = []; routeDrawing = false }
+const selectSwarm = id => { if (sel !== id) cancelRoute(); sel = id }
 const pos = new Map() // id -> { x0, y0, x1, y1 } for smooth motion between server frames
 const cur = p => { const t = Math.min(1, (performance.now() - frameAt) / 100); return { x: p.x0 + (p.x1 - p.x0) * t, y: p.y0 + (p.y1 - p.y0) * t } }
-const act = (body, label) => api('POST', '/input', body).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok))
+const act = (body, label) => { if (sel !== null && (body.order?.swarm === sel || body.release === sel || body.split === sel)) cancelRoute(); actionQueue = actionQueue.then(() => api('POST', '/input', body)).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok)); return actionQueue }
 
 // Local, opt-in observer only. The server view, never a timer/click, proves each milestone.
 let guidance = null, guidePending = false
@@ -658,7 +662,7 @@ function renderGuide() {
 $('guideLaunch').onclick = () => { startGuide(); if (guidance) $('guideStep').focus() }
 $('guideReplay').onclick = startGuide
 $('guideDismiss').onclick = () => { guidance = null; renderGuide(); $('guideLaunch').focus() }
-$('guideSwarm').onchange = () => { sel = $('guideSwarm').value === '' ? null : +$('guideSwarm').value; panel() }
+$('guideSwarm').onchange = () => { selectSwarm($('guideSwarm').value === '' ? null : +$('guideSwarm').value); panel() }
 $('guidePlanet').onchange = renderGuide
 $('guideSend').onclick = () => {
   const p = v?.planets.find(p => String(p.id) === $('guidePlanet').value)
@@ -669,7 +673,7 @@ $('guideRelease').onclick = () => { if (sel !== null) act({ release: sel }, `swa
 function match() {
   guidance = null; guidePending = $('guidedHouse').checked
   clearTimeout(lobbyTimer); lastFrame = Date.now(); $('connection').hidden = true
-  show('game'); fit(); v = null; F = null; pos.clear(); sel = null; lastBy = ''; stopEditing()
+  show('game'); fit(); v = null; F = null; pos.clear(); sel = null; routeDraft = []; lastBy = ''; stopEditing()
   $('big').innerHTML = ''; $('feed').innerHTML = ''; $('toast').textContent = ''
   $('surrender').hidden = true; $('surrender').disabled = false
   connectStream()
@@ -698,7 +702,7 @@ async function connectStream() {
     }
     frameAt = performance.now()
     for (const id of pos.keys()) if (!live.has(id)) pos.delete(id)
-    if (sel !== null && !v.swarms.some(c => c.id === sel)) sel = null
+    if (sel !== null && !v.swarms.some(c => c.id === sel)) selectSwarm(null)
     panel()
     if (v.ended && F.report) stream.close()
   }
@@ -727,6 +731,11 @@ $('surrender').onclick = async () => {
   $('toast').textContent = ''
   const r = await api('POST', '/surrender', {})
   if (!r.ok) { $('surrender').disabled = false; toast(r.error || 'Surrender failed. Retry.', false) }
+}
+
+function drawRoute(a, points, colour) {
+  g.setLineDash([7, 5]); g.beginPath(); g.moveTo(a.x, a.y); for (const p of points) g.lineTo(p.x, p.y)
+  g.strokeStyle = '#111'; g.lineWidth = 6; g.stroke(); g.strokeStyle = colour; g.lineWidth = 3; g.stroke(); g.setLineDash([])
 }
 
 function draw() {
@@ -764,8 +773,10 @@ function draw() {
     const a = cur(pos.get(c.id))
     g.strokeStyle = c.id === sel ? '#fff' : 'rgba(255,255,255,.4)'; g.lineWidth = 1
     g.beginPath(); g.arc(a.x, a.y, rad(c.n) + 5, 0, 7); g.stroke()
-    g.setLineDash([3, 4]); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(c.tx, c.ty); g.stroke(); g.setLineDash([])
+    if (c.route) drawRoute(a, c.route, '#fff')
+    else { g.setLineDash([3, 4]); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(c.tx, c.ty); g.stroke(); g.setLineDash([]) }
   }
+  if (sel !== null && routeDraft.length && pos.has(sel)) drawRoute(cur(pos.get(sel)), routeDraft, '#ffd400')
   for (const c of F.calls) {
     const s = v.swarms.find(o => o.id === c.swarm), pulse = 6 + 4 * Math.sin(performance.now() / 150)
     g.strokeStyle = '#ffd400'; g.lineWidth = 2
@@ -887,19 +898,47 @@ const toggle = i => { if (v?.gambits[i] && !v.ended) act({ toggle: i }, `rule ${
 $('gambits').onclick = e => { const d = e.target.closest('[data-g]'); if (d) toggle(+d.dataset.g) }
 $('calls').onclick = e => {
   const b = e.target.dataset, c = F.calls[b.do ?? b.grab ?? b.no]; if (!c) return
-  if (b.do !== undefined) { act({ order: { swarm: c.swarm, x: c.x, y: c.y } }, `swarm #${c.swarm} sent`); sel = c.swarm }
-  if (b.grab !== undefined) { sel = c.swarm; toast(`swarm #${c.swarm} grabbed: click the map to send it`) }
+  if (b.do !== undefined) { act({ order: { swarm: c.swarm, x: c.x, y: c.y } }, `swarm #${c.swarm} sent`); selectSwarm(c.swarm) }
+  if (b.grab !== undefined) { selectSwarm(c.swarm); toast(`swarm #${c.swarm} grabbed: click the map to send it`) }
   api('POST', '/dismiss', { index: +(b.do ?? b.grab ?? b.no) })
 }
 const at = e => ({ x: (e.clientX - ox) / k, y: (e.clientY - oy) / k })
+function routePoint(e) {
+  const p = at(e)
+  if (p.x < 0 || p.x > 1200 || p.y < 0 || p.y > 700) { cancelRoute(); return }
+  p.x = Math.round(p.x); p.y = Math.round(p.y)
+  const last = routeDraft.at(-1)
+  if (last && Math.hypot(p.x - last.x, p.y - last.y) < 8) return
+  routeDraft.push(p)
+  if (routeDraft.length > 8) {
+    let remove = 1, least = Infinity
+    for (let i = 1; i < routeDraft.length - 1; i++) {
+      const a = routeDraft[i - 1], b = routeDraft[i], c = routeDraft[i + 1]
+      const cost = Math.hypot(b.x - a.x, b.y - a.y) + Math.hypot(c.x - b.x, c.y - b.y) - Math.hypot(c.x - a.x, c.y - a.y)
+      if (cost < least) { least = cost; remove = i }
+    }
+    routeDraft.splice(remove, 1)
+  }
+}
 const pings = []
 cv.onmousedown = e => {
   if (e.button !== 0 || !v || v.ended) return
   const p = at(e), hit = v.swarms.find(c => { const a = cur(pos.get(c.id)); return Math.hypot(a.x - p.x, a.y - p.y) < rad(c.n) + 8 })
-  if (hit && hit.id !== sel) { sel = hit.id; return panel() }
+  if (e.shiftKey && sel !== null) { cancelRoute(); routeDrawing = true; routePoint(e); e.preventDefault(); return }
+  if (hit && hit.id !== sel) { selectSwarm(hit.id); return panel() }
+  routeDraft = []
   if (sel !== null) return act({ order: { swarm: sel, x: Math.round(p.x), y: Math.round(p.y) } }, `swarm #${sel} → (${Math.round(p.x)},${Math.round(p.y)})`)
   if (!F.me.withAgent) return
   api('POST', '/say', { text: 'look here', x: p.x, y: p.y }); pings.push({ ...p, until: Date.now() + 1500 }); toast('ping sent to your agent')
+}
+cv.onmousemove = e => { if (routeDrawing) routePoint(e) }
+cv.onmouseleave = () => { if (routeDrawing) cancelRoute() }
+cv.onmouseup = e => {
+  if (e.button !== 0 || !routeDrawing) return
+  routePoint(e)
+  if (!routeDrawing) return
+  const points = routeDraft; cancelRoute()
+  if (points.length >= 2 && sel !== null && v && !v.ended && !$('game').hidden && document.hasFocus()) act({ route: { swarm: sel, points } }, `route sent for swarm #${sel}`)
 }
 oncontextmenu = e => e.preventDefault()
 onkeydown = e => {
@@ -907,12 +946,18 @@ onkeydown = e => {
   const key = e.key.toLowerCase()
   if (key === 'f1' && canGuide()) { e.preventDefault(); if (!guidance) $('guideLaunch').click(); return }
   if (key >= '0' && key <= '9') toggle((+key + 9) % 10)
-  if (key === 'escape') sel = null
+  if (key === 'escape') { if (routeDraft.length) cancelRoute(); else { cancelRoute(); selectSwarm(null) } }
   if (key === 'g' && sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`)
   if (key === 's' && sel !== null) act({ split: sel }, `swarm #${sel} split`)
-  if (key === 'tab' && !guidance && !e.shiftKey && (e.target === document.body || e.target === cv)) { e.preventDefault(); const m = v.swarms; sel = m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null }
+  if (key === 'tab' && !guidance && !e.shiftKey && (e.target === document.body || e.target === cv)) { e.preventDefault(); const m = v.swarms; selectSwarm(m.length ? m[(m.findIndex(c => c.id === sel) + 1) % m.length].id : null) }
   panel()
 }
+onkeyup = e => {
+  if (e.key === 'Shift' && routeDrawing) cancelRoute()
+}
+window.addEventListener('blur', cancelRoute)
+document.addEventListener('visibilitychange', () => { if (document.hidden) cancelRoute() })
+document.addEventListener('focusin', e => { if (e.target !== cv && e.target !== document.body && routeDraft.length) cancelRoute() })
 $('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
 
 bootAccount()

@@ -84,7 +84,7 @@ async function gateway(t, options = {}) {
   return { app, request, connect }
 }
 const data = result => JSON.parse(result.content[0].text)
-const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
+const toolNames = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'route_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
 const assertTools = tools => assert.deepEqual(tools.map(t => t.name).sort(), toolNames)
 
 test('OAuth protects every MCP request before allocating an instance and advertises its canonical resource', async t => {
@@ -334,7 +334,7 @@ test('configuration requires explicit safe origins and finite resource bounds', 
   ]) assert.throws(() => createWebMcp(options))
 })
 
-test('real HTTP/in-process gateway discovers and executes seven tools with isolated lobby identities', { timeout: 30000 }, async t => {
+test('real HTTP/in-process gateway discovers eight tools and executes existing tools with isolated lobby identities', { timeout: 30000 }, async t => {
   const f = await fixture(t), g = await gateway(t, { server: f.upstream })
   const directTransport = new StdioClientTransport({ command: process.execPath, args: childArgs, cwd: root, env: { BOTTERS_SERVER: f.upstream, BOTTERS_OPEN: '0' }, stderr: 'ignore' })
   const direct = new Client({ name: 'schema-reference', version: '1' }); t.after(() => direct.close()); await direct.connect(directTransport)
@@ -370,12 +370,14 @@ test('real HTTP/in-process gateway discovers and executes seven tools with isola
   for (const [name, args] of [
     ['set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'offline fixture' }],
     ['order_swarm', { swarm, x: 100, y: 100, why: 'offline fixture' }],
+    ['route_swarm', { swarm, points: [{ x: 150, y: 150 }, { x: 200, y: 150 }], why: 'offline fixture' }],
     ['split_swarm', { swarm, why: 'offline fixture' }],
     ['release_swarm', { swarm }],
     ['call_human', { message: 'offline fixture' }],
   ]) {
     await sleep(230) // Real game input rate limit remains enabled.
     assert.equal(data(await one.client.callTool({ name, arguments: args })).ok, true, name)
+    if (name === 'route_swarm') { const frame = await fetch(`${f.origin}/state?token=${token}`).then(r => r.json()); assert.deepEqual(frame.view.swarms.find(c => c.id === swarm).route, args.points) }
   }
   assert.ok(data(await one.client.callTool({ name: 'wait_for_event', arguments: { timeout_s: 1 } })).state)
   assert.match((await two.client.callTool({ name: 'call_human', arguments: { message: 'not joined' } })).content[0].text, /Not in a match/)

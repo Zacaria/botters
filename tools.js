@@ -28,6 +28,7 @@ const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefine
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
   yourSwarms: v.swarms.map(c => `#${c.id} n${c.n}${c.hunger >= 0.5 ? ` HUNGRY ${Math.round(c.hunger * 100)}%` : ''}${c.belly > c.n * 0.1 ? ' digesting' : ''} at (${c.x},${c.y}) → (${c.tx},${c.ty}) ${c.manual ? 'BY HAND' : c.rule >= 0 ? `rule ${c.rule + 1}` : 'no rule'}${c.fighting ? ' FIGHTING' : ''}`),
+  routes: v.swarms.filter(c => c.route).map(c => ({ swarm: c.id, points: c.route })),
   allies: v.allies.map(c => `#${c.id} n${c.n} at (${c.x},${c.y})`),
   visibleEnemies: v.enemies.map(c => `#${c.id} team${c.k} n${c.n} at (${c.x},${c.y})${c.fighting ? ' FIGHTING' : ''}`),
   planets: v.planets.filter(p => p.massLeft > 0).map(p => `${p.id} (${p.x},${p.y}) ${p.owner || 'free'} mass ${p.massLeft}${Math.abs(p.capture) > 0 && Math.abs(p.capture) < 1 ? ` capture ${p.capture}` : ''}`),
@@ -127,6 +128,11 @@ mcp.registerTool('order_swarm', {
   description: 'Take one of your swarms by hand and send it to x,y (map 1200×700). It stops following the gambits until release_swarm. Use for precise plays only: a hand-held swarm does not react to threats.',
   inputSchema: { swarm: z.number(), x: z.number(), y: z.number(), why: z.string().max(120) },
 }, async ({ swarm, x, y, why }) => need() || input({ order: { swarm, x, y }, why }))
+
+mcp.registerTool('route_swarm', {
+  description: 'Take your swarm by hand through 2 to 8 map points in order. It does not react to threats. A direct order or release cancels the route.',
+  inputSchema: { swarm: z.number(), points: z.array(z.object({ x: z.number().min(0).max(1200), y: z.number().min(0).max(700) })).min(2).max(8), why: z.string().max(120) },
+}, async ({ swarm, points, why }) => need() || input({ route: { swarm, points }, why }))
 
 mcp.registerTool('split_swarm', {
   description: 'Split one of your swarms in two (needs ≥200 particles, max 40 swarms). The new half heads for the second-nearest planet you do not own.',

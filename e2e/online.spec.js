@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures.js'
 import { authorizePreview, liveURL, state } from './preview.js'
+import { createMatch, applyInput, advanceTo, view, TPS } from '../sim.js'
 test.beforeEach(async ({ context }) => authorizePreview(context))
 
 test('agent play opens ChatGPT with a prepared prompt and waits for the agent', async ({ page, context, baseURL }) => {
@@ -107,6 +108,102 @@ test('two isolated browsers match, survive disconnect/reload, and see end report
     await expect(page.locator('#big')).toContainText('Same match replayed')
     await expect(b.locator('#big')).toContainText('Same match replayed')
     expect(errors).toEqual([])
+  } finally { await other.close() }
+})
+
+test('local server progresses on real time', async ({ page, request, baseURL }) => {
+  test.skip(remote, 'Local isolated backend only')
+  expect((await request.post(`${baseURL}/__test/advance`, { data: { ms: 1000 } })).status()).not.toBe(200)
+  await enter(page, 'Real clock')
+  await page.locator('#play').click()
+  await expect(page.locator('#hud')).toBeVisible()
+  await expect.poll(async () => (await state(page)).view?.tick, { timeout: 20000 }).toBeGreaterThan(0)
+})
+
+test('local two-player manual route survives reconnect and opponent plays', async ({ page, browser, baseURL, request, clockKey }) => {
+  test.skip(remote, 'Local isolated backend only')
+  const other = await browser.newContext(), b = await other.newPage()
+  try {
+    await enter(page, 'Route A'); await enter(b, 'Route B')
+    await page.locator('#quick').click(); await b.locator('#quick').click()
+    await expect(page.locator('#hud')).toContainText('Route B')
+    await expect(b.locator('#hud')).toContainText('Route A')
+    expect((await request.post(`${baseURL}/__test/advance`, { data: { ms: 1000 } })).status()).toBe(403)
+    expect((await request.post(`${baseURL}/__test/advance`, { data: { ms: -1 }, headers: { 'x-test-clock-key': clockKey } })).status()).toBe(400)
+    const clock = await request.post(`${baseURL}/__test/advance`, { data: { ms: 10000 }, headers: { 'x-test-clock-key': clockKey } })
+    expect(clock.status()).toBe(200)
+    await expect.poll(async () => (await state(page)).startsIn).toBe(0)
+    const first = await state(page), second = await state(b)
+    expect(first.view.tick).toBe(0)
+    const models = [createMatch(123456, first.options), createMatch(123456, first.options)]
+    expect(first.view).toEqual(view(models[0], 0))
+    expect(first.view).toEqual(view(models[1], 0))
+    expect(first.matchId).toBe(second.matchId)
+    expect(first.opponent.human).toBe(true); expect(second.opponent.human).toBe(true)
+
+    await page.bringToFront()
+    await page.keyboard.press('Tab')
+    await expect(page.locator('#hud')).toContainText('grabbed: swarm #')
+    const swarm = Number((await page.locator('#hud').textContent()).match(/grabbed: swarm #(\d+)/)[1])
+    expect(first.view.swarms.map(s => s.id)).toContain(swarm)
+    const box = await page.locator('#c').boundingBox()
+    // Seed 123456 starts swarm #1 at (135, 280); both waypoints are clear of the enemy.
+    expect(swarm).toBe(1)
+    expect(first.view.swarms.find(s => s.id === swarm)).toMatchObject({ x: 135, y: 280 })
+    const expectedPoints = [{ x: 155, y: 280 }, { x: 240, y: 280 }]
+    const coords = expectedPoints.map(p => ({ x: box.x + box.width * p.x / 1200, y: box.y + box.height * p.y / 700 }))
+    const response = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && !!r.request().postDataJSON()?.route)
+    await page.keyboard.down('Shift')
+    await page.mouse.move(coords[0].x, coords[0].y); await page.mouse.down()
+    await page.mouse.move(coords[1].x, coords[1].y); await page.mouse.up()
+    await page.keyboard.up('Shift')
+    const sent = await response, route = sent.request().postDataJSON().route
+    expect(sent.status()).toBe(200); expect(await sent.json()).toMatchObject({ ok: true })
+    expect(route.swarm).toBe(swarm); expect(route.points).toHaveLength(2)
+    for (let i = 0; i < 2; i++) {
+      expect(Math.abs(route.points[i].x - expectedPoints[i].x)).toBeLessThanOrEqual(1)
+      expect(Math.abs(route.points[i].y - expectedPoints[i].y)).toBeLessThanOrEqual(1)
+    }
+    for (const model of models) expect(applyInput(model, 0, { route }).ok).toBe(true)
+    await expect.poll(async () => (await state(page)).feed.some(f => f.text.includes(`routed swarm ${swarm} through`))).toBe(true)
+    await expect.poll(async () => (await state(page)).view.swarms.find(s => s.id === swarm)?.route).toEqual(route.points)
+    expect((await request.post(`${baseURL}/__test/advance`, { data: { ms: 1000 }, headers: { 'x-test-clock-key': clockKey } })).status()).toBe(200)
+    for (const model of models) advanceTo(model, TPS)
+    const progressed = await state(page)
+    expect(progressed.view.tick).toBe(TPS)
+    expect(progressed.view).toEqual(view(models[0], 0))
+    expect(progressed.view).toEqual(view(models[1], 0))
+    const afterSwarm = progressed.view.swarms.find(s => s.id === swarm)
+    // The first point has been consumed, but the second is still ahead.
+    expect(afterSwarm.route).toEqual([route.points[1]])
+    expect(afterSwarm.x).toBeGreaterThan(155); expect(afterSwarm.x).toBeLessThan(200)
+    expect(Math.abs(afterSwarm.y - 280)).toBeLessThanOrEqual(2)
+
+    await page.reload()
+    await expect(page.locator('#hud')).toContainText('Route B')
+    const resumed = await state(page)
+    expect(resumed.matchId).toBe(first.matchId)
+    expect(resumed.view.swarms.find(s => s.id === swarm)?.route).toContainEqual(route.points.at(-1))
+    await b.bringToFront(); await b.keyboard.press('Tab')
+    await expect(b.locator('#hud')).toContainText('grabbed: swarm #')
+    const opponentSwarm = Number((await b.locator('#hud').textContent()).match(/grabbed: swarm #(\d+)/)[1])
+    expect(second.view.swarms.map(s => s.id)).toContain(opponentSwarm)
+    const bBox = await b.locator('#c').boundingBox()
+    const target = { x: bBox.x + bBox.width / 2, y: bBox.y + bBox.height / 2 }
+    const orderResponse = b.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && !!r.request().postDataJSON()?.order)
+    await b.mouse.click(target.x, target.y)
+    const ordered = await orderResponse
+    expect(ordered.status()).toBe(200); expect(await ordered.json()).toMatchObject({ ok: true })
+    await expect.poll(async () => (await state(b)).feed.some(f => f.text.includes(`ordered swarm ${opponentSwarm}`))).toBe(true)
+    const order = ordered.request().postDataJSON().order
+    for (const model of models) expect(applyInput(model, 1, { order }).ok).toBe(true)
+    expect((await request.post(`${baseURL}/__test/advance`, { data: { ms: 1000 }, headers: { 'x-test-clock-key': clockKey } })).status()).toBe(200)
+    for (const model of models) advanceTo(model, 2 * TPS)
+    const finalA = await state(page), finalB = await state(b)
+    expect(finalA.view.tick).toBe(2 * TPS)
+    expect(finalA.view).toEqual(view(models[0], 0)); expect(finalA.view).toEqual(view(models[1], 0))
+    expect(finalB.view).toEqual(view(models[0], 1)); expect(finalB.view).toEqual(view(models[1], 1))
+    for (const model of models) model.free()
   } finally { await other.close() }
 })
 
