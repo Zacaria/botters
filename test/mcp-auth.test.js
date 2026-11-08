@@ -2,6 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
+import net from 'node:net'
+import http from 'node:http'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import { z } from 'zod'
@@ -11,9 +13,19 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 test('two actual MCP processes explicitly reapprove revoked agents and resume the same match', { timeout: 125000 }, async t => {
-  const origin = 'http://127.0.0.1:8790'
-  const liveOrigin = 'http://127.0.0.1:8791'
-  const fixture = spawn(process.execPath, ['scripts/auth-dev.js'], { env: { ...process.env, PORT: '8790' }, stdio: ['ignore', 'pipe', 'pipe'] })
+  // Probe an ephemeral adjacent pair; the child must bind both after release.
+  let port
+  for (;;) {
+    const first = net.createServer(), second = net.createServer()
+    await new Promise((resolve, reject) => first.once('error', reject).listen(0, '127.0.0.1', resolve))
+    port = first.address().port
+    const available = port < 65535 && await new Promise(resolve => second.once('error', () => resolve(false)).listen(port + 1, '127.0.0.1', () => resolve(true)))
+    await new Promise(resolve => first.close(resolve))
+    if (available) { await new Promise(resolve => second.close(resolve)); break }
+  }
+  const origin = `http://127.0.0.1:${port}`
+  const liveOrigin = `http://127.0.0.1:${port + 1}`
+  const fixture = spawn(process.execPath, ['scripts/auth-dev.js'], { env: { ...process.env, PORT: String(port), MCP_TEST_FAST: '1' }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
   t.after(() => fixture.kill())
   await Promise.race([once(fixture.stdout, 'data'), once(fixture, 'exit').then(() => { throw new Error('Isolated auth fixture exited early') })])
   const post = (path, data, cookie) => fetch(origin + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, ...(cookie ? { cookie } : {}) }, body: JSON.stringify(data) })
@@ -24,7 +36,7 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
     t.after(() => client.close())
     return client
   }))
-  const waiting = await Promise.all(clients.map(c => c.callTool({ name: 'join_match', arguments: {} }, undefined, { timeout: 30000 })))
+  const waiting = await Promise.all(clients.map(c => c.callTool({ name: 'join_match', arguments: {} }, undefined, { timeout: 10000 })))
   const humans = []
   for (const [i, result] of waiting.entries()) {
     const returned = JSON.parse(result.content[0].text)
@@ -82,6 +94,8 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
   }
   const after = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
   assert.equal(after.matchId, before.matchId, 'reapproval must not create another match')
+  fixture.send('finish-match')
+  assert.equal((await once(fixture, 'message'))[0], 'clock-advanced')
   let frame
   for (let i = 0; i < 250; i++) {
     frame = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
@@ -103,8 +117,8 @@ const gameplay = [
 
 // Execute the real callbacks without stdio/startup. Only HTTP faults and timing
 // are injected; OnlineGame/MemoryStore retain real authorization and gameplay.
-async function callbackFixture({ supplied = false, bound = false } = {}) {
-  const origin = 'http://127.0.0.1:8790', identity = { id: 'fixture-owner', name: 'Fixture', emailVerified: true }
+async function callbackFixture({ supplied = false, bound = false, origin = 'http://127.0.0.1:8790' } = {}) {
+  const identity = { id: 'fixture-owner', name: 'Fixture', emailVerified: true }
   let now = 1800000000000, fault = null
   const store = new MemoryStore(() => now), requests = [], tools = new Map()
   const request = (owner, method, path, token = '', body = {}) => new OnlineGame(store, { now: () => now, origin, requireAccount: true, identity: owner }).request(method, path, new URLSearchParams({ token }), body)
@@ -118,7 +132,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
     McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
     fetch: async (target, options = {}) => {
       const url = new URL(target), path = url.pathname, method = options.method || 'GET', token = url.searchParams.get('token') || ''
-      requests.push({ path, token })
+      requests.push({ path, token, url: url.href, body: options.body && JSON.parse(options.body) })
       if (fault) { const response = await fault(path); if (response) return response }
       try { const data = await request(null, method, path, token, options.body ? JSON.parse(options.body) : {}); return { ok: true, status: 200, json: async () => data } }
       catch (error) { return { ok: false, status: error.status || 500, json: async () => ({ error: error.message }) } }
@@ -327,4 +341,127 @@ for (const path of ['/events', '/input', '/call', '/next', '/agent/poll']) test(
   const sent = f.requests.length
   for (const [tool, input] of gameplay) assert.match(await f.call(tool, input), /join_match/)
   assert.equal(f.requests.length, sent)
+})
+
+
+test('agent can bind mutations to the observed match rather than a later join', async () => {
+  const f = await callbackFixture(); await f.join()
+  const id = f.S.matchId
+  for (const [name, args] of gameplay.filter(([name]) => name !== 'wait_for_event')) {
+    const result = JSON.parse(await f.call(name, { ...args, matchId: 'stale-match' }))
+    assert.ok(result.error, name)
+  }
+  assert.equal(f.S.matchId, id)
+})
+
+
+test('late events from a previous match cannot overwrite a newer join', async () => {
+  const f = await callbackFixture(); await f.join()
+  const old = await f.read('/events')
+  let release, entered
+  const started = new Promise(resolve => { entered = resolve })
+  f.fault(path => path === '/events' ? (entered(), new Promise(resolve => { release = () => resolve({ ok: true, status: 200, json: async () => old }) })) : null)
+  const pending = f.call('wait_for_event', { timeout_s: 1 }); await started
+  f.S.matchId = 'new-match'; f.S.since = 77
+  release(); assert.match(await pending, /join_match|changed/i)
+  assert.equal(f.S.since, 77); assert.equal(f.S.matchId, 'new-match')
+})
+
+test('concurrent joins do not lose the match consumed by local next', async () => {
+  const f = await callbackFixture(); await f.join()
+  const original = (await f.read('/next')).match
+  let current = 'old-match', joined = false, release, entered
+  const started = new Promise(resolve => { entered = resolve })
+  let calls = 0
+  f.fault(async path => {
+    if (path !== '/next') return
+    if (++calls === 1) { entered(); await new Promise(resolve => { release = resolve }) }
+    const match = joined ? null : { ...original, id: current }
+    if (match) joined = true // local /next consumes the current unjoined match
+    return { ok: true, status: 200, json: async () => ({ match }) }
+  })
+  const first = f.call('join_match'); await started
+  const second = f.call('join_match')
+  // Give the second request a turn to enter /next on the unfixed implementation.
+  await new Promise(resolve => setImmediate(resolve))
+  current = 'new-match'; joined = false
+  release()
+  const results = await Promise.all([first, second])
+  assert.ok(results.some(result => { try { return JSON.parse(result).matchId === 'new-match' } catch { return false } }), results.join(' / '))
+  assert.equal(f.S.matchId, 'new-match')
+})
+
+test('legacy loopback match without id remains playable with an explicitly supplied token', async () => {
+  const f = await callbackFixture({ supplied: true }); await f.join()
+  const next = await f.read('/next'), events = await f.read('/events')
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+    if (path === '/events') { const { matchId, ...rest } = events; return { ok: true, status: 200, json: async () => rest } }
+  })
+  const joined = JSON.parse(await f.call('join_match'))
+  assert.ok(joined.state); assert.equal(f.S.matchId, null)
+  assert.ok(JSON.parse(await f.call('wait_for_event', { timeout_s: 1 })).state)
+  assert.equal(new URL(f.requests.at(-1).url).searchParams.has('matchId'), false)
+  assert.equal(JSON.parse(await f.call('set_gambits', gameplay[1][1])).ok, true)
+  assert.equal('matchId' in f.requests.at(-1).body, false)
+})
+
+test('online join without identity is rejected without weakening an existing match', async () => {
+  const f = await callbackFixture(); await f.join()
+  const next = await f.read('/next'), previous = f.S.matchId
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+  })
+  assert.match(await f.call('join_match'), /match ID/)
+  assert.equal(f.S.matchId, previous)
+  assert.ok(JSON.parse(await f.call('set_gambits', { ...gameplay[1][1], matchId: 'stale-match' })).error)
+})
+
+
+test('explicit token works against a legacy HTTP loopback server without match identity', async t => {
+  const f = await callbackFixture(); await f.join()
+  const { id, ...match } = (await f.read('/next')).match
+  const events = await f.read('/events'), { matchId, ...legacyEvents } = events
+  const rules = await f.read('/rules'), seen = []
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1')
+    seen.push(url)
+    res.setHeader('content-type', 'application/json')
+    if (url.pathname === '/live-config.json') { res.statusCode = 404; return res.end('{}') }
+    if (url.pathname !== '/rules' && url.searchParams.get('token') !== 'local-agent-token') { res.statusCode = 401; return res.end('{}') }
+    res.end(JSON.stringify(url.pathname === '/next' ? { match } : url.pathname === '/rules' ? rules : url.pathname === '/events' ? legacyEvents : { ok: true }))
+  })
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  t.after(() => server.close())
+  const origin = `http://127.0.0.1:${server.address().port}`, tools = new Map()
+  const source = await readFile(new URL('../tools.js', import.meta.url), 'utf8')
+  const context = vm.createContext({ SERVER: origin, serverURL: new URL(origin), agentToken: 'local-agent-token', requireAgentToken: false, setup: 'agent', name: 'you', bypassSecret: undefined, URL, AbortSignal, z, fetch,
+    openUrl: () => {}, log: () => {}, McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } } })
+  await new vm.Script(`(async () => { ${source.slice(source.indexOf('let liveServer ='), source.lastIndexOf('return mcp'))} })()`).runInContext(context)
+  const call = async (name, args = {}) => JSON.parse((await tools.get(name)(args)).content[0].text)
+  assert.ok((await call('join_match')).state)
+  assert.ok((await call('wait_for_event', { timeout_s: 1 })).state)
+  assert.equal((await call('set_gambits', gameplay[1][1])).ok, true)
+  assert.ok(seen.some(url => url.pathname === '/next' && url.searchParams.get('token') === 'local-agent-token'))
+})
+
+test('OAuth-bound supplied token rejects an identity-free online match even on loopback', async () => {
+  const f = await callbackFixture({ supplied: true, bound: true }); await f.join()
+  const next = await f.read('/next'), previous = f.S.matchId
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+  })
+  assert.match(await f.call('join_match'), /match ID/)
+  assert.equal(f.S.matchId, previous)
+})
+
+
+test('a supplied remote token never permits an identity-free match', async () => {
+  const f = await callbackFixture({ supplied: true, origin: 'https://online.example.test' }); await f.join()
+  const next = await f.read('/next'), previous = f.S.matchId
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+  })
+  assert.match(await f.call('join_match'), /match ID/)
+  assert.equal(f.S.matchId, previous)
 })

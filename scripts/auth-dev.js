@@ -12,7 +12,13 @@ import { createLiveServer } from '../online/live-server.js'
 const port = Number(process.env.PORT || 8789), origin = `http://127.0.0.1:${port}`, liveOrigin = `http://127.0.0.1:${port + 1}`
 const database = { user: [], account: [], session: [], verification: [], rateLimit: [] }, mail = []
 const auth = betterAuth({ ...authOptions({ SITE_URL: origin, BETTER_AUTH_SECRET: 'isolated-browser-only-secret-123456789012345' }, async message => mail.push(message)), database: memoryAdapter(database) })
-const start = Date.now(), now = () => start + (Date.now() - start) * 10
+let clockOffset = 0
+const start = Date.now(), now = () => start + (Date.now() - start) * 10 + clockOffset
+// The MCP integration checks pending approval, not long-poll timing; advance
+// only after reapproval so the real simulation and report run without wall time.
+if (process.env.MCP_TEST_FAST === '1') process.on('message', message => {
+  if (message === 'finish-match') { clockOffset += 490000; process.send('clock-advanced') }
+})
 const watchers = new Set()
 const store = new MemoryStore()
 const commit = store.commit.bind(store)
@@ -66,6 +72,7 @@ const website = http.createServer(async (req, res) => {
     for (const [name, value] of response.headers) if (name !== 'set-cookie') res.setHeader(name, value)
     res.setHeader('Set-Cookie', response.headers.getSetCookie()); res.writeHead(response.status); res.end(await response.text()); notify(); return
   }
+  if (process.env.MCP_TEST_FAST === '1' && url.pathname === '/agent/poll') { url.searchParams.set('timeout', '0'); req.url = url.pathname + url.search }
   return game(req, res)
 }).listen(port, '127.0.0.1', () => console.log(`Isolated auth + Colyseus fixture: ${origin} / ${liveOrigin}; captured mail only, simulation clock ×10`))
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, async () => { website.close(); await live.close(); process.exit(0) })

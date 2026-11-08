@@ -1,10 +1,12 @@
 import { test as base, expect } from '@playwright/test'
 import net from 'node:net'
 import { spawn } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 
 export { expect }
 export const test = base.extend({
-  baseURL: async ({}, use) => {
+  clockKey: async ({}, use) => use(randomBytes(24).toString('hex')),
+  baseURL: async ({ clockKey }, use, testInfo) => {
     if (process.env.BOTTERS_SERVER) return use(process.env.BOTTERS_SERVER)
     if (process.env.BOTTERS_DEV_CONVEX) throw new Error('Browser fixtures require local ephemeral storage.')
 
@@ -16,7 +18,7 @@ export const test = base.extend({
     await new Promise((resolve, reject) => reservation.close(error => error ? reject(error) : resolve()))
     const origin = `http://127.0.0.1:${port}`
     const child = spawn(process.execPath, ['scripts/online-dev.js'], {
-      env: { ...process.env, PORT: String(port), BOTTERS_TEST_SPEED: '10' },
+      env: { ...process.env, PORT: String(port), BOTTERS_TEST_SPEED: testInfo.title === 'local server progresses on real time' ? '1' : '10', BOTTERS_TEST_CLOCK_KEY: testInfo.title === 'local two-player manual route survives reconnect and opponent plays' ? clockKey : '' },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     const closed = new Promise(resolve => child.once('close', resolve))

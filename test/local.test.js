@@ -167,3 +167,61 @@ test('local pre-start refusal still consumes the agent rate budget but permits h
   assert.deepEqual(await post(`/input?token=${session.humanToken}`, { gambits: [{ if: 'always', then: 'hold', on: false }] }), { ok: true })
   assert.deepEqual((await read()).view.gambits, [{ if: 'always', then: 'hold', on: false }])
 })
+
+test('local routes clear human calls and rejected mixed routes leave control intact', async t => {
+  const { origin, post, started } = await fixture(t), { session, read } = await started()
+  const swarm = (await read()).view.swarms[0].id, route = { swarm, points: [{ x: 400, y: 300 }, { x: 500, y: 300 }] }
+  await post(`/call?token=${session.agentToken}`, { swarm, message: 'take this' })
+  const before = await read(), prior = before.view.swarms.find(c => c.id === swarm)
+  const response = await fetch(`${origin}/input?token=${session.humanToken}`, { method: 'POST', body: JSON.stringify({ route, toggle: 999 }) })
+  assert.equal(response.status, 400)
+  const rejected = await read(), current = rejected.view.swarms.find(c => c.id === swarm)
+  assert.deepEqual([current.manual, current.tx, current.ty, current.route], [prior.manual, prior.tx, prior.ty, prior.route])
+  assert.deepEqual(rejected.calls, before.calls); assert.deepEqual(rejected.feed, before.feed)
+  assert.deepEqual(await post(`/input?token=${session.humanToken}`, { route }), { ok: true })
+  const accepted = await read(); assert.equal(accepted.calls.length, 0)
+  assert.deepEqual(accepted.view.swarms.find(c => c.id === swarm).route, route.points)
+})
+
+
+test('local old match-bound mutations cannot affect the next match', async t => {
+  const { origin, post } = await fixture(t, '60000')
+  const a = await post('/session', { name: 'race', setup: 'agent' })
+  const state = () => fetch(`${origin}/state?token=${a.humanToken}`).then(r => r.json())
+  const play = () => post(`/play?token=${a.humanToken}`, { withAgent: true })
+  await play()
+  const old = (await state()).matchId
+  await post(`/surrender?token=${a.humanToken}`, { matchId: old })
+  await play()
+  const before = await state()
+  assert.notEqual(before.matchId, old)
+  for (const [path, body, role] of [['/input', { toggle: 0 }, 'human'], ['/surrender', {}, 'human'], ['/say', { text: 'stale' }, 'human'], ['/dismiss', { index: 0 }, 'human'], ['/call', { message: 'stale' }, 'agent']]) {
+    const r = await fetch(`${origin}${path}?token=${a[`${role}Token`]}`, { method: 'POST', body: JSON.stringify({ ...body, matchId: old }) })
+    assert.equal(r.status, 409, path)
+  }
+  const after = await state()
+  assert.deepEqual(after, before)
+})
+
+
+test('local handlers reject bodies that finish after session switches matches', async t => {
+  const { origin, post } = await fixture(t, '60000')
+  const a = await post('/session', { setup: 'agent' })
+  await post(`/play?token=${a.humanToken}`, { withAgent: true })
+  const held = []
+  for (const [path, role, data] of [['/input', 'human', { toggle: 0 }], ['/surrender', 'human', {}], ['/say', 'human', { text: 'late' }], ['/dismiss', 'human', { index: 0 }], ['/call', 'agent', { message: 'late' }]]) {
+    const content = JSON.stringify(data), prefix = content.slice(0, 1)
+    let resolve
+    const done = new Promise(r => { resolve = r })
+    const req = http.request(`${origin}${path}?token=${a[`${role}Token`]}`, { method: 'POST', headers: { 'Content-Length': Buffer.byteLength(content) } }, res => { res.resume(); res.on('end', () => resolve(res.statusCode)) })
+    req.write(prefix); held.push({ req, rest: content.slice(1), done, path })
+  }
+  await new Promise(r => setTimeout(r, 100))
+  await post(`/surrender?token=${a.humanToken}`, {})
+  await post(`/play?token=${a.humanToken}`, { withAgent: true })
+  const read = () => fetch(`${origin}/state?token=${a.humanToken}`).then(r => r.json())
+  const before = await read()
+  for (const item of held) item.req.end(item.rest)
+  for (const item of held) assert.equal(await item.done, 409, item.path)
+  assert.deepEqual(await read(), before)
+})

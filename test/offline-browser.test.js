@@ -36,13 +36,52 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   const map = frame => frame.view.planets.map(({ id, x, y, r }) => ({ id, x, y, r }))
   await page.reload()
   await page.waitForFunction(() => document.querySelector('#hud').textContent.includes('swarms'), null, { timeout: 5000 })
-  // The offline frame has no matchId. Verify actual continuity, not undefined === undefined.
+  // Reconnect keeps the same server-issued match identity and map.
+  assert.equal((await read()).matchId, first.matchId)
   assert.equal(await page.evaluate(() => localStorage.getItem('botters.session')), session)
   assert.deepEqual(map(await read()), map(first))
   await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(first.view.tick)
   assert.ok(requests.filter(p => p === '/stream').length >= 2)
   assert.ok(!requests.includes('/live-client.js'))
   assert.deepEqual(errors, [])
+})
+
+test('queued match actions do not reach a subsequent match', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage(), inputs = []
+  let release, intercepted
+  const blocked = new Promise(resolve => { intercepted = resolve })
+  const gate = new Promise(resolve => { release = resolve })
+  await page.route('**/input?*', async route => {
+    inputs.push(route.request().postDataJSON())
+    if (inputs.length === 1) { intercepted(); await gate }
+    await route.continue()
+  })
+  t.after(() => release())
+  await page.goto(origin)
+  await page.locator('#startSolo').click()
+  await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms')
+  await page.keyboard.press('1'); await blocked
+  await page.keyboard.press('2')
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#surrender').click()
+  await expect(page.locator('#again')).toBeVisible()
+  await page.locator('#again').click()
+  await expect(page.locator('#surrender')).toBeVisible()
+  const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+  const before = await read()
+  const staleResponse = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && r.request().postDataJSON().toggle === 0)
+  await page.keyboard.press('3')
+  await expect.poll(() => inputs.some(input => input.toggle === 2), { timeout: 3000 }).toBe(true)
+  await expect.poll(async () => (await read()).view.gambits[2].on).toBe(!before.view.gambits[2].on)
+  assert.ok(inputs[0].matchId && inputs[1].matchId)
+  assert.notEqual(inputs[0].matchId, inputs[1].matchId)
+  assert.equal(inputs[1].matchId, before.matchId)
+  release()
+  assert.equal((await staleResponse).status(), 409)
+  assert.equal((await read()).view.gambits[0].on, before.view.gambits[0].on)
+  assert.deepEqual(inputs.map(({ toggle }) => toggle), [0, 2], 'the old queued toggle must not be sent to the new match')
 })
 
 test('offline surrender confirms, recovers from refusal, shows the real result and starts another match', { timeout: 30000 }, async t => {
@@ -199,12 +238,12 @@ test('primary map input ignores secondary buttons without changing engine contro
   const response = await accepted
   assert.equal(response.status(), 200); assert.equal((await response.json()).ok, true)
   await expect.poll(async () => { const s = (await read()).view.swarms.find(s => s.id === swarm.id); return { manual: s.manual, tx: s.tx, ty: s.ty } }).toEqual({ manual: true, tx: target.x, ty: target.y })
-  assert.deepEqual(posts.slice(start), [{ path: '/input', body: { order: { swarm: swarm.id, ...target } } }])
+  assert.deepEqual(posts.slice(start), [{ path: '/input', body: { order: { swarm: swarm.id, ...target }, matchId: first.matchId } }])
   observations.push({ action: 'primary order', target, posts: posts.slice(start), replies: replies.slice(replyStart), tick: (await read()).view.tick })
   await snapshot('primary-order')
   await page.keyboard.press('g')
   await expect.poll(async () => (await read()).view.swarms.find(s => s.id === swarm.id).manual).toBe(false)
-  assert.deepEqual(posts.slice(start + 1), [{ path: '/input', body: { release: swarm.id } }])
+  assert.deepEqual(posts.slice(start + 1), [{ path: '/input', body: { release: swarm.id, matchId: first.matchId } }])
   observations.push({ action: 'G release', manual: false, tick: (await read()).view.tick })
   await page.keyboard.press('Escape')
   await expect.poll(selected).toBe(null)
@@ -679,4 +718,133 @@ test('casual lobby: one choice and PLAY up front, live swarm backdrop, settings 
   await expect(page.locator('#hud')).toContainText('swarms')
   await expect(page.locator('#bg')).toBeHidden()
   assert.deepEqual(errors, [])
+})
+
+
+test('dragging draws and sends a route on mouse release without further confirmation', { timeout: 25000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), routes = []
+  page.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/input' && r.postDataJSON()?.route) routes.push(r.postDataJSON().route) })
+  await page.goto(origin); await page.locator('#startName').fill('Route drag'); await page.locator('#startSolo').click(); await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms'); await page.keyboard.press('Tab')
+  const id = Number((await page.locator('#hud').textContent()).match(/grabbed: swarm #(\d+)/)[1])
+  const box = await page.locator('#c').boundingBox()
+  const at = (x, y) => ({ x: Math.round(box.x + box.width * x), y: Math.round(box.y + box.height * y) })
+  const a = at(.35, .4), b = at(.55, .6), c = at(.75, .4)
+  await page.keyboard.down('Shift'); await page.mouse.move(a.x, a.y); await page.mouse.down()
+  await page.mouse.move(b.x, b.y, { steps: 12 }); await page.mouse.move(c.x, c.y, { steps: 12 })
+  assert.equal(routes.length, 0)
+  await page.mouse.up()
+  await expect.poll(() => routes.length).toBe(1)
+  assert.equal(routes[0].swarm, id); assert.ok(routes[0].points.length >= 2 && routes[0].points.length <= 8)
+  await page.keyboard.up('Shift')
+  const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+  await expect.poll(async () => (await read()).view.swarms.find(s => s.id === id)?.route?.at(-1)).toEqual(routes[0].points.at(-1))
+})
+
+test('player plots a route through native browser input and the server advances it', { timeout: 25000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  await page.goto(origin)
+  await page.locator('#startName').fill('Route player')
+  await page.locator('#startSolo').click(); await page.locator('#play').click()
+  const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+  await expect.poll(async () => (await read()).view?.tick || 0).toBeGreaterThan(0)
+  const swarm = (await read()).view.swarms[0]
+  const box = await page.locator('#c').boundingBox(), size = await page.locator('#c').evaluate(c => ({ w: c.width, h: c.height }))
+  const point = (x, y) => ({ x: Math.round(box.x + x * box.width / size.w), y: Math.round(box.y + y * box.height / size.h) })
+  const click = async (x, y) => { const p = point(x, y); await page.mouse.click(p.x, p.y) }
+  await click(swarm.x, swarm.y)
+  await expect(page.locator('#hud')).toContainText(`grabbed: swarm #${swarm.id}`)
+  await page.keyboard.down('Shift'); await page.mouse.move(...Object.values(point(swarm.x + 15, swarm.y + 20))); await page.mouse.down()
+  await page.mouse.move(...Object.values(point(swarm.x + 80, swarm.y + 20)))
+  // Inspect rendered pixels around each waypoint, not just the draft state.
+  const markerPixels = async (x, y) => page.locator('#c').evaluate((canvas, p) => {
+    const { data } = canvas.getContext('2d').getImageData(Math.round(p.x) - 13, Math.round(p.y) - 13, 27, 27)
+    let count = 0
+    for (let i = 0; i < data.length; i += 4) if (data[i] > 220 && data[i + 1] > 160 && data[i + 2] < 70) count++
+    return count
+  }, { x, y })
+  await expect.poll(() => markerPixels(swarm.x + 15, swarm.y + 20)).toBeGreaterThan(20)
+  await expect.poll(() => markerPixels(swarm.x + 80, swarm.y + 20)).toBeGreaterThan(10)
+  if (process.env.BOTTERS_ROUTE_EVIDENCE) { await mkdir(process.env.BOTTERS_ROUTE_EVIDENCE, { recursive: true }); await page.screenshot({ path: join(process.env.BOTTERS_ROUTE_EVIDENCE, 'route-draft.png') }) }
+  const response = page.waitForResponse(r => new URL(r.url()).pathname === '/input' && r.request().method() === 'POST')
+  await page.mouse.up(); assert.equal((await response).status(), 200); await page.keyboard.up('Shift')
+  await expect.poll(async () => (await read()).view.swarms.find(c => c.id === swarm.id)?.route?.length).toBe(2)
+  await expect.poll(() => page.locator('#c').evaluate((canvas, p) => {
+    const { data } = canvas.getContext('2d').getImageData(Math.round(p.x) - 13, Math.round(p.y) - 13, 27, 27)
+    let count = 0
+    for (let i = 0; i < data.length; i += 4) if (data[i] > 150 && data[i + 1] > 150 && data[i + 2] > 150) count++
+    return count
+  }, { x: swarm.x + 80, y: swarm.y + 20 })).toBeGreaterThan(20)
+  if (process.env.BOTTERS_ROUTE_EVIDENCE) await page.screenshot({ path: join(process.env.BOTTERS_ROUTE_EVIDENCE, 'route-confirmed.png') })
+  await expect.poll(async () => (await read()).view.swarms.find(c => c.id === swarm.id)?.route?.length, { timeout: 10000 }).toBe(1)
+  const c = (await read()).view.swarms.find(c => c.id === swarm.id)
+  assert.equal(c.manual, true); assert.equal(c.tx, c.route[0].x); assert.equal(c.ty, c.route[0].y)
+})
+
+
+test('route draft is cancelled on selection, focus, blur, and limits', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), routes = []
+  page.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/input' && r.postDataJSON()?.route) routes.push(r.postDataJSON().route) })
+  await page.goto(origin); await page.locator('#startName').fill('Route cancellation'); await page.locator('#startSolo').click(); await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms'); await page.keyboard.press('Tab'); await expect(page.locator('#hud')).toContainText('grabbed:')
+  const first = await page.locator('#hud').textContent(), box = await page.locator('#c').boundingBox()
+  const move = (x, y = .45) => page.mouse.move(box.x + box.width * x, box.y + box.height * y)
+  const draft = async () => { await page.keyboard.down('Shift'); await move(.45); await page.mouse.down(); await move(.55) }
+  const finish = async () => { await page.mouse.up(); await page.keyboard.up('Shift') }
+  await draft(); await page.keyboard.up('Shift'); await page.mouse.up()
+  await page.locator('#c').focus(); await page.keyboard.press('Tab'); assert.notEqual(await page.locator('#hud').textContent(), first)
+  await draft(); await page.evaluate(() => window.dispatchEvent(new Event('blur'))); await finish()
+  await draft(); await page.locator('#leave').focus(); await finish()
+  await draft(); await move(1.1); await finish()
+  await page.waitForTimeout(300); assert.deepEqual(routes, [])
+  await page.keyboard.press('F1'); await expect(page.locator('#guideSwarm')).toBeVisible()
+  const selected = await page.locator('#guideSwarm').inputValue()
+  const other = await page.locator('#guideSwarm option').evaluateAll((els, selected) => els.map(e => e.value).find(v => v && v !== selected), selected)
+  await draft(); await page.locator('#guideSwarm').selectOption(other); await finish()
+  await expect(page.locator('#hud')).toContainText(`grabbed: swarm #${other}`); await page.waitForTimeout(200); assert.deepEqual(routes, [])
+  await page.locator('#guideDismiss').click(); await page.keyboard.down('Shift'); await move(.3); await page.mouse.down()
+  for (let i = 1; i < 12; i++) await move(.3 + i * .03, i % 2 ? .5 : .4)
+  await page.mouse.up(); await expect.poll(() => routes.length).toBe(1); await page.keyboard.up('Shift')
+  assert.equal(routes[0].points.length, 8); assert.equal(routes[0].swarm, Number(other))
+})
+
+test('route submits atomically on mouse release and cancellation never submits', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), routes = []
+  page.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/input' && r.postDataJSON()?.route) routes.push(r.postDataJSON().route) })
+  await page.goto(origin); await page.locator('#startName').fill('Route release'); await page.locator('#startSolo').click(); await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms'); await page.keyboard.press('Tab')
+  await expect(page.locator('#hud')).toContainText('grabbed:')
+  const box = await page.locator('#c').boundingBox()
+  const move = (x, y) => page.mouse.move(box.x + box.width * x, box.y + box.height * y)
+  await page.keyboard.down('Shift'); await move(.4, .4); await page.mouse.down(); await move(.5, .5); assert.equal(routes.length, 0)
+  await page.mouse.up(); await expect.poll(() => routes.length).toBe(1); assert.equal(routes[0].points.length, 2); await page.keyboard.up('Shift')
+  await page.keyboard.down('Shift'); await move(.4, .4); await page.mouse.down(); await page.mouse.up(); await page.keyboard.up('Shift'); await page.waitForTimeout(200); assert.equal(routes.length, 1)
+  await page.keyboard.down('Shift'); await move(.4, .4); await page.mouse.down(); await move(.5, .5); await page.keyboard.press('Escape'); await move(.6, .6); await page.mouse.up(); await page.keyboard.up('Shift'); await page.waitForTimeout(200); assert.equal(routes.length, 1)
+})
+
+test('failed route preserves prior server route and later orders cannot overtake', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), sent = []
+  await page.goto(origin); await page.locator('#startName').fill('Route failure'); await page.locator('#startSolo').click(); await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms'); await page.keyboard.press('Tab')
+  const id = Number((await page.locator('#hud').textContent()).match(/grabbed: swarm #(\d+)/)[1])
+  const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+  const box = await page.locator('#c').boundingBox()
+  const click = (x, y) => page.mouse.click(box.x + box.width * x, box.y + box.height * y)
+  const route = async (x) => { await page.keyboard.down('Shift'); await page.mouse.move(box.x + box.width * x, box.y + box.height * .7); await page.mouse.down(); await page.mouse.move(box.x + box.width * (x + .1), box.y + box.height * .7); await page.mouse.up(); await page.keyboard.up('Shift') }
+  await route(.65); await expect.poll(async () => (await read()).view.swarms.find(c => c.id === id)?.route?.length).toBe(2)
+  const previous = (await read()).view.swarms.find(c => c.id === id).route
+  await page.route('**/input?*', r => r.request().postDataJSON()?.route ? r.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"route refused"}' }) : r.continue(), { times: 1 })
+  await route(.3); await expect(page.locator('#toast')).toContainText('route refused')
+  assert.deepEqual((await read()).view.swarms.find(c => c.id === id).route, previous)
+  let release; const gate = new Promise(r => { release = r })
+  await page.route('**/input?*', async r => { const b = r.request().postDataJSON(); sent.push(b); if (b.route) await gate; await r.continue() })
+  await route(.4); await expect.poll(() => sent.length).toBe(1)
+  await click(.8, .8); await page.waitForTimeout(200); assert.equal(sent.length, 1)
+  release(); await expect.poll(() => sent.length).toBe(2); assert.ok(sent[0].route); assert.ok(sent[1].order)
+  await expect.poll(async () => (await read()).view.swarms.find(c => c.id === id)?.route).toBeUndefined()
 })

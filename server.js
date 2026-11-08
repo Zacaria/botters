@@ -85,7 +85,7 @@ function cancelMatch(m, notice) {
 
 const frame = (m, side) => {
   const p = m.players[side]
-  return { view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
+  return { matchId: m.id, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
     me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: foe(m, side), options: m.s.opts }
 }
 const send = (st, m) => st.res.write(`data: ${JSON.stringify(frame(m, st.side))}\n\n`)
@@ -147,7 +147,7 @@ function joinInfo(s) { // what the agent learns when it joins its session's matc
   const m = s.match, p = m.players[s.side]
   p.agentJoined = true
   if (m.waitingForAgent) { m.waitingForAgent = false; m.startsAt = Date.now() + m.delay }
-  return { side: s.side, opponent: `${foe(m, s.side).name} (${foe(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
+  return { id: m.id, side: s.side, opponent: `${foe(m, s.side).name} (${foe(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
     startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)), state: view(m.s, s.side) }
 }
 
@@ -219,17 +219,18 @@ const routes = {
     const s = a.s, m = s.match
     if (!m) return json(res, 200, { events: [], state: null, next: 'join' })
     if (!m.players[s.side].agentJoined) return json(res, 200, { events: [], state: null, next: m.players[s.side].withAgent ? 'join' : 'solo' })
+    if (q.has('matchId') && q.get('matchId') !== m.id) return json(res, 409, { error: 'match is no longer active' })
     const p = m.players[s.side], since = Number(q.get('since') || 0)
-    const reply = () => json(res, 200, { events: p.events.filter(e => e.seq > since), state: view(m.s, s.side), startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)) })
+    const reply = () => json(res, 200, { matchId: m.id, events: p.events.filter(e => e.seq > since), state: view(m.s, s.side), startsIn: Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)) })
     if (p.events.some(e => e.seq > since) || m.s.ended) return reply()
     const t = setTimeout(() => { p.waiters = p.waiters.filter(f => f !== fn); reply() }, Math.min(25, Number(q.get('timeout') || 10)) * 1000)
     const fn = () => { clearTimeout(t); reply() }
     p.waiters.push(fn)
   },
-  'POST /surrender': (req, res, q) => {
+  'POST /surrender': async (req, res, q) => {
     const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'bad token' })
-    const m = a.s.match
-    if (!m || m.s.ended) return json(res, 409, { error: m ? 'match ended' : 'not in a match' })
+    const m = a.s.match, b = await body(req)
+    if (!m || a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
     const input = { surrender: true }, side = a.s.side
     applyInput(m.s, side, input)
     m.log.push({ tick: m.s.tick, side, role: 'human', input })
@@ -240,14 +241,15 @@ const routes = {
     const a = auth(q); if (!a) return json(res, 401, { error: 'bad token' })
     const m = a.s.match, side = a.s.side; if (!m) return json(res, 409, { error: 'not in a match' })
     const b = await body(req), p = m.players[side], now = Date.now()
+    if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
     if (a.role === 'agent') {
       if (!p.withAgent) return json(res, 403, { error: 'your human is playing this match alone' })
       p.sent = p.sent.filter(x => now - x < 1000)
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
     }
-    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, split: b.split, release: b.release }
-    if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
+    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, route: b.route, split: b.split, release: b.release }
+    if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.route !== undefined || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
     const candidate = fromJSON(m.s.toJSON())
     const r = applyInput(candidate, side, input)
     if (r.ok) {
@@ -257,11 +259,13 @@ const routes = {
       if (b.gambits) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why }
       if (b.toggle !== undefined) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why: `switched rule ${b.toggle + 1} ${list[b.toggle].on ? 'on' : 'off'}` }
       if (a.role === 'agent') {
+        if (b.route) feed(m, side, 'agent', `routed swarm ${b.route.swarm} through ${b.route.points.length} points${why && `: ${why}`}`)
         if (b.gambits) feed(m, side, 'agent', `rewrote the gambits${why && `: ${why}`}`)
         if (b.order) feed(m, side, 'agent', `took swarm ${b.order.swarm} to (${Math.round(b.order.x)},${Math.round(b.order.y)})${why && `: ${why}`}`)
         if (b.split !== undefined) feed(m, side, 'agent', `split swarm ${b.split}${why && `: ${why}`}`)
         if (b.release !== undefined) feed(m, side, 'agent', `gave swarm ${b.release} back to the gambits`)
       } else {
+        if (b.route) { p.calls = p.calls.filter(c => c.swarm !== b.route.swarm); emit(m, side, `HUMAN routed swarm ${b.route.swarm} through ${b.route.points.length} points`) }
         if (b.gambits) { emit(m, side, `HUMAN rewrote the gambits:\n${list.map((r, i) => `${i + 1}. ${describe(r)}`).join('\n')}`); feed(m, side, 'you', 'rewrote the gambits') }
         if (b.toggle !== undefined) emit(m, side, `HUMAN switched gambit ${b.toggle + 1} ${list[b.toggle].on ? 'ON' : 'OFF'}: ${describe(list[b.toggle])}`)
         if (b.order) { p.calls = p.calls.filter(c => c.swarm !== b.order.swarm); emit(m, side, `HUMAN took swarm ${b.order.swarm} by hand to (${Math.round(b.order.x)},${Math.round(b.order.y)})`) }
@@ -273,7 +277,9 @@ const routes = {
   },
   'POST /call': async (req, res, q) => { // agent asks its human to take a swarm somewhere by hand
     const a = auth(q, 'agent'); if (!a?.s.match) return json(res, a ? 409 : 401, { error: a ? 'not in a match' : 'bad token' })
-    const m = a.s.match, b = await body(req), p = m.players[a.s.side]
+    const m = a.s.match, b = await body(req)
+    if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
+    const p = m.players[a.s.side]
     const call = { swarm: Number.isFinite(b.swarm) ? b.swarm : null, x: Number.isFinite(b.x) ? Math.round(b.x) : null, y: Number.isFinite(b.y) ? Math.round(b.y) : null, message: String(b.message || '').slice(0, 140), t: Math.floor(m.s.tick / TPS) }
     p.calls = [...p.calls.filter(c => call.swarm === null || c.swarm !== call.swarm), call].slice(-3)
     feed(m, a.s.side, 'agent', `asks you: ${call.message}`)
@@ -281,13 +287,17 @@ const routes = {
   },
   'POST /dismiss': async (req, res, q) => {
     const a = auth(q, 'human'); if (!a?.s.match) return json(res, 409, { error: 'not in a match' })
-    const b = await body(req), p = a.s.match.players[a.s.side]
+    const m = a.s.match, b = await body(req)
+    if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
+    const p = m.players[a.s.side]
     p.calls = p.calls.filter((c, i) => i !== b.index)
     json(res, 200, { ok: true })
   },
   'POST /say': async (req, res, q) => { // human message or ping to their agent
     const a = auth(q, 'human'); if (!a?.s.match) return json(res, 409, { error: 'not in a match' })
-    const b = await body(req), m = a.s.match, text = String(b.text || 'look here').slice(0, 140), at = Number.isFinite(b.x) ? ` at (${Math.round(b.x)},${Math.round(b.y)})` : ''
+    const m = a.s.match, b = await body(req)
+    if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
+    const text = String(b.text || 'look here').slice(0, 140), at = Number.isFinite(b.x) ? ` at (${Math.round(b.x)},${Math.round(b.y)})` : ''
     emit(m, a.s.side, `HUMAN: ${text}${at}`); feed(m, a.s.side, 'you', `${text}${at}`)
     json(res, 200, { ok: true })
   },
