@@ -1,9 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import pg from 'pg'
 import { createPostgresAuth } from '../online/postgres-auth.js'
 import { PostgresStore } from '../online/postgres-store.js'
+import { PostgresLiveDurable } from '../online/postgres-live-durable.js'
 
 const url = process.env.BOTTERS_TEST_POSTGRES_URL
 
@@ -98,7 +101,25 @@ test('PostgreSQL exchanges one ticket only for the verified owning session', { s
     assert.equal((await store.authorize(agentKey)).token, null, 'missing versions must not match')
     await write(agentKey, agent)
     await write('session:game-alice', { id: 'game-alice', accountId: alice.user.id, agentVersion: 1 })
-    await request('/sign-out', {}, alice.cookie)
+    await write(tokenKey, { ...grant, liveCookieHash: hash('c') })
+    const secondPool = new pg.Pool({ connectionString: url, options: `-c search_path=${schema}` })
+    let observed
+    const durable = new PostgresLiveDurable(new PostgresStore(secondPool, 'exchange'), { intervalMs: 25, leaseMs: 500 })
+    const entry = await durable.authority(tokenKey, async value => { observed = value })
+    try {
+      assert.ok(observed.token)
+      await promisify(execFile)(process.execPath, ['--input-type=module', '-e', `
+        import pg from 'pg';
+        const pool = new pg.Pool({ connectionString: process.env.TEST_URL, options: '-c search_path=' + process.env.TEST_SCHEMA });
+        const result = await pool.query('DELETE FROM session WHERE id = $1', [process.env.TEST_SESSION]);
+        await pool.end();
+        if (result.rowCount !== 1) process.exit(1);
+      `], { env: { ...process.env, TEST_URL: url, TEST_SCHEMA: schema, TEST_SESSION: alice.session.id } })
+      const deadline = Date.now() + 3000
+      while (observed.token && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10))
+      assert.equal(observed.token, null, 'revocation by another process is observed')
+      assert.equal(entry.connected(), false)
+    } finally { await entry.close(); await secondPool.end() }
     agentAuthority = await store.authorize(agentKey)
     assert.equal(JSON.parse(agentAuthority.token).role, 'agent', 'human sign-out must not revoke agent')
     await write(tokenKey, { ...grant, liveCookieHash: hash('c') })
