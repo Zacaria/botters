@@ -24,6 +24,7 @@ export class PostgresLiveDurable {
         if (!Number.isFinite(expiresAt) || data.token && Date.now() >= expiresAt) throw new Error('Authority snapshot expired')
         await adopt({ ...data, expiresAt })
         if (closed) return
+        entry.invalid = !data.token || !data.session
         entry.checkedAt = started; entry.expiresAt = expiresAt
       } catch (error) { if (!closed) entry.error = error; throw error }
     })().finally(() => { entry.refreshing = null })

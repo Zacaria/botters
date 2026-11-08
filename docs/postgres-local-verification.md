@@ -27,6 +27,10 @@ The first test creates a random schema in the empty disposable database, runs Be
 
 Stop the cluster you created with `pg_ctl -D "$WORK/data" -m fast -w stop`. Never reset or delete a database without authorization, or remove someone else's directory.
 
+## Live authority response semantics
+
+A fresh authority result that confirms a missing or revoked capability is an authentication refusal (401), not a backend outage. A failed or stale authority read remains unavailable (503). Revocation propagates on the polling interval and is not instant; the lease must never outlive a successful database read. These semantics alone do not wire the production servers or prove the browser journey.
+
 ## Verification on the isolated candidate
 
 On PostgreSQL 17.11, a new loopback-only cluster and `botters_synthetic` database started with zero public tables. With `BOTTERS_TEST_POSTGRES_URL` set to that database:

@@ -1,6 +1,19 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { PostgresLiveDurable } from '../online/postgres-live-durable.js'
+import { LiveStore } from '../online/live-store.js'
+import { LiveRuntime } from '../online/live-runtime.js'
+
+test('a confirmed missing capability returns 401; an unavailable authority returns 503', async () => {
+  const bearer = 'a'.repeat(32)
+  const remote = new PostgresLiveDurable({ authorize: async () => ({ token: null, session: null, expiresAt: Date.now() }) }, { intervalMs: 25, leaseMs: 150 })
+  const runtime = new LiveRuntime(new LiveStore(), { requireAccount: true, authority: remote.authority.bind(remote) })
+  try {
+    await assert.rejects(runtime.authorize(bearer), error => error.status === 401)
+    remote.store.authorize = async () => { throw new Error('offline') }
+    await assert.rejects(runtime.authorize(bearer), error => error.status === 503 || error.message === 'offline')
+  } finally { await runtime.close() }
+})
 
 const waitFor = async predicate => {
   const end = Date.now() + 3000

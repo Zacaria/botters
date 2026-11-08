@@ -46,6 +46,11 @@ export class LiveRuntime {
         if (this.authorities.get(key) === entry) { this.authorities.delete(key); this.generations.delete(key) }
         await entry.close(); throw unavailable() // Next retry acquires fresh authority, never a permanently poisoned cache.
       }
+      if (entry.invalid) {
+        if (this.authorities.get(key) === entry) { this.authorities.delete(key); this.generations.delete(key) }
+        await entry.close()
+        throw Object.assign(new Error('Access expired or revoked. Open a new lobby.'), { status: 401 })
+      }
       if (!entry.connected()) throw unavailable()
       entry.usedAt = Date.now()
       if (Date.now() - entry.checkedAt >= 90000) await entry.refresh()
