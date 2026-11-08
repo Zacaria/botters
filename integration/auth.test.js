@@ -10,14 +10,19 @@ const password = 'isolated-convex-password-471!'
 function response() { return { headers: {}, setHeader(k, v) { this.headers[k] = v }, writeHead(status, headers) { this.status = status; Object.assign(this.headers, headers) }, end(body) { this.body = body } } }
 const cookiesOf = r => (r.headers['Set-Cookie'] || []).map(c => c.split(';')[0]).join('; ')
 
-test('actual Convex component executes password verification/reset/session revocation through the production proxy', async () => {
+test.each(['resend', 'cloudflare'])('actual Convex component executes password verification/reset/session revocation through the production proxy with %s transport', async provider => {
   vi.stubEnv('SITE_URL', origin); vi.stubEnv('BETTER_AUTH_SECRET', 'isolated-component-auth-secret-123456789012345')
-  vi.stubEnv('BOTTERS_AUTH_PROXY_SECRET', secret); vi.stubEnv('RESEND_API_KEY', 'test-only-no-real-provider-key'); vi.stubEnv('AUTH_EMAIL_FROM', 'Botters Test <no-reply@example.test>')
+  vi.stubEnv('BOTTERS_AUTH_PROXY_SECRET', secret); vi.stubEnv('RESEND_API_KEY', 'test-only-no-real-provider-key'); vi.stubEnv('AUTH_EMAIL_FROM', 'no-reply@example.test')
+  vi.stubEnv('AUTH_EMAIL_PROVIDER', provider); vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', 'a'.repeat(32)); vi.stubEnv('CLOUDFLARE_EMAIL_API_TOKEN', 'test-only-no-real-cloudflare-token')
   const mail = []
   // External delivery is captured, not sent. Every auth/database response is the real component.
   vi.stubGlobal('fetch', async (url, options) => {
-    if (url !== 'https://api.resend.com/emails') throw new Error('Unexpected external network in isolated fixture')
-    mail.push(JSON.parse(options.body)); return Response.json({ id: 'captured-test-email' })
+    const endpoint = provider === 'cloudflare' ? `https://api.cloudflare.com/client/v4/accounts/${'a'.repeat(32)}/email/sending/send` : 'https://api.resend.com/emails'
+    if (url !== endpoint) throw new Error('Unexpected external network in isolated fixture')
+    const message = JSON.parse(options.body)
+    expect(message.to).toBe('convex-alice@example.test')
+    mail.push(message)
+    return Response.json(provider === 'cloudflare' ? { success: true, errors: [], messages: [], result: { delivered: [message.to], permanent_bounces: [], queued: [], suppressed_recipients: [], message_id: '<captured-test-email@example.test>' } } : { id: 'captured-test-email' })
   })
   try {
     const t = convexTest(schema, modules); betterAuthTest.register(t)
