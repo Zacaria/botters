@@ -594,12 +594,18 @@ function fit() {
 fit(); onresize = fit
 
 let F = null, v = null, sel = null, frameAt = 0, es = null, streamRetry = null, editing = null, lastBy = '', prevRules = [], routeDraft = []
-let routeDrawing = false, actionQueue = Promise.resolve()
+let routeDrawing = false, actionQueue = Promise.resolve(), matchGeneration = 0
 const cancelRoute = () => { routeDraft = []; routeDrawing = false }
 const selectSwarm = id => { if (sel !== id) cancelRoute(); sel = id }
 const pos = new Map() // id -> { x0, y0, x1, y1 } for smooth motion between server frames
 const cur = p => { const t = Math.min(1, (performance.now() - frameAt) / 100); return { x: p.x0 + (p.x1 - p.x0) * t, y: p.y0 + (p.y1 - p.y0) * t } }
-const act = (body, label) => { if (sel !== null && (body.order?.swarm === sel || body.release === sel || body.split === sel)) cancelRoute(); actionQueue = actionQueue.then(() => api('POST', '/input', body)).then(r => toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok)); return actionQueue }
+const act = (body, label) => {
+  if (sel !== null && (body.order?.swarm === sel || body.release === sel || body.split === sel)) cancelRoute()
+  const generation = matchGeneration, session = token, matchId = F?.matchId
+  const current = () => generation === matchGeneration && session === token && matchId === F?.matchId && !$('game').hidden && !v?.ended
+  actionQueue = actionQueue.then(() => current() ? api('POST', '/input', body) : null).then(r => { if (r && current()) toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok) })
+  return actionQueue
+}
 
 // Local, opt-in observer only. The server view, never a timer/click, proves each milestone.
 let guidance = null, guidePending = false
@@ -671,6 +677,7 @@ $('guideSend').onclick = () => {
 $('guideRelease').onclick = () => { if (sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`) }
 
 function match() {
+  ++matchGeneration
   guidance = null; guidePending = $('guidedHouse').checked
   clearTimeout(lobbyTimer); lastFrame = Date.now(); $('connection').hidden = true
   show('game'); fit(); v = null; F = null; pos.clear(); sel = null; routeDraft = []; lastBy = ''; stopEditing()

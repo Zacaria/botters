@@ -45,6 +45,35 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   assert.deepEqual(errors, [])
 })
 
+test('queued match actions do not reach a subsequent match', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage(), inputs = []
+  let release, intercepted
+  const blocked = new Promise(resolve => { intercepted = resolve })
+  const gate = new Promise(resolve => { release = resolve })
+  await page.route('**/input?*', async route => {
+    inputs.push(route.request().postDataJSON())
+    if (inputs.length === 1) { intercepted(); await gate; await route.fulfill({ json: { ok: true } }) }
+    else await route.continue()
+  })
+  t.after(() => release())
+  await page.goto(origin)
+  await page.locator('#startSolo').click()
+  await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('swarms')
+  await page.keyboard.press('1'); await blocked
+  await page.keyboard.press('2')
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#surrender').click()
+  await expect(page.locator('#again')).toBeVisible()
+  await page.locator('#again').click()
+  await expect(page.locator('#surrender')).toBeVisible()
+  release()
+  await page.keyboard.press('3')
+  await expect.poll(() => inputs.some(input => input.toggle === 2)).toBe(true)
+  assert.deepEqual(inputs, [{ toggle: 0 }, { toggle: 2 }], 'the old queued toggle must not be sent to the new match')
+})
+
 test('offline surrender confirms, recovers from refusal, shows the real result and starts another match', { timeout: 30000 }, async t => {
   const { browser, origin } = await fixture(t)
   const page = await browser.newPage(), errors = [], posts = []
