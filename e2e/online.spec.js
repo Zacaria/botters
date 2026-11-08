@@ -61,6 +61,34 @@ async function ended(page) {
   }
 }
 
+test('delayed input is rejected after a same-session rematch without blocking new input', async ({ page }) => {
+  if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER || process.env.BOTTERS_DEV_CONVEX) throw new Error('Requires local ephemeral fixtures')
+  const inputs = []; let release, intercepted
+  const gate = new Promise(r => { release = r }), blocked = new Promise(r => { intercepted = r })
+  await page.route('**/input?*', async route => {
+    inputs.push(route.request().postDataJSON())
+    if (inputs.length === 1) { intercepted(); await gate }
+    await route.continue()
+  })
+  try {
+    await enter(page, 'Delayed input'); await page.locator('#play').click()
+    await expect(page.locator('#hud')).toContainText('swarms')
+    await page.keyboard.press('1'); await blocked; await page.keyboard.press('2')
+    page.once('dialog', dialog => dialog.accept()); await page.locator('#surrender').click()
+    await expect(page.locator('#again')).toBeVisible(); await page.locator('#again').click()
+    await expect(page.locator('#surrender')).toBeVisible()
+    const before = await state(page)
+    const stale = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && r.request().postDataJSON().toggle === 0)
+    await page.keyboard.press('3')
+    await expect.poll(() => inputs.some(input => input.toggle === 2), { timeout: 3000 }).toBe(true)
+    await expect.poll(async () => (await state(page)).view.gambits[2].on).toBe(!before.view.gambits[2].on)
+    expect(inputs[0].matchId).toBeTruthy(); expect(inputs[1].matchId).toBe(before.matchId); expect(inputs[0].matchId).not.toBe(before.matchId)
+    release(); expect((await stale).status()).toBe(409)
+    expect((await state(page)).view.gambits[0].on).toBe(before.view.gambits[0].on)
+    expect(inputs.map(({ toggle }) => toggle)).toEqual([0, 2])
+  } finally { release() }
+})
+
 test('entry remains disabled until its connection settings are ready', async ({ page }) => {
   let release
   const gate = new Promise(resolve => { release = resolve })

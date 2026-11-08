@@ -36,7 +36,8 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   const map = frame => frame.view.planets.map(({ id, x, y, r }) => ({ id, x, y, r }))
   await page.reload()
   await page.waitForFunction(() => document.querySelector('#hud').textContent.includes('swarms'), null, { timeout: 5000 })
-  // The offline frame has no matchId. Verify actual continuity, not undefined === undefined.
+  // Reconnect keeps the same server-issued match identity and map.
+  assert.equal((await read()).matchId, first.matchId)
   assert.equal(await page.evaluate(() => localStorage.getItem('botters.session')), session)
   assert.deepEqual(map(await read()), map(first))
   await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(first.view.tick)
@@ -53,8 +54,8 @@ test('queued match actions do not reach a subsequent match', { timeout: 30000 },
   const gate = new Promise(resolve => { release = resolve })
   await page.route('**/input?*', async route => {
     inputs.push(route.request().postDataJSON())
-    if (inputs.length === 1) { intercepted(); await gate; await route.fulfill({ json: { ok: true } }) }
-    else await route.continue()
+    if (inputs.length === 1) { intercepted(); await gate }
+    await route.continue()
   })
   t.after(() => release())
   await page.goto(origin)
@@ -68,10 +69,19 @@ test('queued match actions do not reach a subsequent match', { timeout: 30000 },
   await expect(page.locator('#again')).toBeVisible()
   await page.locator('#again').click()
   await expect(page.locator('#surrender')).toBeVisible()
-  release()
+  const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
+  const before = await read()
+  const staleResponse = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && r.request().postDataJSON().toggle === 0)
   await page.keyboard.press('3')
-  await expect.poll(() => inputs.some(input => input.toggle === 2)).toBe(true)
-  assert.deepEqual(inputs, [{ toggle: 0 }, { toggle: 2 }], 'the old queued toggle must not be sent to the new match')
+  await expect.poll(() => inputs.some(input => input.toggle === 2), { timeout: 3000 }).toBe(true)
+  await expect.poll(async () => (await read()).view.gambits[2].on).toBe(!before.view.gambits[2].on)
+  assert.ok(inputs[0].matchId && inputs[1].matchId)
+  assert.notEqual(inputs[0].matchId, inputs[1].matchId)
+  assert.equal(inputs[1].matchId, before.matchId)
+  release()
+  assert.equal((await staleResponse).status(), 409)
+  assert.equal((await read()).view.gambits[0].on, before.view.gambits[0].on)
+  assert.deepEqual(inputs.map(({ toggle }) => toggle), [0, 2], 'the old queued toggle must not be sent to the new match')
 })
 
 test('offline surrender confirms, recovers from refusal, shows the real result and starts another match', { timeout: 30000 }, async t => {
@@ -228,12 +238,12 @@ test('primary map input ignores secondary buttons without changing engine contro
   const response = await accepted
   assert.equal(response.status(), 200); assert.equal((await response.json()).ok, true)
   await expect.poll(async () => { const s = (await read()).view.swarms.find(s => s.id === swarm.id); return { manual: s.manual, tx: s.tx, ty: s.ty } }).toEqual({ manual: true, tx: target.x, ty: target.y })
-  assert.deepEqual(posts.slice(start), [{ path: '/input', body: { order: { swarm: swarm.id, ...target } } }])
+  assert.deepEqual(posts.slice(start), [{ path: '/input', body: { order: { swarm: swarm.id, ...target }, matchId: first.matchId } }])
   observations.push({ action: 'primary order', target, posts: posts.slice(start), replies: replies.slice(replyStart), tick: (await read()).view.tick })
   await snapshot('primary-order')
   await page.keyboard.press('g')
   await expect.poll(async () => (await read()).view.swarms.find(s => s.id === swarm.id).manual).toBe(false)
-  assert.deepEqual(posts.slice(start + 1), [{ path: '/input', body: { release: swarm.id } }])
+  assert.deepEqual(posts.slice(start + 1), [{ path: '/input', body: { release: swarm.id, matchId: first.matchId } }])
   observations.push({ action: 'G release', manual: false, tick: (await read()).view.tick })
   await page.keyboard.press('Escape')
   await expect.poll(selected).toBe(null)

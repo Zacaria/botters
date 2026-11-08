@@ -38,9 +38,11 @@ const brief = (v, startsIn) => ({
 const mcp = new McpServer({ name: 'botters', version: '0.2.0' })
 const text = o => ({ content: [{ type: 'text', text: typeof o === 'string' ? o : JSON.stringify(o) }] })
 const need = () => S.inMatch ? null : text('Not in a match. Call join_match first.')
-const input = async body => { const r = await api('POST', `/input?token=${S.session.agentToken}`, body); return text(r.ok ? { ok: true } : { ok: false, error: r.error }) }
+const input = async body => { const r = await api('POST', `/input?token=${S.session.agentToken}`, { ...body, matchId: body.matchId ?? S.matchId ?? undefined }); return text(r.ok ? { ok: true } : { ok: false, error: r.error }) }
+const MATCH_ID = z.string().optional().describe('Match ID from the observation that informed this action. Always supply it; omission uses the latest joined match for compatibility.')
 const GAMBIT = z.object({ if: z.string(), p: z.number().optional(), then: z.string(), on: z.boolean().optional() })
 
+let joinSequence = 0, committedJoin = 0
 async function session() {
   if (S.session) return S.session
   if (requireAgentToken) throw new Error(reconnectOAuth)
@@ -70,6 +72,7 @@ The result includes the rules, the match settings and your human's doctrine (the
     mode: z.enum(['1v1', '2v2', 'ffa4', 'ffa6']).optional().describe('with vs: 1v1 (default), 2v2 + house ally, free-for-all with 4 or 6 sides. Everything but 1v1 is played against house bots (vs easy, normal or hard)'),
   },
 }, async ({ vs, minutes, planets, planning, mode }) => {
+  const join = ++joinSequence
   const s = await session()
   const changed = () => S.session !== s && text('Agent connection changed. Call join_match again.')
   if (changed()) return changed()
@@ -93,10 +96,14 @@ The result includes the rules, the match settings and your human's doctrine (the
   if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
   const rules = await api('GET', '/rules'), m = r.match
   if (changed()) return changed()
+  if (join < committedJoin) return text('A newer match was joined. Call join_match again.')
+  // ponytail: legacy loopback servers cannot fence stale actions; upgrade the server for match identity protection.
+  if (!m.id && (s.online || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(liveServer).hostname))) return text('Server did not provide a match ID. Call join_match after upgrading the server.')
+  committedJoin = join
   if (!r.match.id || r.match.id !== S.matchId) S.since = 0
   S.inMatch = true; S.matchId = r.match.id || null
   return text({
-    opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
+    matchId: m.id, opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
     opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
     rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
     state: brief(m.state, m.startsIn),
@@ -109,45 +116,45 @@ mcp.registerTool('wait_for_event', {
   inputSchema: { timeout_s: z.number().min(1).max(20).default(10) },
 }, async ({ timeout_s }) => {
   if (need()) return need()
-  const s = S.session
-  const r = await api('GET', `/events?token=${s.agentToken}&since=${S.since}&timeout=${timeout_s}`)
+  const s = S.session, matchId = S.matchId, joined = committedJoin
+  const r = await api('GET', `/events?token=${s.agentToken}&since=${S.since}&timeout=${timeout_s}${matchId ? `&matchId=${encodeURIComponent(matchId)}` : ''}`)
   if (r.error) return text(r.error)
-  if (S.session !== s) return text('Agent connection changed. Call join_match again.')
+  if (S.session !== s || S.matchId !== matchId || committedJoin !== joined || r.matchId && r.matchId !== matchId) return text('Match or agent connection changed. Call join_match again.')
   if (!r.state) { S.inMatch = false; return text('Your match is over. Call join_match to wait for the next one.') }
   S.since = r.events.at(-1)?.seq ?? S.since
   if (r.state.ended) S.inMatch = false
-  return text({ events: r.events.map(e => `[${e.t}s] ${e.text}`), state: brief(r.state, r.startsIn), next: r.state.ended ? 'Match over. Tell your human the result in 3 lines and what you would change, then call join_match for the next match.' : 'Act if needed, then call wait_for_event again.' })
+  return text({ matchId, events: r.events.map(e => `[${e.t}s] ${e.text}`), state: brief(r.state, r.startsIn), next: r.state.ended ? 'Match over. Tell your human the result in 3 lines and what you would change, then call join_match for the next match.' : 'Act if needed, then call wait_for_event again.' })
 })
 
 mcp.registerTool('set_gambits', {
   description: 'Replace your side\'s whole gambit list (1 to 10 rules, first match wins, applies to every swarm not held by hand). Each rule: { if: condition, p?: number tuning the condition, then: action, on?: false to keep it written but disabled }. Keep the rules your human switched off, off. Say why in one short sentence: your human sees it live.',
-  inputSchema: { gambits: z.array(GAMBIT).min(1).max(10), why: z.string().max(120) },
-}, async ({ gambits, why }) => need() || input({ gambits, why }))
+  inputSchema: { matchId: MATCH_ID, gambits: z.array(GAMBIT).min(1).max(10), why: z.string().max(120) },
+}, async ({ gambits, why, matchId }) => need() || input({ gambits, why, matchId }))
 
 mcp.registerTool('order_swarm', {
   description: 'Take one of your swarms by hand and send it to x,y (map 1200×700). It stops following the gambits until release_swarm. Use for precise plays only: a hand-held swarm does not react to threats.',
-  inputSchema: { swarm: z.number(), x: z.number(), y: z.number(), why: z.string().max(120) },
-}, async ({ swarm, x, y, why }) => need() || input({ order: { swarm, x, y }, why }))
+  inputSchema: { matchId: MATCH_ID, swarm: z.number(), x: z.number(), y: z.number(), why: z.string().max(120) },
+}, async ({ swarm, x, y, why, matchId }) => need() || input({ order: { swarm, x, y }, why, matchId }))
 
 mcp.registerTool('route_swarm', {
   description: 'Take your swarm by hand through 2 to 8 map points in order. It does not react to threats. A direct order or release cancels the route.',
-  inputSchema: { swarm: z.number(), points: z.array(z.object({ x: z.number().min(0).max(1200), y: z.number().min(0).max(700) })).min(2).max(8), why: z.string().max(120) },
-}, async ({ swarm, points, why }) => need() || input({ route: { swarm, points }, why }))
+  inputSchema: { matchId: MATCH_ID, swarm: z.number(), points: z.array(z.object({ x: z.number().min(0).max(1200), y: z.number().min(0).max(700) })).min(2).max(8), why: z.string().max(120) },
+}, async ({ swarm, points, why, matchId }) => need() || input({ route: { swarm, points }, why, matchId }))
 
 mcp.registerTool('split_swarm', {
   description: 'Split one of your swarms in two (needs ≥200 particles, max 40 swarms). The new half heads for the second-nearest planet you do not own.',
-  inputSchema: { swarm: z.number(), why: z.string().max(120) },
-}, async ({ swarm, why }) => need() || input({ split: swarm, why }))
+  inputSchema: { matchId: MATCH_ID, swarm: z.number(), why: z.string().max(120) },
+}, async ({ swarm, why, matchId }) => need() || input({ split: swarm, why, matchId }))
 
 mcp.registerTool('release_swarm', {
   description: 'Give a hand-held swarm back to the gambits.',
-  inputSchema: { swarm: z.number() },
-}, async ({ swarm }) => need() || input({ release: swarm }))
+  inputSchema: { matchId: MATCH_ID, swarm: z.number() },
+}, async ({ swarm, matchId }) => need() || input({ release: swarm, matchId }))
 
 mcp.registerTool('call_human', {
   description: 'Ask your human for a hand: a yellow card appears in their browser. Use it when a precise move matters more than the gambits can handle (a bait, a flank, a rescue). Give the swarm id and target if you have them, and say why in one short sentence. Your human has faster hands than your tool calls.',
-  inputSchema: { message: z.string().max(140), swarm: z.number().optional(), x: z.number().optional(), y: z.number().optional() },
-}, async args => need() || text(await api('POST', `/call?token=${S.session.agentToken}`, args)))
+  inputSchema: { matchId: MATCH_ID, message: z.string().max(140), swarm: z.number().optional(), x: z.number().optional(), y: z.number().optional() },
+}, async args => need() || text(await api('POST', `/call?token=${S.session.agentToken}`, { ...args, matchId: args.matchId ?? S.matchId ?? undefined })))
 
 return mcp
 }

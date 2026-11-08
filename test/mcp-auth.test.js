@@ -131,7 +131,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
     McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
     fetch: async (target, options = {}) => {
       const url = new URL(target), path = url.pathname, method = options.method || 'GET', token = url.searchParams.get('token') || ''
-      requests.push({ path, token })
+      requests.push({ path, token, url: url.href, body: options.body && JSON.parse(options.body) })
       if (fault) { const response = await fault(path); if (response) return response }
       try { const data = await request(null, method, path, token, options.body ? JSON.parse(options.body) : {}); return { ok: true, status: 200, json: async () => data } }
       catch (error) { return { ok: false, status: error.status || 500, json: async () => ({ error: error.message }) } }
@@ -340,4 +340,72 @@ for (const path of ['/events', '/input', '/call', '/next', '/agent/poll']) test(
   const sent = f.requests.length
   for (const [tool, input] of gameplay) assert.match(await f.call(tool, input), /join_match/)
   assert.equal(f.requests.length, sent)
+})
+
+
+test('agent can bind mutations to the observed match rather than a later join', async () => {
+  const f = await callbackFixture(); await f.join()
+  const id = f.S.matchId
+  for (const [name, args] of gameplay.filter(([name]) => name !== 'wait_for_event')) {
+    const result = JSON.parse(await f.call(name, { ...args, matchId: 'stale-match' }))
+    assert.ok(result.error, name)
+  }
+  assert.equal(f.S.matchId, id)
+})
+
+
+test('late events from a previous match cannot overwrite a newer join', async () => {
+  const f = await callbackFixture(); await f.join()
+  const old = await f.read('/events')
+  let release, entered
+  const started = new Promise(resolve => { entered = resolve })
+  f.fault(path => path === '/events' ? (entered(), new Promise(resolve => { release = () => resolve({ ok: true, status: 200, json: async () => old }) })) : null)
+  const pending = f.call('wait_for_event', { timeout_s: 1 }); await started
+  f.S.matchId = 'new-match'; f.S.since = 77
+  release(); assert.match(await pending, /join_match|changed/i)
+  assert.equal(f.S.since, 77); assert.equal(f.S.matchId, 'new-match')
+})
+
+test('an older concurrent join cannot overwrite a newer completed join', async () => {
+  const f = await callbackFixture(); await f.join()
+  const original = await f.read('/next')
+  let release, entered
+  const started = new Promise(resolve => { entered = resolve })
+  f.fault(path => {
+    if (path !== '/next') return
+    f.fault(null); entered()
+    return new Promise(resolve => { release = () => resolve({ ok: true, status: 200, json: async () => ({ match: { ...original.match, id: 'old-match' } }) }) })
+  })
+  const old = f.call('join_match'); await started
+  const newer = JSON.parse(await f.call('join_match'))
+  assert.ok(newer.matchId)
+  release(); assert.match(await old, /join_match|changed/i)
+  assert.equal(f.S.matchId, newer.matchId)
+})
+
+test('legacy loopback match without id remains playable', async () => {
+  const f = await callbackFixture(); await f.join()
+  const next = await f.read('/next'), events = await f.read('/events')
+  f.S.session.online = false
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+    if (path === '/events') { const { matchId, ...rest } = events; return { ok: true, status: 200, json: async () => rest } }
+  })
+  const joined = JSON.parse(await f.call('join_match'))
+  assert.ok(joined.state); assert.equal(f.S.matchId, null)
+  assert.ok(JSON.parse(await f.call('wait_for_event', { timeout_s: 1 })).state)
+  assert.equal(new URL(f.requests.at(-1).url).searchParams.has('matchId'), false)
+  assert.equal(JSON.parse(await f.call('set_gambits', gameplay[1][1])).ok, true)
+  assert.equal('matchId' in f.requests.at(-1).body, false)
+})
+
+test('online join without identity is rejected without weakening an existing match', async () => {
+  const f = await callbackFixture(); await f.join()
+  const next = await f.read('/next'), previous = f.S.matchId
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+  })
+  assert.match(await f.call('join_match'), /match ID/)
+  assert.equal(f.S.matchId, previous)
+  assert.ok(JSON.parse(await f.call('set_gambits', { ...gameplay[1][1], matchId: 'stale-match' })).error)
 })

@@ -603,7 +603,7 @@ const act = (body, label) => {
   if (sel !== null && (body.order?.swarm === sel || body.release === sel || body.split === sel)) cancelRoute()
   const generation = matchGeneration, session = token, matchId = F?.matchId
   const current = () => generation === matchGeneration && session === token && matchId === F?.matchId && !$('game').hidden && !v?.ended
-  actionQueue = actionQueue.then(() => current() ? api('POST', '/input', body) : null).then(r => { if (r && current()) toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok) })
+  actionQueue = actionQueue.then(() => current() && matchId ? api('POST', '/input', { ...body, matchId }) : null).then(r => { if (r && current()) toast(r.ok ? `✓ ${label}` : `✗ ${r.error}`, r.ok) })
   return actionQueue
 }
 
@@ -677,7 +677,7 @@ $('guideSend').onclick = () => {
 $('guideRelease').onclick = () => { if (sel !== null) act({ release: sel }, `swarm #${sel} back on gambits`) }
 
 function match() {
-  ++matchGeneration
+  ++matchGeneration; actionQueue = Promise.resolve()
   guidance = null; guidePending = $('guidedHouse').checked
   clearTimeout(lobbyTimer); lastFrame = Date.now(); $('connection').hidden = true
   show('game'); fit(); v = null; F = null; pos.clear(); sel = null; routeDraft = []; lastBy = ''; stopEditing()
@@ -736,7 +736,10 @@ $('surrender').onclick = async () => {
   if (!v || v.ended || !confirm('Surrender this match? You will lose and your opponent will win.')) return
   $('surrender').disabled = true
   $('toast').textContent = ''
-  const r = await api('POST', '/surrender', {})
+  const generation = matchGeneration, session = token, matchId = F?.matchId
+  if (!matchId) { $('surrender').disabled = false; return }
+  const r = await api('POST', '/surrender', { matchId })
+  if (generation !== matchGeneration || session !== token || matchId !== F?.matchId) return
   if (!r.ok) { $('surrender').disabled = false; toast(r.error || 'Surrender failed. Retry.', false) }
 }
 
@@ -897,7 +900,7 @@ let gEd = null
 function stopEditing() { editing = null; $('gEditor').hidden = true; $('gambits').hidden = false; $('editG').hidden = false; $('applyG').hidden = $('cancelG').hidden = true }
 $('editG').onclick = () => { if (!v) return; editing = true; gEd = editor($('gEditor'), v.gambits); $('gEditor').hidden = false; $('gambits').hidden = true; $('editG').hidden = true; $('applyG').hidden = $('cancelG').hidden = false }
 $('cancelG').onclick = stopEditing
-$('applyG').onclick = async () => { const r = await api('POST', '/input', { gambits: gEd.get(), why: 'edited by hand' }); toast(r.ok ? '✓ gambits applied' + (F.me.withAgent ? ', your agent was told' : '') : `✗ ${r.error}`, r.ok); if (r.ok) stopEditing() }
+$('applyG').onclick = async () => { const generation = matchGeneration, session = token, matchId = F?.matchId; if (!matchId) return; const r = await api('POST', '/input', { gambits: gEd.get(), why: 'edited by hand', matchId }); if (generation !== matchGeneration || session !== token || matchId !== F?.matchId || $('game').hidden || v?.ended) return; toast(r.ok ? '✓ gambits applied' + (F.me.withAgent ? ', your agent was told' : '') : `✗ ${r.error}`, r.ok); if (r.ok) stopEditing() }
 $('doctrine2').oninput = () => editDoctrine($('doctrine2'))
 $('sendDoctrine').onclick = () => saveDoctrine(true)
 
@@ -907,7 +910,7 @@ $('calls').onclick = e => {
   const b = e.target.dataset, c = F.calls[b.do ?? b.grab ?? b.no]; if (!c) return
   if (b.do !== undefined) { act({ order: { swarm: c.swarm, x: c.x, y: c.y } }, `swarm #${c.swarm} sent`); selectSwarm(c.swarm) }
   if (b.grab !== undefined) { selectSwarm(c.swarm); toast(`swarm #${c.swarm} grabbed: click the map to send it`) }
-  api('POST', '/dismiss', { index: +(b.do ?? b.grab ?? b.no) })
+  api('POST', '/dismiss', { index: +(b.do ?? b.grab ?? b.no), matchId: F.matchId })
 }
 const at = e => ({ x: (e.clientX - ox) / k, y: (e.clientY - oy) / k })
 function routePoint(e) {
@@ -936,7 +939,7 @@ cv.onmousedown = e => {
   routeDraft = []
   if (sel !== null) return act({ order: { swarm: sel, x: Math.round(p.x), y: Math.round(p.y) } }, `swarm #${sel} → (${Math.round(p.x)},${Math.round(p.y)})`)
   if (!F.me.withAgent) return
-  api('POST', '/say', { text: 'look here', x: p.x, y: p.y }); pings.push({ ...p, until: Date.now() + 1500 }); toast('ping sent to your agent')
+  api('POST', '/say', { text: 'look here', x: p.x, y: p.y, matchId: F.matchId }); pings.push({ ...p, until: Date.now() + 1500 }); toast('ping sent to your agent')
 }
 cv.onmousemove = e => { if (routeDrawing) routePoint(e) }
 cv.onmouseleave = () => { if (routeDrawing) cancelRoute() }
@@ -965,7 +968,7 @@ onkeyup = e => {
 window.addEventListener('blur', cancelRoute)
 document.addEventListener('visibilitychange', () => { if (document.hidden) cancelRoute() })
 document.addEventListener('focusin', e => { if (e.target !== cv && e.target !== document.body && routeDraft.length) cancelRoute() })
-$('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value }); toast('sent to your agent') } m.value = '' }
+$('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value, matchId: F?.matchId }); toast('sent to your agent') } m.value = '' }
 
 bootAccount()
 $('startSolo').disabled = false

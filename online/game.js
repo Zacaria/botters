@@ -442,11 +442,13 @@ export class OnlineGame {
       if (method === 'GET' && path === '/events') {
         agent()
         if (!m || !p.agentJoined) return { events: [], state: null, next: m && !p.withAgent ? 'solo' : 'join' }
+        if (q.has('matchId') && q.get('matchId') !== m.id) fail(409, 'Match is no longer active.')
         const since = Number(q.get('since')) || 0
-        return { events: p.events.filter(e => e.seq > since), state: view(m.s, s.side), startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)) }
+        return { matchId: m.id, events: p.events.filter(e => e.seq > since), state: view(m.s, s.side), startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)) }
       }
       if (method === 'POST' && path === '/surrender') {
         human(); requireMatch()
+        if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
         if (m.s.ended) fail(409, 'Match is over.')
         const input = { surrender: true }
         applyInput(m.s, s.side, input)
@@ -457,6 +459,7 @@ export class OnlineGame {
       }
       if (method === 'POST' && path === '/input') {
         requireMatch()
+        if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
         if (m.s.ended) fail(409, 'Match is over.')
         if (auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.')
         const sentKey = auth.role === 'agent' ? 'sent' : 'humanSent', limit = auth.role === 'agent' ? 5 : 15
@@ -485,6 +488,7 @@ export class OnlineGame {
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {
         requireMatch()
+        if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
         if (!active(m)) fail(409, 'Match is over.')
         if (path === '/call') {
           agent(); if (!p.withAgent) fail(403, 'Your human is playing alone.')

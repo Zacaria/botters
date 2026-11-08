@@ -290,3 +290,42 @@ test('abandoned queue expires, room leave removes stale membership, ended input 
   f.advance(220_000)
   await assert.rejects(f.call(b, 'POST', '/input', { toggle: 0 }), { status: 409 })
 })
+
+
+test('old match-bound mutations cannot affect the next match', async () => {
+  const f = fixture(), a = await f.session('a', 'agent')
+  await f.call(a, 'POST', '/play', { withAgent: true })
+  const old = (await f.call(a, 'GET', '/state')).matchId
+  await f.call(a, 'GET', '/next', {}, 'agent')
+  await f.call(a, 'POST', '/surrender', { matchId: old })
+  await f.call(a, 'POST', '/play', { withAgent: true })
+  await f.call(a, 'GET', '/next', {}, 'agent')
+  const before = await f.call(a, 'GET', '/state')
+  assert.notEqual(before.matchId, old)
+  for (const [path, body, role] of [['/input', { toggle: 0 }, 'human'], ['/surrender', {}, 'human'], ['/say', { text: 'stale' }, 'human'], ['/dismiss', { index: 0 }, 'human'], ['/call', { message: 'stale' }, 'agent']]) {
+    await assert.rejects(f.call(a, 'POST', path, { ...body, matchId: old }, role), { status: 409 }, path)
+  }
+  const after = await f.call(a, 'GET', '/state')
+  assert.deepEqual(after, before)
+})
+
+
+test('online match-bound mutations retry atomically if rematch commits first', async () => {
+  for (const [path, body, role] of [['/input', { toggle: 0 }, 'human'], ['/surrender', {}, 'human'], ['/say', { text: 'late' }, 'human'], ['/dismiss', { index: 0 }, 'human'], ['/call', { message: 'late' }, 'agent']]) {
+    const f = fixture(), a = await f.session('a', 'agent')
+    await f.call(a, 'POST', '/play', { withAgent: true }); await f.call(a, 'GET', '/next', {}, 'agent')
+    const old = (await f.call(a, 'GET', '/state')).matchId
+    const commit = f.store.commit.bind(f.store)
+    let release, entered, once = true
+    const gate = new Promise(r => { release = r }), started = new Promise(r => { entered = r })
+    f.store.commit = async entries => { if (once) { once = false; entered(); await gate } return commit(entries) }
+    const pending = f.call(a, 'POST', path, { ...body, matchId: old }, role).then(() => null, e => e)
+    await started
+    await f.call(a, 'POST', '/surrender', { matchId: old })
+    await f.call(a, 'POST', '/play', { withAgent: true }); await f.call(a, 'GET', '/next', {}, 'agent')
+    const before = await f.call(a, 'GET', '/state')
+    release()
+    assert.equal((await pending)?.status, 409, path)
+    assert.deepEqual(await f.call(a, 'GET', '/state'), before, path)
+  }
+})
