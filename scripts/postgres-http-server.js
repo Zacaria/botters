@@ -6,6 +6,7 @@ import { deliverAuthEmail } from '../online/auth-options.js'
 const env = process.env
 if (!env.DATABASE_URL) throw new Error('DATABASE_URL is required.')
 const pool = new pg.Pool({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 8000, statement_timeout: 8000 })
+pool.on('error', () => console.error('PostgreSQL idle connection lost'))
 try {
   const handler = await createPostgresControl({ pool, env, sendEmail: message => deliverAuthEmail(env, message) })
   const server = http.createServer(handler)

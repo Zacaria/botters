@@ -10,6 +10,7 @@ if (backend === 'postgres') {
     import('pg'), import('../online/postgres-store.js'), import('../online/postgres-live-durable.js'),
   ])
   pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 8000 })
+  pool.on('error', () => console.error('PostgreSQL idle connection lost'))
   try {
     await pool.query('SELECT namespace, key, value, expires_at FROM botters_records LIMIT 0')
     await pool.query('SELECT s.id, s."userId", s."expiresAt", u.id, u."emailVerified" FROM session s JOIN "user" u ON u.id = s."userId" LIMIT 0')

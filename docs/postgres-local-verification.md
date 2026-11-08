@@ -29,7 +29,7 @@ Stop the cluster you created with `pg_ctl -D "$WORK/data" -m fast -w stop`. Neve
 
 ## Live authority response semantics
 
-A fresh authority result that confirms a missing or revoked capability is an authentication refusal (401), not a backend outage. A failed or stale authority read remains unavailable (503). Revocation propagates on the polling interval and is not instant; the lease must never outlive a successful database read. These semantics alone do not wire the production servers or prove the browser journey.
+A fresh authority result that confirms a missing or revoked capability is an authentication refusal (401), not a backend outage. A failed or stale authority read remains unavailable (503). Revocation propagates on the polling interval and is not instant; the lease must never outlive a successful database read. PostgreSQL pool idle-connection errors must not terminate the control or live process; live authority requests still fail closed while the backend is unavailable. These semantics alone do not prove the browser journey.
 
 ## PostgreSQL HTTP control entry point
 
@@ -50,3 +50,9 @@ On PostgreSQL 17.11, a new loopback-only cluster and `botters_synthetic` databas
 - `npm run test:auth:convex`: failed because `convex/_generated` is absent. Remote Convex code generation was not run.
 
 The tests removed their random schemas. This verifies the existing pilot schema on an empty local database, not a production account conversion or a fully wired game server.
+
+## Integrated candidate observation
+
+With a distinct local PostgreSQL 17.11 cluster, the journey test was also run with both actual-entry flags from the fixture README. Synthetic verification and reset messages were intercepted before network access. The test exercised two accounts, reset and prior-session revocation, control and live restarts, a one-winner ticket race, live gameplay and WebSocket frames, account isolation, real interprocess revocation, and a live-to-database TCP cut followed by 503 and recovery. One local run observed 401 in 424.0 ms and WebSocket closure in 424.2 ms after revocation, including subprocess startup; 48 parallel requests took 81.5 ms. These are individual observations, not availability, capacity, latency or instant-revocation guarantees.
+
+Before the idle-pool error handlers, the same TCP cut caused both actual entry processes to exit with an unhandled PostgreSQL pool error. The live journey and a separate control-process idle-socket test now cover their survival. This control test does not establish all HTTP outage or recovery semantics. The four historical failures referenced in comment 2139 remain unidentified, so they have not been replayed. The Convex integration command still needs the absent generated Convex files; no remote code generation was attempted. Browser behavior, real email delivery and production migration remain outside this verification.

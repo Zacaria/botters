@@ -12,6 +12,7 @@ if (!/^botters_journey_[a-f0-9]+$/.test(schema)) throw new Error('invalid isolat
 const target = new URL(database)
 if (!['postgres:', 'postgresql:'].includes(target.protocol) || target.hostname !== '127.0.0.1' || target.search) throw new Error('loopback database required')
 const pool = new pg.Pool({ connectionString: database, options: `-c search_path=${schema}`, connectionTimeoutMillis: 1000 })
+pool.on('error', () => console.error('PostgreSQL idle connection lost'))
 const store = new PostgresStore(pool, 'journey')
 let close
 if (mode === 'control') {

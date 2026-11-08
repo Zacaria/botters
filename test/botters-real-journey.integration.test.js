@@ -17,7 +17,16 @@ async function port() {
   const n = server.address().port; await new Promise(resolve => server.close(resolve)); return n
 }
 async function start(mode, env, mails) {
-  const p = fork(fixture, [], { env: { ...process.env, ...env, JOURNEY_MODE: mode }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
+  const actualLive = mode === 'live' && process.env.BOTTERS_JOURNEY_REAL_LIVE === '1'
+  const actualHttp = mode === 'control' && process.env.BOTTERS_JOURNEY_REAL_HTTP === '1'
+  const liveDatabase = new URL(env.JOURNEY_DATABASE)
+  liveDatabase.searchParams.set('options', `-c search_path=${env.JOURNEY_SCHEMA}`)
+  const entry = actualLive ? new URL('../scripts/live-server.js', import.meta.url) : actualHttp ? new URL('../scripts/postgres-http-server.js', import.meta.url) : fixture
+  const common = { DATABASE_URL: liveDatabase.toString(), BOTTERS_STORE_NAMESPACE: 'journey', HOST: '127.0.0.1' }
+  const actualEnv = actualLive ? { ...common, BOTTERS_LIVE_BACKEND: 'postgres', BOTTERS_REQUIRE_ACCOUNT: '1', PLAYER_ORIGINS: env.JOURNEY_SITE, PORT: env.JOURNEY_LIVE_PORT } : actualHttp ? { ...common, SITE_URL: env.JOURNEY_SITE, BOTTERS_AUTH_ORIGIN: env.JOURNEY_SITE, BETTER_AUTH_SECRET: 'isolated-journey-test-secret-123456789012345', RESEND_API_KEY: 'synthetic', AUTH_EMAIL_FROM: 'botters@example.test', PORT: new URL(env.JOURNEY_SITE).port } : {}
+  const p = fork(entry, [], { env: { ...process.env, ...env, JOURNEY_MODE: mode, ...actualEnv }, ...(actualHttp ? { execArgv: ['--import', new URL('./fixtures/botters-real-journey/capture-mail.js', import.meta.url).pathname] } : {}), stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
+  let stdout = ''
+  if (actualLive || actualHttp) p.stdout.on('data', b => { stdout += b; if (stdout.includes(actualLive ? '"service":"botters-live"' : '"service":"botters-control"')) p.emit('message', { type: 'ready' }) })
   let stderr = ''; p.stderr.on('data', b => { stderr += b; p.journeyStderr = stderr })
   p.on('message', message => { if (message.type === 'mail') mails.push(message) })
   try {
@@ -75,12 +84,20 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
       assert.equal((await fetch(verification, { redirect: 'manual' })).status, 302)
       const login = await postAuth('/sign-in/email', { email, password }); assert.equal(login.status, 200)
       const cookie = login.headers.getSetCookie().map(s => s.split(';')[0]).join('; '); assert.ok(cookie)
-      const session = await (await request(site, '/api/auth/get-session', { cookie })).json(); assert.equal(session.user.email, email)
+      if (process.env.BOTTERS_JOURNEY_REAL_HTTP === '1') {
+        const current = await (await request(site, '/account', { cookie })).json()
+        assert.ok(current.user, 'actual control resolves the authenticated account')
+        const result = await pool.query('SELECT id FROM session WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 1', [current.user.id])
+        assert.equal(result.rowCount, 1)
+        return { cookie, id: current.user.id, authSessionId: result.rows[0].id }
+      }
+      const sessionResponse = await request(site, '/api/auth/get-session', { cookie }); const session = await sessionResponse.json(); assert.ok(session.user, `get-session status ${sessionResponse.status}, fields ${Object.keys(session).join(',')}`); assert.equal(session.user.email, email)
       return { cookie, id: session.user.id, authSessionId: session.session.id }
     }
     const a = await account('alice'), b = await account('bob'); assert.notEqual(a.id, b.id)
     await stop(control); control = await start('control', env, mails)
-    assert.equal((await (await request(site, '/api/auth/get-session', { cookie: a.cookie })).json()).user.id, a.id, 'session survives control process restart')
+    const sessionPath = process.env.BOTTERS_JOURNEY_REAL_HTTP === '1' ? '/account' : '/api/auth/get-session'
+    assert.equal((await (await request(site, sessionPath, { cookie: a.cookie })).json()).user.id, a.id, 'session survives control process restart')
     assert.equal((await request(site, '/session', { body: {} })).status, 401)
     assert.equal((await request(site, '/session', { body: {}, cookie: 'better-auth.session_token=invalid' })).status, 401)
     async function grant(account) {
@@ -142,6 +159,17 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
     let recovered = 0, recoveryDeadline = performance.now() + 5000
     while (performance.now() < recoveryDeadline) { recovered = (await lobby(gb.humanToken, liveCookieB)).status; if (recovered === 200) break; await sleep(100) }
     assert.equal(recovered, 200, 'authority recovers after network restoration')
+    assert.equal((await postAuth('/request-password-reset', { email: 'bob@example.test', redirectTo: '/' })).status, 200)
+    const resetMail = mails.findLast(m => m.to === 'bob@example.test')
+    const resetLink = resetMail?.text.match(/http:\/\/\S+/)?.[0]; assert.ok(resetLink)
+    const resetUrl = new URL(resetLink); assert.equal(resetUrl.origin, site)
+    const redirect = await fetch(resetUrl, { redirect: 'manual' })
+    const token = new URL(redirect.headers.get('location'), site).searchParams.get('token'); assert.ok(token)
+    const newPassword = 'new-synthetic-password-456!'
+    assert.equal((await postAuth('/reset-password', { token, newPassword })).status, 200)
+    assert.equal((await postAuth('/reset-password', { token, newPassword })).status, 400, 'reset token is single-use')
+    assert.equal((await request(site, '/session', { body: {}, cookie: b.cookie })).status, 401, 'password reset revokes prior session')
+    assert.equal((await postAuth('/sign-in/email', { email: 'bob@example.test', password: newPassword })).status, 200, 'new password signs in')
   } finally {
     await stop(live); await stop(control)
     for (const socket of sockets) socket.destroy()
