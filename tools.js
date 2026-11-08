@@ -3,11 +3,11 @@ import { z } from 'zod'
 
 export async function createBottersTools({ server: SERVER, agentToken, requireAgentToken = false, setup = 'agent', name = 'you', open: openUrl = () => {}, bypassSecret, log = () => {} }) {
 const serverURL = new URL(SERVER)
-let liveServer = SERVER, liveAccounts = true
+let liveServer = SERVER, liveAccounts = true, advertisedLive = false
 const reconnectOAuth = 'Agent access ended. Reconnect Botters in your assistant to authorize it again.'
 try {
   const config = await fetch(`${SERVER}/live-config.json`, { headers: serverURL.hostname.endsWith('.vercel.app') && bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : {}, signal: AbortSignal.timeout(5000) }).then(r => r.ok ? r.json() : {})
-  if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false }
+  if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false; advertisedLive = true }
 } catch { /* Offline servers do not advertise a live endpoint. */ }
 const api = async (method, path, body) => {
   const s = S.session, url = new URL(path, SERVER)
@@ -23,7 +23,7 @@ const api = async (method, path, body) => {
   }
   return { status: r.status, ...(await r.json()) }
 }
-const S = { session: agentToken ? { agentToken: agentToken, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null }
+const S = { session: agentToken ? { agentToken: agentToken, lobby: SERVER, online: true, legacyLocal: !requireAgentToken && !advertisedLive } : null, since: 0, opened: false, inMatch: false, matchId: null }
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
@@ -42,7 +42,8 @@ const input = async body => { const r = await api('POST', `/input?token=${S.sess
 const MATCH_ID = z.string().optional().describe('Match ID from the observation that informed this action. Always supply it; omission uses the latest joined match for compatibility.')
 const GAMBIT = z.object({ if: z.string(), p: z.number().optional(), then: z.string(), on: z.boolean().optional() })
 
-let joinSequence = 0, committedJoin = 0
+let committedJoin = 0
+const joins = new WeakMap()
 async function session() {
   if (S.session) return S.session
   if (requireAgentToken) throw new Error(reconnectOAuth)
@@ -72,7 +73,6 @@ The result includes the rules, the match settings and your human's doctrine (the
     mode: z.enum(['1v1', '2v2', 'ffa4', 'ffa6']).optional().describe('with vs: 1v1 (default), 2v2 + house ally, free-for-all with 4 or 6 sides. Everything but 1v1 is played against house bots (vs easy, normal or hard)'),
   },
 }, async ({ vs, minutes, planets, planning, mode }) => {
-  const join = ++joinSequence
   const s = await session()
   const changed = () => S.session !== s && text('Agent connection changed. Call join_match again.')
   if (changed()) return changed()
@@ -90,25 +90,33 @@ The result includes the rules, the match settings and your human's doctrine (the
     if (!r.ok && r.error !== 'already in a match') return text(r.error)
     if (changed()) return changed()
   }
-  const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
-  if (r.error) return text(r.error)
-  if (changed()) return changed()
-  if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
-  const rules = await api('GET', '/rules'), m = r.match
-  if (changed()) return changed()
-  if (join < committedJoin) return text('A newer match was joined. Call join_match again.')
-  // ponytail: legacy loopback servers cannot fence stale actions; upgrade the server for match identity protection.
-  if (!m.id && (s.online || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(liveServer).hostname))) return text('Server did not provide a match ID. Call join_match after upgrading the server.')
-  committedJoin = join
-  if (!r.match.id || r.match.id !== S.matchId) S.since = 0
-  S.inMatch = true; S.matchId = r.match.id || null
-  return text({
-    matchId: m.id, opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
-    opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
-    rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
-    state: brief(m.state, m.startsIn),
-    next: 'set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, swarms they took): follow them.',
-  })
+  // ponytail: joins sharing a session wait for its long poll; separate sessions proceed independently.
+  const previous = joins.get(s) || Promise.resolve()
+  let release
+  const turn = new Promise(resolve => { release = resolve })
+  joins.set(s, turn)
+  await previous
+  try {
+    if (changed()) return changed()
+    const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
+    if (r.error) return text(r.error)
+    if (changed()) return changed()
+    if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
+    const rules = await api('GET', '/rules'), m = r.match
+    if (changed()) return changed()
+    // ponytail: legacy loopback servers cannot fence stale actions; upgrade the server for match identity protection.
+    if (!m.id && ((s.online && !s.legacyLocal) || !['localhost', '127.0.0.1', '[::1]'].includes(serverURL.hostname) || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(liveServer).hostname))) return text('Server did not provide a match ID. Call join_match after upgrading the server.')
+    committedJoin++
+    if (!r.match.id || r.match.id !== S.matchId) S.since = 0
+    S.inMatch = true; S.matchId = r.match.id || null
+    return text({
+      matchId: m.id, opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
+      opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
+      rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
+      state: brief(m.state, m.startsIn),
+      next: 'set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, swarms they took): follow them.',
+    })
+  } finally { release(); if (joins.get(s) === turn) joins.delete(s) }
 })
 
 mcp.registerTool('wait_for_event', {

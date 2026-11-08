@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import net from 'node:net'
+import http from 'node:http'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import { z } from 'zod'
@@ -116,8 +117,8 @@ const gameplay = [
 
 // Execute the real callbacks without stdio/startup. Only HTTP faults and timing
 // are injected; OnlineGame/MemoryStore retain real authorization and gameplay.
-async function callbackFixture({ supplied = false, bound = false } = {}) {
-  const origin = 'http://127.0.0.1:8790', identity = { id: 'fixture-owner', name: 'Fixture', emailVerified: true }
+async function callbackFixture({ supplied = false, bound = false, origin = 'http://127.0.0.1:8790' } = {}) {
+  const identity = { id: 'fixture-owner', name: 'Fixture', emailVerified: true }
   let now = 1800000000000, fault = null
   const store = new MemoryStore(() => now), requests = [], tools = new Map()
   const request = (owner, method, path, token = '', body = {}) => new OnlineGame(store, { now: () => now, origin, requireAccount: true, identity: owner }).request(method, path, new URLSearchParams({ token }), body)
@@ -366,27 +367,33 @@ test('late events from a previous match cannot overwrite a newer join', async ()
   assert.equal(f.S.since, 77); assert.equal(f.S.matchId, 'new-match')
 })
 
-test('an older concurrent join cannot overwrite a newer completed join', async () => {
+test('concurrent joins do not lose the match consumed by local next', async () => {
   const f = await callbackFixture(); await f.join()
-  const original = await f.read('/next')
-  let release, entered
+  const original = (await f.read('/next')).match
+  let current = 'old-match', joined = false, release, entered
   const started = new Promise(resolve => { entered = resolve })
-  f.fault(path => {
+  let calls = 0
+  f.fault(async path => {
     if (path !== '/next') return
-    f.fault(null); entered()
-    return new Promise(resolve => { release = () => resolve({ ok: true, status: 200, json: async () => ({ match: { ...original.match, id: 'old-match' } }) }) })
+    if (++calls === 1) { entered(); await new Promise(resolve => { release = resolve }) }
+    const match = joined ? null : { ...original, id: current }
+    if (match) joined = true // local /next consumes the current unjoined match
+    return { ok: true, status: 200, json: async () => ({ match }) }
   })
-  const old = f.call('join_match'); await started
-  const newer = JSON.parse(await f.call('join_match'))
-  assert.ok(newer.matchId)
-  release(); assert.match(await old, /join_match|changed/i)
-  assert.equal(f.S.matchId, newer.matchId)
+  const first = f.call('join_match'); await started
+  const second = f.call('join_match')
+  // Give the second request a turn to enter /next on the unfixed implementation.
+  await new Promise(resolve => setImmediate(resolve))
+  current = 'new-match'; joined = false
+  release()
+  const results = await Promise.all([first, second])
+  assert.ok(results.some(result => { try { return JSON.parse(result).matchId === 'new-match' } catch { return false } }), results.join(' / '))
+  assert.equal(f.S.matchId, 'new-match')
 })
 
-test('legacy loopback match without id remains playable', async () => {
-  const f = await callbackFixture(); await f.join()
+test('legacy loopback match without id remains playable with an explicitly supplied token', async () => {
+  const f = await callbackFixture({ supplied: true }); await f.join()
   const next = await f.read('/next'), events = await f.read('/events')
-  f.S.session.online = false
   f.fault(path => {
     if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
     if (path === '/events') { const { matchId, ...rest } = events; return { ok: true, status: 200, json: async () => rest } }
@@ -408,4 +415,53 @@ test('online join without identity is rejected without weakening an existing mat
   assert.match(await f.call('join_match'), /match ID/)
   assert.equal(f.S.matchId, previous)
   assert.ok(JSON.parse(await f.call('set_gambits', { ...gameplay[1][1], matchId: 'stale-match' })).error)
+})
+
+
+test('explicit token works against a legacy HTTP loopback server without match identity', async t => {
+  const f = await callbackFixture(); await f.join()
+  const { id, ...match } = (await f.read('/next')).match
+  const events = await f.read('/events'), { matchId, ...legacyEvents } = events
+  const rules = await f.read('/rules'), seen = []
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1')
+    seen.push(url)
+    res.setHeader('content-type', 'application/json')
+    if (url.pathname === '/live-config.json') { res.statusCode = 404; return res.end('{}') }
+    if (url.pathname !== '/rules' && url.searchParams.get('token') !== 'local-agent-token') { res.statusCode = 401; return res.end('{}') }
+    res.end(JSON.stringify(url.pathname === '/next' ? { match } : url.pathname === '/rules' ? rules : url.pathname === '/events' ? legacyEvents : { ok: true }))
+  })
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  t.after(() => server.close())
+  const origin = `http://127.0.0.1:${server.address().port}`, tools = new Map()
+  const source = await readFile(new URL('../tools.js', import.meta.url), 'utf8')
+  const context = vm.createContext({ SERVER: origin, serverURL: new URL(origin), agentToken: 'local-agent-token', requireAgentToken: false, setup: 'agent', name: 'you', bypassSecret: undefined, URL, AbortSignal, z, fetch,
+    openUrl: () => {}, log: () => {}, McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } } })
+  await new vm.Script(`(async () => { ${source.slice(source.indexOf('let liveServer ='), source.lastIndexOf('return mcp'))} })()`).runInContext(context)
+  const call = async (name, args = {}) => JSON.parse((await tools.get(name)(args)).content[0].text)
+  assert.ok((await call('join_match')).state)
+  assert.ok((await call('wait_for_event', { timeout_s: 1 })).state)
+  assert.equal((await call('set_gambits', gameplay[1][1])).ok, true)
+  assert.ok(seen.some(url => url.pathname === '/next' && url.searchParams.get('token') === 'local-agent-token'))
+})
+
+test('OAuth-bound supplied token rejects an identity-free online match even on loopback', async () => {
+  const f = await callbackFixture({ supplied: true, bound: true }); await f.join()
+  const next = await f.read('/next'), previous = f.S.matchId
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+  })
+  assert.match(await f.call('join_match'), /match ID/)
+  assert.equal(f.S.matchId, previous)
+})
+
+
+test('a supplied remote token never permits an identity-free match', async () => {
+  const f = await callbackFixture({ supplied: true, origin: 'https://online.example.test' }); await f.join()
+  const next = await f.read('/next'), previous = f.S.matchId
+  f.fault(path => {
+    if (path === '/next') { const { id, ...match } = next.match; return { ok: true, status: 200, json: async () => ({ match }) } }
+  })
+  assert.match(await f.call('join_match'), /match ID/)
+  assert.equal(f.S.matchId, previous)
 })
