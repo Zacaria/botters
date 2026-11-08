@@ -25,10 +25,31 @@ export function authOptions(env, sendEmail) {
 }
 
 export async function deliverAuthEmail(env, message) {
-  if (!env.RESEND_API_KEY || !env.AUTH_EMAIL_FROM) throw new Error('Email delivery is not configured.')
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: env.AUTH_EMAIL_FROM, ...message }), signal: AbortSignal.timeout(8000),
-  })
-  if (!r.ok) throw new Error('Email delivery is unavailable.')
+  const provider = env.AUTH_EMAIL_PROVIDER ?? 'resend'
+  if (!env.AUTH_EMAIL_FROM || !['resend', 'cloudflare'].includes(provider) ||
+    (provider === 'resend' ? !env.RESEND_API_KEY : !env.CLOUDFLARE_EMAIL_API_TOKEN || !/^[a-f0-9]{32}$/i.test(env.CLOUDFLARE_ACCOUNT_ID || ''))) {
+    throw new Error('Email delivery is not configured.')
+  }
+  const cloudflare = provider === 'cloudflare'
+  const endpoint = cloudflare ? `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/email/sending/send` : 'https://api.resend.com/emails'
+  try {
+    const r = await fetch(endpoint, {
+      method: 'POST', headers: { authorization: `Bearer ${cloudflare ? env.CLOUDFLARE_EMAIL_API_TOKEN : env.RESEND_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ from: env.AUTH_EMAIL_FROM, to: message.to, subject: message.subject, text: message.text }),
+      signal: AbortSignal.timeout(8000), redirect: 'error',
+    })
+    if (!r.ok) throw new Error()
+    if (!cloudflare) return { provider, status: 'accepted' }
+    const body = await r.json(), result = body?.result
+    if (body?.success !== true || !Array.isArray(body.errors) || body.errors.length || !result ||
+      !Array.isArray(result.delivered) || !Array.isArray(result.queued) ||
+      !Array.isArray(result.permanent_bounces) || result.permanent_bounces.length ||
+      (result.suppressed_recipients !== undefined && (!Array.isArray(result.suppressed_recipients) || result.suppressed_recipients.length))) throw new Error()
+    const accepted = [...result.delivered, ...result.queued]
+    if (accepted.length !== 1 || accepted[0] !== message.to) throw new Error()
+    return { provider, status: result.queued.length ? 'queued' : 'delivered', ...(typeof result.message_id === 'string' ? { messageId: result.message_id } : {}) }
+  } catch {
+    // Do not expose provider bodies/auth links or retry an ambiguously accepted email.
+    throw new Error('Email delivery is unavailable.')
+  }
 }
