@@ -153,6 +153,47 @@ test('two verified players pair an agent, play, reconnect, retain history and re
   } finally { await a.close(); await b.close() }
 })
 
+for (const operation of ['sign-out', 'password-reset', 'session-delete']) test(`commit barrier exposes stale HTTP and Colyseus authority after ${operation}`, async ({ page }) => {
+  test.skip(process.env.BOTTERS_TEST_REAL_ENTRIES !== '1' || process.env.BOTTERS_TEST_COMMIT_BARRIER !== '1', 'isolated counterexample only')
+  const email = `auth-commit-${operation}@example.test`
+  await signup(page, email, 'Commit barrier')
+  let frames = 0, closed = false
+  page.on('websocket', socket => { socket.on('framereceived', () => frames++); socket.on('close', () => { closed = true }) })
+  await page.locator('#play').click(); await expect(page.locator('#hud')).toBeVisible()
+  await expect.poll(() => frames).toBeGreaterThan(3)
+  const bearer = await page.evaluate(() => localStorage.getItem('botters.session'))
+  const sessionCount = async () => (await (await page.request.get(`/test/session-count?email=${email}`)).json()).count
+  expect(await sessionCount()).toBe(1)
+  let resetToken
+  if (operation === 'password-reset') {
+    expect((await page.request.post('/api/auth/request-password-reset', { headers: { Origin: 'https://127.0.0.1:8789' }, data: { email, redirectTo: '/' } })).status()).toBe(200)
+    const mail = await page.request.get(`/test/mail?email=${email}`).then(r => r.json())
+    const link = mail.at(-1).text.match(/https?:\/\/\S+/)[0]
+    const redirect = await page.request.get(link, { maxRedirects: 0 })
+    resetToken = new URL(redirect.headers().location, 'https://127.0.0.1:8789').searchParams.get('token')
+    expect(resetToken).toBeTruthy()
+  }
+  const barrier = mode => page.request.post(`/test/authority?mode=${mode}`)
+  try {
+    expect((await barrier('hold')).status()).toBe(200)
+    if (operation === 'sign-out') {
+      expect((await page.request.post('/api/auth/sign-out', { headers: { Origin: 'https://127.0.0.1:8789' }, data: {} })).status()).toBe(200)
+    } else if (operation === 'password-reset') {
+      expect((await page.request.post('/api/auth/reset-password', { headers: { Origin: 'https://127.0.0.1:8789' }, data: { token: resetToken, newPassword: 'new-barrier-password-457!' } })).status()).toBe(200)
+    } else {
+      expect((await (await page.request.post(`/test/delete-session?email=${email}`)).json()).deleted).toBe(1)
+    }
+    expect(await sessionCount()).toBe(0) // Independent read after the deletion committed.
+    const responses = await Promise.all(Array.from({ length: 8 }, () => page.request.get(`${live}/lobby?token=${bearer}`)))
+    expect(responses.map(response => response.status())).toEqual(Array(8).fill(200))
+    const afterCommit = frames
+    await expect.poll(() => frames, { timeout: 1000, intervals: [20] }).toBeGreaterThan(afterCommit)
+    console.log(`Counterexample after committed ${operation}: 8/8 live HTTP requests accepted; a Colyseus frame was received while refresh was held`)
+  } finally { await barrier('release') }
+  await expect.poll(async () => (await page.request.get(`${live}/lobby?token=${bearer}`)).status()).toBe(401)
+  await expect.poll(() => closed).toBe(true)
+})
+
 test('cross-origin live cookie, one-use tickets, stolen reservations and logout protect a running socket', async ({ page, context }) => {
   await signup(page, 'auth-browser-boundary@example.test', 'Boundary')
   const account = await page.request.get('/account').then(r => r.json())

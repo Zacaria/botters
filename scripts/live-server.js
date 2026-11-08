@@ -6,11 +6,10 @@ const backend = process.env.BOTTERS_LIVE_BACKEND || 'convex'
 let remote, pool
 if (backend === 'postgres') {
   if (!process.env.DATABASE_URL || !process.env.BOTTERS_STORE_NAMESPACE || process.env.BOTTERS_REQUIRE_ACCOUNT !== '1') throw new Error('PostgreSQL live requires DATABASE_URL, BOTTERS_STORE_NAMESPACE and BOTTERS_REQUIRE_ACCOUNT=1')
-  const [{ default: pg }, { PostgresStore }, { PostgresLiveDurable }] = await Promise.all([
-    import('pg'), import('../online/postgres-store.js'), import('../online/postgres-live-durable.js'),
+  const [{ default: pg }, { PostgresStore }, { PostgresLiveDurable }, { guardPostgresPool }] = await Promise.all([
+    import('pg'), import('../online/postgres-store.js'), import('../online/postgres-live-durable.js'), import('../online/postgres-pool.js'),
   ])
-  pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 8000 })
-  pool.on('error', () => console.error('PostgreSQL idle connection lost'))
+  pool = guardPostgresPool(new pg.Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 8000 }))
   try {
     await pool.query('SELECT namespace, key, value, expires_at FROM botters_records LIMIT 0')
     await pool.query('SELECT s.id, s."userId", s."expiresAt", u.id, u."emailVerified" FROM session s JOIN "user" u ON u.id = s."userId" LIMIT 0')

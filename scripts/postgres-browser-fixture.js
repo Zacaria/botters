@@ -19,7 +19,7 @@ if (!['postgres:', 'postgresql:'].includes(target.protocol) || target.hostname !
 const origin = 'https://127.0.0.1:8789', liveOrigin = 'https://127.0.0.1:8790'
 const schema = `botters_browser_${randomUUID().replaceAll('-', '')}`, mails = [], children = []
 const admin = new pg.Pool({ connectionString: target.toString() })
-let pool, server, liveProxy, tlsDir, createdSchema = false, buildId = false
+let pool, server, liveProxy, tlsDir, liveChild, createdSchema = false, buildId = false
 const faults = new Map()
 async function databaseProxy(name) {
   const sockets = new Set()
@@ -61,7 +61,8 @@ try {
   try { await writeFile('build-id.json', JSON.stringify({ commit: 'synthetic-browser' }), { flag: 'wx' }); buildId = true } catch (e) { if (e.code !== 'EEXIST') throw e }
   const common = { ...process.env, DATABASE_URL: target.toString(), BOTTERS_STORE_NAMESPACE: 'browser', HOST: '127.0.0.1' }
   function launch(file, env, capture) {
-    const p = fork(file, [], { env: { ...common, ...env }, execArgv: capture ? ['--import', new URL('../test/fixtures/botters-real-journey/capture-mail.js', import.meta.url).pathname] : [], stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
+    const preload = capture ? 'capture-mail.js' : process.env.BOTTERS_TEST_COMMIT_BARRIER === '1' && file === 'scripts/live-server.js' ? 'hold-authority.js' : null
+    const p = fork(file, [], { env: { ...common, ...env }, execArgv: preload ? ['--import', new URL(`../test/fixtures/botters-real-journey/${preload}`, import.meta.url).pathname] : [], stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
     children.push(p); p.on('message', m => { if (m.type === 'mail') mails.push(m) })
     p.stdout.pipe(process.stdout); p.stderr.pipe(process.stderr)
     return Promise.race([new Promise(resolve => p.stdout.on('data', b => { if (b.toString().includes('"service":')) resolve() })), once(p, 'exit').then(() => { throw new Error(`${file} exited during startup`) })])
@@ -69,6 +70,7 @@ try {
   const controlDatabase = await databaseProxy('control'), liveDatabase = await databaseProxy('live')
   await launch('scripts/postgres-http-server.js', { DATABASE_URL: controlDatabase, PORT: '8791', SITE_URL: origin, BOTTERS_AUTH_ORIGIN: origin, BETTER_AUTH_SECRET: secret, RESEND_API_KEY: 'synthetic', AUTH_EMAIL_FROM: 'botters@example.test' }, true)
   await launch('scripts/live-server.js', { DATABASE_URL: liveDatabase, PORT: '8792', BOTTERS_LIVE_BACKEND: 'postgres', BOTTERS_REQUIRE_ACCOUNT: '1', PLAYER_ORIGINS: origin }, false)
+  liveChild = children.at(-1)
   liveProxy = https.createServer(tls, (req, res) => {
     const upstream = http.request({ host: '127.0.0.1', port: 8792, path: req.url, method: req.method, headers: req.headers }, response => { res.writeHead(response.statusCode, response.headers); response.pipe(res) })
     upstream.on('error', () => { if (!res.headersSent) res.writeHead(502); res.end() }); req.pipe(upstream)
@@ -85,6 +87,26 @@ try {
       const url = new URL(req.url, origin)
       if (url.pathname === '/live-config.json') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ url: liveOrigin, accountRequired: true })) }
       if (url.pathname === '/live-client.js') { res.setHeader('Content-Type', 'text/javascript'); return res.end(bundle) }
+      if (process.env.BOTTERS_TEST_COMMIT_BARRIER === '1' && url.pathname === '/test/delete-session' && req.method === 'POST') {
+        const result = await pool.query('DELETE FROM session WHERE "userId" IN (SELECT id FROM "user" WHERE email = $1)', [url.searchParams.get('email')])
+        res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ deleted: result.rowCount }))
+      }
+      if (process.env.BOTTERS_TEST_COMMIT_BARRIER === '1' && url.pathname === '/test/session-count') {
+        const result = await pool.query('SELECT count(*)::int AS n FROM session s JOIN "user" u ON u.id = s."userId" WHERE u.email = $1', [url.searchParams.get('email')])
+        res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ count: result.rows[0].n }))
+      }
+      if (process.env.BOTTERS_TEST_COMMIT_BARRIER === '1' && url.pathname === '/test/authority' && req.method === 'POST') {
+        const mode = url.searchParams.get('mode')
+        if (mode === 'release') { liveChild.send({ type: 'release-authority' }); return res.end('released') }
+        if (mode !== 'hold') { res.writeHead(400); return res.end() }
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => { liveChild.off('message', onMessage); reject(new Error('authority hold timed out')) }, 5000)
+          const onMessage = message => { if (message?.type === 'authority-held') { clearTimeout(timer); liveChild.off('message', onMessage); resolve() } }
+          liveChild.on('message', onMessage)
+          liveChild.send({ type: 'hold-authority' })
+        })
+        return res.end('held')
+      }
       if (url.pathname === '/test/fault' && req.method === 'POST') {
         const state = faults.get(url.searchParams.get('target')), mode = url.searchParams.get('mode')
         if (!state || !['down', 'up'].includes(mode)) { res.writeHead(400); return res.end() }
