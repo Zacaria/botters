@@ -369,16 +369,24 @@ $('signout').onclick = async () => {
   clearTimeout(lobbyTimer); clearTimeout(memberTimer); clearTimeout(docTimer); clearTimeout(streamRetry); es?.close()
   localStorage.removeItem('botters.session'); token = null; L = null; show('start'); setAuthMode('signin')
 }
+async function refreshAgent(granted) {
+  const session = token
+  for (let attempt = 0; attempt < 6 && token === session; attempt++) {
+    await lobby(false)
+    if (!L || L.error || !!L.agentGranted === granted) return
+    await new Promise(resolve => setTimeout(resolve, 400))
+  }
+}
 $('revokeAgent').onclick = async () => {
   const r = await api('POST', '/agent/revoke', {})
-  if (!r.error) await lobby(false)
+  if (!r.error) await refreshAgent(false)
   $('lobbyMsg').textContent = r.error || 'Agent disconnected. Its token no longer works.'
 }
 $('approveAgent').onclick = async () => {
   $('approveAgent').disabled = true
   const r = await api('POST', '/agent/approve', { id: pendingPair })
   $('pairMessage').textContent = r.error || 'Agent connected. You can disconnect it from this lobby.'
-  if (!r.error) { pendingPair = null; sessionStorage.removeItem('botters.pair'); await lobby(false) }
+  if (!r.error) { pendingPair = null; sessionStorage.removeItem('botters.pair'); await refreshAgent(true) }
   else $('approveAgent').disabled = false
 }
 $('declineAgent').onclick = () => { pendingPair = null; sessionStorage.removeItem('botters.pair'); $('pairApproval').hidden = true }
