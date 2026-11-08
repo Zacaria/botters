@@ -31,6 +31,10 @@ Stop the cluster you created with `pg_ctl -D "$WORK/data" -m fast -w stop`. Neve
 
 A fresh authority result that confirms a missing or revoked capability is an authentication refusal (401), not a backend outage. A failed or stale authority read remains unavailable (503). Revocation propagates on the polling interval and is not instant; the lease must never outlive a successful database read. These semantics alone do not wire the production servers or prove the browser journey.
 
+## PostgreSQL live-server entry point
+
+The real Colyseus entry point supports `BOTTERS_LIVE_BACKEND=postgres`, with `DATABASE_URL` and a nonempty `BOTTERS_STORE_NAMESPACE` shared with the HTTP store. Set exact `PLAYER_ORIGINS`, `BOTTERS_REQUIRE_ACCOUNT=1`, and run `node scripts/live-server.js`. The deployment build supplies `build-id.json` with a `commit` field; local tests create a temporary synthetic one if absent. The process checks the existing record and Better Auth tables before listening; run the migrations separately first. It does not create or migrate tables at startup. Keep the database URL private. `node --test test/postgres-live-entry.integration.test.js` launches the actual entry point against `BOTTERS_TEST_POSTGRES_URL` and checks health and shutdown. This live entry point alone does not wire the HTTP authentication service or establish the end-to-end journey.
+
 ## Verification on the isolated candidate
 
 On PostgreSQL 17.11, a new loopback-only cluster and `botters_synthetic` database started with zero public tables. With `BOTTERS_TEST_POSTGRES_URL` set to that database:
