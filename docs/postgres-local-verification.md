@@ -60,7 +60,34 @@ Before the idle-pool error handlers, the same TCP cut caused both actual entry p
 
 ## Outage verification scope
 
-The interprocess journey exercises the actual live entry with an already-open, authenticated WebSocket during a simulated live-to-PostgreSQL network cut. It checks that gameplay frames stop after the authority lease expires, and that live HTTP recovers after connectivity returns. The separate control-to-database outage and browser journey still require verification; no instantaneous revocation is claimed.
+The interprocess journey exercises both actual entry points with an already-open authenticated WebSocket during simulated independent TCP cuts to PostgreSQL. A nonnumeric Better Auth error status must produce a sanitized 503 without terminating the control process. Test deadlines are ceilings, not service guarantees; requests and frames already in flight may complete, and no instantaneous revocation is claimed.
+
+Run the fault test separately because its additional signup otherwise exceeds the shared five-signup test budget:
+
+```sh
+BOTTERS_TEST_BROWSER_OUTAGE=1 npx playwright test -c playwright.postgres.config.js --grep 'browser outage'
+npx playwright test -c playwright.postgres.config.js
+```
+
+Both commands require the dedicated `BOTTERS_TEST_POSTGRES_URL` defined above. The fixture cuts only the selected process-to-database loopback proxy; it does not stop PostgreSQL. Restore and schema cleanup run in `finally` and fixture shutdown. Never expose this test-only fixture to an untrusted network.
+
+### Local observations, 2026-11-08 UTC
+
+The run used an empty, dedicated local PostgreSQL 17 cluster, synthetic identities and the real control/live entry points. Browser tests used Brave through the fixture's loopback TLS proxies. The following are individual observations, not service-level limits:
+
+| Scenario and expectation | Observed |
+| --- | --- |
+| Control database cut: authenticated HTTP fails closed, process survives and recovers | `/session` 503; live lobby still 200; control `/account` 200 after restore. Before the fix, Better Auth's `INTERNAL_SERVER_ERROR` string caused Node `ERR_HTTP_INVALID_STATUS_CODE` and process exit 1. |
+| Live database cut in Brave at 03:01:39.759 | Six WS frames arrived after injection before closure at 543 ms; none during the next 400 ms. Lobby returned 503, then 200 after restore; reload resumed frames. |
+| Browser sign-out, 24 concurrent lobby requests and active WS | 24 returned 200 while racing; seven frames observed before closure at 566 ms from initiating sign-out. Preserved old account/live cookies and bearer were eventually refused (401), checked at 1444 ms from start. These requests were not synchronized against the database commit. |
+| Direct session deletion in separate process, 24 concurrent HTTP requests | All 24 returned 200 during the race; one frame arrived. HTTP 401 and WS close 4003 observed at 310.3 and 310.4 ms from starting the deleting subprocess. This includes subprocess startup, not a commit-to-effect measurement. |
+| Password reset after outage recovery, 24 concurrent HTTP requests and an open WS | All 24 returned 200 during the race; four frames observed; WS close 4003 at 345.8 ms from reset start including password hashing. Old HTTP/live credentials returned 401, reset token replay returned 400, and the new password signed in. |
+| Rate budget: 20 simultaneous synthetic sign-ins across two real control processes with forged forwarding headers | Five requests reached the outer accepted budget (401 or 400), 15 received 429; one durable counter held 5. The cause of the 400 responses was not established. This verifies the outer guard, not independent Better Auth database counter atomicity. |
+| Unaffected valid authority load | 48 concurrent lobby requests succeeded in 91.8 ms; this is a bounded smoke test, not capacity qualification. |
+
+The authority refreshes every 500 ms and leases successful snapshots for at most 2000 ms from refresh start; failed refreshes fail closed. HTTP checks authority again at execution and WS frame admission rechecks the cached authority, but a previously validated request or queued frame can finish before a refreshed revocation is adopted. Scheduling, DB latency and network buffering add uncertainty; neither these timings nor the test deadlines establish instantaneous or maximum production propagation. The public control exposes sign-out and password reset; the direct database deletion is an additional cross-process test, not a public endpoint. Agent revocation is a distinct capability and is covered by the regular browser scenarios.
+
+The race runs start operations concurrently but do not hold individual requests at a barrier around the actual commit, so they do not prove every possible interleaving. They do not model a stalled rather than disconnected database, production load, multiple hosts, an external ingress, TLS trust or real email delivery. The final real-entry full Node suite passed 273/273. After testing, the dedicated cluster had zero `botters_%` schemas, stopped cleanly, all five loopback test ports were unbound, and the synthetic build ID was absent. No push, migration of existing data, cutover or deployment is authorized by these observations.
 
 ## Real-entry browser verification
 

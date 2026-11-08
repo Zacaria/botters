@@ -50,9 +50,9 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
   const target = new URL(database)
   assert.ok(['postgres:', 'postgresql:'].includes(target.protocol) && target.hostname === '127.0.0.1' && !target.search, 'use a dedicated loopback PostgreSQL database')
   const schema = `botters_journey_${randomUUID().replaceAll('-', '')}`, admin = new pg.Pool({ connectionString: database })
-  let pool, control, live, proxy
-  const sockets = new Set()
-  let allowDatabase = true
+  let pool, control, live, proxy, controlProxy
+  const sockets = new Set(), controlSockets = new Set()
+  let allowDatabase = true, allowControlDatabase = true
   const mails = []
   try {
     await admin.query(`CREATE SCHEMA "${schema}"`)
@@ -72,7 +72,17 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
     await once(proxy, 'listening')
     const proxyUrl = new URL(database); proxyUrl.port = String(proxy.address().port)
     const liveEnv = { ...env, JOURNEY_DATABASE: proxyUrl.toString() }
-    control = await start('control', env, mails); live = await start('live', liveEnv, mails)
+    controlProxy = net.createServer(client => {
+      controlSockets.add(client); client.on('close', () => controlSockets.delete(client)); client.on('error', () => {})
+      if (!allowControlDatabase) return client.destroy()
+      const upstream = net.connect(Number(target.port || 5432), '127.0.0.1')
+      controlSockets.add(upstream); upstream.on('close', () => controlSockets.delete(upstream)); upstream.on('error', () => client.destroy())
+      client.pipe(upstream).pipe(client)
+    }).listen(0, '127.0.0.1')
+    await once(controlProxy, 'listening')
+    const controlUrl = new URL(database); controlUrl.port = String(controlProxy.address().port)
+    const controlEnv = { ...env, JOURNEY_DATABASE: controlUrl.toString() }
+    control = await start('control', controlEnv, mails); live = await start('live', liveEnv, mails)
     const postAuth = (path, body, cookie) => request(site, '/api/auth' + path, { body, cookie })
     async function account(name) {
       const email = `${name}@example.test`, password = 'synthetic-password-12345!'
@@ -95,7 +105,7 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
       return { cookie, id: session.user.id, authSessionId: session.session.id }
     }
     const a = await account('alice'), b = await account('bob'); assert.notEqual(a.id, b.id)
-    await stop(control); control = await start('control', env, mails)
+    await stop(control); control = await start('control', controlEnv, mails)
     const sessionPath = process.env.BOTTERS_JOURNEY_REAL_HTTP === '1' ? '/account' : '/api/auth/get-session'
     assert.equal((await (await request(site, sessionPath, { cookie: a.cookie })).json()).user.id, a.id, 'session survives control process restart')
     assert.equal((await request(site, '/session', { body: {} })).status, 401)
@@ -117,6 +127,26 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
     assert.equal((await lobby(ga.humanToken, liveCookieB)).status, 401, 'another account cookie cannot authorize')
     assert.equal((await lobby(ga.humanToken, liveCookieA)).status, 200)
     assert.equal((await lobby(gb.humanToken, liveCookieB)).status, 200)
+    allowControlDatabase = false; for (const socket of controlSockets) socket.destroy()
+    let controlDown
+    try { controlDown = await request(site, '/session', { body: {}, cookie: b.cookie }) } catch (error) {
+      t.diagnostic(`control request failed; exit=${control.exitCode}, signal=${control.signalCode}, error=${error.cause?.code}; stderr=${(control.journeyStderr || '').slice(-1500)}`)
+      throw error
+    }
+    t.diagnostic(`control outage authenticated /session: ${controlDown.status}`)
+    assert.notEqual(controlDown.status, 200, 'control fails closed while its database is unreachable')
+    assert.equal(control.exitCode, null, 'control survives outage')
+    assert.equal((await lobby(gb.humanToken, liveCookieB)).status, 200, 'live remains independently connected')
+    allowControlDatabase = true
+    let controlRecovered = 0
+    const controlDeadline = performance.now() + 5000
+    while (performance.now() < controlDeadline) {
+      controlRecovered = (await request(site, sessionPath, { cookie: b.cookie })).status
+      if (controlRecovered === 200) break
+      await sleep(100)
+    }
+    t.diagnostic(`control recovery authenticated /account: ${controlRecovered}`)
+    assert.equal(controlRecovered, 200, 'control resumes authenticated access after restoration')
     const play = await request(liveUrl, `/play?token=${ga.humanToken}`, { body: { vs: 'easy', withAgent: false }, cookie: liveCookieA, origin: site })
     assert.equal(play.status, 200, 'real live game starts')
     const socket = await request(liveUrl, `/socket?token=${ga.humanToken}`, { cookie: liveCookieA, origin: site }); assert.equal(socket.status, 200)
@@ -132,8 +162,15 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
     const firstFrame = new Promise(resolve => room.onMessage('frame', resolve))
     assert.ok((await Promise.race([firstFrame, sleep(5000).then(() => { throw new Error('no WebSocket frame') })])).matchId)
     const closed = new Promise(resolve => room.onLeave(code => resolve(code)))
+    let raceFrames = 0
+    room.onMessage('frame', () => { raceFrames++ })
     const begin = performance.now()
-    await promisify(execFile)(process.execPath, ['--input-type=module', '-e', `import pg from 'pg'; const p=new pg.Pool({connectionString:process.env.JOURNEY_DATABASE,options:'-c search_path='+process.env.JOURNEY_SCHEMA}); const r=await p.query('DELETE FROM session WHERE id=$1',[process.env.JOURNEY_ID]); await p.end(); if(r.rowCount!==1)process.exit(1);`], { env: { ...process.env, JOURNEY_DATABASE: database, JOURNEY_SCHEMA: schema, JOURNEY_ID: a.authSessionId } })
+    const revocation = promisify(execFile)(process.execPath, ['--input-type=module', '-e', `import pg from 'pg'; const p=new pg.Pool({connectionString:process.env.JOURNEY_DATABASE,options:'-c search_path='+process.env.JOURNEY_SCHEMA}); const r=await p.query('DELETE FROM session WHERE id=$1',[process.env.JOURNEY_ID]); await p.end(); if(r.rowCount!==1)process.exit(1);`], { env: { ...process.env, JOURNEY_DATABASE: database, JOURNEY_SCHEMA: schema, JOURNEY_ID: a.authSessionId } })
+    const racing = await Promise.all(Array.from({ length: 24 }, () => lobby(ga.humanToken, liveCookieA)))
+    await revocation
+    const outcomes = Object.fromEntries([...new Set(racing.map(r => r.status))].map(code => [code, racing.filter(r => r.status === code).length]))
+    t.diagnostic(`24 HTTP requests racing session deletion: ${JSON.stringify(outcomes)}; frames observed while racing: ${raceFrames}`)
+    assert.ok(racing.every(r => [200, 401].includes(r.status)), 'racing requests receive valid or revoked outcomes')
     let status, until = performance.now() + 5000
     while (performance.now() < until) { status = (await lobby(ga.humanToken, liveCookieA)).status; if (status === 401) break; await sleep(50) }
     t.diagnostic(`interprocess revocation observed HTTP ${status} after ${(performance.now() - begin).toFixed(1)} ms (includes subprocess startup); not an instant-propagation claim`)
@@ -172,6 +209,13 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
     let recovered = 0, recoveryDeadline = performance.now() + 5000
     while (performance.now() < recoveryDeadline) { recovered = (await lobby(gb.humanToken, liveCookieB)).status; if (recovered === 200) break; await sleep(100) }
     assert.equal(recovered, 200, 'authority recovers after network restoration')
+    const restoredSocket = await request(liveUrl, `/socket?token=${gb.humanToken}`, { cookie: liveCookieB, origin: site })
+    assert.equal(restoredSocket.status, 200)
+    const restoredRoom = await bClient.joinById((await restoredSocket.json()).roomId, { token: gb.humanToken })
+    let resetFrames = 0
+    const restoredFrame = new Promise(resolve => restoredRoom.onMessage('frame', frame => { resetFrames++; resolve(frame) }))
+    await Promise.race([restoredFrame, sleep(5000).then(() => { throw new Error('no restored WebSocket frame') })])
+    const resetClosed = new Promise(resolve => restoredRoom.onLeave(resolve))
     assert.equal((await postAuth('/request-password-reset', { email: 'bob@example.test', redirectTo: '/' })).status, 200)
     const resetMail = mails.findLast(m => m.to === 'bob@example.test')
     const resetLink = resetMail?.text.match(/http:\/\/\S+/)?.[0]; assert.ok(resetLink)
@@ -179,14 +223,27 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
     const redirect = await fetch(resetUrl, { redirect: 'manual' })
     const token = new URL(redirect.headers.get('location'), site).searchParams.get('token'); assert.ok(token)
     const newPassword = 'new-synthetic-password-456!'
-    assert.equal((await postAuth('/reset-password', { token, newPassword })).status, 200)
+    const resetBegin = performance.now()
+    const resetting = postAuth('/reset-password', { token, newPassword })
+    const resetRace = await Promise.all(Array.from({ length: 24 }, () => lobby(gb.humanToken, liveCookieB)))
+    assert.equal((await resetting).status, 200)
+    t.diagnostic(`password reset race: ${JSON.stringify(Object.fromEntries([...new Set(resetRace.map(r => r.status))].map(code => [code, resetRace.filter(r => r.status === code).length])))}; frames while racing: ${resetFrames}`)
+    assert.ok(resetRace.every(r => [200, 401].includes(r.status)))
+    const resetCode = await Promise.race([resetClosed, sleep(5000).then(() => { throw new Error('reset session WebSocket stayed open') })])
+    t.diagnostic(`reset WebSocket closed with ${resetCode} after ${(performance.now() - resetBegin).toFixed(1)} ms (includes password hashing)`)
+    assert.equal(resetCode, 4003)
+    await sleep(300); const afterResetFrames = resetFrames; await sleep(300)
+    assert.equal(resetFrames, afterResetFrames, 'no frames after reset socket closure')
+    assert.equal((await lobby(gb.humanToken, liveCookieB)).status, 401)
     assert.equal((await postAuth('/reset-password', { token, newPassword })).status, 400, 'reset token is single-use')
     assert.equal((await request(site, '/session', { body: {}, cookie: b.cookie })).status, 401, 'password reset revokes prior session')
     assert.equal((await postAuth('/sign-in/email', { email: 'bob@example.test', password: newPassword })).status, 200, 'new password signs in')
   } finally {
     await stop(live); await stop(control)
     for (const socket of sockets) socket.destroy()
+    for (const socket of controlSockets) socket.destroy()
     if (proxy) await new Promise(resolve => proxy.close(resolve))
+    if (controlProxy) await new Promise(resolve => controlProxy.close(resolve))
     if (pool) await pool.end()
     await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`); await admin.end()
   }

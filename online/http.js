@@ -65,7 +65,10 @@ export function createHandler(store, options = {}) {
       // Never emit tokens, store replies or raw exception stacks in logs/HTTP.
       if (closed) return
       if (res.headersSent) { res.write('event: unavailable\ndata: {}\n\n'); res.end() }
-      else json(res, e.status || (e instanceof SyntaxError ? 400 : 503), { error: e.status ? e.message : e instanceof SyntaxError ? 'Send valid JSON.' : 'Online service is unavailable. Retry shortly.' })
+      else {
+        const status = Number.isInteger(e.status) && e.status >= 400 && e.status <= 599 ? e.status : null
+        json(res, status || (e instanceof SyntaxError ? 400 : 503), { error: status ? e.message : e instanceof SyntaxError ? 'Send valid JSON.' : 'Online service is unavailable. Retry shortly.' })
+      }
     } finally {
       // Live capability checks and frames have process-wide ownership.
     }

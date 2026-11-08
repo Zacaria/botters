@@ -10,6 +10,52 @@ async function signup(page, email, name) {
   await page.goto(mail.at(-1).text.match(/https?:\/\/\S+/)[0]); await expect(page.locator('#lobby')).toBeVisible()
 }
 
+test('browser outage closes live frames and recovers without reviving a signed-out session', async ({ page, context }) => {
+  test.skip(process.env.BOTTERS_TEST_REAL_ENTRIES !== '1' || process.env.BOTTERS_TEST_BROWSER_OUTAGE !== '1', 'run separately with the isolated PostgreSQL browser fixture')
+  await signup(page, 'auth-browser-outage@example.test', 'Outage')
+  let frames = 0, closedAt = 0
+  page.on('websocket', socket => { socket.on('framereceived', () => frames++); socket.on('close', () => { closedAt = Date.now() }) })
+  await page.locator('#play').click(); await expect(page.locator('#hud')).toBeVisible()
+  await expect.poll(() => frames).toBeGreaterThan(3)
+  const bearer = await page.evaluate(() => localStorage.getItem('botters.session'))
+  const cookies = await context.cookies()
+  const fault = (target, mode) => page.request.post(`/test/fault?target=${target}&mode=${mode}`)
+  const lobby = () => page.request.get(`${live}/lobby?token=${bearer}`).then(r => r.status())
+  try {
+    expect(await lobby()).toBe(200)
+    await fault('control', 'down')
+    expect((await page.request.post('/session', { data: {} })).status()).toBe(503)
+    expect(await lobby()).toBe(200)
+    await fault('control', 'up')
+    await expect.poll(async () => (await page.request.get('/account')).status()).toBe(200)
+    const cutAt = Date.now(), before = frames
+    await fault('live', 'down')
+    await expect.poll(() => closedAt, { timeout: 7000 }).toBeGreaterThan(0)
+    const end = frames, closureMs = closedAt - cutAt; await page.waitForTimeout(400); expect(frames).toBe(end)
+    await expect.poll(lobby, { timeout: 7000 }).toBe(503)
+    await fault('live', 'up')
+    await expect.poll(lobby, { timeout: 7000 }).toBe(200)
+    const beforeReconnect = frames
+    await page.reload(); await expect(page.locator('#hud')).toBeVisible({ timeout: 15000 })
+    await expect.poll(() => frames, { timeout: 7000 }).toBeGreaterThan(beforeReconnect + 3)
+    console.log(`Browser live outage ${new Date(cutAt).toISOString()}: ${end - before} frames after cut before closure; socket closed in ${closureMs}ms; 503 then 200; frames resumed`)
+    const signedOut = Date.now(); closedAt = 0; const logoutFrames = frames
+    const signingOut = page.request.post('/api/auth/sign-out', { headers: { Origin: 'https://127.0.0.1:8789' }, data: {} })
+    const race = await Promise.all(Array.from({ length: 24 }, () => lobby()))
+    expect((await signingOut).status()).toBe(200)
+    expect(race.every(status => [200, 401].includes(status))).toBe(true)
+    await expect.poll(() => closedAt, { timeout: 7000 }).toBeGreaterThan(0)
+    const finalFrames = frames; await page.waitForTimeout(400); expect(frames).toBe(finalFrames)
+    console.log(`Logout race: ${race.filter(status => status === 200).length} HTTP 200, ${race.filter(status => status === 401).length} HTTP 401; ${finalFrames - logoutFrames} frames; close in ${closedAt - signedOut}ms`)
+    const old = await request.newContext({ baseURL: 'https://127.0.0.1:8789', ignoreHTTPSErrors: true, storageState: { cookies, origins: [] } })
+    try {
+      await expect.poll(async () => (await old.get(`${live}/lobby?token=${bearer}`)).status(), { timeout: 7000 }).toBe(401)
+      expect((await old.post('/session', { data: {} })).status()).toBe(401)
+      console.log(`Browser old credentials refused ${Date.now() - signedOut}ms after logout started`)
+    } finally { await old.dispose() }
+  } finally { await fault('control', 'up'); await fault('live', 'up') }
+})
+
 test('signup verification, wrong password, reset/replay, account resume and logout use real library sessions', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('#authTitle')).toHaveText('Sign in to play online')

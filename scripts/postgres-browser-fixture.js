@@ -20,10 +20,28 @@ const origin = 'https://127.0.0.1:8789', liveOrigin = 'https://127.0.0.1:8790'
 const schema = `botters_browser_${randomUUID().replaceAll('-', '')}`, mails = [], children = []
 const admin = new pg.Pool({ connectionString: target.toString() })
 let pool, server, liveProxy, tlsDir, createdSchema = false, buildId = false
+const faults = new Map()
+async function databaseProxy(name) {
+  const sockets = new Set()
+  const state = { down: false, sockets }
+  const proxy = net.createServer(client => {
+    if (state.down) return client.destroy()
+    const upstream = net.connect(Number(target.port || 5432), '127.0.0.1')
+    for (const socket of [client, upstream]) {
+      sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => { client.destroy(); upstream.destroy() })
+    }
+    client.pipe(upstream).pipe(client)
+  }).listen(0, '127.0.0.1')
+  await once(proxy, 'listening')
+  state.proxy = proxy; faults.set(name, state)
+  const url = new URL(target); url.port = String(proxy.address().port)
+  return url.toString()
+}
 async function stop() {
   if (server) { server.closeAllConnections(); await new Promise(r => server.close(r)) }
   if (liveProxy) { liveProxy.closeAllConnections(); await new Promise(r => liveProxy.close(r)) }
   for (const child of children) if (child.exitCode === null && child.signalCode === null) { const exit = once(child, 'exit'); child.kill('SIGTERM'); await exit }
+  for (const state of faults.values()) { for (const socket of state.sockets) socket.destroy(); await new Promise(resolve => state.proxy.close(resolve)) }
   if (pool) await pool.end()
   if (createdSchema) await admin.query(`DROP SCHEMA "${schema}" CASCADE`)
   await admin.end()
@@ -48,8 +66,9 @@ try {
     p.stdout.pipe(process.stdout); p.stderr.pipe(process.stderr)
     return Promise.race([new Promise(resolve => p.stdout.on('data', b => { if (b.toString().includes('"service":')) resolve() })), once(p, 'exit').then(() => { throw new Error(`${file} exited during startup`) })])
   }
-  await launch('scripts/postgres-http-server.js', { PORT: '8791', SITE_URL: origin, BOTTERS_AUTH_ORIGIN: origin, BETTER_AUTH_SECRET: secret, RESEND_API_KEY: 'synthetic', AUTH_EMAIL_FROM: 'botters@example.test' }, true)
-  await launch('scripts/live-server.js', { PORT: '8792', BOTTERS_LIVE_BACKEND: 'postgres', BOTTERS_REQUIRE_ACCOUNT: '1', PLAYER_ORIGINS: origin }, false)
+  const controlDatabase = await databaseProxy('control'), liveDatabase = await databaseProxy('live')
+  await launch('scripts/postgres-http-server.js', { DATABASE_URL: controlDatabase, PORT: '8791', SITE_URL: origin, BOTTERS_AUTH_ORIGIN: origin, BETTER_AUTH_SECRET: secret, RESEND_API_KEY: 'synthetic', AUTH_EMAIL_FROM: 'botters@example.test' }, true)
+  await launch('scripts/live-server.js', { DATABASE_URL: liveDatabase, PORT: '8792', BOTTERS_LIVE_BACKEND: 'postgres', BOTTERS_REQUIRE_ACCOUNT: '1', PLAYER_ORIGINS: origin }, false)
   liveProxy = https.createServer(tls, (req, res) => {
     const upstream = http.request({ host: '127.0.0.1', port: 8792, path: req.url, method: req.method, headers: req.headers }, response => { res.writeHead(response.statusCode, response.headers); response.pipe(res) })
     upstream.on('error', () => { if (!res.headersSent) res.writeHead(502); res.end() }); req.pipe(upstream)
@@ -66,6 +85,12 @@ try {
       const url = new URL(req.url, origin)
       if (url.pathname === '/live-config.json') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ url: liveOrigin, accountRequired: true })) }
       if (url.pathname === '/live-client.js') { res.setHeader('Content-Type', 'text/javascript'); return res.end(bundle) }
+      if (url.pathname === '/test/fault' && req.method === 'POST') {
+        const state = faults.get(url.searchParams.get('target')), mode = url.searchParams.get('mode')
+        if (!state || !['down', 'up'].includes(mode)) { res.writeHead(400); return res.end() }
+        state.down = mode === 'down'; if (state.down) for (const socket of state.sockets) socket.destroy()
+        res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ down: state.down }))
+      }
       if (url.pathname === '/test/mail') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify(mails.filter(m => m.to === url.searchParams.get('email')))) }
       if (url.pathname === '/test/storage') { const users = await pool.query('SELECT count(*)::int AS n FROM "user"'), records = await pool.query('SELECT count(*)::int AS n FROM botters_records'); res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ backend: 'postgres', users: users.rows[0].n, records: records.rows[0].n })) }
       const asset = assets[url.pathname] || (/^\/r\/[A-Z2-9]{6}$/.test(url.pathname) ? assets['/'] : null)
