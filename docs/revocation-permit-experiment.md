@@ -1,0 +1,9 @@
+# PostgreSQL revocation permit experiment
+
+This is an isolated design experiment, not a Botters revocation fix. The current live server does not acquire permits and still violates the post-commit guarantee documented in `postgres-local-verification.md`.
+
+The experiment tests whether a committed, non-expiring foreign-key permit can prevent direct session deletion after the permit holder loses its PostgreSQL connection. It uses a new random schema on an explicitly supplied loopback-only synthetic PostgreSQL database. Run `node --test test/postgres-permit-experiment.integration.test.js` with `BOTTERS_TEST_POSTGRES_URL` set as described in `postgres-local-verification.md`.
+
+A successful experiment only establishes the tested database constraint behavior. It does not establish complete acquisition/release ordering, cross-account authorization, logout or password reset atomicity, expiry, direct privileged database operations, game state, HTTP/Colyseus output, or safe crash recovery. A permit must not be automatically deleted on disconnect or timeout: a paused executor might still act. A stranded permit can prevent revocation indefinitely unless a separately verified fencing/recovery mechanism exists.
+
+On 8 November 2026, the experiment passed on PostgreSQL 17.11 in a new local cluster: a committed permit survived termination of its database backend; direct deletion of that session failed with SQLSTATE 23503 while another session remained deletable, and deletion succeeded after explicit permit removal. The test uses simple synthetic tables, not Better Auth or the real server. The first harness run failed because a terminated pooled client was released before its asynchronous error arrived; a dedicated client and an error-event barrier corrected the harness. The test removed its schema and the cluster was stopped. These results are not a production fix or a demonstration that releasing a permit is safe.
