@@ -150,7 +150,20 @@ test('two accounts over separate HTTP and Colyseus harness processes with Postgr
     await stop(live); live = await start('live', liveEnv, mails)
     assert.equal((await lobby(gb.humanToken, liveCookieB)).status, 200, 'valid authority recovers after live restart')
     assert.notEqual((await request(liveUrl, `/socket?token=${ga.humanToken}`, { cookie: liveCookieA, origin: site })).status, 200, 'revoked session does not recover on restart')
+    assert.equal((await request(liveUrl, `/play?token=${gb.humanToken}`, { body: { vs: 'easy', withAgent: false }, cookie: liveCookieB, origin: site })).status, 200)
+    const bSocket = await request(liveUrl, `/socket?token=${gb.humanToken}`, { cookie: liveCookieB, origin: site })
+    assert.equal(bSocket.status, 200)
+    const bClient = new Client(liveUrl, { headers: { Cookie: liveCookieB, Origin: site } })
+    const bRoom = await bClient.joinById((await bSocket.json()).roomId, { token: gb.humanToken })
+    let frames = 0
+    const firstBFrame = new Promise(resolve => bRoom.onMessage('frame', frame => { frames++; resolve(frame) }))
+    await Promise.race([firstBFrame, sleep(5000).then(() => { throw new Error('no pre-outage WebSocket frame') })])
+    const bClosed = new Promise(resolve => bRoom.onLeave(resolve))
     allowDatabase = false; for (const socket of sockets) socket.destroy()
+    await Promise.race([bClosed, sleep(6000).then(() => { throw new Error('WebSocket remained open after loss of authority') })])
+    const stoppedFrames = frames
+    await sleep(300)
+    assert.equal(frames, stoppedFrames, 'no gameplay frames after the authority closes the socket')
     await sleep(2200) // Existing successful snapshot lease is at most 2 seconds.
     if (live.exitCode !== null) t.diagnostic(`live exit code ${live.exitCode}; stderr classification: ${/idle client/.test(live.journeyStderr || '') ? 'idle PostgreSQL client error' : 'other error (not printed)'}`)
     assert.equal(live.exitCode, null, 'live process must survive loss of its database connection')

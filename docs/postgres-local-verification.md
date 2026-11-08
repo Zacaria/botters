@@ -58,6 +58,10 @@ With a distinct local PostgreSQL 17.11 cluster, the journey test was also run wi
 Before the idle-pool error handlers, the same TCP cut caused both actual entry processes to exit with an unhandled PostgreSQL pool error. The live journey and a separate control-process idle-socket test now cover their survival. This control test does not establish all HTTP outage or recovery semantics. The four historical failures referenced in comment 2139 remain unidentified, so they have not been replayed. The Convex integration command still needs the absent generated Convex files; no remote code generation was attempted. Browser behavior, real email delivery and production migration remain outside this verification.
 
 
+## Outage verification scope
+
+The interprocess journey exercises the actual live entry with an already-open, authenticated WebSocket during a simulated live-to-PostgreSQL network cut. It checks that gameplay frames stop after the authority lease expires, and that live HTTP recovers after connectivity returns. The separate control-to-database outage and browser journey still require verification; no instantaneous revocation is claimed.
+
 ## Dependency audit checkpoint (8 November 2026)
 
 A fresh `npm audit` after the lockfile-only transitive updates reports four vulnerable package entries: `better-auth` 1.6.33 (critical), `@convex-dev/better-auth` 0.12.5 (high, through Better Auth), and its installed Drizzle and Kysely adapter packages (low). The lockfile updates `body-parser` to 2.4.0, `fast-uri` to 3.1.9 and `qs` to 6.17.1, removing the previous advisories for those packages.
