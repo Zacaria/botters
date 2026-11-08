@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { randomUUID } from 'node:crypto'
 import net from 'node:net'
+import http from 'node:http'
 import pg from 'pg'
 import { createPostgresAuth } from '../online/postgres-auth.js'
 import { PostgresStore } from '../online/postgres-store.js'
@@ -52,17 +53,32 @@ test('actual PostgreSQL controls share an atomic auth limit across processes and
   // Keep the burst away from the fixed-window transition.
   const remaining = 60000 - Date.now() % 60000
   if (remaining < 6000) await new Promise(r => setTimeout(r, remaining + 100))
-  const attempts = await Promise.all(Array.from({ length: 20 }, (_, i) => fetch(`http://127.0.0.1:${i % 2 ? second : first}/api/auth/sign-in/email`, {
-    method: 'POST', headers: { host: `127.0.0.1:${first}`, origin, 'content-type': 'application/json', 'x-vercel-forwarded-for': `192.0.2.${i + 1}`, 'x-botters-client-ip': `198.51.100.${i + 1}` },
-    body: JSON.stringify({ email: 'nobody@example.test', password: 'synthetic-password-12345' }),
+  // Node fetch overwrites Host with the destination port; raw HTTP preserves the common origin.
+  const attempts = await Promise.all(Array.from({ length: 20 }, (_, i) => new Promise((resolve, reject) => {
+    const req = http.request({ hostname: '127.0.0.1', port: i % 2 ? second : first, path: '/api/auth/sign-in/email',
+      method: 'POST', headers: { host: `127.0.0.1:${first}`, origin, 'content-type': 'application/json', 'x-vercel-forwarded-for': `192.0.2.${i + 1}`, 'x-botters-client-ip': `198.51.100.${i + 1}` } }, res => {
+      let body = ''; res.setEncoding('utf8'); res.on('data', chunk => { body += chunk }); res.on('end', () => resolve({ status: res.statusCode, body }))
+      res.on('error', reject)
+    })
+    req.on('error', reject); req.setTimeout(5000, () => req.destroy(new Error('request timeout')))
+    req.end(JSON.stringify({ email: 'nobody@example.test', password: 'synthetic-password-12345' }))
   })))
-  const statuses = attempts.map(r => r.status)
-  // Count even 400 responses against the outer budget; their cause is not established here.
-  // The outer boundary must still pass no more than five requests to Better Auth.
-  assert.equal(statuses.filter(s => s === 401 || s === 400).length, 5, JSON.stringify(statuses))
-  assert.equal(statuses.filter(s => s === 429).length, 15, JSON.stringify(statuses))
-  t.diagnostic(`HTTP statuses: ${JSON.stringify(statuses)}; the cause of any 400 is not established`)
+  const outcomes = attempts
+  const statuses = outcomes.map(r => r.status)
+  t.diagnostic(`Synthetic sign-in outcomes: ${JSON.stringify(outcomes)}`)
+  assert.equal(statuses.filter(s => s === 401).length, 5, JSON.stringify(outcomes))
+  assert.equal(statuses.filter(s => s === 429).length, 15, JSON.stringify(outcomes))
+  assert.ok(outcomes.filter(o => o.status === 401).every(o => JSON.parse(o.body).code === 'INVALID_EMAIL_OR_PASSWORD'))
+  assert.ok(outcomes.filter(o => o.status === 429).every(o => JSON.parse(o.body).error === 'Too many sign-in attempts. Retry later.'))
   const rows = await admin.query(`SELECT value FROM "${schema}".botters_records WHERE namespace = 'rate-test' AND key LIKE 'auth-limit:%'`)
   assert.equal(rows.rowCount, 1)
   assert.equal(JSON.parse(rows.rows[0].value).n, 5)
+  // Reset only this synthetic schema's counter to exercise the distinct host guard.
+  await admin.query(`DELETE FROM "${schema}".botters_records WHERE namespace = 'rate-test' AND key LIKE 'auth-limit:%'`)
+  const wrongHost = await fetch(`http://127.0.0.1:${second}/api/auth/sign-in/email`, {
+    method: 'POST', headers: { origin, 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'nobody@example.test', password: 'synthetic-password-12345' }),
+  })
+  assert.equal(wrongHost.status, 400)
+  assert.deepEqual(await wrongHost.json(), { error: `Sign in at ${origin}.` })
 })

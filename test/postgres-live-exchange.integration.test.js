@@ -112,7 +112,8 @@ test('PostgreSQL exchanges one ticket only for the verified owning session', { s
     await write(tokenKey, { ...grant, liveCookieHash: hash('c') })
     const secondPool = new pg.Pool({ connectionString: url, options: `-c search_path=${schema}` })
     let observed
-    const durable = new PostgresLiveDurable(new PostgresStore(secondPool, 'exchange'), { intervalMs: 25, leaseMs: 500 })
+    // Freeze the poll while another process commits, so this is a commit barrier, not a latency observation.
+    const durable = new PostgresLiveDurable(new PostgresStore(secondPool, 'exchange'), { intervalMs: 60000, leaseMs: 120000 })
     const entry = await durable.authority(tokenKey, async value => { observed = value })
     try {
       assert.ok(observed.token)
@@ -123,9 +124,12 @@ test('PostgreSQL exchanges one ticket only for the verified owning session', { s
         await pool.end();
         if (result.rowCount !== 1) process.exit(1);
       `], { env: { ...process.env, TEST_URL: url, TEST_SCHEMA: schema, TEST_SESSION: alice.session.id } })
-      const deadline = Date.now() + 3000
-      while (observed.token && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10))
-      assert.equal(observed.token, null, 'revocation by another process is observed')
+      // execFile returns only after the DELETE auto-committed and the child exited.
+      assert.equal((await store.authorize(tokenKey)).token, null, 'fresh PostgreSQL authority sees the committed deletion')
+      assert.ok(observed.token, 'cached authority still accepts the pre-commit snapshot')
+      assert.equal(entry.connected(), true, 'polling does not enforce immediate post-commit revocation')
+      await entry.refresh()
+      assert.equal(observed.token, null, 'a subsequent poll observes the deletion')
       assert.equal(entry.connected(), false)
     } finally { await entry.close(); await secondPool.end() }
     agentAuthority = await store.authorize(agentKey)

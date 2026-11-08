@@ -39,6 +39,23 @@ test('authority refreshes revocation and fails closed if its source stalls', asy
   } finally { await entry.close() }
 })
 
+test('authority recovers only after a successful refresh following an error', async () => {
+  let fail = false
+  const remote = new PostgresLiveDurable({ authorize: async () => { if (fail) throw new Error('offline'); return { token: 'grant', session: 'owner', expiresAt: Date.now() + 60000 } } }, { intervalMs: 25, leaseMs: 150 })
+  let adopted = 0
+  const entry = await remote.authority('token:key', async () => { adopted++ })
+  try {
+    fail = true
+    await assert.rejects(entry.refresh(), /offline/)
+    assert.equal(entry.connected(), false)
+    fail = false
+    await entry.refresh()
+    assert.equal(adopted, 2)
+    assert.equal(entry.error, null)
+    assert.equal(entry.connected(), true)
+  } finally { await entry.close() }
+})
+
 test('authority marks a failed refresh unavailable', async () => {
   let reject = false
   const remote = new PostgresLiveDurable({ authorize: async () => { if (reject) throw new Error('offline'); return { token: 'grant', session: 'owner', expiresAt: Date.now() + 60000 } } }, { intervalMs: 25, leaseMs: 150 })

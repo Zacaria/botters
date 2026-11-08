@@ -31,7 +31,7 @@ try {
   if(!out.includes('botters-control')) throw new Error('control startup failed: '+err.slice(0,500))
   for(const s of sockets) s.destroy()
   await new Promise(r=>setTimeout(r,1000))
-  assert.equal(child.exitCode, null, 'control must survive an idle database socket cut')
+  assert.equal(child.exitCode, null, `control must survive an idle database socket cut: ${err}`)
   assert.ok(err.includes('PostgreSQL idle connection lost'), 'pool reports lost idle connection without leaking details')
 } finally {
   if(child && child.exitCode===null) { child.kill('SIGTERM'); await once(child,'exit') }

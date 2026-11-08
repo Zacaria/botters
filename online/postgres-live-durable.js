@@ -25,7 +25,7 @@ export class PostgresLiveDurable {
         await adopt({ ...data, expiresAt })
         if (closed) return
         entry.invalid = !data.token || !data.session
-        entry.checkedAt = started; entry.expiresAt = expiresAt
+        entry.checkedAt = started; entry.expiresAt = expiresAt; entry.error = null
       } catch (error) { if (!closed) entry.error = error; throw error }
     })().finally(() => { entry.refreshing = null })
     try {
