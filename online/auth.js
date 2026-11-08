@@ -45,10 +45,10 @@ export async function resolveAccount(req, env = process.env, fetcher = fetch) {
   if (!user || typeof user.id !== 'string' || user.emailVerified !== true || !Number.isFinite(expires) || expires <= Date.now()) return null
   return { id: user.id, name: user.name, emailVerified: true, authSessionId: data.session.id, authExpires: expires }
 }
-export async function proxyAuth(req, res, path, body, env = process.env, fetcher = fetch) {
-  const config = authBackend(env), external = new URL(req.url, config.origin)
+export async function proxyAuth(req, res, path, body, env = process.env, fetcher = fetch, localConfig = null) {
+  const config = localConfig || authBackend(env), external = new URL(req.url, config.origin)
   const send = (status, data) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(data)) }
-  if (new URL(`https://${req.headers.host}`).origin !== config.origin) return send(400, { error: `Sign in at ${config.origin}.` })
+  if (new URL(`${new URL(config.origin).protocol}//${req.headers.host}`).origin !== config.origin) return send(400, { error: `Sign in at ${config.origin}.` })
   if (routes.get(path) !== req.method && !(req.method === 'GET' && /^\/reset-password\/[A-Za-z0-9_-]{10,256}$/.test(path))) return send(404, { error: 'Not found.' })
   if (req.method === 'POST' && req.headers.origin !== config.origin) return send(403, { error: 'Sign in from the Botters website.' })
   const query = new URLSearchParams(external.search); query.delete('route')

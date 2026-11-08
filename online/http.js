@@ -33,7 +33,7 @@ export function createHandler(store, options = {}) {
       }
       if (path.startsWith('/auth/')) {
         await consumeAuthLimit(store, req, path.slice(5), { deadline })
-        return await proxyAuth(req, res, path.slice(5), body, options.env)
+        return await (options.proxyAuth || proxyAuth)(req, res, path.slice(5), body, options.env)
       }
       const identity = options.requireAccount ? await (options.resolveAccount || resolveAccount)(req, options.env) : null
       if (req.method === 'GET' && path === '/account') return json(res, 200, { required: !!options.requireAccount, origin: options.env?.BOTTERS_AUTH_ORIGIN || process.env.BOTTERS_AUTH_ORIGIN || 'https://botters.havesomecode.io', user: identity ? { id: identity.id, name: identity.name, emailVerified: true } : null })
