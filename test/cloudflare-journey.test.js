@@ -12,7 +12,7 @@ test('workerd: pending pairing honors bounded HTTP polling without a match queue
 })
 
 test('workerd: verified accounts, unique live ticket, consent, two-player room and result', { timeout: 60000 }, async t => {
-  const { mf, db, mail } = await runtime(); t.after(() => mf.dispose())
+  const { mf, db, mail } = await runtime({assets:{directory:'public',binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}}}); t.after(() => mf.dispose())
   const alice = client(mf), bob = client(mf)
   const signup = await alice.signUp('Alice')
   assert.equal(signup.status, 200, JSON.stringify(signup.body))
@@ -41,6 +41,17 @@ test('workerd: verified accounts, unique live ticket, consent, two-player room a
   assert.equal((await alice.call('POST', `/rooms/start?token=${a.humanToken}`, {})).status, 200)
   const next = await alice.call('GET', `/next?token=${pair.agentToken}`)
   assert.equal(typeof next.body.match?.id, 'string', JSON.stringify(next.body))
+  for (const data of [{text:'Hold the center'}, {text:'Look here',x:123.4,y:456.6}]) {
+    const sent = await alice.call('POST', `/say?token=${a.humanToken}`, data)
+    assert.equal(sent.status, 200, JSON.stringify(sent.body))
+  }
+  assert.equal((await bob.call('POST', `/say?token=${a.humanToken}`, {text:'spoofed'})).status, 401)
+  assert.equal((await alice.call('POST', `/say?token=${pair.agentToken}`, {text:'agent spoof'})).status, 401)
+  assert.equal((await client(mf).call('POST', `/say?token=${a.humanToken}`, {text:'anonymous spoof'})).status, 401)
+  const events = (await alice.call('GET', `/events?token=${pair.agentToken}`)).body.events.map(e=>e.text)
+  assert.ok(events.includes('HUMAN says: Hold the center'), JSON.stringify(events))
+  assert.ok(events.includes('HUMAN says: Look here at (123,457)'), JSON.stringify(events))
+  assert.ok(events.every(e=>!e.includes('spoof')), JSON.stringify(events))
   assert.equal((await alice.call('POST', `/input?token=${pair.agentToken}`, { gambits: [{ if: 'always', then: 'hold', on: true }] })).status, 200)
   const state = await alice.call('GET', `/state?token=${a.humanToken}`)
   assert.equal(state.status, 200, JSON.stringify(state.body))

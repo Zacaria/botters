@@ -25,19 +25,22 @@ test('real D1: lost match-end acknowledgement cannot duplicate result/history/El
   for(const name of ['Alice','Bob']){
     const c=client(mf);await c.signUp(name)
     const v=new URL(mail.at(-1).text.match(/http:\/\/[^\s]+/)[0]);await c.call('GET',v.pathname+v.search)
-    const s=(await c.call('POST','/session',{})).body;await c.call('POST','/exchange',{ticket:s.liveTicket});players.push({c,s})
+    const s=(await c.call('POST','/session',{})).body;await c.call('POST','/exchange',{ticket:s.liveTicket});players.push({c,s,user:(await c.call('GET','/account')).body.user})
   }
-  const [a,b]=players,room=(await a.c.call('POST',`/rooms?token=${a.s.humanToken}`,{withAgent:false,minutes:3,planning:10,planets:16})).body
-  await b.c.call('POST',`/rooms/join?token=${b.s.humanToken}`,{code:room.code})
-  await a.c.call('POST',`/rooms/start?token=${a.s.humanToken}`,{})
-  const state=(await a.c.call('GET',`/state?token=${a.s.humanToken}`)).body
+  // Set up via the same game/D1 path without gameHTTP's match alarm: otherwise
+  // the live DO can finish the backdated match before the injected commit runs.
+  const env={DB:db,SITE_URL:'http://localhost:8787'},cache=new Map()
+  const game=(player,method,path,data={})=>runGame(env,method,path,new URLSearchParams({token:player.s.humanToken}),data,player.user)
+  const [a,b]=players,room=await game(a,'POST','/rooms',{withAgent:false,minutes:3,planning:10,planets:16})
+  await game(b,'POST','/rooms/join',{code:room.code})
+  await game(a,'POST','/rooms/start')
+  const state=await game(a,'GET','/state')
   // Fault fixture only: advance the durable clock boundary past a natural finish.
   await db.prepare("UPDATE game_records SET value=json_set(value,'$.startsAt',?) WHERE key=?").bind(Date.now()-200000,`match:${state.matchId}`).run()
   let lost=false
   class LostAck extends D1Store {
     async commit(entries){const ok=await super.commit(entries);if(ok&&!lost&&entries.some(e=>e.key===`match:${state.matchId}`&&e.value&&JSON.parse(e.value).report)){lost=true;throw new Error('Injected lost D1 acknowledgement')}return ok}
   }
-  const env={DB:db,SITE_URL:'http://localhost:8787'},cache=new Map()
   await assert.rejects(runGame(env,'INTERNAL','/tick',new URLSearchParams(),{id:state.matchId},null,new LostAck(db),cache),/lost D1 acknowledgement/)
   assert.equal(lost,true)
   assert.equal(cache.size,0,'uncertain acknowledgement discards speculative WASM handles')
