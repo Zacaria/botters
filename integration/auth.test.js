@@ -20,7 +20,17 @@ test('actual Convex component executes password verification/reset/session revoc
     mail.push(JSON.parse(options.body)); return Response.json({ id: 'captured-test-email' })
   })
   try {
-    const t = convexTest(schema, modules); betterAuthTest.register(t)
+    const componentCalls = []
+    const observed = Object.fromEntries(Object.entries(betterAuthTest.modules).map(([path, load]) => [path, async () => {
+      const module = await load()
+      return Object.fromEntries(Object.entries(module).map(([name, fn]) => [name, fn?._handler ? {
+        ...fn, _handler: async (ctx, args) => {
+          componentCalls.push({ name, model: args.model || args.input?.model })
+          return fn._handler(ctx, args)
+        },
+      } : fn]))
+    }]))
+    const t = convexTest(schema, modules); t.registerComponent('betterAuth', betterAuthTest.schema, observed)
     const transport = (url, options) => { const parsed = new URL(url); return t.fetch(parsed.pathname + parsed.search, options) }
     const call = async (path, body, cookie = '', method = 'POST') => {
       const res = response()
@@ -36,8 +46,15 @@ test('actual Convex component executes password verification/reset/session revoc
     expect(verified.status).toBe(302)
     const cookie = verified.headers.getSetCookie().map(c => c.split(';')[0]).join('; ')
     const req = { headers: { host: 'botters.example.test', cookie } }
+    componentCalls.length = 0
+    for (const headers of [{}, { 'x-botters-auth-proxy': 'forged', cookie }]) expect((await t.fetch('/api/auth/get-session', { headers })).status).toBe(404)
+    expect(componentCalls).toHaveLength(0)
     expect((await resolveAccount(req, env, transport)).name).toBe('Convex Alice')
+    expect(componentCalls.filter(c => c.model === 'rateLimit')).toEqual([])
+    expect(componentCalls.filter(c => c.name === 'findOne').map(c => c.model).sort()).toEqual(['session', 'user'])
+    componentCalls.length = 0
     expect((await call('/sign-in/email', { email: 'convex-alice@example.test', password: 'wrong-convex-password' })).status).toBe(401)
+    expect(componentCalls.some(c => c.model === 'rateLimit')).toBe(true)
     await call('/request-password-reset', { email: 'convex-alice@example.test', redirectTo: '/' })
     const resetURL = new URL(mail.at(-1).text.match(/https:\/\/\S+/)[0])
     const reset = await t.fetch(resetURL.pathname + resetURL.search, { headers: { 'x-botters-auth-proxy': secret, origin } })
@@ -51,5 +68,8 @@ test('actual Convex component executes password verification/reset/session revoc
     expect((await resolveAccount({ headers: { host: 'botters.example.test', cookie: newCookie } }, env, transport)).emailVerified).toBe(true)
     expect((await call('/sign-out', {}, newCookie)).status).toBe(200)
     expect(await resolveAccount({ headers: { host: 'botters.example.test', cookie: newCookie } }, env, transport)).toBeNull()
+    const attempts = []
+    for (let i = 0; i < 6; i++) attempts.push((await call('/sign-in/email', { email: 'convex-alice@example.test', password: 'wrong-convex-password' })).status)
+    expect(attempts.at(-1)).toBe(429)
   } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs() }
 })

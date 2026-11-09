@@ -29,6 +29,11 @@ export class ConvexStore {
   }
   // Invocation-local account cache; every transaction still passes CAS.
   scoped() { const store = Object.create(this); store.cache = new Map(); return store }
+  // One database snapshot, not invocation-cache entries from separate queries.
+  async readToken(key, extraKeys = [], options = {}) {
+    const { keys, values } = await this.call('query', 'store:get', { keys: [key, ...extraKeys].map(k => this.prefix + k), now: Date.now(), followToken: true }, options)
+    return new Map(keys.map((k, i) => [k.slice(this.prefix.length), values[i]]))
+  }
   async get(key, options = {}) {
     if (!options.fresh && this.cache?.has(key)) return this.cache.get(key)
     const [value] = await this.call('query', 'store:get', { keys: [this.prefix + key], now: Date.now() }, options)
@@ -66,6 +71,13 @@ export class MemoryStore {
     return r && (!r.expires || r.expires > this.now()) ? r.value : null
   }
   async get(key) { return this.raw(key) }
+  async readToken(key, extraKeys = []) {
+    // No await: mirror the database query's consistent read boundary.
+    const values = new Map([key, ...extraKeys].map(k => [k, this.raw(k)]))
+    const auth = values.get(key) && JSON.parse(values.get(key))
+    if (auth) values.set(`session:${auth.id}`, this.raw(`session:${auth.id}`))
+    return values
+  }
   async commit(entries) {
     // No awaits between the compare and write phases: same atomic boundary as Lua.
     for (const e of entries) {

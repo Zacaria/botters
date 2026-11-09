@@ -21,8 +21,6 @@ export const get = internalQueryGeneric({
     const namespace = /^(.*)token:[a-f0-9]{64}$/.exec(keys[0])?.[1], auth = values[0] && JSON.parse(values[0])
     if (namespace && auth) {
       keys.push(`${namespace}session:${auth.id}`); values.push(await read(ctx, keys.at(-1), now))
-      const session = values.at(-1) && JSON.parse(values.at(-1))
-      if (session?.match) { keys.push(`${namespace}match:${session.match}`); values.push(await read(ctx, keys.at(-1), now)) }
     }
     return { keys, values }
   },

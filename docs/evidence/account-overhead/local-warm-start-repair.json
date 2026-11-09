@@ -1,0 +1,85 @@
+{
+  "localOnly": true,
+  "scope": "warm rematch matching the hosted baseline",
+  "clock": "real wall clock",
+  "minutes": 8,
+  "twoActualStdioClients": true,
+  "start": "2026-10-16T15:25:50.456Z",
+  "adapterBefore": {
+    "query": 30,
+    "mutation": 8,
+    "subscription": 10,
+    "updates": 25
+  },
+  "reloadAt": "2026-10-16T15:27:55.026Z",
+  "matchId": "0aL3B5D0TkxArPh-E-V54bbHtWc9vkUo",
+  "finishedAt": "2026-10-16T15:34:01.161Z",
+  "reportTick": 9600,
+  "adapterAfter": {
+    "query": 54,
+    "mutation": 11,
+    "subscription": 11,
+    "updates": 36
+  },
+  "end": "2026-10-16T15:34:01.318Z",
+  "persistedReportsBoth": true,
+  "wallClockSeconds": 490.8619999885559,
+  "measurementSource": "actual isolated loopback Convex backend completion stream; not hosted production",
+  "completions": 60,
+  "cachedCompletions": 4,
+  "scheduledHousekeepingCompletions": 8,
+  "uncachedNonHousekeepingCompletions": 48,
+  "meets50InThisWindow": true,
+  "failedCompletions": 0,
+  "adapterDelta": {
+    "query": 24,
+    "mutation": 3,
+    "subscription": 1,
+    "updates": 11
+  },
+  "adapterCalls": 38,
+  "functions": [
+    {
+      "component": "app",
+      "function": "GET /api/auth/*",
+      "cached": false,
+      "calls": 2
+    },
+    {
+      "component": "app",
+      "function": "liveAuth:exchange",
+      "cached": false,
+      "calls": 1
+    },
+    {
+      "component": "app",
+      "function": "store:authorize",
+      "cached": false,
+      "calls": 32
+    },
+    {
+      "component": "app",
+      "function": "store:commit",
+      "cached": false,
+      "calls": 4
+    },
+    {
+      "component": "app",
+      "function": "store:expire",
+      "cached": false,
+      "calls": 8
+    },
+    {
+      "component": "app",
+      "function": "store:get",
+      "cached": false,
+      "calls": 9
+    },
+    {
+      "component": "betterAuth",
+      "function": "adapter:findOne",
+      "cached": true,
+      "calls": 4
+    }
+  ]
+}
