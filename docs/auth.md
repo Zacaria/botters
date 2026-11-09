@@ -1,4 +1,6 @@
-# Online accounts
+# Online accounts — historical Node/Convex implementation
+
+Superseded by [the Cloudflare runtime](cloudflare.md). The instructions and evidence below describe the previous implementation; do not provision or activate it for the current candidate.
 
 ## Boundary
 

@@ -1,4 +1,6 @@
-# Remote MCP authorization
+# Remote MCP authorization — historical Node gateway
+
+Current source, bindings, authorization and verification: [Cloudflare runtime](cloudflare.md). The deployment commands below are historical and must not be used for this candidate.
 
 ## Contract
 

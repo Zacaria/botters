@@ -31,11 +31,9 @@ jobs:
           echo "BOTTERS_BROWSER=$(node --input-type=module -e 'import { chromium } from "@playwright/test"; console.log(chromium.executablePath())')" >> "$GITHUB_ENV"
       - name: Check source syntax
         run: npm run check
-      - name: Build public assets
-        run: npm run build
+      - name: Build Worker, WASM and public assets
+        run: npm run build:worker
       - name: Run Node and offline browser tests
         run: npm test
-      - name: Run local online browser tests
+      - name: Run local Cloudflare browser tests
         run: npm run test:browser
-      - name: Run local auth browser tests
-        run: npm run test:auth:browser

@@ -10,6 +10,7 @@
     "public-media.js",
     "media/",
     "sim.js",
+    "sim/runtime.js",
     "sim/pkg/",
     "index.html",
     "guide.html",
@@ -27,34 +28,32 @@
   },
   "scripts": {
     "server": "node server.js",
-    "server:online:dev": "node scripts/online-dev.js",
+    "dev": "wrangler dev",
     "build": "node scripts/build.js",
     "build:sim": "node scripts/build-sim.js",
     "check": "node scripts/check.js",
-    "test": "node --test test/*.test.js",
+    "build:worker": "npm run build && node scripts/build-cloudflare.js",
+    "test": "node scripts/build-cloudflare.js && node --test --test-concurrency=1 test/*.test.js",
     "test:browser": "playwright test",
-    "test:auth:browser": "playwright test --config=playwright.auth.config.js",
-    "test:auth:convex": "vitest run --config vitest.config.js",
-    "test:online": "node scripts/verify-online.js"
+    "test:cloudflare": "node scripts/build-cloudflare.js && node --test --test-concurrency=1 test/cloudflare-*.test.js"
   },
   "dependencies": {
-    "@colyseus/core": "^0.17.52",
-    "@colyseus/sdk": "^0.17.43",
-    "@colyseus/ws-transport": "^0.17.13",
-    "@convex-dev/better-auth": "0.13.0",
+    "@cfworker/json-schema": "^4.1.6",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "better-auth": "1.7.18",
-    "convex": "^1.46.0",
+
     "cross-spawn": "^7.0.6",
     "jsonc-parser": "^3.3.1",
-    "pg": "^8.23.1",
+
     "smol-toml": "^1.9.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "convex-test": "^0.0.62",
+
     "esbuild": "^0.28.2",
-    "vitest": "^4.1.12"
+    "miniflare": "^5.20261104.0-beta",
+
+    "wrangler": "^4.158.0"
   }
 }

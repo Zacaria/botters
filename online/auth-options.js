@@ -1,4 +1,4 @@
-// Shared by the real Convex adapter and isolated library-level HTTP tests.
+// Authentication policy shared by the Cloudflare Worker and local workerd tests.
 export function authOptions(env, sendEmail) {
   const baseURL = env.SITE_URL
   if (!baseURL || !env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET.length < 32) throw new Error('Authentication is not configured.')
@@ -22,13 +22,4 @@ export function authOptions(env, sendEmail) {
     rateLimit: { enabled: true, storage: 'database', window: 600, max: 100, customRules: { '/sign-in/email': { window: 60, max: 5 }, '/sign-up/email': { window: 600, max: 5 }, '/request-password-reset': { window: 600, max: 3 }, '/send-verification-email': { window: 600, max: 3 } } },
     advanced: { useSecureCookies: baseURL.startsWith('https:'), defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure: baseURL.startsWith('https:') }, ipAddress: { ipAddressHeaders: ['x-botters-client-ip'] } },
   }
-}
-
-export async function deliverAuthEmail(env, message) {
-  if (!env.RESEND_API_KEY || !env.AUTH_EMAIL_FROM) throw new Error('Email delivery is not configured.')
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: env.AUTH_EMAIL_FROM, ...message }), signal: AbortSignal.timeout(8000),
-  })
-  if (!r.ok) throw new Error('Email delivery is unavailable.')
 }

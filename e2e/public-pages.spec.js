@@ -1,6 +1,5 @@
 import { test, expect } from './fixtures.js'
-import { authorizePreview } from './preview.js'
-test.beforeEach(async ({ context }) => authorizePreview(context))
+
 
 test.use({ javaScriptEnabled: false })
 

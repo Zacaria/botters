@@ -1,15 +1,17 @@
-import { test, expect } from './fixtures.js'
-import { authorizePreview, liveURL, state } from './preview.js'
-test.beforeEach(async ({ context }) => authorizePreview(context))
+import { test, expect, enterAccount, ageAgentPresence } from './fixtures.js'
+import { state } from './preview.js'
 
 test('agent play opens ChatGPT with a prepared prompt and waits for the agent', async ({ page, context, baseURL }) => {
-  const session = await (await context.request.post(`${baseURL}/session`, { data: { name: 'Agent player', setup: 'ChatGPT' } })).json()
+  await enterAccount(page, 'Agent player')
+  const pair = await context.request.post(`${baseURL}/agent/pair`,{data:{setup:'ChatGPT'}}).then(r=>r.json())
+  await page.goto(pair.approvalUrl)
+  await page.locator('#approveAgent').click()
+  await expect(page.locator('#pairMessage')).toContainText('Agent connected.')
   await context.route('https://chatgpt.com/**', route => route.fulfill({ status: 200, body: 'intercepted' }))
   await page.goto('/')
-  await page.evaluate(token => {
-    localStorage.setItem('botters.session', token)
+  await page.evaluate(() => {
     localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: true, assistant: 'ChatGPT' }))
-  }, session.humanToken)
+  })
   await page.reload()
   const popupPromise = page.waitForEvent('popup')
   await page.getByRole('button', { name: 'Play with ChatGPT' }).click()
@@ -22,18 +24,17 @@ test('agent play opens ChatGPT with a prepared prompt and waits for the agent', 
 })
 
 test('an authorized but idle agent still gets the Play with ChatGPT button', async ({ page, context, baseURL }) => {
-  const session = await (await context.request.post(`${baseURL}/session`, { data: { name: 'Idle agent player' } })).json()
-  await page.route('**/lobby?**', async route => {
-    const lobby = await (await route.fetch()).json()
-    await route.fulfill({ json: { ...lobby, agent: null, agentGranted: true } })
-  })
+  await enterAccount(page, 'Idle agent player')
+  const pair = await context.request.post(`${baseURL}/agent/pair`, { data: { setup: 'ChatGPT' } }).then(r=>r.json())
+  await page.evaluate(async id=>{const token=localStorage.getItem('botters.session');await fetch('/agent/approve?token='+token,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id})})},pair.id)
   await page.goto('/')
-  await page.evaluate(token => {
-    localStorage.setItem('botters.session', token)
+  await page.evaluate(() => {
     localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: true, assistant: 'ChatGPT' }))
-  }, session.humanToken)
+  })
   await page.reload()
-  await expect(page.locator('#agentState')).toContainText('authorized')
+  await ageAgentPresence(page)
+  await page.reload()
+  await expect(page.locator('#agentState')).toContainText('authorized', { timeout:25000 })
   await expect(page.getByRole('button', { name: 'Play with ChatGPT' })).toBeVisible()
   await expect(page.locator('#play')).toBeHidden()
 })
@@ -45,8 +46,7 @@ async function enter(page, name) {
   await page.goto('/')
   await page.evaluate(() => localStorage.setItem('botters.prefs', JSON.stringify({ minutes: 3, planets: 16, planning: 10, withAgent: false })))
   await page.reload()
-  await page.locator('#startName').fill(name)
-  await page.locator('#startSolo').click()
+  await enterAccount(page, name)
   await expect(page.locator('#quick')).toBeVisible()
 }
 async function ended(page) {
@@ -69,22 +69,24 @@ test('entry remains disabled until its connection settings are ready', async ({ 
     await expect(page.locator('#startSolo')).toBeAttached()
     await expect(page.locator('#startSolo')).toBeDisabled({ timeout: 500 })
   } finally { release() }
-  await expect(page.locator('#startSolo')).toBeEnabled()
+  await expect(page.locator('#authPanel')).toBeVisible()
 })
 
-test('a transient initial stream 503 reopens the same match and receives frames', async ({ page }) => {
+test('a transient initial WebSocket close reopens the same match and receives frames', async ({ page }) => {
   await enter(page, 'Stream retry')
-  let attempts = 0
-  await page.route('**/socket?**', route => ++attempts === 1 ? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Retry shortly."}' }) : route.continue())
+  await page.evaluate(() => {
+    const NativeWebSocket=window.WebSocket
+    window.socketAttempts=0
+    window.WebSocket=class extends NativeWebSocket { constructor(...args) { super(...args);if(++window.socketAttempts===1)this.addEventListener('open',()=>this.close(),{once:true}) } }
+  })
   await page.locator('#play').click()
-  await expect.poll(() => attempts, { timeout: 8000 }).toBeGreaterThanOrEqual(2)
+  await expect.poll(() => page.evaluate(()=>window.socketAttempts), { timeout: 8000 }).toBeGreaterThanOrEqual(2)
   await expect(page.locator('#hud')).toContainText('swarms')
   await expect(page.locator('#connection')).toBeHidden()
 })
 
 test('two isolated browsers match, survive disconnect/reload, and see end reports', async ({ page, browser }) => {
   const other = await browser.newContext(), b = await other.newPage()
-  await authorizePreview(other)
   try {
     await enter(page, 'Browser <A>'); await enter(b, 'Browser B')
     await page.locator('#quick').click()
@@ -113,14 +115,12 @@ test('two isolated browsers match, survive disconnect/reload, and see end report
 test('room link joins, host starts, both finish and rematch in the same room', async ({ page, browser }) => {
   test.setTimeout(remote ? 500000 : 90000)
   const other = await browser.newContext(), b = await other.newPage()
-  await authorizePreview(other)
   try {
     await enter(page, 'Room host')
     await page.locator('#createRoom').click()
     await expect(page.locator('#roomPanel')).toBeVisible()
     const code = await page.locator('#roomCode').textContent()
-    await b.goto(`/r/${code}`)
-    await b.locator('#startName').fill('Room guest'); await b.locator('#startSolo').click()
+    await enterAccount(b, 'Room guest', `/r/${code}`)
     await expect(page.locator('#roomPlayers')).toContainText('Room guest')
     await expect(b.locator('#roomCode')).toHaveText(code)
     await expect(b.locator('#startRoom')).toBeHidden()
@@ -203,24 +203,23 @@ test('play again after matchmaking keeps the same two humans instead of starting
   } finally { await other.close() }
 })
 
-test('invite respects saved solo/opening preferences without disclosing host rules', async ({ page, browser, request }) => {
-  const host = await request.post(liveURL + '/session', { data: { name: 'Host with agent', setup: 'codex' } }).then(r => r.json())
-  const guest = await request.post(liveURL + '/session', { data: { name: 'Solo guest', setup: 'claude' } }).then(r => r.json())
-  const opening = [{ if: 'always', then: 'hold' }]
-  const room = await request.post(`${liveURL}/rooms?token=${host.humanToken}`, { data: { minutes: 3, planets: 16, opening } }).then(r => r.json())
-  const other = await browser.newContext(), b = await other.newPage()
-  await authorizePreview(other)
+test('invite respects saved solo/opening preferences without disclosing host rules', async ({ page, browser, baseURL }) => {
+  await enterAccount(page, 'Host with agent')
+  await page.locator('#createRoom').click()
+  await expect(page.locator('#roomCode')).toHaveText(/^[A-Z2-9]{6}$/)
+  const code = await page.locator('#roomCode').textContent(), opening = [{ if:'always', then:'hold', on:true }]
+  const other = await browser.newContext({baseURL}), b = await other.newPage()
   try {
-    await other.addInitScript(({ token, opening }) => { localStorage.setItem('botters.session', token); localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: false, openingMine: true, opening })) }, { token: guest.humanToken, opening })
-    await b.goto(`/r/${room.code}`)
-    await expect(b.locator('#roomCode')).toHaveText(room.code)
-    const shared = await request.get(`${liveURL}/room?token=${guest.humanToken}`).then(r => r.json())
+    await b.goto('/')
+    await b.evaluate(opening=>localStorage.setItem('botters.prefs',JSON.stringify({withAgent:false,openingMine:true,opening})),opening)
+    await enterAccount(b, 'Solo guest', `/r/${code}`)
+    await expect(b.locator('#roomCode')).toHaveText(code)
+    const shared = await b.evaluate(()=>fetch('/room?token='+localStorage.getItem('botters.session')).then(r=>r.json()))
     expect(shared.settings.opening).toBeUndefined()
-    await page.goto(`/?s=${host.humanToken}`)
     await page.locator('#startRoom').click()
     await expect(b.locator('#hud')).toBeVisible()
-    const state = await request.get(`${liveURL}/state?token=${guest.humanToken}`).then(r => r.json())
-    expect(state.me.withAgent).toBe(false)
-    expect(state.view.gambits).toEqual([{ ...opening[0], on: true }])
+    const frame = await state(b)
+    expect(frame.me.withAgent).toBe(false)
+    expect(frame.view.gambits).toEqual(opening)
   } finally { await other.close() }
 })

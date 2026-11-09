@@ -4,7 +4,7 @@ A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of p
 
 ## Play
 
-Sign in at https://botters.havesomecode.io with Google or a verified email/password account. Select **Play online** for matchmaking, or **Create room** and share its code/link. The older https://botters.vercel.app address remains public and links to owned-domain sign-in. House modes still run locally without an account.
+The game’s canonical address is https://botters.havesomecode.io. This checkout replaces the online runtime with Cloudflare Workers, D1 and Durable Objects; hosted activation is a separate reviewed release. Sign in with a verified email/password account, or Google when configured. Select **Play online** for matchmaking, or **Create room** and share its code/link. Offline house games remain login-free.
 
 Requires Node 22+. Connect your installed agents with one command:
 
@@ -14,7 +14,7 @@ npx -y github:Zacaria/botters install
 
 It detects Claude Code, Codex, Claude Desktop, Cursor and Windsurf, shows the changes and asks before writing. Existing config files are backed up; other MCP servers are kept. Codex gets 60-second startup/tool timeouts and automatic approval for Botters tools only. Restart your agent, then tell it "let's play Botters".
 
-Each player keeps their own agent subscription/model keys. Botters never runs inference. The agent opens a ten-minute approval link; connect it explicitly in your signed-in browser, then start matches yourself. It receives no human/account token. Disconnect it in the lobby to revoke its seven-day grant. Signing in on another device resumes your account, room and recent history. Verified-account Elo is separate from old name-only ratings; names are not merged or adopted. Elo remains casual, not proof of identity. See `docs/auth.md` for configuration and privacy; live release status is recorded in `docs/public-pages-release.md`.
+Each player keeps their own agent subscription/model keys. Botters never runs inference. The agent opens a ten-minute approval link; connect it explicitly in your signed-in browser, then start matches yourself. It receives no human/account token. Disconnect it in the lobby to revoke its seven-day grant. Signing in on another device resumes your account, room and recent history. Elo remains casual, not proof of identity. Configuration, local verification and release boundaries are in `docs/cloudflare.md`. No previous account or game database is imported.
 
 Use `install --local` for offline-only house games, `install --yes` for noninteractive setup, or `install --uninstall` to remove the Botters registrations. Rerunning an unchanged setup does nothing. Custom config locations and project overrides: see `docs/install.md`.
 
@@ -22,9 +22,9 @@ No agent yet? `npx -y github:Zacaria/botters` opens the game locally to play alo
 
 ### Browser assistants: remote MCP
 
-The remote gateway source is in `web-mcp.js`. It uses OAuth 2.1, S256 PKCE and the existing signed-in Botters agent approval; the assistant receives agent access, never account cookies or human-control tokens. A registered connector does not start a match. Local stdio installation above remains unchanged.
+The remote gateway lives in `cloudflare/oauth.js` and `cloudflare/agent-gateway.js`. It uses authorization codes, S256 PKCE and signed-in Botters agent approval; the assistant receives agent access, never account cookies or human-control tokens. A registered connector does not start a match. Local stdio installation above remains unchanged.
 
-Operator setup, private token-state storage and the consent flow are documented in [`docs/mcp-oauth.md`](docs/mcp-oauth.md). Live connector address: `https://play.botters.havesomecode.io/mcp`. ChatGPT has completed a real match through it; other web assistants are untested.
+The Cloudflare connector endpoint is `<SITE_URL>/mcp`, on the same origin as the game. Consent, token rotation and local commands are documented in [`docs/cloudflare.md`](docs/cloudflare.md). Previous Node/Colyseus/Convex/PostgreSQL reports under `docs/` are historical evidence, not instructions for this runtime or proof that this candidate is hosted.
 
 <details>
 <summary>Manual setup fallback</summary>
@@ -84,15 +84,13 @@ The default doctrine comes from `DOCTRINE.md`; each player edits their own in th
 
 ## Test
 
-The initial map generator is compiled from `sim/` to WebAssembly; the remaining match simulation runs in `sim.js`. The built artifact is included with the game. After changing the Rust sources, run `npm run build:sim` with the wasm32 target and wasm-bindgen CLI 0.2.100 installed.
+The simulation is compiled from `sim/` to WebAssembly; `sim.js` preserves the JavaScript-facing rules and state contract. The built artifact is included with the game. After changing the Rust sources, run `npm run build:sim` with the wasm32 target and wasm-bindgen CLI 0.2.100 installed.
 
 ```bash
 npm test
 npm run check
-npm run build
+npm run build:worker
 node scripts/verify-install.js # real Claude/Codex, isolated HOME, packed npx + MCP tools/list only
-npm run test:browser       # fresh ephemeral backend per test; Brave, accelerated clock, no live data
-npm run test:auth:browser  # real Better Auth + captured test mail, isolated loopback only
-npm run test:auth:convex   # actual Convex component + proxy, isolated test database
-BOTTERS_SERVER=https://PREVIEW_URL npm run test:online # two real stdio MCP clients, full wall-clock match
+npm run test:browser       # local workerd/D1/DO, Brave; declared accelerated test clock
+npm run test:cloudflare    # accounts, native local email, OAuth/MCP, sockets, failure, results and cadence
 ```

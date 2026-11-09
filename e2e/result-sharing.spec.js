@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, enterAccount } from './fixtures.js'
 import net from 'node:net'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -12,9 +12,9 @@ async function enter(page, name, url = '/') {
   await page.goto(url)
   await page.evaluate(opening => localStorage.setItem('botters.prefs', JSON.stringify({ vs: 'hard', minutes: 3, planets: 16, planning: 10, withAgent: false, openingMine: true, opening })), hold)
   await page.reload()
-  await page.locator('#startName').fill(name)
-  await page.locator('#startSolo').click()
-  await expect(page.locator('#play')).toBeVisible()
+  if (url === '/' || url.startsWith('/r/')) await enterAccount(page, name, url)
+  else { await page.locator('#startName').fill(name); await page.locator('#startSolo').click() }
+  if (!url.startsWith('/r/')) await expect(page.locator('#play')).toBeVisible()
 }
 
 async function finished(page, timeout = 40000) {
@@ -104,6 +104,7 @@ test('real room draw and changed rematch never copy the previous report or priva
     await enter(page, 'PRIVATE_HOST_SENTINEL')
     await page.locator('#createRoom').click()
     await expect(page.locator('#roomPanel')).toBeVisible()
+    await expect(page.locator('#roomCode')).toHaveText(/^[A-Z2-9]{6}$/)
     const code = await page.locator('#roomCode').textContent()
     await enter(guest, 'PRIVATE_GUEST_SENTINEL', `/r/${code}`)
     await expect(guest.locator('#roomCode')).toHaveText(code)

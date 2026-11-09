@@ -1,4 +1,6 @@
-# Remote MCP web pilot
+# Remote MCP web pilot — historical Node transport
+
+Current same-origin Workers gateway: [cloudflare.md](cloudflare.md). The old address, fixtures and deployment commands below do not qualify the new gateway.
 
 > Historical no-auth pilot and HTTPS evidence. The current gateway defaults to OAuth; see [`mcp-oauth.md`](mcp-oauth.md). The recorded probe and review below apply to the original hashes, not the OAuth implementation. No real assistant match has been validated.
 

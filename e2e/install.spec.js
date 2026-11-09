@@ -71,7 +71,7 @@ for (const viewport of [{ width: 320, height: 640 }, { width: 390, height: 844 }
         }
         for (const id of ['web-client', 'phone']) {
           const route = page.locator(`#${id}`)
-          await expect(route).toContainText(id === 'web-client' ? 'https://play.botters.havesomecode.io/mcp' : 'have not been tested')
+          await expect(route).toContainText(id === 'web-client' ? 'https://botters.havesomecode.io/mcp' : 'have not been tested')
           await route.getByRole('link', { name: 'Go to local client setup' }).click()
           await expect(page).toHaveURL(/#local-client$/)
         }

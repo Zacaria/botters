@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "botters",
+  "main": ".cache/cloudflare/worker.js",
+  "compatibility_date": "2026-11-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "no_bundle": true,
+  "build": { "command": "npm run build && node scripts/build-cloudflare.js" },
+  "rules": [{ "type": "CompiledWasm", "globs": ["**/*.wasm"], "fallthrough": true }],
+  "assets": { "directory": "public", "binding": "ASSETS", "run_worker_first": true },
+  "vars": { "SITE_URL": "http://localhost:8787", "AUTH_EMAIL_FROM": "botters@mail.havesomecode.io", "AUTH_EMAIL_ALLOWED_RECIPIENTS": "z@havesomecode.io" },
+  "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["botters@mail.havesomecode.io"], "allowed_destination_addresses": ["z@havesomecode.io"] }],
+  "d1_databases": [{ "binding": "DB", "database_name": "botters", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "cloudflare/migrations" }],
+  "durable_objects": { "bindings": [{ "name": "MATCHES", "class_name": "MatchRoom" }, { "name": "AGENTS", "class_name": "AgentGateway" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MatchRoom", "AgentGateway"] }],
+  "triggers": { "crons": ["*/10 * * * *"] },
+  "observability": { "enabled": false },
+  "workers_dev": true
+}
