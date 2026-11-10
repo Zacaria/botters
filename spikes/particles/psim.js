@@ -18,7 +18,7 @@ export function createParticles(seed = 1, perSide = 3000, battalions = 6, flank 
     dmg: new Float32Array(N), head: new Int32Array(GW * GH), next: new Int32Array(N),
     bats: [], // { id, side, tx, ty, order: bool, cx, cy, n }
   }
-  for (let side = 0; side < 2; side++) for (let b = 0; b < battalions; b++) s.bats.push({ id: s.bats.length, side, tx: side ? 250 : 950, ty: 350, order: false, cx: 0, cy: 0, n: 0 })
+  for (let side = 0; side < 2; side++) for (let b = 0; b < battalions; b++) s.bats.push({ id: s.bats.length, side, tx: side ? 250 : 950, ty: 350, order: false, via: [], cx: 0, cy: 0, n: 0 })
   for (let i = 0; i < N; i++) {
     const side = i < perSide ? 0 : 1, k = i % perSide, b = side * battalions + (k % battalions), r = rnd()
     s.side[i] = side; s.bat[i] = b; s.role[i] = r < 0.25 ? 0 : r < 0.75 ? 1 : 2; s.hp[i] = ROLES[s.role[i]].hp
@@ -29,11 +29,21 @@ export function createParticles(seed = 1, perSide = 3000, battalions = 6, flank 
   return s
 }
 
-export function order(s, b, tx, ty) { const o = s.bats[b]; if (!o) return false; o.tx = tx; o.ty = ty; o.order = true; return true }
-// Split a battalion: the given role (or everyone) of the nearest half toward its target leaves as a new battalion.
+export function order(s, b, tx, ty) { const o = s.bats[b]; if (!o) return false; o.tx = tx; o.ty = ty; o.order = true; o.via = []; return true }
+// Flank order: swing round the end of the whole enemy line (the end nearer to the battalion), then hit the battalion at that end from the side.
+export function flank(s, b) {
+  const o = s.bats[b]; if (!o || !o.n) return false
+  const foes = s.bats.filter(q => q.n && q.side !== o.side); if (!foes.length) return false
+  const top = foes.reduce((m, q) => (q.cy < m.cy ? q : m)), bottom = foes.reduce((m, q) => (q.cy > m.cy ? q : m))
+  const end = o.cy - top.cy < bottom.cy - o.cy ? top : bottom, up = end === top, clamp = (v, hi) => Math.min(hi - 20, Math.max(20, v))
+  const ey = up ? 30 : H - 30
+  o.via = [{ x: o.cx, y: ey }, { x: clamp(end.cx, W), y: ey }]
+  o.tx = end.cx; o.ty = end.cy; o.order = true
+  return true
+}
 export function detach(s, b, roleName) {
   const o = s.bats[b]; if (!o || o.n < 2) return -1
-  const nb = { id: s.bats.length, side: o.side, tx: o.tx, ty: o.ty, order: o.order, cx: o.cx, cy: o.cy, n: 0 }; s.bats.push(nb)
+  const nb = { id: s.bats.length, side: o.side, tx: o.tx, ty: o.ty, order: o.order, via: o.via ? o.via.slice() : [], cx: o.cx, cy: o.cy, n: 0 }; s.bats.push(nb)
   const r = roleName ? ROLES.findIndex(q => q.name === roleName) : -1; let moved = 0
   for (let i = 0; i < s.N; i++) if (s.alive[i] && s.bat[i] === b && (r >= 0 ? s.role[i] === r : (i & 1))) { s.bat[i] = nb.id; moved++ }
   return moved ? nb.id : -1
@@ -43,6 +53,7 @@ function think(s) { // battalion level: centroids and a plain attack-move for ba
   for (const o of s.bats) { o.cx = 0; o.cy = 0; o.n = 0 }
   for (let i = 0; i < s.N; i++) if (s.alive[i]) { const o = s.bats[s.bat[i]]; o.cx += s.x[i]; o.cy += s.y[i]; o.n++ }
   for (const o of s.bats) if (o.n) { o.cx /= o.n; o.cy /= o.n }
+  for (const o of s.bats) if (o.via.length && o.n && (o.cx - o.via[0].x) ** 2 + (o.cy - o.via[0].y) ** 2 < 70 * 70) o.via.shift() // waypoint reached
   for (const o of s.bats) if (o.n && !o.order) {
     let best = null, bd = Infinity
     for (const q of s.bats) if (q.n && q.side !== o.side) { const d = (q.cx - o.cx) ** 2 + (q.cy - o.cy) ** 2; if (d < bd) { bd = d; best = q } }
@@ -65,7 +76,7 @@ export function step(s) {
       for (let j = head[gy * GW + gx]; j >= 0; j = next[j]) {
         if (j === i) continue
         const dx = x[i] - x[j], dy = y[i] - y[j], d2 = dx * dx + dy * dy
-        if (d2 < SEP * SEP && d2 > 0.01) { const k = ROLES[role[j]].push / d2 / R.push; sx += dx * k; sy += dy * k }
+        if (d2 < SEP * SEP) { const d = Math.sqrt(d2) || 0.01, k = (SEP - d) / SEP / d * ROLES[role[j]].push / R.push; sx += (d2 ? dx : (i & 1) - 0.5) * k; sy += (d2 ? dy : (j & 1) - 0.5) * k }
         if (side[j] !== side[i] && d2 < fd) { fd = d2; foe = j }
       }
     const o = s.bats[bat[i]]
@@ -78,13 +89,15 @@ export function step(s) {
       }
       if (fd < REACH * REACH) dmg[foe] += R.dmg * (side[foe] ? 1 : 1)
     } else {
-      const ddx = o.tx - x[i], ddy = o.ty - y[i], dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1, off = Math.sqrt((o.cx - x[i]) ** 2 + (o.cy - y[i]) ** 2)
+      const wp = o.via[0], gx = wp ? wp.x : o.tx, gy = wp ? wp.y : o.ty, ddx = gx - x[i], ddy = gy - y[i], dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1, off = Math.sqrt((o.cx - x[i]) ** 2 + (o.cy - y[i]) ** 2)
       tx = x[i] + ddx / dd * 50 + (o.cx - x[i]) * (off > 60 ? 0.4 : 0.02); ty = y[i] + ddy / dd * 50 + (o.cy - y[i]) * (off > 60 ? 0.4 : 0.02)
       if (R.name === 'runner' && off < 90) v = ROLES[1].speed * 0.9 // runners keep to the battalion's pace until they see the enemy
       if (dd < 8) v = 0
     }
     const dx = tx - x[i], dy = ty - y[i], d = Math.sqrt(dx * dx + dy * dy) || 1
-    vx[i] = dx / d * v * (foe >= 0 && fd < REACH * REACH ? 0.2 : 1) + sx * 6; vy[i] = dy / d * v * (foe >= 0 && fd < REACH * REACH ? 0.2 : 1) + sy * 6
+    const m = foe >= 0 && fd < REACH * REACH ? 0.2 : 1
+    vx[i] = dx / d * v * m + sx; vy[i] = dy / d * v * m + sy
+    const sp = vx[i] * vx[i] + vy[i] * vy[i], cap = 2 * R.speed; if (sp > cap * cap) { const k = cap / Math.sqrt(sp); vx[i] *= k; vy[i] *= k } // nobody ever outruns twice its own speed
   }
   for (let i = 0; i < N; i++) if (alive[i]) {
     hp[i] -= dmg[i]
