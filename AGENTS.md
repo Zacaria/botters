@@ -17,6 +17,12 @@ A real-time space strategy game played with an AI agent through MCP. Node.js 22+
 
 Preserve the separation between human account sessions, human capabilities and explicitly approved, revocable agent grants. Do not expose credentials, account data, cookies or provider keys to clients, logs or fixtures. Keep local tests isolated from production identity and data; preview authentication has its own constraints in `docs/auth.md`. Publishing, provider configuration, live tests and deployment require the relevant explicit scope; historical release reports are evidence, not blanket authorization. The installer edits agent configuration, so inspect its effect and obtain appropriate permission before running it.
 
+## Shared workspace rules
+
+Read and follow the shared workspace policy for every project, including projects with real users.
+
+@/home/hermes/repos/prompts-lib/AGENTS_WORKSPACE.md
+
 ## Shared building rules
 
 Read the shared file below before changing this project. Its development rules apply only if the project has no real users yet; confirm that status before applying them. Existing project-specific security, data-preservation, and release requirements still apply.
