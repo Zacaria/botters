@@ -68,7 +68,11 @@ function whatIf(m, p, log, deadline) {
     }
     return s
   }
-  const without = role => count(role) ? result(boundedReplay(log.filter(l => l.side !== p.side || l.role !== role))) : result(m.s)
+  const without = role => {
+    if (!count(role)) return result(m.s)
+    const replayed = boundedReplay(log.filter(l => l.side !== p.side || l.role !== role))
+    try { return result(replayed) } finally { replayed.free() }
+  }
   return { actual: result(m.s), humanInputs: count('human'), agentInputs: count('agent'), withoutHuman: without('human'), withoutAgent: p.withAgent ? without('agent') : null }
 }
 
@@ -80,7 +84,7 @@ function matchFrame(m, side, now) {
 }
 
 export class OnlineGame {
-  constructor(store, { now = Date.now, origin = 'https://botters.vercel.app', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId, handles = null } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId; this.handles = handles }
+  constructor(store, { now = Date.now, origin = 'https://botters.havesomecode.io', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId, handles = null } = {}) { this.store = store; this.now = now; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId; this.handles = handles; if (handles) handles.versions ||= new Map() }
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
@@ -94,16 +98,19 @@ export class OnlineGame {
         const chunk = await tx.get(`log:${m.id}:${Math.floor(m.logCount / 64)}`, [])
         chunk.push(entry); m.logCount++
       }
+      const version = m => JSON.stringify([m.stateTick ?? 0, m.logCount, m.checkpointTick ?? 0, !!m.checkpointEnded])
       const attachState = (m, state, initial = false) => {
+        this.handles.set(m.id, state)
         delete m.s
         Object.defineProperty(m, 's', { value: state, writable: true, configurable: true })
         const original = state
-        tx.onRetry(() => { this.handles.get(m.id)?.free(); this.handles.delete(m.id) })
+        tx.onRetry(() => { this.handles.get(m.id)?.free(); this.handles.delete(m.id); this.handles.versions.delete(m.id) })
         tx.beforeCommit(async () => {
           if (initial || m.s !== original || (m.s.ended && !m.checkpointEnded) || m.s.tick - (m.checkpointTick ?? 0) >= 100) {
             await tx.set(`state:${m.id}`, m.s.toJSON())
             m.checkpointTick = m.s.tick; m.checkpointEnded = !!m.s.ended
           }
+          this.handles.versions.set(m.id, version(m))
         })
       }
       const index = async () => {
@@ -115,7 +122,7 @@ export class OnlineGame {
       const updatedRatings = new Map()
       const board = async () => {
         const pairs = new Map([...(await tx.get(`${ratingPrefix}leaderboard`, [], 0)), ...updatedRatings])
-        return rankPairs([...pairs]).slice(0, 10).map(([, entry]) => entry)
+        return rankPairs([...pairs]).slice(0, 10).map(([, entry]) => { const { _owner, ...publicEntry } = entry; return publicEntry })
       }
       const finish = async m => {
         if (!m.s.ended || m.report) return
@@ -138,7 +145,7 @@ export class OnlineGame {
           const got = m.s.ended.winner === 0 ? 1 : m.s.ended.winner === null ? .5 : 0
           const delta = Math.round(32 * (got - expected))
           if (ratings[0].key !== ratings[1].key) for (const [side, { key, entry }] of ratings.entries()) {
-            const value = { ...entry, name: m.players[side].name, rating: entry.rating + (side ? -delta : delta), games: entry.games + 1 }
+            const value = { ...entry, ...(this.requireAccount ? { _owner: hash(m.players[side].accountId) } : {}), name: m.players[side].name, rating: entry.rating + (side ? -delta : delta), games: entry.games + 1 }
             await tx.set(`${ratingPrefix}elo:${key}`, value, 0); updatedRatings.set(key, value)
           }
         }
@@ -161,7 +168,10 @@ export class OnlineGame {
           return null
         }
         if (typeof m.s?.toJSON !== 'function') {
-          const cached = this.handles?.get(id)
+          let cached = this.handles?.get(id)
+          if (cached && this.handles.versions.get(id) !== version(m)) {
+            cached.free(); this.handles.delete(id); this.handles.versions.delete(id); cached = null
+          }
           const checkpoint = cached ? null : (m.s || await tx.get(`state:${id}`))
           const state = cached || fromJSON(checkpoint)
           if (this.handles) {

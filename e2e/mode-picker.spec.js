@@ -1,13 +1,12 @@
-import { test, expect } from './fixtures.js'
-import { authorizePreview, state } from './preview.js'
+import { test, expect, enterAccount } from './fixtures.js'
+import { state } from './preview.js'
 
 const modes = ['1v1', '2v2', 'ffa4', 'ffa6']
-test.beforeEach(async ({ context }) => authorizePreview(context))
+
 
 async function enter(page, name) {
   await page.goto('/')
-  await page.locator('#startName').fill(name)
-  await page.locator('#startSolo').click()
+  await enterAccount(page, name)
   await expect(page.locator('#play')).toBeVisible()
   await page.locator('#setup').evaluate(e => { e.open = true })
 }

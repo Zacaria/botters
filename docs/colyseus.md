@@ -1,4 +1,6 @@
-# Live matches on Lightsail
+# Live matches on Lightsail — historical runtime
+
+Superseded by [Cloudflare Workers/D1/Durable Objects](cloudflare.md). This report preserves previous evidence; its Node/container deployment commands are not the current release path.
 
 This supersedes the checkpoint/subscription architecture in `pvp-spec.md`. Historical measurements in `pvp-release.md` describe the previous deployment, not this candidate.
 

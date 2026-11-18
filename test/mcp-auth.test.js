@@ -4,6 +4,8 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
+import net from 'node:net'
+import { runtime } from './helpers/cloudflare.js'
 import { z } from 'zod'
 import { OnlineGame } from '../online/game.js'
 import { MemoryStore } from '../online/store.js'
@@ -11,11 +13,11 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 test('two actual MCP processes explicitly reapprove revoked agents and resume the same match', { timeout: 125000 }, async t => {
-  const origin = 'http://127.0.0.1:8790'
-  const liveOrigin = 'http://127.0.0.1:8791'
-  const fixture = spawn(process.execPath, ['scripts/auth-dev.js'], { env: { ...process.env, PORT: '8790' }, stdio: ['ignore', 'pipe', 'pipe'] })
-  t.after(() => fixture.kill())
-  await Promise.race([once(fixture.stdout, 'data'), once(fixture, 'exit').then(() => { throw new Error('Isolated auth fixture exited early') })])
+  const reservation=net.createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r))
+  const port=reservation.address().port;await new Promise(r=>reservation.close(r))
+  const origin=`http://127.0.0.1:${port}`,liveOrigin=origin
+  const {mf,mail}=await runtime({port,host:'127.0.0.1',bindings:{SITE_URL:origin,AUTH_EMAIL_ALLOWED_RECIPIENTS:'mcp-0@example.test,mcp-1@example.test'}})
+  t.after(()=>mf.dispose())
   const post = (path, data, cookie) => fetch(origin + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, ...(cookie ? { cookie } : {}) }, body: JSON.stringify(data) })
   const livePost = (path, data, cookie) => fetch(liveOrigin + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, ...(cookie ? { cookie } : {}) }, body: JSON.stringify(data) })
   const clients = await Promise.all(['one', 'two'].map(async name => {
@@ -33,16 +35,16 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
     const pairURL = new URL(returned.tell_the_human.match(/http:\/\/\S+/)[0])
     const email = `mcp-${i}@example.test`
     assert.equal((await post('/api/auth/sign-up/email', { email, password: 'isolated-mcp-password-327!', name: `MCP Human ${i}`, callbackURL: '/' })).status, 200)
-    const mail = await fetch(`${origin}/test/mail?email=${email}`).then(r => r.json())
+    await mf.captureMail()
     const verified = await fetch(mail.at(-1).text.match(/http:\/\/\S+/)[0], { redirect: 'manual' })
     const cookie = verified.headers.getSetCookie().map(c => c.split(';')[0]).join('; ')
     const session = await post('/session', {}, cookie).then(r => r.json())
-    const exchanged = await livePost('/exchange', { ticket: session.liveTicket })
+    const exchanged = await livePost('/exchange', { ticket: session.liveTicket }, cookie)
     assert.equal(exchanged.status, 200)
-    const liveCookie = exchanged.headers.getSetCookie().map(c => c.split(';')[0]).join('; ')
+    const liveCookie = cookie+'; '+exchanged.headers.getSetCookie().map(c => c.split(';')[0]).join('; ')
     assert.equal(session.agentToken, undefined)
-    assert.equal((await post(`/agent/approve?token=${session.humanToken}`, { id: pairURL.searchParams.get('pair') }, cookie)).status, 200)
-    humans.push({ ...session, cookie: liveCookie, authCookie: cookie })
+    assert.equal((await post(`/agent/approve?token=${session.humanToken}`, { id: pairURL.searchParams.get('pair') }, liveCookie)).status, 200)
+    humans.push({ ...session, cookie: liveCookie, authCookie: liveCookie })
   }
   const options = { minutes: 8, planning: 10, planets: 16, withAgent: true }
   const room = await livePost(`/rooms?token=${humans[0].humanToken}`, options, humans[0].cookie).then(r => r.json())
@@ -82,6 +84,7 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
   }
   const after = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
   assert.equal(after.matchId, before.matchId, 'reapproval must not create another match')
+  assert.equal((await livePost(`/surrender?token=${humans[0].humanToken}`,{},humans[0].cookie)).status,200)
   let frame
   for (let i = 0; i < 250; i++) {
     frame = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
@@ -114,7 +117,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
   const source = await readFile(new URL('../tools.js', import.meta.url), 'utf8')
   const context = vm.createContext({
     SERVER: origin, serverURL: new URL(origin), agentToken: initial?.agentToken, requireAgentToken: bound, setup: 'agent', name: 'you', bypassSecret: undefined, URL, AbortSignal, z,
-    openUrl: () => {}, log: () => {},
+    openUrl: () => {}, log: () => {}, state: null,
     McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
     fetch: async (target, options = {}) => {
       const url = new URL(target), path = url.pathname, method = options.method || 'GET', token = url.searchParams.get('token') || ''
@@ -124,7 +127,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
       catch (error) { return { ok: false, status: error.status || 500, json: async () => ({ error: error.message }) } }
     },
   })
-  const { S } = await new vm.Script(`(async () => { ${source.slice(source.indexOf('let liveServer ='), source.lastIndexOf('return mcp'))}; return { S } })()`).runInContext(context)
+  const { S } = await new vm.Script(`(async () => { const fetchImpl=fetch; ${source.slice(source.indexOf('let liveServer ='), source.lastIndexOf('return mcp'))}; return { S } })()`).runInContext(context)
   const call = async (name, args = {}) => (await tools.get(name)(args)).content[0].text
   const approve = () => request(identity, 'POST', '/agent/approve', human.humanToken, { id: S.session.id })
   const join = async () => {

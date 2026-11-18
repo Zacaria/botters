@@ -1,4 +1,6 @@
-# PostgreSQL account migration pilot
+# PostgreSQL account migration pilot — historical experiment
+
+Superseded by the direct [Cloudflare replacement](cloudflare.md), with no data import and no parallel PostgreSQL repair. The evidence below is retained, not a current prerequisite.
 
 The deployed website still uses Vercel and Convex; the Colyseus service runs on Lightsail. This branch does not cut over either service. The intended account database is PostgreSQL alongside the eventual Node service on Railway; keep the existing live simulation and Better Auth policy. The isolated pilot uses synthetic accounts and a disposable loopback PostgreSQL database only.
 

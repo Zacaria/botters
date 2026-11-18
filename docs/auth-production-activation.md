@@ -1,4 +1,6 @@
-# Account production activation — 2026-10-16
+# Account production activation — historical 2026-10-16 release
+
+The current Cloudflare replacement is documented in [cloudflare.md](cloudflare.md). Do not reactivate this former hosting stack to release it.
 
 ## Exact release
 

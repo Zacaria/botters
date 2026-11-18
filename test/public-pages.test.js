@@ -31,19 +31,19 @@ test('public policy documents have real content, navigation and no JavaScript de
     assert.doesNotMatch(html, /TODO|lorem ipsum|example\.com/i)
   }
   const privacy = await source('privacy.html')
-  for (const term of ['Google', 'Vercel', 'Convex', 'local storage', 'retention', 'CNIL']) assert.ok(privacy.includes(term), `Missing privacy disclosure: ${term}`)
+  for (const term of ['Google', 'Cloudflare', 'local storage', 'retention', 'CNIL']) assert.ok(privacy.includes(term), `Missing privacy disclosure: ${term}`)
 })
 
 test('deployment and local servers expose policies, and the offline package includes them', async () => {
-  const config = JSON.parse(await source('vercel.json'))
+  const config = JSON.parse(await source('wrangler.jsonc'))
   const manifest = JSON.parse(await source('package.json'))
+  assert.equal(config.assets.binding, 'ASSETS')
+  assert.equal(config.assets.run_worker_first, true)
   for (const route of policies) {
-    assert.ok(config.rewrites.some(r => r.source === `/${route}` && r.destination === `/${route}.html`))
     assert.ok(manifest.files.includes(`${route}.html`))
-    assert.ok((await source('scripts/online-dev.js')).includes(`'/${route}'`))
     assert.ok((await source('server.js')).includes(`'GET /${route}'`))
   }
-  assert.ok(config.rewrites.some(r => r.source.includes('session|lobby')))
+  assert.match(await source('cloudflare/worker.js'), /gamePaths/)
 })
 
 test('clean build includes the two policies and only intended public files', async () => {
@@ -53,6 +53,7 @@ test('clean build includes the two policies and only intended public files', asy
     for (const file of assets) await copyFile(new URL(`../${file}`, import.meta.url), join(dir, file))
     await cp(new URL('../media', import.meta.url), join(dir, 'media'), { recursive: true })
     await cp(new URL('../sim/pkg', import.meta.url), join(dir, 'sim/pkg'), { recursive: true })
+    await copyFile(new URL('../sim/runtime.js', import.meta.url), join(dir, 'sim/runtime.js'))
     execFileSync(process.execPath, [new URL('../scripts/build.js', import.meta.url).pathname], { cwd: dir })
     assert.deepEqual((await readdir(join(dir, 'public'))).sort(), [...assets, 'media', 'sim', 'live-client.js', 'live-config.json'].toSorted())
     for (const file of assets) assert.equal(await readFile(join(dir, 'public', file), 'utf8'), await source(file))

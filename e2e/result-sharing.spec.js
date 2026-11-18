@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, enterAccount } from './fixtures.js'
 import net from 'node:net'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -12,8 +12,8 @@ async function enter(page, name, url = '/') {
   await page.goto(url)
   await page.evaluate(opening => localStorage.setItem('botters.prefs', JSON.stringify({ vs: 'hard', minutes: 3, planets: 16, planning: 10, withAgent: false, openingMine: true, opening })), hold)
   await page.reload()
-  await page.locator('#startName').fill(name)
-  await page.locator('#startSolo').click()
+  if (url === '/') await enterAccount(page, name)
+  else { await page.locator('#startName').fill(name); await page.locator('#startSolo').click() }
   await expect(page.locator('#play')).toBeVisible()
 }
 

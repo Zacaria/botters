@@ -1,26 +1,16 @@
-import { Client } from '@colyseus/sdk'
-
-// Rejoining by room ID and reauthenticating preserves the match, not a socket.
 export function connectLive(origin, token, onFrame, onDisconnect) {
-  let closed = false, room, retry, connecting = false
-  const client = new Client(origin)
-  const connect = async () => {
-    if (closed || connecting) return
-    connecting = true
-    try {
-      const response = await fetch(`${origin}/socket?token=${encodeURIComponent(token)}`, { credentials: 'include' })
-      if (!response.ok) throw new Error('Live connection unavailable')
-      const { roomId } = await response.json()
-      const next = await client.joinById(roomId, { token })
-      if (closed) { await next.leave(); return }
-      room = next
-      next.onMessage('frame', frame => { if (!closed && room === next) onFrame(frame) })
-      next.onMessage('unavailable', () => { if (!closed) onDisconnect() })
-      next.onLeave(() => { if (!closed && room === next) { onDisconnect(); retry = setTimeout(connect, 1000) } })
-      next.onError(() => { if (!closed) onDisconnect() })
-    } catch { if (!closed) { onDisconnect(); retry = setTimeout(connect, 1000) } }
-    finally { connecting = false }
+  let closed = false, socket, retry
+  const connect = () => {
+    if (closed) return
+    const url = new URL('/socket', origin)
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    url.searchParams.set('token', token)
+    const next = new WebSocket(url)
+    socket = next
+    next.onmessage = event => { if (!closed && socket === next) { try { onFrame(JSON.parse(event.data)) } catch { onDisconnect() } } }
+    next.onclose = () => { if (!closed && socket === next) { onDisconnect(); retry = setTimeout(connect, 1000) } }
+    next.onerror = () => { if (!closed && socket === next) onDisconnect() }
   }
-  void connect()
-  return { close() { closed = true; clearTimeout(retry); void room?.leave() } }
+  connect()
+  return { close() { closed = true; clearTimeout(retry); socket?.close() } }
 }

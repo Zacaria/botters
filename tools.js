@@ -1,12 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 
-export async function createBottersTools({ server: SERVER, agentToken, requireAgentToken = false, setup = 'agent', name = 'you', open: openUrl = () => {}, bypassSecret, log = () => {} }) {
+export async function createBottersTools({ server: SERVER, agentToken, requireAgentToken = false, setup = 'agent', name = 'you', open: openUrl = () => {}, bypassSecret, log = () => {}, fetchImpl = fetch, state = null }) {
 const serverURL = new URL(SERVER)
 let liveServer = SERVER, liveAccounts = true
 const reconnectOAuth = 'Agent access ended. Reconnect Botters in your assistant to authorize it again.'
 try {
-  const config = await fetch(`${SERVER}/live-config.json`, { headers: serverURL.hostname.endsWith('.vercel.app') && bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : {}, signal: AbortSignal.timeout(5000) }).then(r => r.ok ? r.json() : {})
+  const config = await fetchImpl(`${SERVER}/live-config.json`, { headers: serverURL.hostname.endsWith('.vercel.app') && bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : {}, signal: AbortSignal.timeout(5000) }).then(r => r.ok ? r.json() : {})
   if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false }
 } catch { /* Offline servers do not advertise a live endpoint. */ }
 const api = async (method, path, body) => {
@@ -14,7 +14,7 @@ const api = async (method, path, body) => {
   const headers = { 'content-type': 'application/json' }
   const target = path === '/session' && liveAccounts || path.startsWith('/agent/') ? SERVER : liveServer
   if (new URL(target).hostname.endsWith('.vercel.app') && bypassSecret) headers['x-vercel-protection-bypass'] = bypassSecret
-  const r = await fetch(target + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
+  const r = await fetchImpl(target + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
   if (s?.agentToken && url.searchParams.get('token') === s.agentToken && (r.status === 401 || r.status === 410 && url.pathname === '/agent/poll')) {
     // A late refusal belongs to the connection that sent it, not a newer one.
     if (S.session === s) Object.assign(S, { session: null, opened: false, inMatch: false, matchId: null, since: 0 })
@@ -23,7 +23,7 @@ const api = async (method, path, body) => {
   }
   return { status: r.status, ...(await r.json()) }
 }
-const S = { session: agentToken ? { agentToken: agentToken, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null }
+const S = state || { session: agentToken ? { agentToken: agentToken, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null }
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
