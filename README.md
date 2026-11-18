@@ -1,6 +1,6 @@
 # Botters
 
-Project handoff, current design context and regression coverage: [docs/REPRISE.md](docs/REPRISE.md).
+Current production state and next features: [docs/STATE.md](docs/STATE.md). Regression coverage: [docs/feature-regression-coverage.md](docs/feature-regression-coverage.md).
 
 A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of particles conquer and eat planets. Your agent (Claude Code, Codex, any MCP client) writes the **gambits**, the `IF condition → action` rules every swarm follows. You write the doctrine, edit the gambits, switch rules on and off, and grab one swarm by hand when it matters. No model runs in the real-time loop: a match costs only your agent's tool calls.
 
