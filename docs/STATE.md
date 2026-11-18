@@ -19,7 +19,7 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 2. **Play a real match with "Play with Claude"**: add the remote connector in claude.ai, run one full match and fix whatever breaks. *Sonnet.*
 3. **Count real usage**: weekly signups, online matches, agent-played matches and returning players, from Convex aggregates and without exposing personal data, shown somewhere the owner can read. *Sonnet.*
 4. **Decide the three open PRs**: #19 (swarm looks) and #20 (swarm groups), plus #4 (account-cost and auth-form repair). Rebase each onto `master`, play a match, then merge or close. *Opus* (gameplay judgement).
-5. **Replace Resend with Cloudflare Email on the current stack**: one ready commit, tag `archive/2026-11-18/migration/mail-current-t_5834eccb` (243 lines with tests). It also feeds the cross-project mail card. *Sonnet.*
+5. **Cloudflare Email** replaces Resend for sign-in emails (18/11): `online/auth-options.js`, sender `no-reply@mail.havesomecode.io`.
 6. **First contact polish**: the trailer caption is in French on an English page, and new players face a lot of setup text before the first match. *Haiku.*
 
 ## Cloudflare / PostgreSQL / Better Auth migration — verdict

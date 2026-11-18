@@ -12,9 +12,9 @@ const hash = s => createHash('sha256').update(s).digest('hex')
 test.each(['logout', 'reset'])('real component %s revokes human authority, not agents; tickets are atomic and expire', async action => {
   const origin = 'https://botters.example.test', secret = 'isolated-live-proxy-secret-123456789012345'
   vi.stubEnv('SITE_URL', origin); vi.stubEnv('BETTER_AUTH_SECRET', 'isolated-live-auth-secret-123456789012345')
-  vi.stubEnv('BOTTERS_AUTH_PROXY_SECRET', secret); vi.stubEnv('RESEND_API_KEY', 'captured-only'); vi.stubEnv('AUTH_EMAIL_FROM', 'Test <test@example.test>')
+  vi.stubEnv('BOTTERS_AUTH_PROXY_SECRET', secret); vi.stubEnv('AUTH_EMAIL_FROM', 'test@example.test'); vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', 'a'.repeat(32)); vi.stubEnv('CLOUDFLARE_EMAIL_API_TOKEN', 'captured-only')
   const mail = []
-  vi.stubGlobal('fetch', async (_url, options) => { mail.push(JSON.parse(options.body)); return Response.json({ id: 'captured' }) })
+  vi.stubGlobal('fetch', async (_url, options) => { const message = JSON.parse(options.body); mail.push(message); return Response.json({ success: true, errors: [], result: { delivered: [message.to], queued: [], permanent_bounces: [], suppressed_recipients: [] } }) })
   try {
     const t = convexTest(schema, modules); betterAuthTest.register(t)
     const call = (path, body, cookie = '') => t.fetch('/api/auth' + path, { method: 'POST', headers: { origin, 'content-type': 'application/json', 'x-botters-auth-proxy': secret, cookie }, body: JSON.stringify(body) })
