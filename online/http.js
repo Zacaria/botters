@@ -55,7 +55,7 @@ export function createHandler(store, options = {}) {
       let result
       do {
         result = await game.request(req.method, path, url.searchParams, body, options.runtime ? liveCookieProof(req.headers.cookie, options.liveCookieName) : undefined)
-        const waiting = req.method === 'GET' && (path === '/agent/poll' ? !result.approved : path === '/next' ? !result.match : path === '/events' ? result.state && !result.state.ended && !result.events.length : false)
+        const waiting = req.method === 'GET' && (path === '/agent/poll' ? !result.approved : path === '/next' ? !result.match && !result.preparation : path === '/events' ? result.state && !result.state.ended && !result.events.length : false)
         if (!waiting || performance.now() >= pollDeadline || closed) break
         await delay(Math.min(500, Math.max(0, pollDeadline - performance.now())))
       } while (!closed)

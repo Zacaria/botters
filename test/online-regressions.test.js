@@ -13,7 +13,7 @@ function fixture() {
 test('room settings do not disclose private openings; next delivery can be retried', async () => {
   const f = fixture(), a = await f.session('a', 'codex'), b = await f.session('b', 'claude')
   const opening = [{ if: 'always', then: 'hold' }]
-  const room = await f.call(a, 'POST', '/rooms', { opening })
+  const room = await f.call(a, 'POST', '/rooms', { opening, withAgent: true })
   const joined = await f.call(b, 'POST', '/rooms/join', { code: room.code, withAgent: false })
   assert.equal(joined.settings.opening, undefined)
   await f.call(a, 'POST', '/rooms/start')

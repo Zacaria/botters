@@ -46,7 +46,13 @@ let now = Date.now()
 const game = new OnlineGame(store, { now: () => now })
 const call = (s, method, path, body = {}, role = 'human') => game.request(method, path, new URLSearchParams({ token: s[`${role}Token`] }), body)
 const sessions = await Promise.all(['a', 'b'].map(name => game.request('POST', '/session', undefined, { name, setup: 'convex-check' })))
-await Promise.all(sessions.map(s => call(s, 'POST', '/play', { vs: 'player', minutes: 3, planning: 10 })))
+const options = { vs: 'player', minutes: 3, planning: 10, withAgent: true }
+for (const s of sessions) {
+  await call(s, 'POST', '/prepare', options)
+  const { preparation } = await call(s, 'GET', '/next', {}, 'agent')
+  await call(s, 'POST', '/input', { preparationId: preparation.id, gambits: [{ if: 'always', then: 'hold' }], why: 'Durable store fixture opening.' }, 'agent')
+  await call(s, 'POST', '/play', options)
+}
 const frames = await Promise.all(sessions.map(s => call(s, 'GET', '/state')))
 assert.equal(frames[0].matchId, frames[1].matchId)
 const inputs = await Promise.allSettled(Array.from({ length: 8 }, () => call(sessions[0], 'POST', '/input', { gambits: [{ if: 'always', then: 'hold' }] }, 'agent')))

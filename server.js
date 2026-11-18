@@ -5,6 +5,7 @@ import http from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
 import { servePublicMedia } from './public-media.js'
+import { createPreparation, preparationReady, savePreparation } from './agent-preparation.js'
 import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, TYPES, HOUSE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
@@ -33,14 +34,14 @@ const live = s => s.match && !s.match.s.ended
 function parsePlay(b) { // validated match request from the lobby (or a script)
   const vs = [...LEVELS, 'player'].includes(b.vs) ? b.vs : 'normal'
   if (matchOptions(b).mode !== '1v1' && vs === 'player') b = { ...b, mode: '1v1' } // 2v2 and free-for-all are played against house bots for now
-  return { vs, ...matchOptions(b), planning: PLANNING.includes(b.planning) ? b.planning : 20, withAgent: b.withAgent !== false, opening: Array.isArray(b.opening) ? b.opening : null }
+  return { vs, ...matchOptions(b), planning: PLANNING.includes(b.planning) ? b.planning : 20, withAgent: b.withAgent === true, opening: Array.isArray(b.opening) ? b.opening : null }
 }
 
 function play(s, req) {
   if (live(s)) return { ok: false, error: 'already in a match' }
   if (req.opening) { const t = createMatch(1); const r = applyInput(t, 0, { gambits: req.opening }); if (!r.ok) return r }
   if (req.vs !== 'player') return startMatch([{ s, req }, null], req), { ok: true }
-  if (waiting && waiting.s !== s && waiting.s.queued) { const a = waiting; waiting = null; a.s.queued = null; startMatch([a, { s, req }], a.req); return { ok: true } }
+  if (waiting && waiting.s !== s && waiting.s.queued) { const a = waiting; startMatch([a, { s, req }], a.req); waiting = null; a.s.queued = null; s.queued = null; return { ok: true } }
   waiting = { s, req }; s.queued = Date.now()
   return { ok: true, queued: true }
 }
@@ -48,19 +49,27 @@ function play(s, req) {
 // ---------- matches ----------
 const foe = (m, side) => { const f = m.players.filter(p => m.s.teams[p.side] !== m.s.teams[side]); return { name: f.length > 1 ? `${f.length} house bots` : f[0].name, setup: f.length > 1 ? 'fixed gambits' : f[0].setup } }
 function startMatch(entries, req) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
+  for (const e of entries) if (e?.req.prepared) {
+    if (!preparationReady(e.s, req)) throw Object.assign(new Error('Opening is stale or does not match these settings. Prepare again.'), { status: 409 })
+  }
+  entries = entries.map(e => e?.req.prepared ? { ...e, req: { ...e.req, prepared: e.s.preparation } } : e)
   const delay = FORCED_DELAY ?? req.planning * 1000
   entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
   const m = { id: id(), s: createMatch(randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
     const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
-      withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
+      withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : e?.req.prepared ? 'prepared' : 'agent', doctrine: e?.s.doctrine || '',
       events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null, gambitsBy: { who: e ? 'default' : 'house', t: 0, why: '' } }
     m.players[side] = p
-    const opening = e ? e.req.opening : HOUSE[req.vs]
-    if (opening) { applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role: e ? 'human' : 'house', input: { gambits: opening } }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
+    const opening = e ? e.req.opening || e.req.prepared?.gambits : HOUSE[req.vs]
+    if (opening) {
+      const role = !e ? 'house' : e.req.opening ? 'human' : 'agent'
+      applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role, input: { gambits: opening } })
+      if (e) p.gambitsBy = { who: role === 'agent' ? 'agent' : 'you', t: 0, why: e.req.prepared?.why || (role === 'human' ? 'your opening gambits' : '') }
+    }
     if (e) { e.s.match = m; e.s.side = side }
   })
-  for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[p.side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with one swarm of each type (locust, carapace, spore). ${p.openingBy === 'human' ? 'Your human wrote the opening gambits: keep them unless the situation demands a change.' : 'Write your opening gambits from the doctrine now.'}`)
+  for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[p.side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with one swarm of each type (locust, carapace, spore). ${p.openingBy === 'human' ? 'Your human wrote the opening gambits: keep them unless the situation demands a change.' : p.openingBy === 'prepared' ? 'Your prepared opening gambits are already applied: keep them unless the situation demands a change.' : 'Write your opening gambits from the doctrine now.'}`)
   m.timer = setInterval(() => {
     if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
     step(m.s)
@@ -156,6 +165,7 @@ const routes = {
     const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'unknown lobby (the server restarted?)' })
     const s = a.s
     json(res, 200, { name: s.name, agent: agentConnected(s) ? s.setup : null, doctrine: s.doctrine, history: s.history, inMatch: !!s.match, live: live(s), queued: !!s.queued,
+      preparation: s.preparation ? { ...s.preparation, ready: preparationReady(s) } : null,
       leaderboard: leaderboard(), choices: { vs: [...LEVELS, 'player'], ...OPTIONS, planning: PLANNING }, doctrineMax: DOCTRINE_MAX })
   },
   'POST /profile': async (req, res, q) => { // human: name and doctrine
@@ -168,9 +178,22 @@ const routes = {
     }
     json(res, 200, { ok: true })
   },
+  'POST /prepare': async (req, res, q) => {
+    const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'bad token' })
+    const options = parsePlay(await body(req)), s = a.s
+    if (live(s) || s.queued) return json(res, 409, { error: 'cannot prepare during a match or queue' })
+    s.preparation = createPreparation(s, options, id())
+    s.nextWaiters.splice(0).forEach(fn => fn())
+    json(res, 200, { preparation: { ...s.preparation, ready: preparationReady(s) } })
+  },
   'POST /play': async (req, res, q) => { // human (or a headless script with its agent token): start a match or queue
     const a = auth(q); if (!a) return json(res, 401, { error: 'bad token' })
-    const r = play(a.s, parsePlay(await body(req)))
+    const options = parsePlay(await body(req))
+    if (a.role === 'human' && options.withAgent && !options.opening) {
+      if (!preparationReady(a.s, options)) return json(res, 409, { error: 'prepare your agent opening before starting' })
+      options.prepared = a.s.preparation
+    }
+    const r = play(a.s, options)
     json(res, r.ok ? 200 : 400, r)
   },
   'POST /cancel': (req, res, q) => {
@@ -182,9 +205,10 @@ const routes = {
   'GET /next': (req, res, q) => { // agent: long-poll until its human starts a match
     const a = auth(q, 'agent'); if (!a) return json(res, 401, { error: 'unknown session (the server restarted?)' })
     const s = a.s, ready = () => live(s) && s.match.players[s.side].withAgent && !s.match.players[s.side].agentJoined
-    const reply = () => { s.agentWaiting--; s.agentSeen = Date.now(); json(res, 200, ready() ? { match: joinInfo(s) } : { match: null, lobby: lobbyUrl(s) }) }
+    const preparing = () => !live(s) && !!s.preparation
+    const reply = () => { s.agentWaiting--; s.agentSeen = Date.now(); json(res, 200, ready() ? { match: joinInfo(s) } : { match: null, ...(preparing() && { preparation: { ...s.preparation, ready: preparationReady(s) } }), lobby: lobbyUrl(s) }) }
     s.agentWaiting++
-    if (ready()) return reply()
+    if (ready() || preparing()) return reply()
     const t = setTimeout(() => { s.nextWaiters = s.nextWaiters.filter(f => f !== fn); reply() }, Math.min(55, Number(q.get('timeout') || 30)) * 1000)
     const fn = () => { clearTimeout(t); reply() }
     s.nextWaiters.push(fn)
@@ -218,8 +242,15 @@ const routes = {
   },
   'POST /input': async (req, res, q) => { // agent or human: gambits, toggle, order, split, release
     const a = auth(q); if (!a) return json(res, 401, { error: 'bad token' })
+    const b = await body(req)
+    if (b.preparationId !== undefined) {
+      if (a.role !== 'agent') return json(res, 403, { error: 'only the agent may save its preparation' })
+      if (live(a.s)) return json(res, 409, { error: 'preparation is only available outside a match' })
+      const preparation = savePreparation(a.s, b)
+      return json(res, 200, { ok: true, preparation: { ...preparation, ready: preparationReady(a.s) } })
+    }
     const m = a.s.match, side = a.s.side; if (!m) return json(res, 409, { error: 'not in a match' })
-    const b = await body(req), p = m.players[side], now = Date.now()
+    const p = m.players[side], now = Date.now()
     if (a.role === 'agent') {
       if (!p.withAgent) return json(res, 403, { error: 'your human is playing this match alone' })
       p.sent = p.sent.filter(x => now - x < 1000)
@@ -297,7 +328,7 @@ const srv = http.createServer(async (req, res) => {
     const u = new URL(req.url, ORIGIN), route = routes[`${req.method} ${u.pathname}`]
     if (!route) { if (servePublicMedia(req, res, u.pathname)) return; return json(res, 404, { error: 'not found' }) }
     await route(req, res, u.searchParams)
-  } catch (e) { console.error(e); if (res.headersSent) res.end(); else json(res, 400, { error: String(e.message || e) }) }
+  } catch (e) { console.error(e); if (res.headersSent) res.end(); else json(res, e.status || 400, { error: String(e.message || e) }) }
 }).listen(PORT, process.env.BOTTERS_HOST || '127.0.0.1', () => console.error(`botters server on ${ORIGIN}`))
 export const listening = new Promise((ok, ko) => srv.once('listening', ok).once('error', ko)) // importers handle EADDRINUSE
 if (process.env.BOTTERS_IDLE_EXIT) { // started by an agent: exit after ~90 s with no agent, no live match and no open game page

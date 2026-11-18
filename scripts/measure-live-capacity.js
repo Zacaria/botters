@@ -13,7 +13,13 @@ try {
   for (let i = 0; i < count; i++) {
     const pair = []
     for (let side = 0; side < 2; side++) pair.push(await service.runtime.request('POST', '/session', undefined, { name: `capacity-${i}-${side}`, setup: 'fixture' }))
-    for (const p of pair) await service.runtime.request('POST', '/play', query(p.humanToken), { vs: 'player', minutes: 8, planning: 10, planets: 40 })
+    const options = { vs: 'player', minutes: 8, planning: 10, planets: 40, withAgent: true }
+    for (const p of pair) {
+      await service.runtime.request('POST', '/prepare', query(p.humanToken), options)
+      const { preparation } = await service.runtime.request('GET', '/next', query(p.agentToken))
+      await service.runtime.request('POST', '/input', query(p.agentToken), { preparationId: preparation.id, gambits: [{ if: 'always', then: 'hold' }], why: 'Capacity fixture opening.' })
+      await service.runtime.request('POST', '/play', query(p.humanToken), options)
+    }
     for (const p of pair) { await service.runtime.request('GET', '/next', query(p.agentToken)); tokens.push(p.agentToken) }
     const frame = await service.runtime.request('GET', '/state', query(pair[0].humanToken))
     await service.runtime.serialize(() => {

@@ -74,7 +74,10 @@ export class LiveRuntime {
       if (!session) return
       const remote = JSON.parse(session), local = JSON.parse(this.store.raw(`session:${remote.id}`) || 'null')
       const own = local ? { match: local.match, side: local.side, room: local.room, roomPrefs: local.roomPrefs, queued: local.queued, history: local.history, name: local.name, doctrine: local.doctrine } : { match: null, room: null, queued: null }
-      if (local && local.agentVersion === remote.agentVersion) own.agentSeen = local.agentSeen
+      if (local && local.agentVersion === remote.agentVersion) {
+        own.agentSeen = local.agentSeen
+        own.preparation = remote.agentGranted === false ? null : local.preparation
+      } else if (local) own.preparation = null
       // Game state is shared by independent leases; only the token uses expiresAt.
       this.store.put(`session:${remote.id}`, JSON.stringify({ ...remote, ...own }))
     })

@@ -29,11 +29,14 @@ const request = async (path, data, token) => {
 }
 const session = await request('/session', { name: 'Local demo', setup: 'operator model / scripted UI' })
 const options = { vs: 'normal', minutes: 3, planets: 28, planning: 10, withAgent: true }
+await request('/prepare', options, session.humanToken)
+const { preparation } = await fetch(`${origin}/next?timeout=0&token=${session.agentToken}`).then(r => r.json())
+assert.equal((await request('/input', { preparationId: preparation.id, gambits: opening, why: 'Operator choice: expand, defend, avoid bigger enemies' }, session.agentToken)).ok, true)
 assert.equal((await request('/play', options, session.humanToken)).ok, true)
-// Join via the genuine agent boundary, then submit the operator's opening once.
+// Join via the genuine agent boundary; the saved operator opening is already applied.
 const joined = await fetch(`${origin}/next?timeout=1&token=${session.agentToken}`).then(r => r.json())
 assert.ok(joined.match)
-assert.equal((await request('/input', { gambits: opening, why: 'Operator choice: expand, defend, avoid bigger enemies' }, session.agentToken)).ok, true)
+
 let browser
 const errors = [], observed = [], humanRequests = []
 let context, page, rawVideo, clipStart, recordingStart

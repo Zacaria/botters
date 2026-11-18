@@ -18,8 +18,13 @@ test('live ticks, inputs and frames never touch durable storage; results persist
   t.after(() => runtime.close())
   const a = await runtime.request('POST', '/session', undefined, { name: 'A', setup: 'agent' })
   const b = await runtime.request('POST', '/session', undefined, { name: 'B', setup: 'agent' })
-  await runtime.request('POST', '/play', q(a.humanToken), { vs: 'player', minutes: 8, planets: 40, planning: 10 })
-  await runtime.request('POST', '/play', q(b.humanToken), { vs: 'player', minutes: 8, planets: 40, planning: 10 })
+  const options = { vs: 'player', minutes: 8, planets: 40, planning: 10, withAgent: true }
+  for (const s of [a, b]) {
+    await runtime.request('POST', '/prepare', q(s.humanToken), options)
+    const { preparation } = await runtime.request('GET', '/next', q(s.agentToken))
+    await runtime.request('POST', '/input', q(s.agentToken), { preparationId: preparation.id, gambits: [{ if: 'always', then: 'hold' }], why: 'Prepared outside the real-time loop.' })
+    await runtime.request('POST', '/play', q(s.humanToken), options)
+  }
   await runtime.request('GET', '/next', q(a.agentToken))
   await runtime.request('GET', '/next', q(b.agentToken))
   const before = calls

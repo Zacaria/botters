@@ -24,7 +24,7 @@ export class LiveStore extends MemoryStore {
       const m = JSON.parse(e.value), old = e.raw && JSON.parse(e.raw)
       return { e, m, start: !old, finish: m.report && !old?.report }
     }).filter(b => b.start || b.finish)
-    const sessionChanged = e => e.key.startsWith('session:') && (!e.raw || ['name', 'setup', 'doctrine', 'agentVersion', 'agentGranted'].some(k => JSON.parse(e.raw)[k] !== JSON.parse(e.value)[k]))
+    const sessionChanged = e => e.key.startsWith('session:') && (!e.raw || ['name', 'setup', 'doctrine', 'agentVersion', 'agentGranted', 'preparation'].some(k => JSON.stringify(JSON.parse(e.raw)[k]) !== JSON.stringify(JSON.parse(e.value)[k])))
     const selected = new Map(entries.filter(e => e.value && (e.key.startsWith('token:') && !e.raw || sessionChanged(e) || /^(pair|pending|account):/.test(e.key))).map(e => [e.key, e]))
     if (boundaries.length) for (const e of entries) if (e.value && (e.key.startsWith('session:') || ratingKey(e.key))) selected.set(e.key, e)
     if (!boundaries.length && !selected.size) return commitLocal()
@@ -50,11 +50,21 @@ export class LiveStore extends MemoryStore {
       return commitLocal()
     }
     for (const e of selected.values()) if (ratingKey(e.key) && raws.get(e.key) !== e.raw) { this.put(e.key, raws.get(e.key), 0); return 0 }
+    for (const e of selected.values()) if (e.key.startsWith('session:') && e.raw && raws.get(e.key)) {
+      const base = JSON.parse(e.raw), local = JSON.parse(e.value), current = JSON.parse(raws.get(e.key))
+      const preparedStart = boundaries.some(b => b.start && b.m.players.some(p => p.session === local.id && p.openingBy === 'prepared'))
+      if (local.preparation && (preparedStart || JSON.stringify(local.preparation) !== JSON.stringify(base.preparation)) &&
+        (current.agentVersion !== local.agentVersion || current.agentGranted === false || current.doctrine !== local.doctrine || JSON.stringify(current.preparation) !== JSON.stringify(base.preparation))) {
+        this.put(e.key, JSON.stringify({ ...base, agentVersion: current.agentVersion, agentGranted: current.agentGranted, setup: current.setup, doctrine: current.doctrine, preparation: current.preparation }))
+        throw Object.assign(new Error('Preparation changed. Ask your human to prepare again.'), { status: 409 })
+      }
+    }
     const writes = [...selected.values()].map(e => {
       let value = e.value
       if (e.key.startsWith('session:') && raws.get(e.key)) {
         const current = JSON.parse(raws.get(e.key)), local = JSON.parse(value)
-        value = JSON.stringify({ ...current, name: local.name, doctrine: local.doctrine, match: local.match, side: local.side,
+        if (local.preparation && (current.agentVersion !== local.agentVersion || current.agentGranted === false)) throw Object.assign(new Error('Agent approval changed. Prepare again.'), { status: 409 })
+        value = JSON.stringify({ ...current, name: local.name, doctrine: local.doctrine, preparation: local.preparation, match: local.match, side: local.side,
           history: [...local.history, ...(current.history || [])].filter((h, i, a) => a.findIndex(o => o.matchId === h.matchId) === i).slice(0, 10) })
       } else if (e.key.startsWith('session:') && e.raw && JSON.parse(e.raw).accountId) throw Object.assign(new Error('Account session is no longer valid.'), { status: 401 })
       return { ...e, raw: raws.get(e.key), value }

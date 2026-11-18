@@ -10,7 +10,12 @@ function fixture() {
   const game = new OnlineGame(store, { now: () => now, origin: 'https://example.test' })
   const call = (s, method, path, body = {}, role = 'human') => game.request(method, path, new URLSearchParams({ token: s?.[`${role}Token`] || '', timeout: '0' }), body)
   const session = (name, setup) => game.request('POST', '/session', new URLSearchParams(), { name, setup })
-  return { game, store, call, session, advance: ms => { now += ms } }
+  const prepare = async (s, options) => {
+    await call(s, 'POST', '/prepare', options)
+    const { preparation } = await call(s, 'GET', '/next', {}, 'agent')
+    await call(s, 'POST', '/input', { preparationId: preparation.id, gambits: [{ if: 'always', then: 'hold' }], why: 'Prepared fixture opening.' }, 'agent')
+  }
+  return { game, store, call, session, prepare, advance: ms => { now += ms } }
 }
 
 test('role-scoped capabilities, validation, fog and server authority', async () => {
@@ -155,8 +160,8 @@ test('rejected room join leaves membership, readiness, timestamps and guest pref
 
 test('cold instance resumes, concurrent agent rate limit is shared, replay and Elo finish exactly once', async () => {
   const f = fixture(), a = await f.session('a', 'codex'), b = await f.session('b', 'claude')
-  await f.call(a, 'POST', '/play', { vs: 'player', minutes: 3, planning: 10 })
-  await f.call(b, 'POST', '/play', { vs: 'player', minutes: 3, planning: 10 })
+  const options = { vs: 'player', minutes: 3, planning: 10, withAgent: true }
+  for (const s of [a, b]) { await f.prepare(s, options); await f.call(s, 'POST', '/play', options) }
   await f.call(a, 'GET', '/next', {}, 'agent')
   const results = await Promise.allSettled(Array.from({ length: 8 }, () => f.call(a, 'POST', '/input', { gambits: [{ if: 'always', then: 'hold' }] }, 'agent')))
   assert.equal(results.filter(r => r.status === 'fulfilled').length, 5)
@@ -183,8 +188,10 @@ test('surrender finishes either room side once, notifies both agents and permits
   for (const side of [0, 1]) {
     const f = fixture(), a = await f.session('a', 'A'), b = await f.session('b', 'B')
     await assert.rejects(f.call(a, 'POST', '/surrender'), { status: 409 })
-    const room = await f.call(a, 'POST', '/rooms', { minutes: 3, planets: 16, planning: 10 })
-    await f.call(b, 'POST', '/rooms/join', { code: room.code })
+    const options = { vs: 'player', minutes: 3, planets: 16, planning: 10, withAgent: true }
+    const room = await f.call(a, 'POST', '/rooms', options)
+    await f.call(b, 'POST', '/rooms/join', { ...options, code: room.code })
+    for (const s of [a, b]) await f.prepare(s, options)
     await f.call(a, 'POST', '/rooms/start')
     for (const player of [a, b]) await f.call(player, 'GET', '/next', {}, 'agent')
     if (side) f.advance(12_000)

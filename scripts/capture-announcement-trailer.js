@@ -27,10 +27,13 @@ const request = async (path, data, token) => {
   return r.json()
 }
 const session = await request('/session', { name: 'Pink', setup: 'operator opening / scripted controls' })
+await request('/prepare', options, session.humanToken)
+const { preparation } = await fetch(`${origin}/next?timeout=0&token=${encodeURIComponent(session.agentToken)}`).then(r => r.json())
+assert.equal((await request('/input', { preparationId: preparation.id, gambits: opening, why: 'Expand. Split above 5000. Avoid larger enemies.' }, session.agentToken)).ok, true)
 assert.equal((await request('/play', options, session.humanToken)).ok, true)
 const joined = await fetch(`${origin}/next?timeout=1&token=${encodeURIComponent(session.agentToken)}`).then(r => r.json())
 assert.ok(joined.match)
-assert.equal((await request('/input', { gambits: opening, why: 'Expand. Split above 5000. Avoid larger enemies.' }, session.agentToken)).ok, true)
+
 const state = () => request('/state', null, session.agentToken)
 const errors = [], observed = [], humanRequests = [], marks = []
 let browser, context, page, video, recordStart, clipStart, manual = null, released = false

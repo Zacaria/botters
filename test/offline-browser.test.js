@@ -18,13 +18,30 @@ async function fixture(t) {
   t.after(async () => { await browser?.close(); server.kill(); if (server.exitCode === null) await once(server, 'exit') })
   await Promise.race([once(server.stderr, 'data'), once(server, 'exit').then(() => { throw new Error('Offline server exited before startup') })])
   browser = await chromium.launch({ executablePath: process.env.BOTTERS_BROWSER || '/usr/bin/brave-browser', args: ['--no-sandbox', '--disable-dev-shm-usage'] })
-  return { browser, origin }
+  const prepareAgent = async (page, agentToken) => {
+    if (!await page.locator('#openAgent').isVisible()) await page.locator('#setup > summary').click()
+    await page.locator('#openAgent').click()
+    const requested = page.waitForResponse(r => new URL(r.url()).pathname === '/prepare' && r.request().method() === 'POST')
+    await page.locator('#prepareAgent').click()
+    const response = await requested
+    assert.equal(response.status(), 200)
+    const { preparation } = await response.json()
+    const next = await (await page.request.get(`${origin}/next?token=${agentToken}&timeout=0.001`)).json()
+    assert.equal(next.preparation.id, preparation.id)
+    const saved = await page.request.post(`${origin}/input?token=${agentToken}`, { data: { preparationId: next.preparation.id, gambits: [{ if: 'always', then: 'hold' }] } })
+    assert.equal(saved.status(), 200)
+    const token = await page.evaluate(() => localStorage.getItem('botters.session'))
+    assert.equal((await (await page.request.get(`${origin}/lobby?token=${token}`)).json()).preparation.ready, true)
+    await expect(page.locator('#play')).toBeEnabled({ timeout: 8000 })
+  }
+  return { browser, origin, prepareAgent }
 }
 
 test('offline browser renders and reconnects using local SSE without the Colyseus bundle', { timeout: 25000 }, async t => {
   const { browser, origin } = await fixture(t)
   const page = await browser.newPage(), errors = [], requests = []
   page.on('pageerror', e => errors.push(e.message)); page.on('request', r => requests.push(new URL(r.url()).pathname))
+  await page.addInitScript(() => { if (!localStorage.getItem('botters.prefs')) localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: false })) })
   await page.goto(origin)
   await page.locator('#startName').fill('Offline regression')
   await page.locator('#startSolo').click()
@@ -50,6 +67,7 @@ test('offline surrender confirms, recovers from refusal, shows the real result a
   const page = await browser.newPage(), errors = [], posts = []
   page.on('pageerror', e => errors.push(e.message))
   page.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/surrender') posts.push(r.url()) })
+  await page.addInitScript(() => { if (!localStorage.getItem('botters.prefs')) localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: false })) })
   await page.goto(origin)
   await page.locator('#startName').fill('Surrender browser')
   await page.locator('#startSolo').click()
@@ -94,7 +112,7 @@ test('offline surrender confirms, recovers from refusal, shows the real result a
 
 test('primary map input ignores secondary buttons without changing engine control', { timeout: 45000 }, async t => {
   if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER || process.env.BOTTERS_DEV_CONVEX) throw new Error('Map input regression requires local ephemeral fixtures')
-  const { browser, origin } = await fixture(t)
+  const { browser, origin, prepareAgent } = await fixture(t)
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), errors = [], posts = [], replies = [], observations = []
   page.on('pageerror', e => errors.push(e.message))
   page.on('request', r => {
@@ -132,6 +150,7 @@ test('primary map input ignores secondary buttons without changing engine contro
   await expect(page.locator('#withAgent [data-v="true"]')).toBeVisible({ timeout: 8000 })
   await page.locator('#withAgent [data-v="true"]').click()
   await expect(page.locator('#guidedHouse')).not.toBeChecked()
+  await prepareAgent(page, agentToken)
   await page.locator('#play').click()
   // After PLAY evaluations only read; all actions are native mouse/keyboard input.
   await expect(page.locator('#hud')).toContainText('swarms')
@@ -347,13 +366,14 @@ test('in-match keyboard navigation escapes swarm cycling and resumes the same re
 })
 
 test('doctrine save recovery preserves refused drafts and acknowledges only submitted revisions', { timeout: 150000 }, async t => {
-  const { browser, origin } = await fixture(t)
+  const { browser, origin, prepareAgent } = await fixture(t)
   for (const inMatch of [false, true]) for (const failure of ['http503', 'network']) await t.test(`${inMatch ? 'match' : 'lobby'} ${failure}`, async () => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     try {
       const page = await context.newPage(), errors = [], posts = []
       page.on('pageerror', e => errors.push(e.message))
       page.on('request', r => { if (r.method() === 'POST') posts.push(new URL(r.url()).pathname) })
+      await page.addInitScript(() => { if (!localStorage.getItem('botters.prefs')) localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: false })) })
       await page.goto(origin)
       await page.locator('#startName').fill('Synthetic doctrine player')
       const created = page.waitForResponse(r => new URL(r.url()).pathname === '/session' && r.request().method() === 'POST')
@@ -373,6 +393,7 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
         assert.equal(heartbeat.status(), 200)
         await poll()
         await page.locator('#withAgent [data-v="true"]').click()
+        await prepareAgent(page, agentToken)
         await page.locator('#play').click()
         await expect(page.locator('#hud')).toContainText('swarms')
         await page.locator('#agentBox summary').click()
@@ -511,6 +532,7 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
 test('doctrine save recovery ignores a lobby snapshot predating an acknowledged edit', { timeout: 20000 }, async t => {
   const { browser, origin } = await fixture(t)
   const page = await browser.newPage()
+  await page.addInitScript(() => { if (!localStorage.getItem('botters.prefs')) localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: false })) })
   await page.goto(origin)
   await page.locator('#startName').fill('Synthetic stale poll player')
   const initial = page.waitForResponse(r => new URL(r.url()).pathname === '/lobby')
@@ -543,7 +565,7 @@ test('invalid saved preferences do not block local play', { timeout: 90000 }, as
   const settings = { vs: 'easy', minutes: 3, planets: 16, planning: 10, withAgent: false, openingMine: true }
   const custom = [{ if: 'enemy_near', p: 123.5, then: 'retreat', on: false }, { if: 'always', then: 'hold', on: true }]
   const cases = [
-    ['null opening', JSON.stringify({ opening: null })],
+    ['null opening', JSON.stringify({ withAgent: false, opening: null })],
     ['truncated JSON', '{"vs":'],
     ['null root', 'null'],
     ['array root', '[{"opening":null}]'],
@@ -561,7 +583,7 @@ test('invalid saved preferences do not block local play', { timeout: 90000 }, as
     ['absent key', null],
     ['absent opening', JSON.stringify(settings), settings],
     ['valid disabled strategy', JSON.stringify({ ...settings, opening: custom }), settings, custom],
-    ['existing real session', '{"opening":null}', undefined, undefined, true],
+    ['existing real session', '{"withAgent":false,"opening":null}', undefined, undefined, true],
   ]
   for (const [name, initialRaw, savedSettings, opening = DEFAULT_GAMBITS, existingSession] of cases) await t.test(name, async () => {
     let raw = initialRaw
@@ -654,12 +676,14 @@ test('casual lobby: one choice and PLAY up front, live swarm backdrop, settings 
   const { browser, origin } = await fixture(t)
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } }), errors = []
   page.on('pageerror', e => errors.push(e.message))
+  await page.addInitScript(() => { if (!localStorage.getItem('botters.prefs')) localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: false })) })
   await page.goto(origin)
   await page.locator('#startName').fill('Casual player')
   await page.locator('#startSolo').click()
   await expect(page.locator('#play')).toBeInViewport()
   await expect(page.locator('#vs [data-v="normal"]')).toHaveText('Normal')
-  await expect(page.locator('#withAgent')).toBeHidden() // no agent: no agent choice to read
+  await expect(page.locator('#withAgent [data-v="false"]')).toHaveText('Just me')
+  await expect(page.locator('#withAgent [data-v="false"]')).toHaveClass('on')
   for (const id of ['#doctrine', '#openAgent', '#minutes', '#history']) await expect(page.locator(id)).toBeHidden()
   const visibleWords = (await page.locator('#lobby').innerText()).split(/\s+/).filter(Boolean).length
   assert.ok(visibleWords < 60, `lobby shows ${visibleWords} words before any click`)

@@ -194,7 +194,13 @@
       <div id="saved" role="status"></div>
       <h3>Opening gambits</h3>
       <div class="row"><button id="openAgent">my agent writes them from the doctrine</button><button id="openMine">I write them</button></div>
-      <div id="openEditor" hidden></div>
+      <div id="openEditor"></div>
+      <div id="preparationPanel">
+        <button id="prepareAgent">Prepare with my agent</button>
+        <div id="preparationStatus" role="status" aria-live="polite"></div>
+        <div id="preparationRules" style="overflow-wrap:anywhere"></div>
+        <p id="preparationWhy" class="dim" style="overflow-wrap:anywhere"></p>
+      </div>
       <h3>Match</h3>
       <div class="row"><b>mode</b><span id="mode"></span></div>
       <div class="row"><b>length</b><span id="minutes"></span></div>
@@ -437,10 +443,17 @@ function syncRoomPlayer() { clearTimeout(memberTimer); if (L?.room && !L.live) m
 function lobbyChoices() {
   $('guidedHouseOption').hidden = !!L?.online || !!L?.room || !!L?.live || prefs.vs === 'player'
   $('openAgent').className = prefs.openingMine ? '' : 'on'; $('openMine').className = prefs.openingMine ? 'on' : ''
-  $('openAgent').disabled = !(agentOk && prefs.withAgent)
+  $('openAgent').disabled = !prefs.withAgent
   $('openEditor').hidden = !(prefs.openingMine || !agentOk || !prefs.withAgent)
-  $('play').disabled = !!L?.queued || !!L?.room
+  $('play').disabled = !L?.live && (!!L?.queued || !!L?.room || !canStart(houseOptions()))
   for (const id of ['quick', 'createRoom', 'joinRoom']) $(id).disabled = !!L?.queued || !!L?.room || !!L?.live
+  $('quick').disabled ||= !canStart(quickOptions())
+  if (L?.room) {
+    $('startRoom').disabled = L.room.players.length < 2 || L.room.live || !canStart(roomOptions())
+    $('rematchRoom').disabled = L.room.live || !canStart(roomOptions())
+  }
+  renderPreparation()
+  if (!L?.queued && !lobbyError) $('lobbyMsg').textContent = agentOpening(preparationOptions()) ? matchingPreparation(preparationOptions()) ? 'Opening ready · review your saved rules in Strategy & settings, then play.' : 'Open Strategy & settings to prepare with your agent, or choose Just me.' : ''
 }
 $('openAgent').onclick = () => { prefs.openingMine = false; savePrefs(); lobbyChoices(); syncRoomPlayer() }
 $('openMine').onclick = () => { prefs.openingMine = true; savePrefs(); lobbyChoices(); syncRoomPlayer() }
@@ -456,7 +469,7 @@ function doctrineStatus(text) {
 }
 function editDoctrine(field) {
   clearTimeout(docTimer); ++doctrineRevision; doctrineDirty = true; setDoctrine(field.value)
-  doctrineStatus('Doctrine not saved. Draft kept; retry when ready.')
+  doctrineStatus('Doctrine not saved. Draft kept; retry when ready.'); lobbyChoices()
   if (!$('game').hidden) toast('Doctrine not saved. Draft kept; retry when ready.', false)
 }
 function saveDoctrine(inMatch = false) {
@@ -470,8 +483,9 @@ function saveDoctrine(inMatch = false) {
     doctrineStatus('Saving doctrine…')
     const r = await api('POST', '/profile', { doctrine: text })
     if (session !== token || revision !== doctrineRevision) return
-    if (r.ok === true) { ++doctrineRevision; doctrineDirty = false; setDoctrine(text.trim().slice(0, 500)) }
+    if (r.ok === true) { ++doctrineRevision; doctrineDirty = false; setDoctrine(text.trim().slice(0, 500)); if (L) L.doctrine = doctrineDraft }
     doctrineStatus(r.ok === true ? 'doctrine saved' : 'Doctrine not saved. Draft kept; retry when ready.')
+    lobbyChoices()
     if (inMatch) toast(r.ok === true ? '✓ doctrine saved' : '✗ Doctrine not saved. Draft kept; retry when ready.', r.ok === true)
   })
   return doctrineQueue
@@ -494,13 +508,13 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   localStorage.setItem('botters.session', token)
   if (first || document.activeElement !== $('name')) $('name').value = L.name
   if (!doctrineDirty && docRevision === doctrineRevision && !['doctrine', 'doctrine2'].includes(document.activeElement.id)) setDoctrine(L.doctrine)
-  for (const k of ['vs', 'mode', 'minutes', 'planets', 'planning']) pick(k, L.choices[k])
+  for (const k of ['vs', 'mode', 'minutes', 'planets', 'planning']) pick(k, k === 'vs' && L.online ? [...L.choices[k].filter(v => v !== 'player'), 'player'] : L.choices[k])
   $('online').hidden = !L.online || !!L.room
   renderRoom(L.room)
   agentOk = !!L.agent
+  if (first && !agentOk && !L.agentGranted && !L.preparation) prefs.withAgent = false
   if (accountRequired) $('revokeAgent').disabled = !L.agentGranted
-  pick('withAgent', agentOk ? [true, false] : [false]); $('withAgent').hidden = !agentOk
-  if (!agentOk) prefs.withAgent = false
+  pick('withAgent', [true, false]); $('withAgent').hidden = false
   if (inviteCode && !inviteUsed && !L.room && !L.live && !L.queued) {
     inviteUsed = true; const joined = await api('POST', '/rooms/join', { ...playOptions(), code: inviteCode })
     if (joined.error) lobbyError = joined.error; else return lobby()
@@ -511,7 +525,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError
   $('viewReport').hidden = !L.inMatch || L.live
   lobbyChoices()
-  $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? 'PLAY HOUSE' : 'PLAY'
+  $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? prefs.vs === 'player' ? 'PLAY ONLINE' : 'PLAY HOUSE' : 'PLAY'
   if (L.live) $('play').disabled = false
   if (L.live && auto) return match()
   lobbyTimer = setTimeout(() => lobby(auto), L.queued ? 1000 : L.room ? 2000 : 5000)
@@ -527,15 +541,61 @@ function renderRoom(room) {
   $('rematchRoom').hidden = !room.matchId; $('rematchRoom').disabled = room.live
   $('roomReady').textContent = room.live ? 'Match running. Resume from above.' : room.ready.length ? `${room.ready.length}/2 ready for a rematch` : room.host ? 'Share the link. Start when your opponent has joined.' : 'Waiting for the host to start.'
 }
-const playOptions = () => ({ mode: '1v1', minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent: agentOk && prefs.withAgent, opening: !agentOk || !prefs.withAgent || prefs.openingMine ? openEd.get() : null })
+const playOptions = () => ({ mode: '1v1', minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent: !!prefs.withAgent, opening: !prefs.withAgent || prefs.openingMine ? openEd.get() : null })
+const houseOptions = () => ({ ...playOptions(), mode: prefs.vs === 'player' ? '1v1' : prefs.mode, vs: prefs.vs })
+const quickOptions = () => ({ ...playOptions(), vs: 'player', ...($('anySettings').checked ? { minutes: 'any', planets: 'any' } : {}) })
+const roomOptions = () => ({ ...playOptions(), ...(L?.room?.settings || {}), withAgent: !!prefs.withAgent, opening: playOptions().opening })
+const preparationOptions = () => L?.room ? roomOptions() : prefs.vs === 'player' ? { ...playOptions(), vs: 'player' } : houseOptions()
+const agentOpening = options => options.withAgent && !options.opening
+function matchingPreparation(options) {
+  const p = L?.preparation
+  return !!p?.ready && Array.isArray(p.gambits) && p.gambits.length > 0 && !doctrineDirty && p.doctrine === doctrineDraft.trim().slice(0, 500) && ['mode', 'vs', 'minutes', 'planets', 'planning'].every(k => p.options[k] === options[k])
+}
+const canStart = options => !agentOpening(options) || !preparing && matchingPreparation(options)
+let preparing = false
+function renderPreparation() {
+  const options = preparationOptions(), p = L?.preparation, ready = !preparing && matchingPreparation(options)
+  $('preparationPanel').hidden = !agentOpening(options)
+  $('prepareAgent').disabled = preparing || !!L?.queued || !!L?.live || !(agentOk || L?.agentGranted || p?.ready)
+  $('preparationStatus').textContent = ready ? 'Opening ready' : preparing ? 'Requesting preparation…' : p && !p.gambits && p.doctrine === doctrineDraft.trim().slice(0, 500) && ['mode', 'vs', 'minutes', 'planets', 'planning'].every(k => p.options[k] === options[k]) ? 'Waiting for your agent. No match has started. Return here when it has saved your opening; there is no deadline.' : 'Prepare an opening for these settings and doctrine before playing, or choose Just me / I write them.'
+  $('preparationRules').innerHTML = ready ? p.gambits.map(r => `<div>${esc(label(r))}</div>`).join('') : ''
+  $('preparationWhy').textContent = ready ? p.why : ''
+}
+async function flushDoctrine() {
+  clearTimeout(docTimer)
+  await doctrineQueue
+  if (doctrineDirty) await saveDoctrine()
+  if (doctrineDirty) { lobbyError = 'Doctrine not saved. Draft kept; retry before preparing or playing.'; $('lobbyMsg').textContent = lobbyError; return false }
+  return true
+}
+async function allowStart(options) {
+  if (!await flushDoctrine()) return false
+  if (canStart(options)) return true
+  lobbyError = 'Prepare an opening for these settings first, or choose Just me / I write them.'
+  $('lobbyMsg').textContent = lobbyError
+  $('setup').open = true; lobbyChoices()
+  return false
+}
+$('anySettings').onchange = () => lobbyChoices()
+$('prepareAgent').onclick = async () => {
+  if (preparing || !await flushDoctrine()) return
+  preparing = true; lobbyChoices()
+  const r = await api('POST', '/prepare', preparationOptions())
+  preparing = false
+  if (!r.error && L) L.preparation = null
+  lobbyError = r.error || ''
+  await lobby()
+}
+
 async function roomAction(path, body = {}) {
+  if (['/rooms/start', '/rooms/rematch'].includes(path) && !await allowStart(L?.room ? roomOptions() : { ...playOptions(), vs: 'player' })) { await lobby(); return }
   const r = await api('POST', path, body)
   if (r.error) { lobbyError = r.error; $('lobbyMsg').textContent = r.error; return }
   lobbyError = ''
   await lobby()
   if (path === '/rooms/rematch' && !$('lobby').hidden) $('roomReady').scrollIntoView({ block: 'nearest' })
 }
-$('quick').onclick = async () => { const r = await api('POST', '/play', { ...playOptions(), mode: '1v1', vs: 'player', ...($('anySettings').checked ? { minutes: 'any', planets: 'any' } : {}) }); if (r.error) { lobbyError = r.error; $('lobbyMsg').textContent = r.error } else { lobbyError = ''; lobby() } }
+$('quick').onclick = async () => { if (!await allowStart(quickOptions())) return; const r = await api('POST', '/play', quickOptions()); if (r.error) { lobbyError = r.error; $('lobbyMsg').textContent = r.error } else { lobbyError = ''; lobby() } }
 $('createRoom').onclick = () => roomAction('/rooms', playOptions())
 $('joinRoom').onclick = () => roomAction('/rooms/join', { ...playOptions(), code: $('joinCode').value.trim() })
 $('joinCode').onkeydown = e => { if (e.key === 'Enter') $('joinRoom').click() }
@@ -548,8 +608,8 @@ $('leaveRoom').onclick = () => roomAction('/rooms/leave')
 $('viewReport').onclick = () => { clearTimeout(lobbyTimer); match() }
 $('play').onclick = () => L?.live ? match() : startPlay()
 async function startPlay() {
-  const withAgent = agentOk && prefs.withAgent, opening = !withAgent || prefs.openingMine ? openEd.get() : null
-  const r = await api('POST', '/play', { vs: L?.online || prefs.mode !== '1v1' ? (prefs.vs === 'player' ? 'normal' : prefs.vs) : prefs.vs, mode: prefs.mode, minutes: prefs.minutes, planets: prefs.planets, planning: prefs.planning, withAgent, opening })
+  if (!await allowStart(houseOptions())) return
+  const r = await api('POST', '/play', houseOptions())
   $('lobbyMsg').textContent = r.ok ? '' : r.error
   if (r.ok) lobby()
 }

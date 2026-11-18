@@ -47,6 +47,13 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
   const options = { minutes: 8, planning: 10, planets: 16, withAgent: true }
   const room = await livePost(`/rooms?token=${humans[0].humanToken}`, options, humans[0].cookie).then(r => r.json())
   assert.equal((await livePost(`/rooms/join?token=${humans[1].humanToken}`, { ...options, code: room.code }, humans[1].cookie)).status, 200)
+  for (const [i, human] of humans.entries()) {
+    assert.equal((await livePost(`/prepare?token=${human.humanToken}`, { ...options, vs: 'player' }, human.cookie)).status, 200)
+    const preparation = JSON.parse((await clients[i].callTool({ name: 'join_match', arguments: {} }, undefined, { timeout: 30000 })).content[0].text)
+    assert.equal(preparation.preparing, true)
+    const saved = JSON.parse((await clients[i].callTool({ name: 'set_gambits', arguments: { gambits: [{ if: 'always', then: 'hold' }], why: 'Prepared before human start.' } })).content[0].text)
+    assert.equal(saved.ready, true)
+  }
   assert.equal((await livePost(`/rooms/start?token=${humans[0].humanToken}`, options, humans[0].cookie)).status, 200)
   const joined = await Promise.all(clients.map(c => c.callTool({ name: 'join_match', arguments: {} }, undefined, { timeout: 30000 })))
   for (const result of joined) { const data = JSON.parse(result.content[0].text); assert.ok(data.rules); assert.ok(data.state); assert.ok(!JSON.stringify(data).includes('humanToken')) }
@@ -119,7 +126,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
     McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
     fetch: async (target, options = {}) => {
       const url = new URL(target), path = url.pathname, method = options.method || 'GET', token = url.searchParams.get('token') || ''
-      requests.push({ path, token })
+      requests.push({ path, token, body: options.body ? JSON.parse(options.body) : undefined })
       if (fault) { const response = await fault(path); if (response) return response }
       try { const data = await request(null, method, path, token, options.body ? JSON.parse(options.body) : {}); return { ok: true, status: 200, json: async () => data } }
       catch (error) { return { ok: false, status: error.status || 500, json: async () => ({ error: error.message }) } }
@@ -133,7 +140,11 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
       assert.equal(JSON.parse(await call('join_match')).waiting, true)
       await approve()
     }
-    await request(identity, 'POST', '/play', human.humanToken, { vs: 'easy', minutes: 8, withAgent: true })
+    const options = { vs: 'easy', minutes: 8, withAgent: true }
+    await request(identity, 'POST', '/prepare', human.humanToken, options)
+    assert.equal(JSON.parse(await call('join_match')).preparing, true)
+    assert.equal(JSON.parse(await call('set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'Fixture prepared opening.' })).ready, true)
+    await request(identity, 'POST', '/play', human.humanToken, options)
     assert.ok(JSON.parse(await call('join_match')).state)
     await request(identity, 'POST', '/say', human.humanToken, { text: 'fixture event cursor' })
     await call('wait_for_event', { timeout_s: 1 })
@@ -153,6 +164,31 @@ function disconnected(S) {
   assert.equal(S.matchId, null)
   assert.equal(S.since, 0)
 }
+
+test('MCP prepares an opening before a match instead of sending the player into a countdown', async () => {
+  const f = await callbackFixture({ supplied: true, bound: true })
+  const preparation = { id: 'current-human-request', doctrine: 'Expand safely.', options: { mode: '1v1', vs: 'easy', minutes: 3, planets: 16, planning: 10 }, gambits: null, ready: false }
+  f.fault(path => path === '/next' ? { ok: true, status: 200, json: async () => ({ match: null, preparation }) }
+    : path === '/input' ? { ok: true, status: 200, json: async () => ({ ok: true, ready: true }) } : null)
+  const joined = JSON.parse(await f.call('join_match'))
+  assert.equal(joined.preparing, true)
+  assert.equal(joined.doctrine, preparation.doctrine)
+  assert.ok(joined.rules.conditions)
+  assert.equal(f.S.inMatch, false)
+  const saved = JSON.parse(await f.call('set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'A safe opening.' }))
+  assert.equal(saved.ok, true); assert.equal(saved.ready, true)
+  const sent = f.requests.findLast(r => r.path === '/input')
+  assert.equal(sent.body.preparationId, preparation.id)
+  assert.deepEqual(sent.body.gambits, [{ if: 'always', then: 'hold' }])
+  assert.equal(f.requests.some(r => r.path === '/play'), false)
+  assert.match(await f.call('order_swarm', { swarm: 1, x: 100, y: 100, why: 'too early' }), /Not in a match/)
+  f.fault(path => path === '/input' ? response(503) : null)
+  const failed = JSON.parse(await f.call('set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'Retry.' }))
+  assert.equal(failed.ok, false); assert.notEqual(failed.ready, true)
+  await f.revoke(); f.fault(null)
+  assert.match(await f.call('set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'Revoked.' }), /Reconnect Botters/)
+  assert.equal(f.S.preparationId, null)
+})
 
 for (const [tool, args] of [...gameplay, ['join_match', {}]]) test(`${tool} invalidates real revoked capability and blocks all siblings until explicit reapproval`, async () => {
   const f = await callbackFixture(); await f.join()

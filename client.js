@@ -50,13 +50,13 @@ const api = async (method, path, body) => {
   const r = await fetch(target + path, { method, headers, body: body && JSON.stringify(body), signal: AbortSignal.timeout(55000) })
   if (s?.agentToken && url.searchParams.get('token') === s.agentToken && (r.status === 401 || r.status === 410 && url.pathname === '/agent/poll')) {
     // A late refusal belongs to the connection that sent it, not a newer one.
-    if (S.session === s) Object.assign(S, { session: null, opened: false, inMatch: false, matchId: null, since: 0 })
+    if (S.session === s) Object.assign(S, { session: null, opened: false, inMatch: false, matchId: null, since: 0, preparationId: null })
     await r.body?.cancel().catch(() => {}) // refusal is definitive even without a JSON body
     return { status: r.status, error: env.BOTTERS_REQUIRE_AGENT_TOKEN === '1' ? reconnectOAuth : 'Agent access or approval expired or was revoked. Call join_match to request fresh approval from your human.' }
   }
   return { status: r.status, ...(await r.json()) }
 }
-const S = { session: env.BOTTERS_AGENT_TOKEN ? { agentToken: env.BOTTERS_AGENT_TOKEN, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null }
+const S = { session: env.BOTTERS_AGENT_TOKEN ? { agentToken: env.BOTTERS_AGENT_TOKEN, lobby: SERVER, online: true } : null, since: 0, opened: false, inMatch: false, matchId: null, preparationId: null }
 const rule = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 const brief = (v, startsIn) => ({
   secondsLeft: v.secondsLeft, ...(startsIn > 0 && { startsIn }), ended: v.ended, particles: v.totals,
@@ -88,13 +88,13 @@ async function session() {
 
 mcp.registerTool('join_match', {
   description: `Play Botters with your human: a real-time space strategy game (1v1, 2v2 or free-for-all). Swarms of particles conquer and eat planets.
-Call this first, and again after each match. It opens your human's lobby in their browser and waits until they press Play (they pick the opponent, match length and map there). If they have not pressed Play yet it returns {waiting: true}: tell them the lobby link once, then call join_match again. Pass vs to start a match yourself without waiting (headless play).
+Call this first, and again after each match. Your human chooses settings and doctrine in the lobby, then selects Prepare with my agent. A preparation returns {preparing: true}: save the opening with set_gambits, then tell the human to return to Botters and press Play when ready. There is no countdown during preparation, and saved rules run without another assistant call. {waiting: true} means no request yet: give the lobby link once and ask them to request preparation. Pass vs only for local headless testing; online matches are always started by their human.
 THE GAME: each side starts with 3 swarms of 3,000 particles next to its home planet. Owned planets are slowly eaten and turned into new particles for their owner. Most particles at the end wins; a side with no swarms and no planets left loses at once.
 Only the front of two touching swarms fights, and a swarm much bigger than its enemy wraps it and wins big. Half of what a swarm kills joins it but is digested slowly (the swarm is slow meanwhile). A swarm that touches no planet and kills nothing for too long starves (hunger 0 to 1 in the state). Big swarms move slower.
 TYPES: each side starts with one swarm of each type. locust: fast, captures planets 1.5x faster, starves in 3/4 of the time, beats spore. carapace: slow, starves 3x later, beats locust. spore: hits 45 beyond contact without being hit back, weak in melee, beats carapace. Change a swarm's type with morph_swarm (10% of its particles, 3 s cocoon, 15 s cooldown), or use the gambit action counter.
 MODES: pass mode '1v1' (default), '2v2' (you and a house ally against two house bots), 'ffa4' or 'ffa6' (free-for-all against house bots). Allies share vision and never fight each other; the last team standing wins. Fog of war: you only see enemies near your swarms and planets.
 YOU DO NOT MOVE SWARMS ONE BY ONE. Every swarm follows your side's gambits: an ordered list of "IF condition → action" rules, first matching rule wins, re-evaluated every 0.5 s. Your job: rewrite the gambits as the match evolves (set_gambits), take a swarm by hand only for a precise play (order_swarm), and ask your human for help (call_human).
-The result includes the rules, the match settings and your human's doctrine (their strategy, in their words). Before the countdown ends, turn the doctrine into opening gambits with set_gambits, unless your human already wrote them.`,
+The result includes the rules, settings and your human's doctrine (their strategy, in their words). Prepare opening gambits BEFORE the human starts. In a live match, respect the saved opening or their manual opening; adapt only when needed. Do not promise live adaptation after your assistant turn ends.`,
   inputSchema: {
     vs: z.enum(['easy', 'normal', 'hard', 'player']).optional().describe('start a match now instead of waiting for the human: a house level or another player'),
     minutes: z.number().optional().describe('with vs: 3, 5 or 8'),
@@ -116,21 +116,31 @@ The result includes the rules, the match settings and your human's doctrine (the
   }
   if (vs && s.online) return text('Your signed-in human starts online matches in the lobby. Do not use the headless vs option online; call join_match without vs.')
   if (vs) {
-    const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning, mode })
+    const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning, mode, withAgent: true })
     if (!r.ok && r.error !== 'already in a match') return text(r.error)
     if (changed()) return changed()
   }
   const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
   if (r.error) return text(r.error)
   if (changed()) return changed()
-  if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick a mode and press Play).`, next: 'Call join_match again to keep waiting.' })
+  if (!r.match && r.preparation) {
+    const rules = await api('GET', '/rules')
+    if (changed()) return changed()
+    if (rules.error) return text(rules.error)
+    Object.assign(S, { preparationId: r.preparation.id, inMatch: false, matchId: null, since: 0 })
+    return text({ preparing: true, doctrine: r.preparation.doctrine, options: r.preparation.options,
+      opening: r.preparation.gambits, why: r.preparation.why, ready: !!r.preparation.ready,
+      rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
+      next: 'There is no match or countdown. Follow the human’s doctrine and call set_gambits to save an opening. Only a successful save makes it ready. Then tell the human to return to Botters and press Play when ready. Saved rules run without further assistant calls. Call join_match if they want you to follow the live match.' })
+  }
+  if (!r.match) { S.preparationId = null; return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby}\nChoose settings and doctrine, then select Prepare with my agent.`, next: 'Call join_match again to read their preparation. Do not ask them to start a countdown.' }) }
   const rules = await api('GET', '/rules'), m = r.match
   if (changed()) return changed()
   if (!r.match.id || r.match.id !== S.matchId) S.since = 0
-  S.inMatch = true; S.matchId = r.match.id || null
+  S.inMatch = true; S.matchId = r.match.id || null; S.preparationId = null
   return text({
     opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
-    opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
+    opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : m.openingBy === 'prepared' ? 'Your saved opening is already running. Do not rewrite it just because the match started.' : 'Write the opening gambits from the doctrine now.',
     rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
     state: brief(m.state, m.startsIn),
     next: 'set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, swarms they took): follow them.',
@@ -153,9 +163,17 @@ mcp.registerTool('wait_for_event', {
 })
 
 mcp.registerTool('set_gambits', {
-  description: 'Replace your side\'s whole gambit list (1 to 10 rules, first match wins, applies to every swarm not held by hand). Each rule: { if: condition, p?: number tuning the condition, then: action, on?: false to keep it written but disabled }. Keep the rules your human switched off, off. Say why in one short sentence: your human sees it live.',
+  description: 'Save the opening in lobby preparation, or replace your side\'s gambit list in a live match (1 to 10 rules, first match wins). Each rule: { if: condition, p?: number tuning the condition, then: action, on?: false to keep it written but disabled }. Keep the rules your human switched off, off. Say why in one short sentence. Only a successful save makes an opening ready; the human then starts the match themselves.',
   inputSchema: { gambits: z.array(GAMBIT).min(1).max(10), why: z.string().max(120) },
-}, async ({ gambits, why }) => need() || input({ gambits, why }))
+}, async ({ gambits, why }) => {
+  if (S.session && !S.inMatch && S.preparationId) {
+    const s = S.session, result = await api('POST', `/input?token=${s.agentToken}`, { preparationId: S.preparationId, gambits, why })
+    if (!S.session) return text(result.error)
+    if (S.session !== s) return text('Agent connection changed. Call join_match again.')
+    return text(result.ok ? { ok: true, ready: true, next: 'Opening saved. Tell the human to return to Botters and press Play when ready. These rules run without another assistant call. Call join_match if they want you to follow the live match.' } : { ok: false, error: result.error })
+  }
+  return need() || input({ gambits, why })
+})
 
 mcp.registerTool('order_swarm', {
   description: 'Take one of your swarms by hand and send it to x,y (map 1200×700). It stops following the gambits until release_swarm. Use for precise plays only: a hand-held swarm does not react to threats.',

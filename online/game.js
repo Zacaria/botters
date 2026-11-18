@@ -2,6 +2,7 @@ import { randomBytes, randomInt, createHash } from 'node:crypto'
 import { createMatch, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, TYPES, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { transaction, checkDeadline } from './store.js'
 import { rankPairs } from './ratings.js'
+import { createPreparation, preparationReady, savePreparation } from '../agent-preparation.js'
 
 const token = () => randomBytes(24).toString('base64url')
 const hash = s => createHash('sha256').update(s).digest('hex')
@@ -37,7 +38,7 @@ const parsePlay = b => {
   if (b.opening != null && checkGambits(b.opening)) fail(400, checkGambits(b.opening))
   if (matchOptions(b).mode !== '1v1' && b.vs === 'player') fail(400, '2v2 and free-for-all are played against house bots for now. Pick Easy, Normal or Hard.')
   return { ...matchOptions(b), vs: [...Object.keys(HOUSE), 'player'].includes(b.vs) ? b.vs : 'normal', planning: PLANNING.includes(b.planning) ? b.planning : 20,
-    withAgent: b.withAgent !== false, opening: b.opening ? canonicalRules(b.opening) : null,
+    withAgent: b.withAgent === true, opening: b.opening ? canonicalRules(b.opening) : null,
     anyMinutes: b.minutes === 'any', anyPlanets: b.planets === 'any' }
 }
 const sharedSettings = req => ({ ...matchOptions(req), mode: '1v1', planning: req.planning, vs: 'player' }) // human rooms and the queue are duels
@@ -155,18 +156,23 @@ export class OnlineGame {
         await finish(m)
         return m
       }
+      const requirePreparation = (s, req) => {
+        if (req.withAgent && !req.opening && !preparationReady(s, req)) fail(409, 'Prepare your agent opening for these settings first.')
+      }
       const start = async (entries, req, roomCode = null) => {
+        for (const e of entries) if (e) requirePreparation(e.s, { ...e.req, ...matchOptions(req), planning: req.planning, vs: req.vs })
         const m = { id: this.startId || token(), s: createMatch(randomInt(2 ** 31), req), players: [], logCount: 0, roomCode, planning: req.planning, startsAt: now + req.planning * 1000 }
         entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
         for (const [side, e] of entries.entries()) {
           const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
-            agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', events: [], seq: 0, sent: [], humanSent: [], calls: [], feed: [], prev: null, seen: now,
+            agentJoined: false, openingBy: e?.req.opening ? 'human' : e?.req.withAgent ? 'prepared' : 'agent', events: [], seq: 0, sent: [], humanSent: [], calls: [], feed: [], prev: null, seen: now,
             gambitsBy: { who: e ? 'default' : 'house', t: 0, why: '' } }
           m.players.push(p)
-          const opening = e ? e.req.opening : HOUSE[req.vs]
-          if (opening) { const input = { gambits: canonicalRules(opening) }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
+          const prepared = e && p.openingBy === 'prepared' ? e.s.preparation : null
+          const opening = e ? e.req.opening || prepared?.gambits : HOUSE[req.vs]
+          if (opening) { const input = { gambits: canonicalRules(opening) }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: prepared ? 'agent' : e ? 'human' : 'house', input }); if (e) p.gambitsBy = { who: prepared ? 'agent' : 'you', t: 0, why: prepared ? prepared.why : 'your opening gambits' } }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
-          emit(m, p, `match starts in ${req.planning}s. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with one swarm of each type (locust, carapace, spore). ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
+          emit(m, p, `match starts in ${req.planning}s. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with one swarm of each type (locust, carapace, spore). ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : p.openingBy === 'prepared' ? 'Your saved opening is already applied. Adapt only when needed.' : 'Write opening gambits from the doctrine now.'}`)
         }
         await tx.set(`match:${m.id}`, m)
         return m
@@ -242,7 +248,7 @@ export class OnlineGame {
       const agent = () => { if (auth.role !== 'agent') fail(401, 'Agent token required.') }
       if (path.startsWith('/agent/')) {
         human()
-        if (method === 'POST' && path === '/agent/revoke') { s.agentVersion++; s.agentGranted = false; s.agentSeen = 0; s.setup = 'no agent'; return { ok: true } }
+        if (method === 'POST' && path === '/agent/revoke') { s.agentVersion++; s.agentGranted = false; s.agentSeen = 0; s.setup = 'no agent'; s.preparation = null; return { ok: true } }
         const id = method === 'GET' ? q.get('id') : body.id
         if (!/^[\w-]{32}$/.test(id || '')) fail(400, 'Invalid pairing request.')
         const pair = await tx.get(`pair:${id}`)
@@ -250,7 +256,7 @@ export class OnlineGame {
         if (pair.used) fail(409, 'Pairing already approved.')
         if (method === 'GET' && path === '/agent/request') return { setup: pair.setup }
         if (method === 'POST' && path === '/agent/approve') {
-          s.agentVersion++; s.agentGranted = true; s.setup = pair.setup; s.agentSeen = now; pair.used = true
+          s.agentVersion++; s.agentGranted = true; s.setup = pair.setup; s.agentSeen = now; s.preparation = null; pair.used = true
           await tx.set(`token:${pair.secretHash}`, { id: s.id, role: 'agent', version: s.agentVersion, expires: now + SESSION_TTL * 1000 }, SESSION_TTL)
           return { ok: true }
         }
@@ -273,8 +279,17 @@ export class OnlineGame {
         if (queued) queued.seen = now
         s.queued = queued ? queued.at : null
         return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, agentGranted: !!s.agentGranted, doctrine: s.doctrine, history: s.history, live: active(m), inMatch: !!m,
+          preparation: s.preparation ? { ...s.preparation, ready: preparationReady(s, idx.rooms[s.room]?.settings || s.preparation.options) } : null,
           queued: !!queued, queuedAt: s.queued, room: await roomInfo(idx), leaderboard: await board(), doctrineMax: 500,
           choices: { vs: Object.keys(HOUSE), ...OPTIONS, planning: PLANNING } }
+      }
+      if (method === 'POST' && path === '/prepare') {
+        human()
+        if (active(m) || s.queued) fail(409, 'Finish your match or cancel the queue first.')
+        const idx = await index(), room = idx.rooms[s.room]
+        const req = room ? { ...parsePlay(body), ...room.settings } : parsePlay(body)
+        s.preparation = createPreparation(s, req, token())
+        return { preparation: s.preparation }
       }
       if (method === 'POST' && path === '/profile') {
         human()
@@ -303,7 +318,8 @@ export class OnlineGame {
           if (!s.room) {
             const foe = opponent(m, s.side), other = foe.session && await loadSession(foe.session)
             if (!other || other.match !== m.id || other.queued || other.room && other.room !== m.rematchRoomCode) fail(409, 'Your opponent has left. Find a new opponent from the lobby.')
-            const req = parsePlay(body)
+            const req = parsePlay(body), settings = sharedSettings({ ...m.s.opts, planning: m.planning || 20 })
+            requirePreparation(s, { ...req, ...settings })
             let room = idx.rooms[m.rematchRoomCode]
             if (!room) {
               let code
@@ -313,6 +329,7 @@ export class OnlineGame {
               return { ok: true, waiting: true }
             }
             if (room.match !== m.id || room.invited !== s.id || room.members.length !== 1 || room.members[0] !== other.id) fail(409, 'This rematch is no longer available.')
+            requirePreparation(other, { ...other.roomPrefs, ...room.settings })
             room.members.push(s.id); s.room = m.rematchRoomCode; s.roomPrefs = req
           }
         }
@@ -338,27 +355,28 @@ export class OnlineGame {
         }
         const room = idx.rooms[s.room]
         if (!room || !room.members.includes(s.id)) fail(404, 'Room not found.')
-        room.updated = now
-        if (path === '/rooms/player') { s.roomPrefs = parsePlay(body); return { ok: true } }
+        if (path === '/rooms/player') { s.roomPrefs = parsePlay(body); room.updated = now; return { ok: true } }
         if (path === '/rooms/settings') {
           if (room.host !== s.id) fail(403, 'Only the host can change room settings.')
-          room.settings = sharedSettings(parsePlay(body)); room.ready = []
+          room.settings = sharedSettings(parsePlay(body)); room.ready = []; room.updated = now
           return await roomInfo(idx)
         }
         if (!['/rooms/start', '/rooms/rematch'].includes(path)) fail(404, 'Unknown room action.')
+        const prefs = Object.keys(body).length ? parsePlay(body) : s.roomPrefs || parsePlay({})
+        requirePreparation(s, { ...prefs, ...room.settings })
         if (path === '/rooms/rematch' && room.invited && room.members.length === 1 && room.members[0] === s.id) return { ok: true, waiting: true }
         if (room.members.length !== 2) fail(409, 'Wait for your opponent to join.')
         if (path === '/rooms/start' && room.host !== s.id) fail(403, 'Only the host can start the match.')
         if (active(await loadMatch(room.match))) fail(409, 'Room is already playing.')
-        if (Object.keys(body).length) s.roomPrefs = parsePlay(body)
-        if (path === '/rooms/rematch') {
-          if (!room.match) fail(409, 'Start the first match before requesting a rematch.')
-          if (!room.ready.includes(s.id)) room.ready.push(s.id)
-          if (room.ready.length < room.members.length) return { ok: true, waiting: true }
-        }
+        if (path === '/rooms/rematch' && !room.match) fail(409, 'Start the first match before requesting a rematch.')
         const members = await Promise.all(room.members.map(loadSession))
         if (members.some(o => !o)) fail(409, 'A player session expired. Create a new room.')
-        room.match = (await start(members.map(o => ({ s: o, req: { ...room.settings, opening: o.roomPrefs?.opening || null, withAgent: connected(o, now) && o.roomPrefs?.withAgent !== false } })), room.settings, s.room)).id
+        const entries = members.map(o => ({ s: o, req: { ...(o.id === s.id ? prefs : o.roomPrefs), ...room.settings } }))
+        const willStart = path === '/rooms/start' || new Set([...room.ready, s.id]).size === room.members.length
+        if (willStart) for (const e of entries) requirePreparation(e.s, e.req)
+        s.roomPrefs = prefs; room.updated = now
+        if (!willStart) { if (!room.ready.includes(s.id)) room.ready.push(s.id); return { ok: true, waiting: true } }
+        room.match = (await start(entries, room.settings, s.room)).id
         room.ready = []
         return { ok: true }
       }
@@ -366,28 +384,35 @@ export class OnlineGame {
         const idx = await index(); idx.queue = idx.queue.filter(e => e.id !== s.id); s.queued = null; return { ok: true }
       }
       if (method === 'POST' && path === '/play') {
+        human()
         if (active(m)) fail(409, 'already in a match')
         if (s.room) fail(409, 'Leave your room before starting another match.')
-        const req = parsePlay(body), idx = await index()
-        idx.queue = idx.queue.filter(e => e.id !== s.id)
-        if (req.vs !== 'player') { await start([{ s, req }, null], req); return { ok: true } }
-        const entry = idx.queue.find(e => (e.req.anyMinutes || req.anyMinutes || e.req.minutes === req.minutes) && (e.req.anyPlanets || req.anyPlanets || e.req.planets === req.planets))
+        const req = parsePlay(body)
+        requirePreparation(s, req)
+        const idx = await index()
+        if (req.vs !== 'player') { await start([{ s, req }, null], req); idx.queue = idx.queue.filter(e => e.id !== s.id); return { ok: true } }
+        const entry = idx.queue.find(e => e.id !== s.id && (e.req.anyMinutes || req.anyMinutes || e.req.minutes === req.minutes) && (e.req.anyPlanets || req.anyPlanets || e.req.planets === req.planets))
         if (entry) {
           const other = await loadSession(entry.id)
           if (other && (!this.requireAccount || other.accountId && other.accountId !== s.accountId) && !active(await loadMatch(other.match)) && !other.room) {
-            idx.queue = idx.queue.filter(e => e.id !== entry.id)
             const chosen = { ...entry.req, minutes: entry.req.anyMinutes ? req.minutes : entry.req.minutes, planets: entry.req.anyPlanets ? req.planets : entry.req.planets }
             await start([{ s: other, req: entry.req }, { s, req }], chosen)
+            idx.queue = idx.queue.filter(e => e.id !== entry.id && e.id !== s.id)
             return { ok: true }
           }
           idx.queue = idx.queue.filter(e => e.id !== entry.id)
         }
+        idx.queue = idx.queue.filter(e => e.id !== s.id)
         idx.queue.push({ id: s.id, req, at: now, seen: now }); s.queued = now
         return { ok: true, queued: true }
       }
       if (method === 'GET' && path === '/next') {
         agent()
-        if (!active(m) || !p.withAgent) return { match: null }
+        if (!active(m)) {
+          const room = (await index()).rooms[s.room]
+          return { match: null, ...(s.preparation ? { preparation: { ...s.preparation, ready: preparationReady(s, room?.settings || s.preparation.options) } } : {}) }
+        }
+        if (!p.withAgent) return { match: null }
         p.agentJoined = true
         return { match: { id: m.id, side: s.side, opponent: `${opponent(m, s.side).name} (${opponent(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
           startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), state: view(m.s, s.side) } }
@@ -410,6 +435,13 @@ export class OnlineGame {
         return { ok: true }
       }
       if (method === 'POST' && path === '/input') {
+        if (body.preparationId !== undefined) {
+          agent()
+          if (active(m)) fail(409, 'A match is already active.')
+          const room = (await index()).rooms[s.room]
+          if (room && JSON.stringify(s.preparation?.options) !== JSON.stringify(createPreparation(s, room.settings).options)) fail(409, 'Room settings changed. Prepare again.')
+          return { ok: true, preparation: savePreparation(s, body) }
+        }
         requireMatch()
         if (m.s.ended) fail(409, 'Match is over.')
         if (auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.')

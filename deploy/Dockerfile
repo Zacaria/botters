@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY online ./online
-COPY sim.js build-id.json ./
+COPY sim.js agent-preparation.js build-id.json ./
 COPY scripts/live-server.js ./scripts/live-server.js
 USER node
 EXPOSE 2567

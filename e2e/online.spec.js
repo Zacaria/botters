@@ -171,7 +171,7 @@ test('invite respects saved solo/opening preferences without disclosing host rul
   const host = await request.post(liveURL + '/session', { data: { name: 'Host with agent', setup: 'codex' } }).then(r => r.json())
   const guest = await request.post(liveURL + '/session', { data: { name: 'Solo guest', setup: 'claude' } }).then(r => r.json())
   const opening = [{ if: 'always', then: 'hold' }]
-  const room = await request.post(`${liveURL}/rooms?token=${host.humanToken}`, { data: { minutes: 3, planets: 16, opening } }).then(r => r.json())
+  const room = await request.post(`${liveURL}/rooms?token=${host.humanToken}`, { data: { minutes: 3, planets: 16, opening, withAgent: true } }).then(r => r.json())
   const other = await browser.newContext(), b = await other.newPage()
   await authorizePreview(other)
   try {
@@ -180,6 +180,7 @@ test('invite respects saved solo/opening preferences without disclosing host rul
     await expect(b.locator('#roomCode')).toHaveText(room.code)
     const shared = await request.get(`${liveURL}/room?token=${guest.humanToken}`).then(r => r.json())
     expect(shared.settings.opening).toBeUndefined()
+    await page.addInitScript(opening => localStorage.setItem('botters.prefs', JSON.stringify({ withAgent: true, openingMine: true, opening })), opening)
     await page.goto(`/?s=${host.humanToken}`)
     await page.locator('#startRoom').click()
     await expect(b.locator('#hud')).toBeVisible()

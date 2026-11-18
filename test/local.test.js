@@ -14,9 +14,19 @@ async function fixture(t, delay = '1') {
   for (let i = 0; i < 100 && !up; i++) { up = await fetch(origin + '/rules').then(r => r.ok, () => false); if (!up) await new Promise(r => setTimeout(r, 25)) }
   assert.ok(up, 'Local server failed to start')
   const post = (path, body) => fetch(origin + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json())
+  const playWithAgent = async (session, options, gambits = [{ if: 'always', then: 'hold' }]) => {
+    const { preparation } = await post(`/prepare?token=${session.humanToken}`, { ...options, withAgent: true })
+    assert.ok(preparation?.id)
+    const next = await fetch(`${origin}/next?token=${session.agentToken}&timeout=0.001`).then(r => r.json())
+    assert.equal(next.preparation.id, preparation.id)
+    assert.equal((await post(`/input?token=${session.agentToken}`, { preparationId: next.preparation.id, gambits })).ok, true)
+    const lobby = await fetch(`${origin}/lobby?token=${session.humanToken}`).then(r => r.json())
+    assert.equal(lobby.preparation.ready, true)
+    return post(`/play?token=${session.humanToken}`, { ...options, withAgent: true })
+  }
   const started = async () => {
     const session = await post('/session', { name: 'local-atomicity', setup: 'script' })
-    assert.deepEqual(await post(`/play?token=${session.humanToken}`, { vs: 'easy', minutes: 3, withAgent: true, opening: [{ if: 'always', then: 'hold', on: false }, { if: 'always', then: 'hold' }] }), { ok: true })
+    assert.deepEqual(await playWithAgent(session, { vs: 'easy', minutes: 3 }, [{ if: 'always', then: 'hold', on: false }, { if: 'always', then: 'hold' }]), { ok: true })
     await fetch(`${origin}/next?token=${session.agentToken}`).then(r => r.json())
     const read = () => fetch(`${origin}/state?token=${session.humanToken}`).then(r => r.json())
     let state
@@ -28,16 +38,16 @@ async function fixture(t, delay = '1') {
     assert.ok(state.view.tick > 0, 'match must have started before mixed input')
     return { session, read }
   }
-  return { origin, post, started }
+  return { origin, post, started, playWithAgent }
 }
 
 test('unchanged local server serves the shared UI and runs an offline house match', async t => {
-  const { origin, post } = await fixture(t)
+  const { origin, post, playWithAgent } = await fixture(t)
   const session = await post('/session', { name: 'offline-smoke', setup: 'script' })
   const lobby = await fetch(`${origin}/lobby?token=${session.humanToken}`).then(r => r.json())
   assert.equal(lobby.online, undefined)
   assert.ok((await fetch(origin).then(r => r.text())).includes('id="startSolo"'))
-  assert.deepEqual(await post(`/play?token=${session.humanToken}`, { vs: 'normal', minutes: 3, planets: 16, withAgent: true }), { ok: true })
+  assert.deepEqual(await playWithAgent(session, { vs: 'normal', minutes: 3, planets: 16 }), { ok: true })
   const next = await fetch(`${origin}/next?token=${session.agentToken}&timeout=0`).then(r => r.json())
   assert.ok(next.match.state && next.match.options.planets === 16)
   assert.deepEqual(await post(`/input?token=${session.agentToken}`, { gambits: [{ if: 'always', then: 'hold' }] }), { ok: true })
@@ -49,11 +59,11 @@ test('unchanged local server serves the shared UI and runs an offline house matc
 
 test('local human surrender ends during planning or play, records one result and permits play again', async t => {
   for (const delay of ['60000', '1']) await t.test(delay === '1' ? 'playing' : 'planning', async t => {
-    const { origin, post } = await fixture(t, delay)
+    const { origin, post, playWithAgent } = await fixture(t, delay)
     const session = await post('/session', { name: 'surrender', setup: 'script' })
     const send = token => fetch(`${origin}/surrender?token=${token}`, { method: 'POST' })
     assert.equal((await send(session.humanToken)).status, 409)
-    await post(`/play?token=${session.humanToken}`, { vs: 'easy', minutes: 3, planets: 16, withAgent: true })
+    assert.deepEqual(await playWithAgent(session, { vs: 'easy', minutes: 3, planets: 16 }), { ok: true })
     await fetch(`${origin}/next?token=${session.agentToken}&timeout=0`).then(r => r.json())
     if (delay === '1') await new Promise(r => setTimeout(r, 150))
     assert.equal((await send(session.agentToken)).status, 401)
@@ -71,7 +81,7 @@ test('local human surrender ends during planning or play, records one result and
     const lobby = await fetch(`${origin}/lobby?token=${session.humanToken}`).then(r => r.json())
     assert.equal(lobby.live, false); assert.equal(lobby.history.length, 1)
     assert.equal(lobby.history[0].reason, 'surrender')
-    assert.deepEqual(await post(`/play?token=${session.humanToken}`, { vs: 'easy' }), { ok: true })
+    assert.deepEqual(await post(`/play?token=${session.humanToken}`, { vs: 'easy', withAgent: false }), { ok: true })
     assert.equal((await read()).view.ended, null)
   })
 })
@@ -149,9 +159,9 @@ test('local accepted mixed and simple inputs retain ordering, clamping and attri
 })
 
 test('local pre-start refusal still consumes the agent rate budget but permits human gambits', async t => {
-  const { origin, post } = await fixture(t, '60000')
+  const { origin, post, playWithAgent } = await fixture(t, '60000')
   const session = await post('/session', { name: 'local-planning', setup: 'script' })
-  assert.deepEqual(await post(`/play?token=${session.humanToken}`, { withAgent: true }), { ok: true })
+  assert.deepEqual(await playWithAgent(session, {}), { ok: true })
   const read = () => fetch(`${origin}/state?token=${session.humanToken}`).then(r => r.json())
   const before = await read()
   for (let i = 0; i < 6; i++) {

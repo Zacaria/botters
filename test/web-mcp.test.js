@@ -309,9 +309,22 @@ test('real HTTP/stdio gateway discovers and executes eight tools with isolated l
   assert.notEqual(lobbies[0].searchParams.get('s'), lobbies[1].searchParams.get('s'))
   const token = lobbies[0].searchParams.get('s')
   const post = (path, body) => fetch(f.origin + path, { method: 'POST', body: JSON.stringify(body) }).then(r => r.json())
+  const options = { vs: 'easy', minutes: 3, planets: 16, withAgent: true }
+  const requested = await post(`/prepare?token=${token}`, options)
+  assert.ok(requested.preparation.id)
+  const preparation = data(await one.client.callTool({ name: 'join_match', arguments: {} }))
+  assert.equal(preparation.preparing, true)
+  const opening = [{ if: 'always', then: 'hold' }]
+  assert.equal(data(await one.client.callTool({ name: 'set_gambits', arguments: { gambits: opening, why: 'Prepared through actual remote HTTP and stdio.' } })).ready, true)
+  const lobby = await fetch(`${f.origin}/lobby?token=${token}`).then(r => r.json())
+  assert.equal(lobby.live, null, 'preparation never starts a match or countdown')
+  assert.equal(lobby.preparation.ready, true)
+  assert.deepEqual(lobby.preparation.gambits, opening.map(r => ({ ...r, on: true })))
   assert.deepEqual(await post(`/play?token=${token}`, { vs: 'easy', minutes: 3, planets: 16, withAgent: true }), { ok: true })
   const joined = data(await one.client.callTool({ name: 'join_match', arguments: {} }))
   assert.ok(joined.state && joined.rules)
+  assert.match(joined.opening, /already running/)
+  assert.match(JSON.stringify(joined.state.gambits), /IF always → hold/)
   const swarm = Number(joined.state.yourSwarms[0].match(/^#(\d+)/)[1])
   for (const [name, args] of [
     ['set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'offline fixture' }],
