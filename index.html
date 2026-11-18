@@ -397,7 +397,7 @@ async function bootAccount() {
     const target = new URL(location.pathname, account.origin); if (pendingPair) target.searchParams.set('pair', pendingPair)
     $('canonicalLink').href = target.href; return show('start')
   }
-  if (resetToken || !account.user) { token = null; localStorage.removeItem('botters.session'); show('start'); setAuthMode(resetToken ? 'reset' : 'signin'); if (authQuery.get('error')) $('authMessage').textContent = 'That sign-in or reset link is invalid or expired. Request a new one.'; return }
+  if (resetToken || !account.user) { token = null; localStorage.removeItem('botters.session'); show('start'); if (authQuery.get('error')) $('authMessage').textContent = 'That sign-in or reset link is invalid or expired. Request a new one.'; return }
   $('accountName').textContent = account.user.name
   const session = await api('POST', '/session', {})
   if (!session.humanToken) { $('authMessage').textContent = session.error; return show('start') }
@@ -970,6 +970,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) cance
 document.addEventListener('focusin', e => { if (e.target !== cv && e.target !== document.body && routeDraft.length) cancelRoute() })
 $('say').onsubmit = e => { e.preventDefault(); const m = $('msg'); if (m.value) { api('POST', '/say', { text: m.value, matchId: F?.matchId }); toast('sent to your agent') } m.value = '' }
 
+// Initialize once: a late account response must not reset a form already in use.
+setAuthMode(authMode)
 bootAccount()
 $('startSolo').disabled = false
 </script>
