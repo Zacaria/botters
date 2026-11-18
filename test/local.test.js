@@ -84,7 +84,7 @@ test('local refused gambits plus invalid split preserve strategy and notificatio
     const before = await read()
     const response = await fetch(`${origin}/input?token=${session[`${role}Token`]}`, { method: 'POST', body: JSON.stringify({ gambits: [{ if: 'always', then: 'go' }], split: -1, why: 'must not apply' }) })
     assert.equal(response.status, 400)
-    assert.deepEqual(await response.json(), { ok: false, error: 'no swarm -1 of yours' })
+    assert.deepEqual(await response.json(), { ok: false, error: `no swarm -1 of yours (it may have merged or died). Your swarms now: ${before.view.swarms.slice().sort((a, b) => b.n - a.n).slice(0, 10).map(c => `#${c.id} n${Math.round(c.n)} at (${Math.round(c.x)},${Math.round(c.y)})`).join(', ') || 'none'}` })
     const after = await read()
     assert.deepEqual(after.feed, before.feed)
     assert.deepEqual(after.calls, before.calls)
@@ -106,7 +106,7 @@ test('local refused order plus invalid release preserve swarm control and target
     }
     const response = await fetch(`${origin}/input?token=${session[`${role}Token`]}`, { method: 'POST', body: JSON.stringify({ order: { swarm, x: 600, y: 350 }, release: -1 }) })
     assert.equal(response.status, 400)
-    assert.deepEqual(await response.json(), { ok: false, error: 'no swarm -1 of yours' })
+    assert.deepEqual(await response.json(), { ok: false, error: `no swarm -1 of yours (it may have merged or died). Your swarms now: ${before.view.swarms.slice().sort((a, b) => b.n - a.n).slice(0, 10).map(c => `#${c.id} n${Math.round(c.n)} at (${Math.round(c.x)},${Math.round(c.y)})`).join(', ') || 'none'}` })
     const after = await read()
     assert.deepEqual(after.feed, before.feed)
     assert.deepEqual(after.calls, before.calls)

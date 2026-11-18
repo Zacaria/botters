@@ -8,15 +8,15 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 
 - **Website:** https://botters.havesomecode.io (Vercel, project `botters`), with sign-in through Google or a verified email, online matchmaking, rooms, house matches, guide, privacy and terms pages. Old address https://botters.vercel.app still answers.
 - **Live host:** https://play.botters.havesomecode.io (Colyseus on the Lightsail Paris instance, Convex for accounts, Elo and history). `/health` reports build `d86f8e3`, `activeMatches: 0` on 18/11.
-- **Remote MCP:** https://play.botters.havesomecode.io/mcp (OAuth). ChatGPT has completed a real match through it.
+- **Remote MCP:** https://play.botters.havesomecode.io/mcp (OAuth). ChatGPT and Claude Code have each completed a real match through it (Claude Code: match `cAo6-GBWR88Cr6HcseVl2ulWEZgRGMyA`, 18/11, lost to the Normal house bot).
 - **Local:** `npx -y github:Zacaria/botters` (house game, no account) and `npx -y github:Zacaria/botters install` (stdio MCP for Claude Code, Codex, Cursor, Windsurf, Claude Desktop).
-- **"Play with Claude" button:** opens `claude.ai/new?q=<prompt>`. It has **never been tested in a real match**; only the ChatGPT path has.
+- **"Play with Claude" button:** opens `claude.ai/new?q=<prompt>` with the same prompt as ChatGPT. The prompt and connector path were played end to end from Claude Code on 18/11; the claude.ai web chat itself still needs one owner test. `master` fixes the lobby so the button appears right after connecting an agent (production still needs the "With my agent" click).
 - **Production lags `master`:** the website and live host run `d86f8e3` (30 Oct). `master` adds manual swarm routes (Shift+drag, PR #32) and match-bound actions. A separate Vercel project, `start-hero`, auto-deploys `master` (https://start-hero.vercel.app). `npx github:Zacaria/botters` clients already get the `master` code.
 
 ## What is left to make the product viable (in order)
 
 1. **Ship `master` to production**: website plus live host, following [colyseus.md](colyseus.md#deployment). Check a match end to end at the real URL afterwards. *Sonnet.*
-2. **Play a real match with "Play with Claude"**: add the remote connector in claude.ai, run one full match and fix whatever breaks. *Sonnet.*
+2. **Play a real match with "Play with Claude"**: done from Claude Code on 18/11; fixes merged to `master`. Remaining: Zacaria tries the button once in claude.ai.
 3. **Count real usage**: weekly signups, online matches, agent-played matches and returning players, from Convex aggregates and without exposing personal data, shown somewhere the owner can read. *Sonnet.*
 4. **Decide the three open PRs**: #19 (swarm looks) and #20 (swarm groups), plus #4 (account-cost and auth-form repair). Rebase each onto `master`, play a match, then merge or close. *Opus* (gameplay judgement).
 5. **Cloudflare Email** replaces Resend for sign-in emails (18/11): `online/auth-options.js`, sender `no-reply@mail.havesomecode.io`.

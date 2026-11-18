@@ -128,10 +128,15 @@ function applyInputUnchecked(s, side, input) {
   if (s.ended) return { ok: false, error: 'match ended' }
   if (input.surrender === true) { matchHandles.get(s).surrender(side); return { ok: true } }
   const own = id => s.swarms.find(c => c.id === id && c.side === side)
+  const missingSwarm = id => {
+    const swarms = s.swarms.filter(c => c.side === side).sort((a, b) => b.n - a.n).slice(0, 10)
+    const current = swarms.map(c => `#${c.id} n${Math.round(c.n)} at (${Math.round(c.x)},${Math.round(c.y)})`).join(', ') || 'none'
+    return { ok: false, error: `no swarm ${id} of yours (it may have merged or died). Your swarms now: ${current}` }
+  }
   const clearRoute = id => routes.set(s, routes.get(s).filter(r => r.swarm !== id))
   if (input.route !== undefined) {
     const { swarm, points } = input.route || {}
-    if (!own(swarm)) return { ok: false, error: 'no such swarm of yours' }
+    if (!own(swarm)) return missingSwarm(swarm)
     if (!Array.isArray(points) || points.length < 2 || points.length > 8 || points.some(p => !p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.x > W || p.y < 0 || p.y > H)) return { ok: false, error: 'route needs 2 to 8 points inside the map' }
     clearRoute(swarm)
     routes.get(s).push({ swarm, side, points: points.map(({ x, y }) => ({ x, y })) })
@@ -144,17 +149,17 @@ function applyInputUnchecked(s, side, input) {
   }
   if (input.order) {
     const c = own(input.order.swarm), { x, y } = input.order
-    if (!c) return { ok: false, error: `no swarm ${input.order.swarm} of yours (it may have merged or died)` }
+    if (!c) return missingSwarm(input.order.swarm)
     if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, error: 'x and y required' }
     clearRoute(c.id)
     matchHandles.get(s).set_order(side, c.id, x, y)
   }
   if (input.split !== undefined) {
-    const c = own(input.split); if (!c) return { ok: false, error: `no swarm ${input.split} of yours` }
+    const c = own(input.split); if (!c) return missingSwarm(input.split)
     if (matchHandles.get(s).split_id(side, c.id) !== 1) return { ok: false, error: 'cannot split (under 200 particles, or 40 swarms already)' }
   }
   if (input.release !== undefined) {
-    const c = own(input.release); if (!c) return { ok: false, error: `no swarm ${input.release} of yours` }
+    const c = own(input.release); if (!c) return missingSwarm(input.release)
     clearRoute(c.id)
     matchHandles.get(s).release(side, c.id)
   }

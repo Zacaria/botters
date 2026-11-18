@@ -13,6 +13,22 @@ const empty = seed => { // planets kept, no starting swarms, both homes kept ali
 }
 const only = (s, side, gambits) => applyInput(s, side, { gambits })
 
+test('missing swarm errors list only the ten largest own swarms for every command', () => {
+  const s = empty(42)
+  for (let i = 0; i < 12; i++) addSwarm(s, 0, 100.4 + i, 200.6, 1000 + i)
+  const enemy = addSwarm(s, 1, 500, 500, 9000)
+  const own = s.swarms.filter(c => c.side === 0).sort((a, b) => b.n - a.n)
+  const expected = own.slice(0, 10).map(c => `#${c.id} n${Math.round(c.n)} at (${Math.round(c.x)},${Math.round(c.y)})`).join(', ')
+  for (const input of [{ order: { swarm: -1, x: 1, y: 1 } }, { route: { swarm: -1, points: [{ x: 1, y: 1 }, { x: 2, y: 2 }] } }, { split: -1 }, { release: -1 }]) {
+    const result = applyInput(s, 0, input)
+    assert.deepEqual(result, { ok: false, error: `no swarm -1 of yours (it may have merged or died). Your swarms now: ${expected}` })
+    assert.ok(!result.error.includes(`#${enemy.id} `))
+  }
+  edit(s, json => { json.swarms = json.swarms.filter(c => c.side !== 0) })
+  assert.equal(applyInput(s, 0, { split: -1 }).error, 'no swarm -1 of yours (it may have merged or died). Your swarms now: none')
+  s.free()
+})
+
 test('snapshot edits cannot mutate the match and load restores the exact state', () => {
   const s = createMatch(42), original = JSON.stringify(s), data = s.toJSON()
   data.swarms[0].n = 1234; data.planets[0].mass = 4567
