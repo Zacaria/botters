@@ -260,6 +260,10 @@ const routes = {
   'GET /': page('index.html'),
   'GET /sim.js': page('sim.js'),
   'GET /guide': page('guide.html'),
+  'GET /privacy': page('privacy.html'),
+  'GET /privacy.html': page('privacy.html'),
+  'GET /terms': page('terms.html'),
+  'GET /terms.html': page('terms.html'),
 }
 
 // Local server on the player's machine: loopback only, and only pages served from itself may call it (no LAN peers, no DNS rebinding, no other web pages).

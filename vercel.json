@@ -8,7 +8,9 @@
     { "source": "/:route(session|lobby|profile|play|cancel|next|rules|state|events|input|call|dismiss|say|stream|leaderboard|room|rooms)", "destination": "/api?route=/:route" },
     { "source": "/rooms/:action", "destination": "/api?route=/rooms/:action" },
     { "source": "/r/:code", "destination": "/index.html" },
-    { "source": "/guide", "destination": "/guide.html" }
+    { "source": "/guide", "destination": "/guide.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" }
   ],
   "headers": [
     { "source": "/(.*)", "headers": [
