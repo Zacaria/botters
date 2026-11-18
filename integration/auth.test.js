@@ -12,12 +12,13 @@ const cookiesOf = r => (r.headers['Set-Cookie'] || []).map(c => c.split(';')[0])
 
 test('actual Convex component executes password verification/reset/session revocation through the production proxy', async () => {
   vi.stubEnv('SITE_URL', origin); vi.stubEnv('BETTER_AUTH_SECRET', 'isolated-component-auth-secret-123456789012345')
-  vi.stubEnv('BOTTERS_AUTH_PROXY_SECRET', secret); vi.stubEnv('RESEND_API_KEY', 'test-only-no-real-provider-key'); vi.stubEnv('AUTH_EMAIL_FROM', 'Botters Test <no-reply@example.test>')
+  vi.stubEnv('BOTTERS_AUTH_PROXY_SECRET', secret); vi.stubEnv('AUTH_EMAIL_FROM', 'no-reply@example.test'); vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', 'a'.repeat(32)); vi.stubEnv('CLOUDFLARE_EMAIL_API_TOKEN', 'test-only-no-real-cloudflare-token')
   const mail = []
   // External delivery is captured, not sent. Every auth/database response is the real component.
   vi.stubGlobal('fetch', async (url, options) => {
-    if (url !== 'https://api.resend.com/emails') throw new Error('Unexpected external network in isolated fixture')
-    mail.push(JSON.parse(options.body)); return Response.json({ id: 'captured-test-email' })
+    if (url !== `https://api.cloudflare.com/client/v4/accounts/${'a'.repeat(32)}/email/sending/send`) throw new Error('Unexpected external network in isolated fixture')
+    const message = JSON.parse(options.body)
+    mail.push(message); return Response.json({ success: true, errors: [], messages: [], result: { delivered: [message.to], queued: [], permanent_bounces: [], suppressed_recipients: [] } })
   })
   try {
     const t = convexTest(schema, modules); betterAuthTest.register(t)

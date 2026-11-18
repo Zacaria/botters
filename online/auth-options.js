@@ -25,10 +25,23 @@ export function authOptions(env, sendEmail) {
 }
 
 export async function deliverAuthEmail(env, message) {
-  if (!env.RESEND_API_KEY || !env.AUTH_EMAIL_FROM) throw new Error('Email delivery is not configured.')
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: env.AUTH_EMAIL_FROM, ...message }), signal: AbortSignal.timeout(8000),
-  })
-  if (!r.ok) throw new Error('Email delivery is unavailable.')
+  if (!env.AUTH_EMAIL_FROM || !env.CLOUDFLARE_EMAIL_API_TOKEN || !/^[a-f0-9]{32}$/i.test(env.CLOUDFLARE_ACCOUNT_ID || '')) throw new Error('Email delivery is not configured.')
+  try {
+    const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/email/sending/send`, {
+      method: 'POST', headers: { authorization: `Bearer ${env.CLOUDFLARE_EMAIL_API_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ from: env.AUTH_EMAIL_FROM, to: message.to, subject: message.subject, text: message.text }),
+      signal: AbortSignal.timeout(8000), redirect: 'error',
+    })
+    if (!r.ok) throw new Error()
+    const body = await r.json(), result = body?.result
+    if (body?.success !== true || (body.errors?.length ?? 0) || !result ||
+      !Array.isArray(result.delivered) || !Array.isArray(result.queued) ||
+      (result.permanent_bounces?.length ?? 0) || (result.suppressed_recipients?.length ?? 0)) throw new Error()
+    const accepted = [...result.delivered, ...result.queued]
+    if (accepted.length !== 1 || accepted[0] !== message.to) throw new Error()
+    return { status: result.queued.length ? 'queued' : 'delivered' }
+  } catch {
+    // No provider body, link or secret in errors, and no retry: an interrupted response may already have been accepted.
+    throw new Error('Email delivery is unavailable.')
+  }
 }
