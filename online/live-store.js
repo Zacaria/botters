@@ -29,7 +29,7 @@ export class LiveStore extends MemoryStore {
     if (boundaries.length) for (const e of entries) if (e.value && (e.key.startsWith('session:') || ratingKey(e.key))) selected.set(e.key, e)
     if (!boundaries.length && !selected.size) return commitLocal()
     const markers = boundaries.map(b => `${b.finish ? 'result' : 'live'}:${b.m.id}`)
-    const keys = [...selected.keys(), ...markers], values = await this.remote.read(keys); this.boundaryCalls++
+    const keys = [...selected.keys(), ...markers, ...boundaries.filter(b => b.finish).map(b => `usage:${b.m.id}`)], values = await this.remote.read(keys); this.boundaryCalls++
     const raws = new Map(keys.map((k, i) => [k, values[i]]))
     const finishes = boundaries.filter(b => b.finish), recovered = finishes.filter(b => raws.get(`result:${b.m.id}`))
     if (recovered.length && recovered.length !== finishes.length) throw new Error('Incomplete result boundary')
@@ -61,6 +61,11 @@ export class LiveStore extends MemoryStore {
     })
     boundaries.forEach((b, i) => writes.push({ key: markers[i], raw: raws.get(markers[i]), value: JSON.stringify({ id: b.m.id, startsAt: b.m.startsAt, finishedAt: b.m.finishedAt || null,
       players: b.m.players.map(({ session, side, name, setup, accountId }) => ({ session, side, name, setup, accountId })), report: b.m.report || null, options: b.m.options || b.m.s.opts }), ttl: 86400 }))
+    for (const b of finishes) {
+      const key = `usage:${b.m.id}`, players = b.m.players
+      writes.push({ key, raw: raws.get(key), value: JSON.stringify({ at: b.m.finishedAt, online: players.filter(p => p.session != null).length >= 2,
+        agent: players.some(p => p.session && p.withAgent && p.agentJoined), accounts: players.filter(p => p.session != null && p.accountId != null).map(p => p.accountId) }), ttl: 0 })
+    }
     this.boundaryCalls++
     if (!await this.remote.commit(writes)) return 0
     // All callers and subscription adoption serialize around this local commit.
