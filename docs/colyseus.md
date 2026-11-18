@@ -56,6 +56,8 @@ Before replacing a container, `/health` must show no active rooms. Before moving
 
 ## Deployment
 
+Website builds read the live origin at build time; it is not a Vercel project variable. Deploy with `vercel deploy --prod --build-env BOTTERS_LIVE_URL=https://play.botters.havesomecode.io --build-env BOTTERS_REQUIRE_ACCOUNT=1` and check that `/live-config.json` returns that URL. Without it every match request answers 410 "Live matches moved". The instance is reached over the tailnet (`botters-play`, `100.104.109.95`); public port 22 times out.
+
 The owner selected the existing Lightsail $12 / 2 GB Paris instance at `51.44.31.107` (`ubuntu`, Ubuntu 24.04). Deploy Docker Compose (Botters plus Caddy) in `/opt/stacks/botters`; only Caddy binds public ports 80/443. SSH is key-only with `~/.ssh/botters_lightsail`; public firewall initially allows 22/80/443 only. Card `t_a2f00cae` owns Tailscale setup, tags/ACLs and closing public port 22 after tailnet SSH is confirmed. This app deployment must leave public SSH unchanged until that handoff. Do not create AWS resources or IAM. Keep the game container memory-limited. The only service credential on the instance is the Convex deployment key. Domain: `play.botters.havesomecode.io`, owner-configured A record to the instance. No homelab/VPN/monitoring integration in this card.
 
 The earlier anonymous live-migration release used an isolated Vercel-only branch. The later account activation explicitly consumed the independently reviewed `5f34d62` source and its own provider/release authorization; do not deploy Convex from that historical anonymous website branch. Retain the rollback handles and immediate idle/legacy gates in the activation report.
