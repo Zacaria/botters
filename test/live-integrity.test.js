@@ -186,9 +186,12 @@ test('a committed result with a lost response is recovered without double Elo or
   now += 200000; lose = true
   await assert.rejects(runtime.request('GET', '/state', q(a.humanToken)), /lost response/)
   const savedRatings = [...durable.data].filter(([k]) => k.startsWith('elo:')).map(([k, v]) => [k, v.value])
+  const savedUsage = [...durable.data].filter(([k]) => k.startsWith('usage:'))
+  assert.equal(savedUsage.length, 1)
   const frame = await runtime.request('GET', '/state', q(a.humanToken))
   assert.ok(frame.report)
   assert.deepEqual([...durable.data].filter(([k]) => k.startsWith('elo:')).map(([k, v]) => [k, v.value]), savedRatings)
+  assert.deepEqual([...durable.data].filter(([k]) => k.startsWith('usage:')), savedUsage)
   const s = JSON.parse(durable.raw(`session:${JSON.parse(store.raw(keyFor(a.humanToken))).id}`))
   assert.equal(s.history.length, 1)
 })

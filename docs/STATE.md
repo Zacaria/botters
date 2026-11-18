@@ -9,6 +9,7 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 - **Website:** https://botters.havesomecode.io (Vercel, project `botters`), with sign-in through Google or a verified email, online matchmaking, rooms, house matches, guide, privacy and terms pages. Old address https://botters.vercel.app still answers.
 - **Live host:** https://play.botters.havesomecode.io (Colyseus on the Lightsail Paris instance, Convex for accounts, Elo and history). `/health` reports build `df65ba6` (`master`, 18/11). The remote MCP gateway runs the same commit.
 - **Remote MCP:** https://play.botters.havesomecode.io/mcp (OAuth). ChatGPT and Claude Code have each completed a real match through it (Claude Code: match `cAo6-GBWR88Cr6HcseVl2ulWEZgRGMyA`, 18/11, lost by wipe-out to the Normal house bot).
+- **Usage counts:** `npm run usage` prints, per week for the last 8 weeks, verified signups, online matches, agent (MCP) matches, house matches and returning players. Counts only, never ids or emails. It needs `CONVEX_URL` and `CONVEX_DEPLOY_KEY` (production values live in `/opt/stacks/botters/.env` on the live host). Signups and returning players come from Better Auth history. Match counts only start once the live host stores one `usage:` record per finished match: older matches expired after a day and cannot be recovered.
 - **Local:** `npx -y github:Zacaria/botters` (house game, no account) and `npx -y github:Zacaria/botters install` (stdio MCP for Claude Code, Codex, Cursor, Windsurf, Claude Desktop).
 - **"Play with Claude" button:** opens `claude.ai/new?q=<prompt>` with the same prompt as ChatGPT. Prompt and connector were played end to end from Claude Code on 18/11 (PR #37); the claude.ai web chat itself still needs one owner try. PR #37 also keeps "With my agent" selected once an agent connects (production before it needs that click).
 - **Production = `master`** (`df65ba6`, deployed 18/11): manual swarm routes (select a swarm, Shift+drag) and match-bound actions are live. Checked at the real URL with two fresh email accounts: one house match (won by wipe-out, route accepted) and one online 1v1 between the two (ended on time, both players drew routes). A separate Vercel project, `start-hero`, auto-deploys `master` (https://start-hero.vercel.app). `npx github:Zacaria/botters` clients get the same code.
@@ -16,10 +17,9 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 ## What is left to make the product viable (in order)
 
 1. **Play a real match with "Play with Claude"**: done from Claude Code on 18/11, fixes in PR #37. Left: deploy `master`, then Zacaria tries the button once in claude.ai.
-2. **Count real usage**: weekly signups, online matches, agent-played matches and returning players, from Convex aggregates and without exposing personal data, shown somewhere the owner can read. *Sonnet.*
-3. **Decide the three open PRs**: #19 (swarm looks) and #20 (swarm groups), plus #4 (account-cost and auth-form repair). Rebase each onto `master`, play a match, then merge or close. *Opus* (gameplay judgement).
-4. **Cloudflare Email** replaces Resend for sign-in emails (18/11): `online/auth-options.js`, sender `no-reply@mail.havesomecode.io`. Sign-in mail is sent by Convex, which deploys separately from the website and live host.
-5. **First contact polish**: the trailer caption is in French on an English page, and new players face a lot of setup text before the first match. *Haiku.*
+2. **Decide the three open PRs**: #19 (swarm looks) and #20 (swarm groups), plus #4 (account-cost and auth-form repair). Rebase each onto `master`, play a match, then merge or close. *Opus* (gameplay judgement).
+3. **Cloudflare Email** replaces Resend for sign-in emails (18/11): `online/auth-options.js`, sender `no-reply@mail.havesomecode.io`. Sign-in mail is sent by Convex, which deploys separately from the website and live host.
+4. **First contact polish**: the trailer caption is in French on an English page, and new players face a lot of setup text before the first match. *Haiku.*
 
 ## Cloudflare / PostgreSQL / Better Auth migration — verdict
 
