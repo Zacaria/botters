@@ -1,5 +1,7 @@
 # Announcement trailer — production decisions and execution
 
+The public trailer was re-captioned in English from the previously shipped French WebM, not re-recorded. `announcement-trailer-edit.json` binds the current media and records the original WebM hash and re-caption recipe; the original master and production notes below describe the historical French edit, not the current output. `scripts/recaption-public-demo.py` takes that exact original WebM as input (available in Git history), masks its French overlays, burns `scripts/public-demo-en.ass`, copies its Opus stream without re-encoding, and regenerates the poster, VTT and manifest. It requires ffmpeg with libass and Python Pillow. The recorded match used scripted inputs against the house bot; no model plays during the recording.
+
 Spec: announcement-trailer.md. Implementation plan: ../superpowers/plans/2026-10-18-announcement-trailer.md. Native session20261018_111025_4722ef/run919; production base d8bef777dd31ae1362d26c3095fd1625381d88d0. The signed coordinator brief is authority for bounded production, not newly invented human design approval.
 
 ## RED, before new media

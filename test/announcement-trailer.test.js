@@ -8,6 +8,11 @@ import { execFileSync, spawnSync } from 'node:child_process'
 // without it report an explicit skip; the media acceptance lane must execute it.
 const available = spawnSync('ffprobe', ['-version']).status === 0
 
+test('re-captioning preserves the original Opus audio packets', { skip: !available && 'ffmpeg unavailable; media acceptance required' }, () => {
+  const digest = execFileSync('ffmpeg', ['-v', 'error', '-i', 'media/public-demo.webm', '-map', '0:a:0', '-c', 'copy', '-f', 'hash', '-hash', 'sha256', '-'], { encoding: 'utf8' }).trim()
+  assert.equal(digest, 'SHA256=3d1974f98183b59d9c9f4cbdfc086f356344c82bd35787aba0892f71de5a5dbf')
+})
+
 test('announcement trailer has a real music stream and a one-minute 1080p picture', { skip: !available && 'ffprobe unavailable; media acceptance still required' }, () => {
   const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', 'media/public-demo.webm'], { encoding: 'utf8' }))
   const video = probe.streams.find(s => s.codec_type === 'video')

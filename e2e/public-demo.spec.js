@@ -40,16 +40,16 @@ test.describe('public explanation without JavaScript', () => {
 // Historical R1 remains in Git/evidence. New film surfaces must be checked on
 // the new bytes; a prior PASS cannot be transferred. This checks served text
 // and active browser cues; visual truth still requires exact-candidate review.
-test('French trailer surfaces describe conquest, manual travel and return to gambits', async ({ page }, testInfo) => {
+test('trailer surfaces describe conquest, manual travel and return to gambits', async ({ page }, testInfo) => {
   await page.goto('/')
-  await expect(page.locator('#demo-description')).toContainText('bande-annonce')
+  await expect(page.locator('#demo-description')).toContainText('trailer')
   await expect(page.locator('#demo-description')).not.toContainText('Silent gameplay')
   await page.getByText('Read the video transcript', { exact: true }).click()
   const transcript = page.locator('#demo-transcript')
-  await expect(transcript).toContainText('Capturez des planètes')
-  await expect(transcript).toContainText('Reprenez la main')
+  await expect(transcript).toContainText('Capture planets')
+  await expect(transcript).toContainText('Take control')
   await expect(transcript).toContainText('217')
-  await expect(transcript).toContainText('retour aux gambits')
+  await expect(transcript).toContainText('returns the swarm to its gambits')
   await expect(page.locator('#demo-music-credit')).toContainText("'Resonance' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au")
   const video = page.locator('#demo-video')
   await video.scrollIntoViewIfNeeded()
@@ -62,11 +62,11 @@ test('French trailer surfaces describe conquest, manual travel and return to gam
   await video.evaluate(v => { v.currentTime = 39 })
   await expect.poll(() => video.evaluate(v => v.seeking)).toBe(false)
   const active = () => video.evaluate(v => [...v.textTracks[0].activeCues].map(c => c.text).join(' '))
-  await expect.poll(active).toMatch(/Reprenez la main/)
+  await expect.poll(active).toMatch(/Take control/)
   await page.screenshot({ path: testInfo.outputPath('trailer-manual-39s.png'), fullPage: true })
   await video.evaluate(v => { v.currentTime = 47.5 })
   await expect.poll(() => video.evaluate(v => v.seeking)).toBe(false)
-  await expect.poll(active).toMatch(/retour aux gambits/)
+  await expect.poll(active).toMatch(/back to gambits/)
   await page.screenshot({ path: testInfo.outputPath('trailer-release-47s.png'), fullPage: true })
 })
 
