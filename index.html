@@ -1,4 +1,5 @@
 <!doctype html>
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Botters</title>
@@ -130,10 +131,10 @@
       <p>Capture planets to grow. Bigger swarms win fights. <b>Most particles at the end wins.</b></p>
       <figure aria-labelledby="demo-title">
         <h3 id="demo-title">Trailer · 60 s</h3>
-        <p id="demo-description" lang="fr">La bande-annonce d’une vraie partie. Rose : vous. Bleu : l’adversaire.</p>
-        <video id="demo-video" controls playsinline preload="none" width="1920" height="1080" poster="/media/public-demo-poster.jpg" tabindex="0" aria-label="Botters announcement trailer, French captions" aria-describedby="demo-description demo-provenance demo-music-credit">
+        <p id="demo-description">A trailer from a real match. Pink: you. Blue: the opponent.</p>
+        <video id="demo-video" controls playsinline preload="none" width="1920" height="1080" poster="/media/public-demo-poster.jpg" tabindex="0" aria-label="Botters announcement trailer, English captions" aria-describedby="demo-description demo-provenance demo-music-credit">
           <source src="/media/public-demo.webm" type="video/webm; codecs=&quot;vp9, opus&quot;">
-          <track kind="subtitles" src="/media/public-demo.vtt" srclang="fr" label="Français (déjà incrusté dans l’image)">
+          <track kind="subtitles" src="/media/public-demo.vtt" srclang="en" label="English (also burned into the video)">
           Your browser cannot play this video. Read the transcript below or download the WebM.
         </video>
         <figcaption id="demo-provenance">Recorded locally with scripted inputs against the house bot. No model plays during the recording.</figcaption>
@@ -141,12 +142,12 @@
       <p id="demo-music-credit" class="help">Music: 'Resonance' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au · excerpt 2:25–3:25, faded · <a href="https://www.scottbuckley.com.au/library/resonance/">source</a> · <a href="https://creativecommons.org/licenses/by/4.0/">licence</a> · <a href="/media/public-demo.webm" download>download</a></p>
       <details>
         <summary>Read the video transcript</summary>
-        <div id="demo-transcript" lang="fr">
-          <p><b>0:00–0:08.</b> « Vos règles. Votre essaim. » Un gros plan montre les vrais gambits, puis « SI planète libre → conquérir » : l’essaim rose atteint une planète neutre, qui devient rose. C’est la règle free_planet → go réellement exécutée.</p>
-          <p><b>0:08–0:20.</b> « Capturez des planètes. Faites grandir votre essaim. » De nouvelles planètes deviennent roses et produisent des particules. Le plan s’élargit et précise le but : « Objectif : le plus de particules à la fin du match. » Les essaims bleus apparaissent à l’approche du front.</p>
-          <p><b>0:20–0:33.</b> « Définissez vos priorités. » Un extrait agrandi de la vraie règle prioritaire de repli est superposé à la bataille contemporaine. « SI ennemi plus fort → repli. Regardez vos règles agir. » Les roses se replient vers des alliés pendant la confrontation réelle. « Mais la bataille change… » annonce une nouvelle menace, avec une brève respiration musicale.</p>
-          <p><b>0:33–0:49.</b> « Reprenez la main au bon moment. » Un Tab automatisé sélectionne l’essaim 217 ; un clic carte ordonne un trajet de (456,320) vers (672,242). Le cercle blanc et la ligne pointillée sont visibles ; le même essaim se déplace réellement de plus de 200 unités. « Un ordre. Un nouveau cap. » Puis une touche G automatisée rend cet essaim aux règles : « G : retour aux gambits. » Ces automated human-side controls ne sont pas une personne qui joue.</p>
-          <p><b>0:49–1:00.</b> « Plus tard : la planète bascule. » Un saut de montage explicitement annoncé montre la planète visée devenir rose, bien plus tard dans la même partie ; aucune victoire n’est revendiquée à l’image. BOTTERS, « Découvrez Botters. », botters.vercel.app et les crédits musicaux sont maintenus sept secondes. Le house opponent suit des fixed gambits ; no model runs during the match.</p>
+        <div id="demo-transcript">
+          <p><b>0:00–0:08.</b> “Your rules. Your swarm.” A close-up shows a gambit: “IF free planet → conquer.” The pink swarm reaches a neutral planet, which turns pink.</p>
+          <p><b>0:08–0:20.</b> “Capture planets. Grow your swarm.” More planets turn pink and produce particles. The goal: “the most particles at the end of the match.” Blue swarms approach.</p>
+          <p><b>0:20–0:33.</b> “Set your priorities.” An enlarged retreat rule appears over the battle: “IF stronger enemy → retreat.” Pink swarms retreat towards allies. “But the battle changes…”</p>
+          <p><b>0:33–0:49.</b> “Take control at the right moment.” Automated controls select swarm 217 and order it to travel; the same swarm moves across the map. “One order. A new course.” An automated G key returns the swarm to its gambits. These automated controls are not a person playing.</p>
+          <p><b>0:49–1:00.</b> “Later: the planet changes hands.” An edit jumps forward in the same match and the planet turns pink. “Discover Botters.” The title, website and music credits follow. The house opponent follows fixed gambits; no model plays during the match.</p>
         </div>
       </details>
       <p><a href="/guide">Agent guide</a> · No account: <code>npx -y github:Zacaria/botters</code></p>

@@ -180,67 +180,67 @@
     {
       "start": 0,
       "end": 3,
-      "text": "Vos règles. Votre essaim."
+      "text": "Your rules. Your swarm."
     },
     {
       "start": 3,
       "end": 8,
-      "text": "SI planète libre → conquérir"
+      "text": "IF free planet → conquer"
     },
     {
       "start": 8,
       "end": 15,
-      "text": "Capturez des planètes.\nFaites grandir votre essaim."
+      "text": "Capture planets.\nGrow your swarm."
     },
     {
       "start": 15,
       "end": 20,
-      "text": "Objectif : le plus de particules\nà la fin du match."
+      "text": "Goal: the most particles\nat the end of the match."
     },
     {
       "start": 20,
       "end": 23,
-      "text": "Définissez vos priorités."
+      "text": "Set your priorities."
     },
     {
       "start": 23,
       "end": 27,
-      "text": "SI ennemi plus fort → repli"
+      "text": "IF stronger enemy → retreat"
     },
     {
       "start": 27,
       "end": 31,
-      "text": "Regardez vos règles agir."
+      "text": "Watch your rules in action."
     },
     {
       "start": 31,
       "end": 33,
-      "text": "Mais la bataille change…"
+      "text": "But the battle changes…"
     },
     {
       "start": 33,
       "end": 41,
-      "text": "Reprenez la main au bon moment."
+      "text": "Take control at the right moment."
     },
     {
       "start": 41,
       "end": 46,
-      "text": "Un ordre. Un nouveau cap."
+      "text": "One order. A new course."
     },
     {
       "start": 46,
       "end": 49,
-      "text": "G : retour aux gambits."
+      "text": "G: back to gambits."
     },
     {
       "start": 49,
       "end": 53,
-      "text": "Plus tard : la planète bascule."
+      "text": "Later: the planet changes hands."
     },
     {
       "start": 53,
       "end": 60,
-      "text": "Découvrez Botters."
+      "text": "Discover Botters."
     }
   ],
   "burnedCaptions": true,
@@ -255,18 +255,26 @@
   },
   "media": {
     "public-demo.webm": {
-      "sha256": "46b35b8a24b91ecad90bcfb472ae46c7685f1238ce35fa2fba79e30d42a3c610",
-      "bytes": 14482092
+      "sha256": "bc33030bc99a99e8747d5137258144e358efd969216887c51f1882646820e274",
+      "bytes": 18718883
     },
     "public-demo.vtt": {
-      "sha256": "dd62274548b65c2b90380a893e85bdb51a0ff943682be67aca2563dc59b9c82b",
-      "bytes": 823
+      "sha256": "3ab544c08f5a08c0d430a511835e4f0e63515a3e98710aedf79282283ac5af52",
+      "bytes": 780
     },
     "public-demo-poster.jpg": {
-      "sha256": "0b24f79618f4300f193b16f3afee65357e573f540e25ee10baf068b3be39d6fe",
-      "bytes": 55026
+      "sha256": "294a65d3e1debf0919e88982895f13b9ff15def8282bc0599b4706988d6759f6",
+      "bytes": 50244
     }
   },
   "master": ".cache/trailer/edit/botters-announcement-1080p.mp4",
-  "masterSha256": "603c9078a84b0b1b50495353a0a1147b7e0a0e69d88999e291b1ce3354d50f3c"
+  "masterSha256": "603c9078a84b0b1b50495353a0a1147b7e0a0e69d88999e291b1ce3354d50f3c",
+  "captionLanguage": "en",
+  "recaption": {
+    "sourceFile": "previous media/public-demo.webm",
+    "sourceSha256": "46b35b8a24b91ecad90bcfb472ae46c7685f1238ce35fa2fba79e30d42a3c610",
+    "method": "French text overlays masked, English ASS burned in; video re-encoded, original Opus audio stream copied",
+    "ass": "scripts/public-demo-en.ass",
+    "script": "scripts/recaption-public-demo.py"
+  }
 }

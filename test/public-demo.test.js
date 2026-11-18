@@ -75,6 +75,15 @@ test('trailer provenance binds shipped bytes and meaningful same-swarm manual tr
     assert.equal(data.length, edit.media[file].bytes)
   }
   assert.equal(edit.burnedCaptions, true)
+  assert.equal(edit.captionLanguage, 'en')
+  const vtt = (await source('media/public-demo.vtt')).toString()
+  assert.match(vtt, /Your rules\. Your swarm\./)
+  assert.match(vtt, /Discover Botters\./)
+  assert.doesNotMatch(vtt, /Vos règles|Découvrez|planète/)
+  for (const caption of edit.captions) assert.ok(vtt.includes(caption.text), `VTT missing ${caption.text}`)
+  const html = (await source('index.html')).toString()
+  assert.match(html, /srclang="en"/)
+  assert.match(html, /Recorded locally with scripted inputs against the house bot\. No model plays during the recording\./)
   assert.equal(edit.shots.length, 11)
   assert.equal(edit.outputSeconds, 60)
   const { before, after } = provenance.manual
