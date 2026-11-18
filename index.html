@@ -116,7 +116,7 @@
       </section>
       <p id="startError" class="warn" role="alert"></p>
       <noscript><p>JavaScript is needed to play. The agent guide and policies are available without it.</p></noscript>
-    <p class="help"><a href="#understand">How it works</a> · <a href="/guide">Connect ChatGPT</a></p>
+    <p class="help"><a href="#understand">How it works</a> · <a href="/guide">Connect ChatGPT or Claude</a></p>
   </main>
   <div class="wrap" style="grid-template-columns: 1fr">
     <section id="understand" class="card" aria-labelledby="understand-title" tabindex="-1">
@@ -509,7 +509,6 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   agentOk = !!L.agent || !!L.agentGranted
   if (accountRequired) $('revokeAgent').disabled = !L.agentGranted
   pick('withAgent', agentOk ? [true, false] : [false]); $('withAgent').hidden = !agentOk
-  if (!agentOk) prefs.withAgent = false
   if (inviteCode && !inviteUsed && !L.room && !L.live && !L.queued) {
     inviteUsed = true; const joined = await api('POST', '/rooms/join', { ...playOptions(), code: inviteCode })
     if (joined.error) lobbyError = joined.error; else return lobby()
@@ -556,7 +555,7 @@ $('rematchRoom').onclick = () => roomAction('/rooms/rematch', playOptions())
 $('leaveRoom').onclick = () => roomAction('/rooms/leave')
 $('viewReport').onclick = () => { clearTimeout(lobbyTimer); match() }
 $('play').onclick = () => L?.live ? match() : startPlay()
-const agentPrompt = 'Use the Botters Live connector: call join_match, write opening gambits with set_gambits from the doctrine, then keep calling wait_for_event and adapt until the match ends. Finish with a two-line summary.'
+const agentPrompt = 'Use the Botters connector: call join_match, write opening gambits with set_gambits from the doctrine, then keep calling wait_for_event and adapt until the match ends. Finish with a two-line summary. If you have no Botters connector, tell me to add https://play.botters.havesomecode.io/mcp as a custom connector first.'
 const agentUrl = name => (name === 'Claude' ? 'https://claude.ai/new?q=' : 'https://chatgpt.com/?q=') + encodeURIComponent(agentPrompt)
 $('agentPlay').onclick = e => {
   const name = e.target.dataset.assistant

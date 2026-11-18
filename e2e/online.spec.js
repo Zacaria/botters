@@ -18,8 +18,30 @@ test('agent play opens ChatGPT with a prepared prompt and waits for the agent', 
   await popup.waitForURL('https://chatgpt.com/**')
   expect(popup.url()).toContain('https://chatgpt.com/?q=')
   expect(new URL(popup.url()).searchParams.get('q')).toContain('join_match')
+  expect(new URL(popup.url()).searchParams.get('q')).toContain('https://play.botters.havesomecode.io/mcp')
   await expect(page.locator('#big')).toContainText('waiting for your agent…')
   await expect(page.getByRole('button', { name: 'Start without agent' })).toBeVisible()
+})
+
+test('a new player sees agent play after connecting without changing preferences', async ({ page, context, baseURL }) => {
+  const session = await (await context.request.post(`${baseURL}/session`, { data: { name: 'New agent player' } })).json()
+  let granted = false
+  await page.route('**/lobby?**', async route => {
+    const lobby = await (await route.fetch()).json()
+    await route.fulfill({ json: { ...lobby, agent: null, agentGranted: granted } })
+  })
+  await page.addInitScript(token => { localStorage.setItem('botters.session', token) }, session.humanToken)
+  await page.goto('/')
+  await expect(page.locator('#agentState')).toContainText('none connected')
+  expect(await page.evaluate(() => localStorage.getItem('botters.prefs'))).toBeNull()
+  // Saving another setting while disconnected must not save a solo choice.
+  await page.locator('#setup > summary').click()
+  await page.locator('#minutes [data-v="3"]').click()
+  granted = true
+  await page.reload()
+  await expect(page.locator('#withAgent [data-v="true"]')).toHaveClass('on')
+  await expect(page.getByRole('button', { name: 'Play with ChatGPT' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Play with Claude' })).toBeVisible()
 })
 
 test('an authorized but idle agent still gets the Play with ChatGPT button', async ({ page, context, baseURL }) => {

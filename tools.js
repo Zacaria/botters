@@ -140,22 +140,22 @@ mcp.registerTool('set_gambits', {
 }, async ({ gambits, why, matchId }) => need() || input({ gambits, why, matchId }))
 
 mcp.registerTool('order_swarm', {
-  description: 'Take one of your swarms by hand and send it to x,y (map 1200×700). It stops following the gambits until release_swarm. Use for precise plays only: a hand-held swarm does not react to threats.',
+  description: 'Take one of your swarms by hand and send it to x,y (map 1200×700). It stops following the gambits until release_swarm. Use for precise plays only: a hand-held swarm does not react to threats. Swarm ids change when swarms split or merge: use ids from the latest state.',
   inputSchema: { matchId: MATCH_ID, swarm: z.number(), x: z.number(), y: z.number(), why: z.string().max(120) },
 }, async ({ swarm, x, y, why, matchId }) => need() || input({ order: { swarm, x, y }, why, matchId }))
 
 mcp.registerTool('route_swarm', {
-  description: 'Take your swarm by hand through 2 to 8 map points in order. It does not react to threats. A direct order or release cancels the route.',
+  description: 'Take your swarm by hand through 2 to 8 map points in order. It does not react to threats. A direct order or release cancels the route. Swarm ids change when swarms split or merge: use ids from the latest state.',
   inputSchema: { matchId: MATCH_ID, swarm: z.number(), points: z.array(z.object({ x: z.number().min(0).max(1200), y: z.number().min(0).max(700) })).min(2).max(8), why: z.string().max(120) },
 }, async ({ swarm, points, why, matchId }) => need() || input({ route: { swarm, points }, why, matchId }))
 
 mcp.registerTool('split_swarm', {
-  description: 'Split one of your swarms in two (needs ≥200 particles, max 40 swarms). The new half heads for the second-nearest planet you do not own.',
+  description: 'Split one of your swarms in two (needs ≥200 particles, max 40 swarms). The new half heads for the second-nearest planet you do not own. Swarm ids change when swarms split or merge: use ids from the latest state.',
   inputSchema: { matchId: MATCH_ID, swarm: z.number(), why: z.string().max(120) },
 }, async ({ swarm, why, matchId }) => need() || input({ split: swarm, why, matchId }))
 
 mcp.registerTool('release_swarm', {
-  description: 'Give a hand-held swarm back to the gambits.',
+  description: 'Give a hand-held swarm back to the gambits. Swarm ids change when swarms split or merge: use ids from the latest state.',
   inputSchema: { matchId: MATCH_ID, swarm: z.number() },
 }, async ({ swarm, matchId }) => need() || input({ release: swarm, matchId }))
 
