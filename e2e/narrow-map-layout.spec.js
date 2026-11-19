@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { DEFAULT_GAMBITS } from '../sim.js'
 
-if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER || process.env.BOTTERS_DEV_CONVEX) throw new Error('Layout regression requires local ephemeral fixtures')
+if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER) throw new Error('Layout regression requires local ephemeral fixtures')
 let server, origin
 const custom = [{ if: 'enemy_near', p: 123.5, then: 'retreat', on: false }, { if: 'always', then: 'hold', on: true }]
 test.beforeAll(async () => {

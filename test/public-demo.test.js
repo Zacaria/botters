@@ -16,7 +16,7 @@ const source = file => readFile(new URL(`../${file}`, import.meta.url))
 test('clean build and actual package contain the exact delivered media', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'botters-demo-build-'))
   try {
-    for (const file of ['index.html', 'guide.html', 'privacy.html', 'terms.html', 'sim.js', 'media', 'sim/pkg']) await cp(new URL(`../${file}`, import.meta.url), join(dir, file), { recursive: true })
+    for (const file of ['index.html', 'guide.html', 'privacy.html', 'terms.html', 'sim.js', 'media', 'sim/pkg', 'sim/runtime.js']) await cp(new URL(`../${file}`, import.meta.url), join(dir, file), { recursive: true })
     execFileSync(process.execPath, [new URL('../scripts/build.js', import.meta.url).pathname], { cwd: dir })
     for (const file of files) assert.deepEqual(await readFile(join(dir, 'public/media', file)), await source(`media/${file}`))
     const [pack] = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json'], { cwd: new URL('../', import.meta.url), encoding: 'utf8' }))

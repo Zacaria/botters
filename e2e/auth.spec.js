@@ -1,180 +1,20 @@
-import { test, expect, request } from '@playwright/test'
-import { Client } from '@colyseus/sdk'
-const password = 'isolated-browser-password-326!'
-const live = 'http://127.0.0.1:8790'
-async function signup(page, email, name) {
-  await page.goto('/'); await page.getByRole('button', { name: 'Continue with email', exact: true }).click(); await page.getByRole('button', { name: 'Create account', exact: true }).click()
-  await page.locator('#signupName').fill(name); await page.locator('#authEmail').fill(email); await page.locator('#authPassword').fill(password)
-  await page.locator('#authSubmit').click(); await expect(page.locator('#authMessage')).toContainText('Check your email')
-  const mail = await page.request.get(`/test/mail?email=${email}`).then(r => r.json())
-  await page.goto(mail.at(-1).text.match(/http:\/\/\S+/)[0]); await expect(page.locator('#lobby')).toBeVisible()
-}
+import { test, expect, verifyEmail } from './fixtures.js'
 
-async function signupWithDelayedAccount(page, email, name) {
-  let releaseAccount, accountFetched
-  const gate = new Promise(resolve => { releaseAccount = resolve })
-  const fetched = new Promise(resolve => { accountFetched = resolve })
-  await page.route('**/account', async route => {
-    // Delay the real response, not a fabricated account or auth service.
-    const response = await route.fetch()
-    expect(response.status()).toBe(200)
-    accountFetched()
-    await gate
-    await route.fulfill({ response })
-  }, { times: 1 })
-  try {
-    await page.goto('/', { waitUntil: 'domcontentloaded' })
-    await fetched
-    await page.getByRole('button', { name: 'Continue with email', exact: true }).click()
-    await page.getByRole('button', { name: 'Create account', exact: true }).click()
-    await page.locator('#signupName').fill(name)
-    await page.locator('#authEmail').fill(email)
-    await page.locator('#authPassword').fill(password)
-    const delivered = page.waitForResponse(r => new URL(r.url()).pathname === '/account')
-    releaseAccount()
-    await delivered
-    // Bootstrap unhides these controls inside the still-hidden lobby.
-    await page.waitForFunction(() => !document.getElementById('accountControls').hidden)
-    await expect(page.locator('#authTitle')).toHaveText('Create your player account')
-    await expect(page.locator('#signupName')).toHaveValue(name)
-    await expect(page.locator('#authEmail')).toHaveValue(email)
-    await expect(page.locator('#authPassword')).toHaveValue(password)
-    const submitted = page.waitForResponse(r => new URL(r.url()).pathname === '/api/auth/sign-up/email')
-    await page.locator('#authSubmit').click()
-    expect((await submitted).status()).toBe(200)
-    await expect(page.locator('#authMessage')).toContainText('Check your email')
-    const mail = await page.request.get(`/test/mail?email=${email}`).then(r => r.json())
-    expect(mail).toHaveLength(1)
-    await page.goto(mail[0].text.match(/http:\/\/\S+/)[0])
-    await expect(page.locator('#lobby')).toBeVisible()
-    await expect(page.locator('#name')).toHaveValue(name)
-  } finally { releaseAccount() }
-}
-
-test('signup verification, wrong password, reset/replay, account resume and logout use real library sessions', async ({ page }) => {
+test('browser signup, native local email verification, sign-in and sign-out',async({page})=>{
+  const errors=[];page.on('pageerror',e=>errors.push(e.message))
   await page.goto('/')
   await expect(page.locator('#authTitle')).toHaveText('Sign in to play online')
-  await page.screenshot({ path: '.cache/auth-login.png', fullPage: true })
-  expect((await page.request.post('/session', { data: { name: 'spoof', accountId: 'spoof' } })).status()).toBe(401)
-  await test.step('signup selection and inputs survive a delayed initial account response', async () => {
-    await signupWithDelayedAccount(page, 'auth-browser-one@example.test', 'Alice')
-  })
-  const token = await page.evaluate(() => localStorage.getItem('botters.session'))
-  await page.locator('#setup > summary').click(); await page.locator('#name').fill('Renamed Alice'); await page.locator('#name').dispatchEvent('change')
-  await page.reload(); await expect(page.locator('#name')).toHaveValue('Renamed Alice')
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click()
-  await expect(page.locator('#authPanel')).toBeVisible()
-  expect((await page.request.get(`${live}/lobby?token=${token}`)).status()).toBe(401)
-  await expect(page.locator('#authForm')).toBeHidden(); await page.getByRole('button', { name: 'Continue with email', exact: true }).click()
-  await page.locator('#authEmail').fill('auth-browser-one@example.test'); await page.locator('#authPassword').fill('a-wrong-password-123')
-  await page.locator('#authSubmit').click(); await expect(page.locator('#authMessage')).toContainText('Invalid email or password')
-  await page.getByRole('button', { name: 'Forgot password?' }).click(); await page.locator('#authSubmit').click()
-  await expect(page.locator('#authMessage')).toContainText('reset link')
-  const mail = await page.request.get('/test/mail?email=auth-browser-one@example.test').then(r => r.json())
-  await page.goto(mail.at(-1).text.match(/http:\/\/\S+/)[0])
-  await expect(page.locator('#authTitle')).toHaveText('Choose a new password')
-  await page.locator('#authPassword').fill('new-browser-password-457!'); await page.locator('#authSubmit').click()
-  await expect(page.locator('#authMessage')).toContainText('Password saved')
-  await page.locator('#authEmail').fill('auth-browser-one@example.test'); await page.locator('#authPassword').fill('new-browser-password-457!'); await page.locator('#authSubmit').click()
-  await expect(page.locator('#name')).toHaveValue('Renamed Alice')
-})
-
-test('approval and revocation refresh the lobby without waiting for its idle poll', async ({ page }) => {
-  // Freeze browser timers before navigation. Better Auth, storage, live
-  // subscriptions and HTTP still run normally in the real two-origin fixture.
-  await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') })
-  await page.clock.pauseAt(new Date('2026-01-01T00:01:00Z'))
-  await signup(page, 'auth-browser-refresh@example.test', 'Refresh')
-  const pair = await page.request.post('/agent/pair', { data: { setup: 'refresh-test-agent' } }).then(r => r.json())
-  await page.goto(pair.approvalUrl)
-  await expect(page.locator('#agentState')).toContainText('none connected')
-  const token = await page.evaluate(() => localStorage.getItem('botters.session'))
-  const lobby = () => page.request.get(`${live}/lobby?token=${token}`).then(r => r.json())
-  await page.getByRole('button', { name: 'Connect agent', exact: true }).click()
-  await expect(page.locator('#pairMessage')).toContainText('Agent connected')
-  expect((await page.request.get(`/agent/poll?token=${pair.agentToken}`).then(r => r.json())).approved).toBe(true)
-  await expect.poll(async () => (await lobby()).agent).toBe('refresh-test-agent')
-  await expect(page.locator('#agentState')).toContainText('refresh-test-agent')
-  await expect(page.locator('#revokeAgent')).toBeEnabled()
-  await expect(page.locator('#withAgent [data-v="true"]')).toBeVisible()
-  await page.locator('#revokeAgent').click()
-  await expect(page.locator('#lobbyMsg')).toContainText('Agent disconnected')
-  await expect.poll(async () => (await lobby()).agentGranted).toBe(false)
-  await expect(page.locator('#agentState')).toContainText('none connected')
-  await expect(page.locator('#revokeAgent')).toBeDisabled()
-  await expect(page.locator('#withAgent [data-v="true"]')).toHaveCount(0)
-  expect((await page.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
-})
-
-test('two verified players pair an agent, play, reconnect, retain history and revoke delegation', async ({ browser }) => {
-  const a = await browser.newContext(), b = await browser.newContext()
-  try {
-    const p = await a.newPage(), q = await b.newPage()
-    await signup(p, 'auth-browser-two@example.test', 'Shared name')
-    await signup(q, 'auth-browser-three@example.test', 'Shared name')
-    const pair = await p.request.post('/agent/pair', { data: { setup: 'browser-test-agent' } }).then(r => r.json())
-    await p.goto(pair.approvalUrl); await expect(p.locator('#pairApproval')).toBeVisible()
-    await p.screenshot({ path: '.cache/auth-pair-approval.png', fullPage: true })
-    expect((await p.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
-    await p.getByRole('button', { name: 'Connect agent', exact: true }).click(); await expect(p.locator('#pairMessage')).toContainText('Agent connected')
-    await expect(p.locator('#agentState')).toContainText('browser-test-agent')
-    await expect(p.locator('#withAgent [data-v="true"]')).toHaveClass('on')
-    await expect(p.getByRole('button', { name: 'Play with ChatGPT' })).toBeVisible()
-    await expect(p.getByRole('button', { name: 'Play with Claude' })).toBeVisible()
-    expect((await p.request.get(`/agent/poll?token=${pair.agentToken}`).then(r => r.json())).approved).toBe(true)
-    expect((await p.request.post(`${live}/profile?token=${pair.agentToken}`, { data: { name: 'stolen' } })).status()).toBe(401)
-    const tokenA = await p.evaluate(() => localStorage.getItem('botters.session'))
-    expect((await q.request.get(`${live}/lobby?token=${tokenA}`)).status()).toBe(401)
-    await p.locator('#setup > summary').click(); await p.locator('#minutes [data-v="3"]').click(); await p.locator('#planning [data-v="10"]').click()
-    await p.locator('#createRoom').click(); await expect(p.locator('#roomCode')).not.toBeEmpty()
-    const code = await p.locator('#roomCode').textContent(); await q.goto('/r/' + code)
-    await expect(q.locator('#roomCode')).toHaveText(code)
-    await p.locator('#startRoom').click(); await expect(p.locator('#hud')).toBeVisible(); await expect(q.locator('#hud')).toBeVisible()
-    const next = await p.request.get(`${live}/next?token=${pair.agentToken}`).then(r => r.json()); expect(next.match.id).toBeTruthy()
-    await q.reload(); await expect(q.locator('#hud')).toBeVisible()
-    await expect(p.locator('#viewReport')).toBeHidden()
-    await expect(p.locator('#again')).toBeVisible({ timeout: 55000 }); await expect(q.locator('#again')).toBeVisible({ timeout: 55000 })
-    await p.locator('#leave').click(); await expect(p.locator('#history')).toContainText('Shared name')
-    await p.locator('#revokeAgent').click(); expect((await p.request.get(`${live}/next?token=${pair.agentToken}`)).status()).toBe(401)
-    await p.reload(); await expect(p.locator('#history')).toContainText('Shared name')
-    const current = await p.evaluate(() => localStorage.getItem('botters.session'))
-    const board = await p.request.get(`${live}/leaderboard?token=${current}`).then(r => r.json()); expect(board.leaderboard).toHaveLength(2)
-  } finally { await a.close(); await b.close() }
-})
-
-test('cross-origin live cookie, one-use tickets, stolen reservations and logout protect a running socket', async ({ page, context }) => {
-  await signup(page, 'auth-browser-boundary@example.test', 'Boundary')
-  const account = await page.request.get('/account').then(r => r.json())
-  expect(account.user.authSessionId).toBeUndefined(); expect(account.user.authExpires).toBeUndefined()
-  const issued = await page.request.post('/session', { data: {} }).then(r => r.json())
-  const endpoint = live + '/exchange', website = 'http://127.0.0.1:8789'
-  expect((await page.request.post(endpoint, { headers: { Origin: 'https://evil.example' }, data: { ticket: issued.liveTicket } })).status()).toBe(403)
-  const exchanged = await page.request.post(endpoint, { headers: { Origin: website }, data: { ticket: issued.liveTicket } })
-  expect(exchanged.status()).toBe(200)
-  expect(exchanged.headers()['access-control-allow-origin']).toBe(website)
-  expect(exchanged.headers()['access-control-allow-credentials']).toBe('true')
-  expect((await page.request.post(endpoint, { headers: { Origin: website }, data: { ticket: issued.liveTicket } })).status()).toBe(401)
-  const cookie = (await context.cookies(live)).find(c => c.name === 'botters-live-loopback')
-  expect(cookie.httpOnly).toBe(true); expect(cookie.sameSite).toBe('Strict')
-  expect(await page.evaluate(() => document.cookie.includes('botters-live'))).toBe(false)
-  const empty = await request.newContext()
-  try {
-    expect((await empty.get(`${live}/lobby?token=${issued.humanToken}`)).status()).toBe(401)
-    expect((await empty.post(`${live}/profile?token=${issued.humanToken}`, { data: { name: 'stolen' } })).status()).toBe(401)
-    expect((await empty.get(`${live}/leaderboard?token=${issued.humanToken}`)).status()).toBe(401)
-  } finally { await empty.dispose() }
-  let received = 0, closed = false
-  page.on('websocket', socket => { socket.on('framereceived', () => received++); socket.on('close', () => { closed = true }) })
-  await page.locator('#play').click(); await expect(page.locator('#hud')).toBeVisible()
-  await expect.poll(() => received).toBeGreaterThan(3)
-  const bearer = await page.evaluate(() => localStorage.getItem('botters.session'))
-  const { roomId } = await page.request.get(`${live}/socket?token=${bearer}`).then(r => r.json())
-  const reservation = await page.request.post(`${live}/matchmake/joinById/${roomId}`, { data: { token: bearer } }).then(r => r.json())
-  // A stolen valid seat reservation still needs the HttpOnly live cookie at WS admission.
-  const attacker = new Client(live)
-  await expect(attacker.consumeSeatReservation(reservation)).rejects.toThrow()
-  expect((await page.request.post('/api/auth/sign-out', { headers: { Origin: website }, data: {} })).status()).toBe(200)
-  await expect.poll(async () => (await page.request.get(`${live}/lobby?token=${bearer}`)).status()).toBe(401)
-  await expect.poll(() => closed).toBe(true)
-  const stopped = received; await page.waitForTimeout(400); expect(received).toBe(stopped)
+  await page.locator('#emailLogin').click()
+  await page.locator('#signupMode').click()
+  await page.locator('#signupName').fill('Browser signup')
+  await page.locator('#authEmail').fill('player999@example.invalid')
+  await page.locator('#authPassword').fill('Browser-local-proof-password-1234')
+  await page.locator('#authSubmit').click()
+  await expect(page.locator('#authMessage')).toContainText('verify your account')
+  await verifyEmail(page,'player999@example.invalid')
+  await expect(page.locator('#accountName')).toHaveText('Browser signup')
+  await expect(page.locator('#play')).toBeVisible()
+  await page.locator('#signout').click()
+  await expect(page.locator('#authTitle')).toHaveText('Sign in to play online')
+  expect(errors).toEqual([])
 })

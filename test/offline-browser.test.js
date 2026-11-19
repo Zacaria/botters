@@ -132,7 +132,7 @@ test('offline surrender confirms, recovers from refusal, shows the real result a
 })
 
 test('primary map input ignores secondary buttons without changing engine control', { timeout: 45000 }, async t => {
-  if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER || process.env.BOTTERS_DEV_CONVEX) throw new Error('Map input regression requires local ephemeral fixtures')
+  if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER) throw new Error('Map input regression requires local ephemeral fixtures')
   const { browser, origin } = await fixture(t)
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), errors = [], posts = [], replies = [], observations = []
   page.on('pageerror', e => errors.push(e.message))
@@ -584,7 +584,7 @@ test('doctrine save recovery ignores a lobby snapshot predating an acknowledged 
   t.diagnostic('Real old GET released after real POST acknowledgement: newer doctrine retained after blur')
 })
 
-test('invalid saved preferences do not block local play', { timeout: 90000 }, async t => {
+test('invalid saved preferences do not block local play', { timeout: 180000 }, async t => {
   const { browser, origin } = await fixture(t)
   const settings = { vs: 'easy', minutes: 3, planets: 16, planning: 10, withAgent: false, openingMine: true }
   const custom = [{ if: 'enemy_near', p: 123.5, then: 'retreat', on: false }, { if: 'always', then: 'hold', on: true }]

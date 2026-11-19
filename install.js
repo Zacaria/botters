@@ -11,7 +11,7 @@ import { parse as parseJson, parseTree, modify, applyEdits } from 'jsonc-parser'
 import spawn from 'cross-spawn'
 
 const PACKAGE = 'github:Zacaria/botters'
-const ONLINE = 'https://botters.havesomecode.io'
+const ONLINE = 'https://play.botters.havesomecode.io'
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const own = (value, key) => Object.hasOwn(value, key)
 
@@ -184,7 +184,7 @@ export async function install(args = [], options = {}) {
   try {
     const uninstall = args.includes('--uninstall'), local = args.includes('--local')
     const plan = await planInstall({ ...options, uninstall, local, client })
-    if (!plan.length) { log('No supported agent found. Install Claude Code or Codex, or create your desktop client’s MCP config, then rerun. Manual setup: https://botters.havesomecode.io/guide'); return 1 }
+    if (!plan.length) { log('No supported agent found. Install Claude Code or Codex, or create your desktop client’s MCP config, then rerun. Manual setup: https://play.botters.havesomecode.io/guide'); return 1 }
     log(uninstall ? 'Remove Botters from detected user configs:' : `Botters setup: ${local ? 'offline house play' : ONLINE}`)
     for (const item of plan) log(`  ${item.name}: ${item.action} — ${item.path}${item.action !== 'unchanged' ? ` (${item.cli ? 'client CLI + config merge' : 'config merge'}${item.original !== null ? '; backup first' : ''})` : ''}`)
     if (plan.every(item => item.action === 'unchanged')) { log('Nothing to change.'); return 0 }

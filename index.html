@@ -98,7 +98,7 @@
       <p class="help">To play with an agent locally, open the lobby link it gives you.</p></div>
       <section id="authPanel" aria-labelledby="authTitle">
         <h2 id="authTitle">Sign in to play online</h2>
-        <p id="canonicalLogin" hidden><a id="canonicalLink" href="https://botters.havesomecode.io">Continue to Botters sign-in →</a></p>
+        <p id="canonicalLogin" hidden><a id="canonicalLink" href="https://play.botters.havesomecode.io">Continue to Botters sign-in →</a></p>
         <div id="authControls">
           <button id="googleLogin" type="button">Continue with Google</button>
           <button id="emailLogin" type="button">Continue with email</button>
@@ -371,16 +371,24 @@ $('signout').onclick = async () => {
   clearTimeout(lobbyTimer); clearTimeout(memberTimer); clearTimeout(docTimer); clearTimeout(streamRetry); es?.close()
   localStorage.removeItem('botters.session'); token = null; L = null; show('start'); setAuthMode('signin')
 }
+async function refreshAgent(granted) {
+  const session = token
+  for (let attempt = 0; attempt < 6 && token === session; attempt++) {
+    await lobby(false)
+    if (!L || L.error || !!L.agentGranted === granted) return
+    await new Promise(resolve => setTimeout(resolve, 400))
+  }
+}
 $('revokeAgent').onclick = async () => {
   const r = await api('POST', '/agent/revoke', {})
-  if (!r.error) await lobby(false)
+  if (!r.error) await refreshAgent(false)
   $('lobbyMsg').textContent = r.error || 'Agent disconnected. Its token no longer works.'
 }
 $('approveAgent').onclick = async () => {
   $('approveAgent').disabled = true
   const r = await api('POST', '/agent/approve', { id: pendingPair })
   $('pairMessage').textContent = r.error || 'Agent connected. You can disconnect it from this lobby.'
-  if (!r.error) { pendingPair = null; sessionStorage.removeItem('botters.pair'); await lobby(false) }
+  if (!r.error) { pendingPair = null; sessionStorage.removeItem('botters.pair'); await refreshAgent(true) }
   else $('approveAgent').disabled = false
 }
 $('declineAgent').onclick = () => { pendingPair = null; sessionStorage.removeItem('botters.pair'); $('pairApproval').hidden = true }
@@ -823,7 +831,7 @@ else (function loop() { requestAnimationFrame(loop); if (!$('bg').hidden && !doc
 let lastCalls = '', lastGambits = '', lastFeed = ''
 async function copyResult() {
   if (!v?.ended || !F?.report) return
-  const r = F.report.actual, text = `Botters: ${r.result}\n${n(r.you)} vs ${n(r.enemy)}\nhttps://botters.havesomecode.io/`
+  const r = F.report.actual, text = `Botters: ${r.result}\n${n(r.you)} vs ${n(r.enemy)}\nhttps://play.botters.havesomecode.io/`
   const button = $('copyResult'), status = $('copyResultStatus'), summary = $('resultSummary')
   button.disabled = true
   try {

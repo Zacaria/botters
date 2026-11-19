@@ -1,0 +1,83 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "botters-play",
+  "main": ".cache/cloudflare/worker.js",
+  "compatibility_date": "2026-11-08",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "no_bundle": true,
+  "build": {
+    "command": "npm run build && node scripts/build-cloudflare.js"
+  },
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": [
+        "**/*.wasm"
+      ],
+      "fallthrough": true
+    }
+  ],
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "SITE_URL": "https://play.botters.havesomecode.io",
+    "AUTH_EMAIL_FROM": "botters@mail.havesomecode.io"
+  },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": [
+        "botters@mail.havesomecode.io"
+      ]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "botters-play",
+      "database_id": "420b3e95-3b4d-4944-9704-50866c98b602",
+      "migrations_dir": "cloudflare/migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MATCHES",
+        "class_name": "MatchRoom"
+      },
+      {
+        "name": "AGENTS",
+        "class_name": "AgentGateway"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "MatchRoom",
+        "AgentGateway"
+      ]
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "*/10 * * * *"
+    ]
+  },
+  "observability": {
+    "enabled": false
+  },
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "play.botters.havesomecode.io",
+      "custom_domain": true
+    }
+  ]
+}
