@@ -329,3 +329,16 @@ test('online match-bound mutations retry atomically if rematch commits first', a
     assert.deepEqual(await f.call(a, 'GET', '/state'), before, path)
   }
 })
+
+test('a player connected only through the match socket still shows as connected to the opponent', async () => {
+  const f = fixture(), a = await f.session('a'), b = await f.session('b')
+  const prefs = { vs: 'player', withAgent: false }
+  await f.call(a, 'POST', '/play', prefs); await f.call(b, 'POST', '/play', prefs)
+  const { matchId } = await f.call(a, 'GET', '/state')
+  f.advance(20000)
+  const frames = await f.game.request('INTERNAL', '/tick', new URLSearchParams(), { id: matchId, live: [0, 1] })
+  assert.deepEqual(frames.map(frame => frame.opponent.connected), [true, true])
+  f.advance(20000)
+  const idle = await f.game.request('INTERNAL', '/tick', new URLSearchParams(), { id: matchId })
+  assert.deepEqual(idle.map(frame => frame.opponent.connected), [false, false])
+})
