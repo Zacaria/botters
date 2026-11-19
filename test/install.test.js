@@ -50,7 +50,7 @@ for (const platform of ['darwin', 'linux', 'win32']) {
       const value = item.id === 'codex' ? JSON.parse(JSON.stringify(parseToml(text))) : parseJson(text)
       const servers = value[item.id === 'codex' ? 'mcp_servers' : 'mcpServers']
       assert.deepEqual(servers.other, server)
-      assert.equal(servers.botters.env.BOTTERS_SERVER, 'https://botters.havesomecode.io')
+      assert.equal(servers.botters.env.BOTTERS_SERVER, 'https://play.botters.havesomecode.io')
       if (item.id === 'codex') {
         assert.equal(value.model, 'keep')
         assert.equal(servers.botters.startup_timeout_sec, 60)
@@ -188,7 +188,7 @@ for (const platform of ['darwin', 'linux', 'win32']) {
       assert.deepEqual((await data())[key].other, server)
       assert.equal((await data())[client === 'codex' ? 'model' : 'theme'], 'keep')
       if (client !== 'codex') assert.match(await readFile(selected.path, 'utf8'), /keep comment/)
-      assert.equal((await data())[key].botters.env.BOTTERS_SERVER, 'https://botters.havesomecode.io')
+      assert.equal((await data())[key].botters.env.BOTTERS_SERVER, 'https://play.botters.havesomecode.io')
       assert.equal((await lstat(selected.path)).mode & 0o777, mode)
       const backups = (await readdir(join(selected.path, '..'))).filter(name => name.includes('.botters-backup-'))
       assert.equal(backups.length, 1)

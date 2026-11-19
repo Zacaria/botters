@@ -1,8 +1,5 @@
-import init, { initSync, initial_geometry, RustMatch } from './sim/pkg/botters_sim.js'
-if (typeof process !== 'undefined' && process.versions?.node) {
-  const { readFileSync } = await import('node:fs')
-  initSync({ module: readFileSync(new URL('./sim/pkg/botters_sim_bg.wasm', import.meta.url)) })
-} else await init()
+import './sim/runtime.js'
+import { initial_geometry, RustMatch } from './sim/pkg/botters_sim.js'
 
 // Botters simulation: space swarms conquer and eat planets. Pure and deterministic: state = f(seed, inputs by tick).
 // A swarm is a cohort (centre + particle count); individual particles only exist in the browser.

@@ -1,6 +1,5 @@
 // Game server: lobby sessions (one human + optionally one agent), matches vs the house or another player,
 // 20 Hz match loop, agent API, browser stream, what-if report, Elo.
-// ponytail: all state in memory, one process. Port to Vercel + Convex once the game is fun.
 import http from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
@@ -311,6 +310,7 @@ const routes = {
   'GET /leaderboard': (req, res) => json(res, 200, leaderboard()),
   'GET /': page('index.html'),
   'GET /sim.js': page('sim.js'),
+  'GET /sim/runtime.js': page('sim/runtime.js'),
   'GET /sim/pkg/botters_sim.js': page('sim/pkg/botters_sim.js'),
   'GET /sim/pkg/botters_sim_bg.wasm': (req, res) => { res.writeHead(200, { 'content-type': 'application/wasm' }); res.end(readFileSync(new URL('sim/pkg/botters_sim_bg.wasm', import.meta.url))) },
   'GET /guide': page('guide.html'),

@@ -78,7 +78,6 @@ Measured 2026-10-13: Jev, 12 unit questions in one request, median 237 ms (225�
 
 ## Spike (built 2026-10-13)
 
-Local Node server + local MCP client, to test the feel before hosting. The simulation (`sim.js`) is pure and deterministic and every input is logged by tick, so moving it to Vercel + Convex later is a port, not a rewrite. See README.md to run it.
 
 ### Spike results (2026-10-13, local server, real models)
 
@@ -125,7 +124,6 @@ Decisions 2026-10-14 #3 (owner played the space sketch: "felt great, there's a l
 - ✅ Q25 Three swarm types (locusts fast/fragile/fast eaters, carapace slow/tough, spores ranged) right after the first agent-played match.
 - ✅ Q26 (2026-10-20) Swarm depth shipped: front-and-wrap combat with 50% digestion replaces the square law (the old law melted equal swarms for two minutes and rarely let a trailing side come back); hunger and satiety counter the snowball; the three types form a triangle and can be changed in play; colour is the camp and shape the type so 2v2 and free-for-all (4 or 6 sides, against house bots for now) stay readable. Measured over 12 seeds per cell with `$TMPDIR` probes: comebacks after 1:30 went from 3/40 to 14/40 in duels.
 
-Hosting answer (Q23): yes, a 5-minute match fits Vercel. Fluid compute allows 300 s on Hobby and 800 s on Pro; with cohorts the simulation is ~0.1 ms per tick, so a stateless replay per request also works (≤0.5 s). Live updates: Vercel WebSockets (public beta since June 2026) or Convex subscriptions. To be spiked when the game moves online.
 
 ## Polish pass (2026-10-15)
 
@@ -162,6 +160,5 @@ Cost estimate (unmeasured): pilot 5 Hz × 300 s × ~2k tokens ≈ 3M tokens ≈ 
 
 Design rule: the public API is the game. Assume every client is a bot and will exploit any leaked information or loophole.
 
-Hosting: no server tick loop. The simulation is deterministic: match state = f(seed, timestamped orders). Convex stores only the order log; the MCP/HTTP API (Vercel, `mcp-handler`) and each browser replay it to the current tick. A 5-minute match is 3,000 ticks × ~30 units, which replays in milliseconds. Orders are applied at the tick the server receives them, so latency is a real cost. Vercel functions cap at 300 s (Hobby) / 800 s (Pro), so no function owns a match.
 
 Biggest technical risk: chat clients (Claude.ai, ChatGPT) only act during a turn. One `wait_for_event` loop must keep one turn alive for the whole match. Spike this first.

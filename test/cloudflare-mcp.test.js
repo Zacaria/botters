@@ -1,0 +1,70 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
+
+test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, refresh reuse', { timeout: 60000 }, async t => {
+  const { mf, mail, db } = await runtime(); t.after(() => mf.dispose())
+  const human = client(mf), browser = client(mf)
+  await human.signUp('McpOwner')
+  const verify = new URL(mail[0].text.match(/http:\/\/[^\s]+/)[0]); await human.call('GET', verify.pathname + verify.search)
+  const session = (await human.call('POST', '/session', {})).body
+  await human.call('POST', '/exchange', { ticket: session.liveTicket })
+  const meta = await browser.call('GET', '/.well-known/oauth-authorization-server', undefined, { origin: 'https://assistant.example.invalid' })
+  assert.equal(meta.headers.get('access-control-allow-origin'), '*')
+  assert.equal(meta.status, 200)
+  const registration = await browser.call('POST', '/register', { client_name: 'Local MCP proof', redirect_uris: ['http://localhost:4000/callback'], token_endpoint_auth_method: 'none', grant_types: ['authorization_code','refresh_token'], response_types: ['code'] })
+  assert.equal(registration.status, 201)
+  const id = registration.body.client_id, verifier = 'a'.repeat(64), challenge = createHash('sha256').update(verifier).digest('base64url')
+  const authorize = await browser.call('GET', '/authorize?' + new URLSearchParams({ client_id: id, redirect_uri: 'http://localhost:4000/callback', response_type: 'code', code_challenge: challenge, code_challenge_method: 'S256', resource: ORIGIN + '/mcp', scope: 'botters:play', state: 'local-state' }))
+  assert.equal(authorize.status, 302, JSON.stringify(authorize.body))
+  const consent = authorize.headers.get('location'), transaction = new URL(consent, ORIGIN).searchParams.get('transaction')
+  assert.equal((await human.call('GET', consent)).status, 403)
+  const page = await browser.call('GET', consent)
+  assert.equal(page.status, 200)
+  const pairId = page.body.match(/\?pair=([\w-]{32})/)[1]
+  assert.equal((await browser.call('POST', '/consent/complete', { transaction })).body.approved, false)
+  await human.call('POST', `/agent/approve?token=${session.humanToken}`, { id: pairId })
+  const completed = await browser.call('POST', '/consent/complete', { transaction })
+  assert.equal(completed.body.approved, true)
+  const callback = new URL(completed.body.url), code = callback.searchParams.get('code')
+  assert.equal(callback.searchParams.get('state'), 'local-state')
+  const params = { grant_type: 'authorization_code', code, code_verifier: verifier, client_id: id, redirect_uri: 'http://localhost:4000/callback', resource: ORIGIN + '/mcp' }
+  assert.equal((await browser.call('POST', '/token', { ...params, code_verifier: 'b'.repeat(64) })).status, 400)
+  const pair = await Promise.all([browser.call('POST', '/token', params), browser.call('POST', '/token', params)])
+  assert.deepEqual(pair.map(r => r.status).sort(), [200,400])
+  const tokens = pair.find(r => r.status === 200).body
+  const headers = { authorization: `Bearer ${tokens.access_token}`, accept: 'application/json, text/event-stream' }
+  const rpc = (body, extra = {}) => browser.call('POST', '/mcp', body, { ...headers, ...extra })
+  const init = await rpc({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'proof', version: '1' } } })
+  assert.equal(init.status, 200, JSON.stringify(init.body))
+  const sid = init.headers.get('mcp-session-id'); assert.ok(sid)
+  const listed = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }, { 'mcp-session-id': sid })
+  assert.ok(listed.body.result.tools.some(t => t.name === 'join_match'))
+  assert.equal((await browser.call('POST', '/mcp', { jsonrpc:'2.0', id:0, method:'tools/list' })).status, 401)
+  await human.call('POST', `/play?token=${session.humanToken}`, { vs: 'easy', withAgent: true, planning: 10, minutes: 3, planets: 16 })
+  const joined = await rpc({ jsonrpc:'2.0', id:3, method:'tools/call', params:{name:'join_match',arguments:{}} }, { 'mcp-session-id': sid })
+  assert.ok(JSON.parse(joined.body.result.content[0].text).state)
+  const init2 = await rpc({ jsonrpc:'2.0',id:4,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'proof',version:'1'}} })
+  const gambit = await rpc({ jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'set_gambits',arguments:{gambits:[{if:'always',then:'hold'}],why:'shared grant state'}} }, {'mcp-session-id':init2.headers.get('mcp-session-id')})
+  assert.equal(JSON.parse(gambit.body.result.content[0].text).ok, true)
+  const observed=await rpc({jsonrpc:'2.0',id:51,method:'tools/call',params:{name:'wait_for_event',arguments:{timeout_s:1}}},{'mcp-session-id':sid})
+  const originalEvents=JSON.parse(observed.body.result.content[0].text).events
+  assert.ok(originalEvents.length)
+  const access=await db.prepare('SELECT value FROM game_records WHERE key=?').bind('oauth:token:'+createHash('sha256').update(tokens.access_token).digest('hex')).first()
+  const grantId=JSON.parse(access.value).grantId
+  await mf.unsafeEvictDurableObject('botters-local','AgentGateway',{name:grantId})
+  assert.equal((await rpc({jsonrpc:'2.0',id:52,method:'tools/list'},{'mcp-session-id':sid})).status,404)
+  const resumed=await rpc({jsonrpc:'2.0',id:53,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'resumed',version:'1'}}})
+  const resumedSid=resumed.headers.get('mcp-session-id')
+  const afterEviction=await rpc({jsonrpc:'2.0',id:54,method:'tools/call',params:{name:'set_gambits',arguments:{gambits:[{if:'always',then:'hold'}],why:'restored match state'}}},{'mcp-session-id':resumedSid})
+  assert.equal(JSON.parse(afterEviction.body.result.content[0].text).ok,true)
+  const freshEvents=await rpc({jsonrpc:'2.0',id:55,method:'tools/call',params:{name:'wait_for_event',arguments:{timeout_s:1}}},{'mcp-session-id':resumedSid})
+  assert.ok(JSON.parse(freshEvents.body.result.content[0].text).events.every(e=>!originalEvents.includes(e)),'Saved event cursor must survive grant DO eviction')
+  const refreshed = await browser.call('POST','/token',{grant_type:'refresh_token',client_id:id,refresh_token:tokens.refresh_token,resource:ORIGIN+'/mcp'})
+  assert.equal(refreshed.status,200)
+  const spent=await db.prepare('SELECT value,expires FROM game_records WHERE key=?').bind('oauth:token:'+createHash('sha256').update(tokens.refresh_token).digest('hex')).first()
+  assert.ok(spent.expires>=JSON.parse(spent.value).expires,'Refresh reuse tombstone must survive the whole grant lifetime')
+  assert.equal((await browser.call('POST','/token',{grant_type:'refresh_token',client_id:id,refresh_token:tokens.refresh_token,resource:ORIGIN+'/mcp'})).status,400)
+  assert.equal((await browser.call('POST','/mcp',{jsonrpc:'2.0',id:6,method:'tools/list'},{...headers,authorization:`Bearer ${refreshed.body.access_token}`,'mcp-session-id':sid})).status,401)
+})

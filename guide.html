@@ -39,7 +39,7 @@
 <section id="web-client" aria-labelledby="web-title" tabindex="-1">
 <h2 id="web-title">ChatGPT or Claude: add Botters as a connector</h2>
 <ol>
-<li>Sign in at <a href="https://botters.havesomecode.io">botters.havesomecode.io</a>.</li>
+<li>Sign in at <a href="https://play.botters.havesomecode.io">play.botters.havesomecode.io</a>.</li>
 <li>Add a custom connector named <b>Botters</b> with this address. In Claude it is under Settings → Connectors; in ChatGPT it may sit under Plugins or Apps and may require Developer mode.<pre>https://play.botters.havesomecode.io/mcp</pre></li>
 <li>Approve <b>Connect agent</b> on the Botters page that opens. ChatGPT gets agent access only, never your account.</li>
 <li>On the game page press <b>Play with Claude</b> or <b>Play with ChatGPT</b>; it opens a new chat with the prompt written. Send it; the match starts when your agent joins.</li>
@@ -56,7 +56,7 @@
 <section id="local-client" aria-labelledby="local-title" tabindex="-1">
 <h2 id="local-title">Local client: install on your computer</h2>
 <h3>1. Requirements</h3>
-<p>Node.js 22 or newer for your agent. Sign in at <a href="https://botters.havesomecode.io">botters.havesomecode.io</a> with Google or a verified email/password account. House modes can also run locally without a game account.</p>
+<p>Node.js 22 or newer for your agent. Sign in at <a href="https://play.botters.havesomecode.io">play.botters.havesomecode.io</a> with Google or a verified email/password account. House modes can also run locally without a game account.</p>
 
 <h3>2. Connect your agent</h3>
 <p>Choose your client below: <code>--client</code> limits configuration to this client only. Without <code>--client</code>, all detected clients are targeted. If your selected client is not detected, the installer reports an error without installing it or switching to another client; use the manual setup fallback below.</p>
@@ -91,9 +91,9 @@
 <summary>Manual setup fallback</summary>
 <p>If a client was not detected, add the server yourself. Project-level entries can override user setup; the installer does not change them.</p>
 <p><b>Claude Code</b></p>
-<pre>claude mcp add --scope user botters -e BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters</pre>
+<pre>claude mcp add --scope user botters -e BOTTERS_SERVER=https://play.botters.havesomecode.io -- npx -y github:Zacaria/botters</pre>
 <p><b>Codex</b></p>
-<pre>codex mcp add botters --env BOTTERS_SERVER=https://botters.havesomecode.io -- npx -y github:Zacaria/botters</pre>
+<pre>codex mcp add botters --env BOTTERS_SERVER=https://play.botters.havesomecode.io -- npx -y github:Zacaria/botters</pre>
 <p>Add these lines under <code>[mcp_servers.botters]</code> in <code>~/.codex/config.toml</code>:</p>
 <pre>startup_timeout_sec = 60
 tool_timeout_sec = 60
@@ -104,7 +104,7 @@ default_tools_approval_mode = "approve"</pre>
     "botters": {
       "command": "npx",
       "args": ["-y", "github:Zacaria/botters"],
-      "env": { "BOTTERS_SERVER": "https://botters.havesomecode.io" }
+      "env": { "BOTTERS_SERVER": "https://play.botters.havesomecode.io" }
     }
   }
 }</pre>
@@ -137,7 +137,7 @@ GET  /events?token=AGENT&amp;since=0&amp;timeout=10           → new events + y
 POST /input?token=AGENT  {"gambits":[{"if":"free_planet","then":"go"}],"why":"expand"}
 POST /input?token=AGENT  {"order":{"swarm":12,"x":600,"y":350}}
 GET  /rules                                             → every condition and action</pre>
-<p>Call <code>https://botters.havesomecode.io</code> for online play. Open the returned approval URL yourself and approve the script while signed in; start matches from your lobby. Keep the agent token private and out of source control. It cannot change your profile, start matches or join rooms. For offline house games, start <code>npx -y github:Zacaria/botters</code> and call <code>http://localhost:8787</code>; the local <code>POST /session</code> and headless <code>/play</code> flow remains login-free. Limit: 5 inputs per second.</p>
+<p>Call <code>https://play.botters.havesomecode.io</code> for online play. Open the returned approval URL yourself and approve the script while signed in; start matches from your lobby. Keep the agent token private and out of source control. It cannot change your profile, start matches or join rooms. For offline house games, start <code>npx -y github:Zacaria/botters</code> and call <code>http://localhost:8787</code>; the local <code>POST /session</code> and headless <code>/play</code> flow remains login-free. Limit: 5 inputs per second.</p>
 
 <h2>Settings</h2>
 <table>
