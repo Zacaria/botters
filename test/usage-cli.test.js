@@ -14,7 +14,7 @@ test('usage CLI reads D1 and prints counts without identifiers', async t => {
     {kind:'user', id:'private-new', created:monday+1000, verified:1},
     {kind:'user', id:'private-unverified', created:monday+1000, verified:0},
     {kind:'session', id:'private-old', created:monday+1000, updated:monday+2000},
-    {kind:'match', value:JSON.stringify({at:monday+1000, online:true, agent:true, accounts:['private-old','private-new']})},
+    {kind:'match', value:JSON.stringify({at:monday+1000, online:true, agent:true})},
   ]
   const executable = `#!/usr/bin/env node\nif (process.argv.slice(2,8).join(' ') !== 'wrangler d1 execute botters-play --remote --json' || process.argv[8] !== '--command') process.exit(2);\nconsole.log(${JSON.stringify(JSON.stringify([{results:rows}]))})\n`
   await writeFile(join(dir,'npx'), executable, {mode:0o755})

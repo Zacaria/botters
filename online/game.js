@@ -171,7 +171,7 @@ export class OnlineGame {
           if (s) s.history = [{ matchId: m.id, ...m.report[p.side], vs: opponent(m, p.side).name, reason: m.s.ended.reason }, ...s.history].slice(0, 10)
         }
         m.finishedAt = now
-        if (this.requireAccount) await tx.set(`usage:${m.id}`, { at: now, online: m.players.filter(p => p.accountId).length > 1, agent: m.players.some(p => p.withAgent), accounts: m.players.map(p => p.accountId).filter(Boolean) }, 0)
+        if (this.requireAccount) await tx.set(`usage:${token()}`, { at: now, online: m.players.filter(p => p.accountId).length > 1, agent: m.players.some(p => p.withAgent) }, 0)
       }
       const loadMatch = async id => {
         if (!id) return null

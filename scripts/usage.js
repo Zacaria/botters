@@ -25,7 +25,6 @@ try {
       if (!weeks[i]) continue
       weeks[i][match.online ? 'online' : 'house']++
       if (match.agent) weeks[i].agent++
-      for (const id of match.accounts) active[i].add(id)
     }
   }
   weeks.forEach((week, i) => { for (const id of active[i]) if (users.has(id) && users.get(id) < week.start) week.returning++ })

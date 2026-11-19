@@ -10,7 +10,6 @@ export async function removeGameAccount(db,accountId) {
     db.prepare(`DELETE FROM game_records WHERE key LIKE 'token:%' AND json_extract(value,'$.id') IN (${owned})`).bind(accountId),
     db.prepare("DELETE FROM game_records WHERE key LIKE '%elo:%' AND json_extract(value,'$._owner')=?").bind(hash(accountId)),
     db.prepare(`UPDATE game_records SET value=json_set(value,'$.players',json((SELECT json_group_array(json(CASE WHEN json_extract(p.value,'$.accountId')=? THEN json_set(p.value,'$.name','Deleted player','$.accountId',NULL,'$.session',NULL) ELSE p.value END)) FROM json_each(game_records.value,'$.players') p))) WHERE key LIKE 'match:%' AND EXISTS (SELECT 1 FROM json_each(game_records.value,'$.players') p WHERE json_extract(p.value,'$.accountId')=?)`).bind(accountId,accountId),
-    db.prepare(`UPDATE game_records SET value=json_set(value,'$.accounts',json((SELECT json_group_array(value) FROM json_each(game_records.value,'$.accounts') WHERE value<>?))) WHERE key LIKE 'usage:%' AND EXISTS (SELECT 1 FROM json_each(game_records.value,'$.accounts') WHERE value=?)`).bind(accountId,accountId),
     db.prepare("DELETE FROM game_records WHERE key LIKE 'session:%' AND json_extract(value,'$.accountId')=?").bind(accountId),
     db.prepare('DELETE FROM game_records WHERE key=?').bind(`account:${hash(accountId)}`),
   ])
