@@ -230,7 +230,12 @@ export class OnlineGame {
       }
       if (method === 'INTERNAL' && path === '/tick') {
         const m = await loadMatch(body.id)
-        return m ? m.players.map(p => matchFrame(m, p.side, now)) : null
+        if (!m) return null
+        // Players on the match socket send no HTTP requests; their open socket is their presence.
+        const live = m.players.filter(p => body.live?.includes(p.side) && now - p.seen >= 5000)
+        for (const p of live) p.seen = now
+        if (live.length) await tx.set(`match:${m.id}`, m)
+        return m.players.map(p => matchFrame(m, p.side, now))
       }
       if (method === 'POST' && path === '/agent/pair' && this.requireAccount) {
         const agentToken = token(), id = token(), setup = text(body.setup, 40, 'agent')

@@ -57,7 +57,8 @@ export class MatchRoom extends DurableObject {
     }))
     if (!this.sockets.size) return
     try {
-      const frames = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId }, null, undefined, this.handles)
+      const live = [...new Set([...this.sockets.values()].map(entry => entry.side))]
+      const frames = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId, live }, null, undefined, this.handles)
       for (const [socket, entry] of this.sockets) {
         if (Date.now() >= entry.until) { socket.close(4401, 'Access ended'); this.sockets.delete(socket); continue }
         const frame = frames?.[entry.side]
