@@ -7,7 +7,7 @@ const c = document.getElementById('c'), g = c.getContext('2d'), img = g.createIm
 const COL = [[[255, 150, 205], [255, 80, 150], [255, 200, 225]], [[130, 200, 255], [60, 140, 255], [200, 230, 255]]] // [camp][runner, grunt, tank]
 const pack = ([r, gg, b]) => 0xff000000 | b << 16 | gg << 8 | r
 const s = createParticles(+new URLSearchParams(location.search).get('seed') || 1, 3000, 6, true)
-let sel = 0, paused = false, acc = 0, last = performance.now(), look = 0
+let sel = 0, paused = false, acc = 0, last = performance.now(), look = 3
 const LOOKS = ['shade', 'size (runner 1px, grunt 2px, tank 3px)', 'camp only', 'trails (runners streak)']
 const mine = () => s.bats.filter(b => b.side === 0 && b.n)
 const at = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * 1200 / r.width, (e.clientY - r.top) * 700 / r.height] }
