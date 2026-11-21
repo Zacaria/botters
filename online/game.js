@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, restore, snapshot, hash as simHash, applyInput, step, view, rules, describe, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, restore, snapshot, hash as simHash, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { transaction } from './store.js'
 import { rankPairs } from './ratings.js'
 
@@ -49,7 +49,7 @@ function diffEvents(m, p) {
 
 function matchFrame(m, side, now) {
   const p = m.players[side], foe = opponent(m, side)
-  return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy,
+  return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits,
     startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - now) / 1000)), waitingForAgent: !!m.waitingForAgent, me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
     opponent: { name: foe.name, setup: foe.setup, human: !!foe.session, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
 }
@@ -186,10 +186,10 @@ export class OnlineGame {
         for (const [side, e] of entries.entries()) {
           const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
             agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', events: [], seq: 0, sent: [], humanSent: [], calls: [], feed: [], prev: null, seen: now,
-            gambitsBy: { who: e ? 'default' : 'house', t: 0, why: '' } }
+            edits: [] }
           m.players.push(p)
           const opening = e ? e.req.opening : HOUSE[req.vs]
-          if (opening) { const input = { gambits: canonicalRules(opening) }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
+          if (opening) { const input = { gambits: canonicalRules(opening) }, before = structuredClone(m.s.gambits[side]); applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); p.edits.push({ t: 0, who: e ? 'you' : 'house', why: 'opening gambits', change: changes(before, m.s.gambits[side]) }) }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
           emit(m, p, `${waitingForAgent ? 'waiting for your agent' : `match starts in ${req.planning}s`}. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}). You start with three battalions.`)
         }
@@ -455,24 +455,23 @@ export class OnlineGame {
         requireMatch()
         if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
         if (m.s.ended) fail(409, 'Match is over.')
+        if (auth.role === 'agent' && ['order', 'flank', 'detach', 'release'].some(k => Object.hasOwn(body, k))) fail(403, 'Hand orders are for your human. Ask with call_human.')
         if (auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.')
         if (m.catchupCheckpoint) fail(503, 'Match is catching up. Retry shortly.')
         const sentKey = auth.role === 'agent' ? 'sent' : 'humanSent', limit = auth.role === 'agent' ? 5 : 15
         p[sentKey] = p[sentKey].filter(t => now - t < 1000)
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
-        const input = cleanInput(body)
+        const input = cleanInput(body), before = structuredClone(m.s.gambits[s.side])
         if ((m.waitingForAgent || now < m.startsAt) && !('gambits' in input || 'toggle' in input)) fail(409, 'Match not started: only gambits can change now.')
         const result = applyInput(m.s, s.side, input)
         if (!result.ok) fail(400, result.error)
         await appendLog(m, { tick: m.s.tick, side: s.side, role: auth.role, input })
         if (m.s.ended) { for (const player of m.players) diffEvents(m, player); await finish(m) }
-        const why = text(body.why, 120), list = m.s.gambits[s.side]
-        if (body.gambits || body.toggle !== undefined) p.gambitsBy = { who: auth.role === 'agent' ? 'agent' : 'you', t: Math.floor(m.s.tick / TPS), why: why || (body.toggle !== undefined ? `switched rule ${body.toggle + 1}` : '') }
-        if (auth.role === 'human') {
-          emit(m, p, `HUMAN ${body.gambits ? `rewrote gambits: ${list.map(describe).join('; ')}` : JSON.stringify(input)}`)
-        }
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
+        const why = text(body.why, 120), change = changes(before, m.s.gambits[s.side]), doctrine = 'gambits' in input || 'toggle' in input
+        if (doctrine) p.edits = [...(p.edits || []), { t: Math.floor(m.s.tick / TPS), who: auth.role === 'agent' ? 'agent' : 'you', why, change }].slice(-10) // matches started before edits existed have none
+        if (auth.role === 'human') emit(m, p, `HUMAN ${doctrine ? ('toggle' in input ? `switched ${change}` : `rewrote gambits: ${change}`) : JSON.stringify(input)}`)
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${auth.role === 'agent' && doctrine ? change : Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
         return result
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {

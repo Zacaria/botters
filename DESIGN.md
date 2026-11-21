@@ -161,7 +161,7 @@ Owner played the `feat/particles` spike and approved replacing production with i
 |---|---|
 | `{t:'snap', side, log, state}` | Full state at `state.tick`; `log` inputs are already in it. Sent on connect and on `{t:'resync'}` from the client. |
 | `{t:'step', tick, inputs:[{i, tick, side, input}], hash?:[tick, h]}` | Advance up to `tick`. Each input applies at its own tick, before that tick's step, in `i` order. `hash` is the server's `hash(s)` at the last multiple of 20 ticks. |
-| `{t:'meta', ...}` | Match frame without positions (ids, side, players, startsIn, calls, feed, gambitsBy, result report). On change, at most once a second. |
+| `{t:'meta', ...}` | Match frame without positions (ids, side, players, startsIn, calls, feed, edits (last 10 doctrine edits: t, who, why, change), result report). On change, at most once a second. |
 
 The server stamps an input with its own tick when it accepts it, and announces tick T only after stepping to T, so every input at a tick below T is sent before the client may pass it. A client that sees a gap in `i`, an input older than its tick, or a different hash asks for a snapshot. Clients play the announced ticks at 20 Hz, about one message behind.
 

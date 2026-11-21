@@ -37,7 +37,7 @@ const brief = (v, startsIn) => ({ ...v, ...(startsIn > 0 && { startsIn }) })
 const mcp = new McpServer({ name: 'botters', version: '0.2.0' })
 const text = o => ({ content: [{ type: 'text', text: typeof o === 'string' ? o : JSON.stringify(o) }] })
 const need = () => S.inMatch ? null : text('Not in a match. Call join_match first.')
-const input = async body => { const r = await api('POST', `/input?token=${S.session.agentToken}`, { ...body, matchId: body.matchId ?? S.matchId ?? undefined }); return text(r.ok ? { ok: true, ...(r.bat !== undefined && { bat: r.bat }) } : { ok: false, error: r.error }) }
+const input = async body => { const r = await api('POST', `/input?token=${S.session.agentToken}`, { ...body, matchId: body.matchId ?? S.matchId ?? undefined }); return text(r.ok ? { ok: true } : { ok: false, error: r.error }) }
 const MATCH_ID = z.string().optional().describe('Match ID from the observation that informed this action. Always supply it; omission uses the latest joined match for compatibility.')
 const GAMBIT = z.object({ if: z.string(), p: z.number().optional(), then: z.string(), on: z.boolean().optional() })
 
@@ -57,7 +57,7 @@ async function session() {
 }
 
 mcp.registerTool('join_match', {
-  description: `Play Botters with your human: a real-time duel. Each particle is a unit in a battalion; runners, grunts and tanks fight for planets. Owned planets breed units. Gambits are ordered IF condition → action rules; the first match controls each battalion unless held by hand. Call join_match, write gambits from your human's doctrine, then wait for events and adapt.`,
+  description: `Play Botters with your human: a real-time duel. Each particle is a unit in a battalion; runners, grunts and tanks fight for planets. Owned planets breed units. Gambits are ordered IF condition → action rules; the first match controls each battalion unless held by hand. Battalions follow your side’s gambits; only the human moves battalions by hand. Ask them with call_human. Call join_match, write gambits from your human's doctrine, then wait for events and adapt.`,
   inputSchema: {
     vs: z.enum(['easy', 'normal', 'hard', 'player']).optional().describe('start a match now instead of waiting for the human: a house level or another player'),
     minutes: z.number().optional().describe('with vs: 3, 5 or 8'),
@@ -127,38 +127,18 @@ mcp.registerTool('wait_for_event', {
 })
 
 mcp.registerTool('set_gambits', {
-  description: 'Replace your side\'s whole gambit list (1 to 10 rules, first match wins, applies to every battalion not held by hand). Each rule: { if: condition, p?: number tuning the condition, then: action, on?: false to keep it written but disabled }. Keep the rules your human switched off, off. Say why in one short sentence: your human sees it live.',
+  description: 'Replace your side\'s whole gambit list (1 to 10 rules, first match wins, applies to every battalion not held by hand). Each rule: { if: condition, p?: number tuning the condition, then: action, on?: false to keep it written but disabled }. Keep the rules your human switched off, off. Say why in one short sentence: your human sees the author, time and reason live in the panel.',
   inputSchema: { matchId: MATCH_ID, gambits: z.array(GAMBIT).min(1).max(10), why: z.string().max(120) },
 }, async ({ gambits, why, matchId }) => need() || input({ gambits, why, matchId }))
 
 mcp.registerTool('toggle_gambit', {
   description: 'Switch one gambit on or off by its zero-based index.',
-  inputSchema: { matchId: MATCH_ID, index: z.number().int().min(0) },
-}, async ({ index, matchId }) => need() || input({ toggle: index, matchId }))
-
-mcp.registerTool('order_battalion', {
-  description: 'Take a battalion by hand and move it to x,y. Release it to resume gambits.',
-  inputSchema: { matchId: MATCH_ID, bat: z.number().int(), x: z.number(), y: z.number(), why: z.string().max(120) },
-}, async ({ bat, x, y, why, matchId }) => need() || input({ order: { bat, x, y }, why, matchId }))
-
-mcp.registerTool('flank_battalion', {
-  description: 'Order a battalion to flank the nearest enemy.',
-  inputSchema: { matchId: MATCH_ID, bat: z.number().int(), why: z.string().max(120) },
-}, async ({ bat, why, matchId }) => need() || input({ flank: bat, why, matchId }))
-
-mcp.registerTool('detach_battalion', {
-  description: 'Detach half the battalion or all units of one role.',
-  inputSchema: { matchId: MATCH_ID, bat: z.number().int(), role: z.enum(['runner', 'grunt', 'tank']).optional(), why: z.string().max(120) },
-}, async ({ bat, role, why, matchId }) => need() || input({ detach: { bat, ...(role && { role }) }, why, matchId }))
-
-mcp.registerTool('release_battalion', {
-  description: 'Give a hand-held battalion back to the gambits.',
-  inputSchema: { matchId: MATCH_ID, bat: z.number().int() },
-}, async ({ bat, matchId }) => need() || input({ release: bat, matchId }))
+  inputSchema: { matchId: MATCH_ID, index: z.number().int().min(0), why: z.string().max(120) },
+}, async ({ index, why, matchId }) => need() || input({ toggle: index, why, matchId }))
 
 mcp.registerTool('get_state', {
-  description: 'Get the current fogged match state.', inputSchema: {},
-}, async () => { if (need()) return need(); const r = await api('GET', `/state?token=${S.session.agentToken}`); return text(r.view ? { matchId: r.matchId, state: brief(r.view, r.startsIn) } : r) })
+  description: 'Battle view: your battalions (size, roles, fighting, active rule), planets (owner, capture progress), enemy battalions visible under fog, your gambits with battalions per rule (perRule) and the recent doctrine edits.', inputSchema: {},
+}, async () => { if (need()) return need(); const r = await api('GET', `/state?token=${S.session.agentToken}`); return text(r.view ? { matchId: r.matchId, state: brief(r.view, r.startsIn), edits: r.edits } : r) })
 
 mcp.registerTool('call_human', {
   description: 'Ask your human for a hand: a yellow card appears in their browser. Use it when a precise move matters more than the gambits can handle (a bait, a flank, a rescue). Give the battalion id and target if you have them, and say why in one short sentence. Your human has faster hands than your tool calls.',

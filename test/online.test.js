@@ -344,3 +344,18 @@ test('a player connected only through the match socket still shows as connected 
   const idle = await f.game.request('INTERNAL', '/tick', new URLSearchParams(), { id: matchId })
   assert.deepEqual(idle.frames.map(frame => frame.opponent.connected), [false, false])
 })
+
+test('agent doctrine edits are logged, hand orders refused, human toggles notify the agent', async () => {
+  const f = fixture(), a = await f.session('a', 'agent')
+  await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: true })
+  assert.deepEqual((await f.call(a, 'GET', '/state')).edits, [])
+  await f.call(a, 'GET', '/next', {}, 'agent')
+  for (const input of [{order:{bat:0,x:1,y:1}}, {flank:0}, {detach:{bat:0}}, {release:0}]) await assert.rejects(f.call(a, 'POST', '/input', input, 'agent'), { status: 403, message: 'Hand orders are for your human. Ask with call_human.' })
+  await f.call(a, 'POST', '/input', { gambits: [{if:'always',then:'hold'}], why:'  hold here  ' }, 'agent')
+  const edit = (await f.call(a, 'GET', '/state')).edits.at(-1)
+  assert.equal(edit.who, 'agent'); assert.equal(edit.why, 'hold here'); assert.match(edit.change, /- IF planet_attacked → go/)
+  await f.call(a, 'POST', '/input', {toggle:0,why:'pause'})
+  assert.deepEqual((await f.call(a, 'GET', '/state')).edits.at(-1), {t:0,who:'you',why:'pause',change:'rule 1 off: IF always → hold'})
+  const events = await f.call(a, 'GET', '/events', {}, 'agent')
+  assert.ok(events.events.some(e => e.text === 'HUMAN switched rule 1 off: IF always → hold'))
+})

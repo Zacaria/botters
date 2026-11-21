@@ -27,8 +27,9 @@ Unit `i` belongs to side `i < MAXPER ? 0 : 1`. Determinism uses only `+ - * / Ma
 | `snapshot(s) → json`, `restore(json) → s` | JSON-safe; typed arrays of alive units as base64; `restore(snapshot(s))` steps identically to `s` |
 | `count(s)`, `owned(s)` | `[n0, n1]` units / planets |
 | `visible(s, side, x, y)` | fog: within 150 of an own battalion centre or 80 of an own planet |
-| `view(s, side)` | agent view, fogged: `{tick, secondsLeft, ended: {reason, result: 'won'|'draw'|'lost'} \| null, totals: {you, enemy, planets: {you, enemy}}, battalions: [{id, x, y, n, roles: {runner, grunt, tank}, tx, ty, manual, rule, fighting}], enemies: [{id, x, y, n, fighting}], planets: [{id, x, y, r, owner: 'you'|'enemy'|null, capture}], gambits}` |
+| `view(s, side)` | agent view, fogged: `{tick, secondsLeft, ended: {reason, result: 'won'|'draw'|'lost'} \| null, totals: {you, enemy, planets: {you, enemy}}, battalions: [{id, x, y, n, roles: {runner, grunt, tank}, tx, ty, manual, rule, ruleText, fighting}], enemies: [{id, x, y, n, fighting}], planets: [{id, x, y, r, owner: 'you'|'enemy'|null, capture}], gambits, perRule}`. `ruleText` is the active rule (null when held by hand or no rule matches); `perRule[k]` counts the battalions following gambit k |
 | `rules()`, `describe(rule)` | catalogue for agents, one-line rule text |
+| `changes(before, after)` | one line naming what a gambit edit changed (`rule 3 off: …`, `IF … → go: p 350 → 130`, `- IF …; + IF …`, `reordered`, `no change`; an explicit default `p` is no change); servers store it in each player's `edits` |
 
 ## Match results
 
