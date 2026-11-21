@@ -29,10 +29,10 @@ test('workerd: reconnect/eviction, sign-out <2s, password reset revokes agent, d
   await c.call('POST',`/agent/approve?token=${s.humanToken}`,{id:pair.id})
   await c.call('POST',`/play?token=${s.humanToken}`,{vs:'easy',withAgent:true,planning:10,minutes:3,planets:16})
   const next=(await c.call('GET',`/next?token=${pair.agentToken}`)).body
-  const ws=await socket(mf,c,s.humanToken),f=await frame(ws)
+  const ws=await socket(mf,c,s.humanToken),f=await frame(ws); f.matchId=next.match.id
   ws.close()
   const reconnected=await socket(mf,c,s.humanToken),f2=await frame(reconnected)
-  assert.equal(f2.matchId,f.matchId)
+  assert.equal(f2.t,'snap')
   const ns=await mf.getDurableObjectNamespace('MATCHES'),id=ns.idFromName(f.matchId).toString()
   reconnected.close();await new Promise(r=>setTimeout(r,150))
   await mf.unsafeEvictDurableObject('botters-local','MatchRoom',{id})

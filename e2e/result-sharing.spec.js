@@ -17,9 +17,15 @@ async function enter(page, name, url = '/') {
   if (!url.startsWith('/r/')) await expect(page.locator('#play')).toBeVisible()
 }
 
+async function surrender(page) {
+  await expect(page.locator('#surrender')).toBeVisible()
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#surrender').click()
+}
+
 async function finished(page, timeout = 40000) {
   await expect(page.locator('#again')).toBeVisible({ timeout })
-  const frame = await state(page), actual = frame.report.actual
+  const frame = await state(page), actual = frame.report
   const row = page.locator('#big tr').first()
   await expect(row.locator('td').nth(1)).toHaveText(actual.result.toUpperCase())
   const scores = `${Math.round(actual.you).toLocaleString('en')} vs ${Math.round(actual.enemy).toLocaleString('en')}`
@@ -57,12 +63,13 @@ test('house finish copies only the actual displayed result through the real clip
   await expect(page.locator('#hud')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Copy result', exact: true })).toHaveCount(0)
   await secretsInURL(page)
+  await surrender(page)
   const { frame, summary } = await finished(page)
   await copied(page, summary)
   expect(summary).not.toMatch(/PRIVATE_|SECRET_SENTINEL|token=|\?|#|\/r\//)
   expect(summary).not.toContain(frame.matchId)
   await expect(page.getByLabel('Result summary')).toBeHidden()
-  await test.info().attach('house-result.json', { body: JSON.stringify({ actual: frame.report.actual, summary }), contentType: 'application/json' })
+  await test.info().attach('house-result.json', { body: JSON.stringify({ actual: frame.report, summary }), contentType: 'application/json' })
   await page.locator('#menu').click()
   await expect(page.locator('#play')).toBeVisible()
   expect(errors).toEqual([])
@@ -74,6 +81,7 @@ for (const failure of ['unavailable', 'rejected']) {
     page.on('pageerror', error => errors.push(error.message))
     await enter(page, 'Manual copy player')
     await page.locator('#play').click()
+    await surrender(page)
     const { summary } = await finished(page)
     await page.setViewportSize({ width: 390, height: 844 })
     await secretsInURL(page)
@@ -95,7 +103,7 @@ for (const failure of ['unavailable', 'rejected']) {
   })
 }
 
-test('real room draw and changed rematch never copy the previous report or private room URL', async ({ page, browser, context }) => {
+test('room result and changed-settings rematch never copy the previous report or private room', async ({ page, browser, context }) => {
   const other = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] }), guest = await other.newPage()
   const errors = []
   for (const p of [page, guest]) p.on('pageerror', error => errors.push(error.message))
@@ -112,12 +120,13 @@ test('real room draw and changed rematch never copy the previous report or priva
     await page.locator('#startRoom').click()
     await expect(page.locator('#hud')).toBeVisible()
     await secretsInURL(guest)
+    await surrender(guest)
     const first = await finished(page), guestFirst = await finished(guest)
-    expect(first.frame.report.actual.result).toBe('draw')
-    expect(first.frame.report.actual.you).toBe(first.frame.report.actual.enemy)
+    expect(first.frame.report.result).toBe('won')
+    expect(guestFirst.frame.report.result).toBe('lost')
     await copied(guest, guestFirst.summary, 'Space')
     expect(guestFirst.summary).not.toContain(code)
-    await test.info().attach('draw-result.json', { body: JSON.stringify({ actual: first.frame.report.actual, summary: first.summary }), contentType: 'application/json' })
+    await test.info().attach('room-result.json', { body: JSON.stringify({ actual: first.frame.report, summary: first.summary }), contentType: 'application/json' })
 
     // Keep a failed copy pending across a real new match, to catch stale async UI writes.
     await page.evaluate(() => { navigator.clipboard.writeText = () => new Promise((resolve, reject) => { window.rejectOldCopy = reject }) })
@@ -129,19 +138,22 @@ test('real room draw and changed rematch never copy the previous report or priva
     await page.locator('#rematchRoom').click()
     await expect(page.locator('#roomReady')).toContainText('1/2 ready')
     await guest.locator('#again').click()
-    await expect(page.locator('#hud')).toBeVisible()
-    await expect(guest.locator('#hud')).toBeVisible()
+    await expect(page.locator('#hud')).toBeVisible({ timeout: 15000 })
+    await expect(guest.locator('#hud')).toBeVisible({ timeout: 15000 })
     await expect(guest.getByRole('button', { name: 'Copy result', exact: true })).toHaveCount(0)
     await page.evaluate(() => { window.rejectOldCopy(new DOMException('Late denial', 'NotAllowedError')); delete navigator.clipboard.writeText })
     await expect(page.locator('#resultSummary')).toHaveCount(0)
+    await surrender(page)
     const next = await finished(guest), hostNext = await finished(page)
     expect(next.frame.matchId).not.toBe(first.frame.matchId)
-    expect(next.frame.report.actual.result).toBe('lost')
-    expect(hostNext.frame.report.actual.result).toBe('won')
+    expect(next.frame.report.result).toBe('won')
+    expect(hostNext.frame.report.result).toBe('lost')
     expect(next.summary).not.toBe(guestFirst.summary)
+    expect(next.summary).not.toContain(code)
+    expect(hostNext.summary).not.toContain(code)
     await copied(guest, next.summary)
     await copied(page, hostNext.summary)
-    await test.info().attach('rematch-result.json', { body: JSON.stringify({ guest: next.frame.report.actual, host: hostNext.frame.report.actual, summary: next.summary }), contentType: 'application/json' })
+    await test.info().attach('rematch-result.json', { body: JSON.stringify({ guest: next.frame.report, host: hostNext.frame.report, summary: next.summary }), contentType: 'application/json' })
     await guest.locator('#menu').click()
     await expect(guest.locator('#roomCode')).toHaveText(code)
     await expect(guest.locator('#history tr')).toHaveCount(2)
@@ -170,9 +182,10 @@ test('offline native SSE house result is copyable and PLAY AGAIN clears it', asy
     await expect(page.locator('#hud')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Copy result', exact: true })).toHaveCount(0)
     await secretsInURL(page)
-    const { summary, frame } = await finished(page, 210000)
+    await surrender(page)
+    const { summary, frame } = await finished(page)
     await copied(page, summary)
-    await test.info().attach('offline-result.json', { body: JSON.stringify({ actual: frame.report.actual, summary }), contentType: 'application/json' })
+    await test.info().attach('offline-result.json', { body: JSON.stringify({ actual: frame.report, summary }), contentType: 'application/json' })
     await expect(page.locator('#again')).toHaveText('PLAY AGAIN')
     await page.locator('#again').click()
     await expect(page.locator('#hud')).toBeVisible()

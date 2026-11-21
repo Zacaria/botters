@@ -68,7 +68,7 @@ test('verified Elo keys survive renames, exclude the house and cannot be claimed
     if (i) await request(alice, 'POST', '/profile', a.humanToken, { name: 'Bob' })
     await request(alice, 'POST', '/play', a.humanToken, opts)
     await request(bob, 'POST', '/play', b.humanToken, opts)
-    advance(191000)
+    await request(alice, 'POST', '/surrender', a.humanToken)
     const end = await request(alice, 'GET', '/state', a.humanToken)
     assert.ok(end.report)
     const board = (await request(alice, 'GET', '/leaderboard')).leaderboard
@@ -78,7 +78,7 @@ test('verified Elo keys survive renames, exclude the house and cannot be claimed
   const history = (await request(alice, 'GET', '/lobby', a.humanToken)).history
   assert.equal(history.length, 2)
   await request(alice, 'POST', '/play', a.humanToken, { ...opts, vs: 'easy' })
-  advance(191000); await request(alice, 'GET', '/state', a.humanToken)
+  await request(alice, 'POST', '/surrender', a.humanToken)
   const board = (await request(alice, 'GET', '/leaderboard')).leaderboard
   assert.equal(board.length, 2); assert.ok(board.every(r => r.games === 2))
 })

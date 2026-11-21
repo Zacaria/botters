@@ -2,7 +2,7 @@
 
 Current production state and next features: [docs/STATE.md](docs/STATE.md).
 
-A 1v1 real-time space strategy game you play **with your AI agent**. Swarms of particles conquer and eat planets. Your agent (Claude Code, Codex, any MCP client) writes the **gambits**, the `IF condition → action` rules every swarm follows. You write the doctrine, edit the gambits, switch rules on and off, and grab one swarm by hand when it matters. No model runs in the real-time loop: a match costs only your agent's tool calls.
+A 1v1 real-time space strategy game you play **with your AI agent**. Battalions of individual particles fight to control planets. Your agent (Claude Code, Codex, any MCP client) writes the **gambits**, the `IF condition → action` rules every battalion follows. You write the doctrine, edit the gambits, switch rules on and off, and grab one battalion by hand when it matters. No model runs in the real-time loop: a match costs only your agent's tool calls.
 
 ## Play
 
@@ -43,7 +43,7 @@ For Codex, add `startup_timeout_sec = 60`, `tool_timeout_sec = 60` and `default_
 
 ## Play on a Mac (dev checkout)
 
-Double-click `play.command`. It starts the server and Codex, and your lobby opens in the browser. Write your doctrine, pick a mode, press **Play**.
+Double-click `play.command`. It starts the server and Codex, and your lobby opens in the browser. Write your doctrine, pick an opponent, press **Play**.
 
 ## Run by hand
 
@@ -57,21 +57,19 @@ Then plug your agent. The full guide is at `http://localhost:8787/guide`.
 ## Flow
 
 1. Your agent calls `join_match`: it opens (or links) your **lobby** and waits.
-2. The lobby shows a live house-vs-house battle behind one choice (Easy / Normal / Hard / vs Human) and **PLAY**. Under **Strategy & settings** you write the **doctrine** (your strategy in your words, 500 characters) and pick the opponent (house easy / normal / hard, or another player), the length (3 / 5 / 8 min), the map (16 / 28 / 40 planets), the planning countdown, and who writes the opening gambits.
+2. The lobby shows a live house-vs-house battle behind one choice (Easy / Normal / Hard / vs Human) and **PLAY**. Under **Strategy & settings** you write the **doctrine** (your strategy in your words, 500 characters) and pick the opponent (house easy / normal / hard, or another player), the length (3 / 5 / 8 min), the map (9 / 17 / 25 planets), the planning countdown, and who writes the opening gambits.
 3. **Play**: your agent receives the doctrine and writes the opening gambits during the countdown.
-4. In the match, the panel shows who last wrote the gambits and why; new rules flash. You can edit the gambits, switch rules (click, 1–0), change the doctrine, message or ping your agent, and grab swarms. Messages and map pings reach your agent as `HUMAN …` events through the online match transport. **Surrender** asks for confirmation and ends the match as a loss, even during planning; **menu** leaves the match running so you can resume it. Surrender works locally and online, including rooms; only the human can surrender (`POST /surrender` with their human token). The result, history and Elo use the normal match-end flow, then you can play again or request a room rematch.
-5. End screen: the same match replayed without your actions and without your agent's, then **Play again**. After online matchmaking, **Rematch** keeps the same opponent: the first player opens a room and waits; the second accepts from their result screen. Both must accept before the next PvP starts. Match length, map size and planning countdown are preserved, while each player supplies their own current opening/agent preference. It never falls back to a house opponent. You can leave the waiting room instead. The lobby lists your last 10 matches.
+4. In the match, the panel shows who last wrote the gambits and why; new rules flash. You can edit the gambits, switch rules (click, 1–0), change the doctrine, message or ping your agent, and grab battalions. Messages and map pings reach your agent as `HUMAN …` events through the online match transport. **Surrender** asks for confirmation and ends the match as a loss, even during planning; **menu** leaves the match running so you can resume it. Surrender works locally and online, including rooms; only the human can surrender (`POST /surrender` with their human token). The result, history and Elo use the normal match-end flow, then you can play again or request a room rematch.
+5. End screen: see the result, then **Play again**. After online matchmaking, **Rematch** keeps the same opponent: the first player opens a room and waits; the second accepts from their result screen. Both must accept before the next PvP starts. Match length, map size and planning countdown are preserved, while each player supplies their own current opening/agent preference. It never falls back to a house opponent. You can leave the waiting room instead. The lobby lists your last 10 matches.
 
 ## Rules
 
-- Map 1200×700, mirrored planets plus one home planet per side, included in the selected total of 16, 28 or 40 planets in every mode. Six-side maps include a mirrored pair on the horizontal centreline to keep the exact total. Each side starts with 3 swarms of 3,000 particles.
-- Owned planets are slowly eaten and turned into particles for their owner. Most particles at the end wins; no swarms and no planets left loses at once.
-- Fights use the contact front: only the front of two touching swarms fights (width = the smaller swarm's diameter) and a swarm much bigger than its enemy wraps it. Half of what a swarm kills joins it but is digested slowly, which also slows it. Simultaneous attackers share each target's actual losses in proportion to their damage; they cannot digest the same particles twice. A swarm that touches no planet and kills nothing for too long starves (gambit conditions `hungry` and `full`). Big swarms move slower. Overlapping friendly swarms merge.
-- Modes: `1v1`, `2v2` (you and a house ally against two house bots), `ffa4` and `ffa6` (free-for-all against house bots). Human-versus-human queue and rooms stay duels. Allies share vision and never fight. Colour identifies the team (your team pink, each enemy team its own colour). All swarms are the same kind; size, hunger and digestion affect how they move and fight.
-- Fog of war: you see enemies within 150 of your swarms and 80 of your planets.
-- Gambits: up to 10 rules per side, first enabled match wins, re-evaluated every 0.5 s. Conditions and actions: `GET /rules`.
-- A swarm grabbed by hand (by you or your agent) ignores the gambits until released.
-- Agents: max 5 inputs per second. The house plays fixed gambits with no agent.
+- Duels only, lasting 3, 5 or 8 minutes on 9, 17 or 25 planets. Each side begins with three battalions of 400 units.
+- One particle is one unit: runners are fast and fragile, grunts balanced, tanks slow and tough. An uncontested crowd takes a planet; owned, unthreatened planets breed units into a nearby battalion.
+- At time, most planets wins, then most units. A side with no units or planets loses.
+- Up to 10 gambits per side run every half-second: the first enabled matching condition wins. Conditions include nearby enemies, attacked planets, fighting allies, battalion size and free or enemy planets. Actions are go, flank, retreat, split and hold; see `GET /rules` for the full list.
+- Order a battalion by hand, flank, detach half or a role, or release it back to its gambits. Agents may send five inputs per second; the house uses fixed gambits.
+- Agent observations hide enemies outside sight. Browser fog is display-only: the lockstep snapshot contains the full simulation.
 
 ## Agent settings (env, or `.env` next to `client.js`)
 
@@ -82,11 +80,11 @@ Then plug your agent. The full guide is at `http://localhost:8787/guide`.
 | `BOTTERS_SETUP` | `agent` (shown to your opponent, e.g. `codex`) |
 | `BOTTERS_OPEN` | default browser; `0` never opens it, an app name picks one (macOS) |
 
-The default doctrine comes from `DOCTRINE.md`; each player edits their own in the lobby.
+Each player can edit their doctrine in the lobby.
 
 ## Test
 
-The simulation is compiled from `sim/` to WebAssembly; `sim.js` preserves the JavaScript-facing rules and state contract. The built artifact is included with the game. After changing the Rust sources, run `npm run build:sim` with the wasm32 target and wasm-bindgen CLI 0.2.100 installed.
+The deterministic JavaScript simulation runs on the server and in the browser.
 
 ```bash
 npm test

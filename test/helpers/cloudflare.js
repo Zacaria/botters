@@ -6,7 +6,7 @@ export async function runtime(options = {}) {
   const mail = []
   const optionsV5 = convertV4MiniflareOptions({
     name: 'botters-local',
-    modules: [{ type: 'ESModule', path: '.cache/cloudflare/worker.js' }, { type: 'CompiledWasm', path: '.cache/cloudflare/botters_sim_bg.wasm' }],
+    modules: [{ type: 'ESModule', path: '.cache/cloudflare/worker.js' }],
     compatibilityDate: '2026-11-08', compatibilityFlags: ['nodejs_compat'],
     bindings: { SITE_URL: ORIGIN, BETTER_AUTH_SECRET: 'local-workerd-test-only-secret-1234567890', AUTH_EMAIL_FROM: 'botters@mail.havesomecode.io', ...bindings },
     d1Databases: { DB: 'botters-local' }, durableObjects: { MATCHES: { className: 'MatchRoom', useSQLite: true }, AGENTS: { className: 'AgentGateway', useSQLite: true } },

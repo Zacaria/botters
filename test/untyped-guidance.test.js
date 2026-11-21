@@ -7,17 +7,16 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { OnlineGame } from '../online/game.js'
 import { MemoryStore } from '../online/store.js'
 
-const removed = /locust|carapace|spore|morph|cocoon|swarm types?|each type/i
-const modes = ['1v1', '2v2', 'ffa4', 'ffa6']
+const removed = /locust|carapace|spore|morph|cocoon|swarm|2v2|ffa4|ffa6/i
+const modes = ['1v1']
 const opening = [{ if: 'always', then: 'hold' }]
-const tools = ['join_match', 'wait_for_event', 'set_gambits', 'order_swarm', 'route_swarm', 'split_swarm', 'release_swarm', 'call_human'].sort()
+const tools = ['join_match', 'wait_for_event', 'get_state', 'set_gambits', 'toggle_gambit', 'order_battalion', 'flank_battalion', 'detach_battalion', 'release_battalion', 'call_human'].sort()
 function startup(events, humanOpening, mode) {
-  const event = events.find(text => text.includes('three swarms of 3,000 particles'))
+  const event = events.find(text => text.includes('three battalions of 400 units'))
   assert.ok(event, 'startup event reaches the agent')
   assert.doesNotMatch(event, removed)
-  assert.match(event, /three swarms of 3,000 particles/)
+  assert.match(event, /three battalions of 400 units/)
   assert.match(event, humanOpening ? /opening gambits/ : /[Ww]rite.*gambits.*doctrine/)
-  if (humanOpening) assert.match(event, /[Kk]eep/)
   if (mode !== '1v1') assert.ok(event.includes(`Mode ${mode}:`))
   if (mode === '2v2') assert.match(event, /house ally/)
 }
@@ -50,46 +49,12 @@ test('local startup guidance reaches real stdio MCP agents without swarm types',
       return JSON.parse(response.content[0].text)
     }
     const joined = await call('join_match')
-    assert.equal(joined.state.yourSwarms.length, 3)
-    for (const swarm of joined.state.yourSwarms) assert.match(swarm, /n3000\b/)
+    assert.equal(joined.state.battalions.length, 3)
+    for (const bat of joined.state.battalions) assert.ok(bat.n >= 400 && bat.n <= 402)
     assert.doesNotMatch(JSON.stringify(joined), removed)
     assert.match(joined.opening, humanOpening ? /human wrote/ : /Write.*doctrine/)
     const first = await call('wait_for_event', { timeout_s: 1 })
-    assert.equal(first.state.yourSwarms.length, 3)
+    assert.equal(first.state.battalions.length, 3)
     startup(first.events, humanOpening, mode)
   })
-})
-
-test('OnlineGame startup events describe three untyped swarms in every mode', async t => {
-  for (const mode of modes) for (const humanOpening of [false, true]) await t.test(`${mode}, ${humanOpening ? 'human' : 'agent'} opening`, async () => {
-    const now = 1_800_000_000_000
-    const game = new OnlineGame(new MemoryStore(() => now), { now: () => now })
-    const session = await game.request('POST', '/session', undefined, { name: 'untyped-guidance', setup: 'test' })
-    const call = (method, path, body = {}, role = 'agent') => game.request(method, path, new URLSearchParams({ token: session[`${role}Token`] }), body)
-    assert.deepEqual(await call('POST', '/play', { vs: 'easy', mode, planning: 10, withAgent: true, ...(humanOpening ? { opening } : {}) }, 'human'), { ok: true })
-    const joined = await call('GET', '/next')
-    assert.equal(joined.match.state.swarms.length, 3)
-    for (const swarm of joined.match.state.swarms) {
-      assert.equal(swarm.n, 3000)
-      for (const key of ['type', 'morphAt', 'cocoon']) assert.ok(!Object.hasOwn(swarm, key))
-    }
-    const first = await call('GET', '/events')
-    assert.equal(first.state.swarms.length, 3)
-    assert.ok(first.events.some(event => event.text.includes('match starts in 10s')))
-    startup(first.events.map(event => event.text), humanOpening, mode)
-  })
-})
-
-test('online feed attributes an accepted split, not an ignored removed action', async () => {
-  let now = 1_800_000_000_000
-  const game = new OnlineGame(new MemoryStore(() => now), { now: () => now })
-  const session = await game.request('POST', '/session', undefined, { setup: 'test' })
-  const call = (method, path, body = {}) => game.request(method, path, new URLSearchParams({ token: session.humanToken }), body)
-  await call('POST', '/play', { vs: 'easy', planning: 10, opening })
-  now += 10050
-  const before = await call('GET', '/state'), swarm = before.view.swarms[0].id
-  assert.deepEqual(await call('POST', '/input', { split: swarm, morph: { swarm, type: 'locust' } }), { ok: true })
-  const after = await call('GET', '/state')
-  assert.equal(after.view.swarms.length, before.view.swarms.length + 1)
-  assert.equal(after.feed.at(-1).text, 'split a swarm')
 })

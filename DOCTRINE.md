@@ -1,1 +1,1 @@
-Grab free planets fast with split swarms. Never fight a bigger swarm: retreat and merge. When we are the bigger swarm, hunt. Defend planets we own. In the last minute, hunt the weakest enemy swarms.
+Grab the free planets near home first: they breed new units. Never charge a bigger battalion head-on: flank it while an ally holds it. Defend our planets before taking new ones. When we outnumber them, take their planets. In the last minute, hold what we have.

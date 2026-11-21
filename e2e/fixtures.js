@@ -16,7 +16,7 @@ export const test=base.extend({
     runners.set(origin,runner)
     // Local browser-suite clock fixture only. No production speed flag or fake API replies.
     let clockWork=Promise.resolve(),clockError
-    const clock=setInterval(()=>{clockWork=clockWork.then(()=>runner.db.prepare("UPDATE game_records SET value=json_set(value,'$.startsAt',json_extract(value,'$.startsAt')-9000) WHERE key LIKE 'match:%' AND json_extract(value,'$.report') IS NULL AND json_extract(value,'$.waitingForAgent')=0").run()).catch(e=>{clockError=e})},1000)
+    const clock=setInterval(()=>{clockWork=clockWork.then(()=>runner.db.prepare("UPDATE game_records SET value=json_set(value,'$.startsAt',max(?,json_extract(value,'$.startsAt')-9000)) WHERE key LIKE 'match:%' AND json_extract(value,'$.report') IS NULL AND json_extract(value,'$.waitingForAgent')=0 AND json_extract(value,'$.startsAt')>?").bind(Date.now(),Date.now()).run()).catch(e=>{clockError=e})},1000)
     try { await use(origin) }
     finally {clearInterval(clock);await clockWork;runners.delete(origin);await runner.mf.dispose();if(clockError)throw clockError}
   },

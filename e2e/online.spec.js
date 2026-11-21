@@ -20,7 +20,7 @@ test('agent play opens ChatGPT with a prepared prompt and waits for the agent', 
   expect(popup.url()).toContain('https://chatgpt.com/?q=')
   expect(new URL(popup.url()).searchParams.get('q')).toContain('join_match')
   expect(new URL(popup.url()).searchParams.get('q')).toContain('https://play.botters.havesomecode.io/mcp')
-  await expect(page.locator('#big')).toContainText('waiting for your agent…')
+  await expect(page.locator('#big')).toContainText('Waiting for your agent')
   await expect(page.getByRole('button', { name: 'Start without agent' })).toBeVisible()
 })
 
@@ -71,6 +71,11 @@ async function enter(page, name) {
   await enterAccount(page, name)
   await expect(page.locator('#quick')).toBeVisible()
 }
+async function surrender(page) {
+  await expect(page.locator('#surrender')).toBeVisible()
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#surrender').click()
+}
 async function ended(page) {
   try { await expect(page.locator('#again')).toBeVisible({ timeout: endTimeout }) }
   catch (e) {
@@ -93,14 +98,15 @@ test('delayed input is rejected after a same-session rematch without blocking ne
   })
   try {
     await enter(page, 'Delayed input'); await page.locator('#play').click()
-    await expect(page.locator('#hud')).toContainText('swarms')
-    await page.keyboard.press('1'); await blocked; await page.keyboard.press('2')
-    page.once('dialog', dialog => dialog.accept()); await page.locator('#surrender').click()
+    await expect(page.locator('#hud')).toContainText('battalions')
+    await page.locator('#gambits [data-g]').nth(0).click(); await blocked; await page.locator('#gambits [data-g]').nth(1).click()
+    const old = await state(page), token = await page.evaluate(() => localStorage.getItem('botters.session'))
+    expect((await page.request.post('/surrender?token=' + token, { data: { matchId: old.matchId } })).status()).toBe(200)
     await expect(page.locator('#again')).toBeVisible(); await page.locator('#again').click()
     await expect(page.locator('#surrender')).toBeVisible()
     const before = await state(page)
     const stale = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && r.request().postDataJSON().toggle === 0)
-    await page.keyboard.press('3')
+    await page.locator('#gambits [data-g]').nth(2).click()
     await expect.poll(() => inputs.some(input => input.toggle === 2), { timeout: 3000 }).toBe(true)
     await expect.poll(async () => (await state(page)).view.gambits[2].on).toBe(!before.view.gambits[2].on)
     expect(inputs[0].matchId).toBeTruthy(); expect(inputs[1].matchId).toBe(before.matchId); expect(inputs[0].matchId).not.toBe(before.matchId)
@@ -131,7 +137,7 @@ test('a transient initial WebSocket close reopens the same match and receives fr
   })
   await page.locator('#play').click()
   await expect.poll(() => page.evaluate(()=>window.socketAttempts), { timeout: 8000 }).toBeGreaterThanOrEqual(2)
-  await expect(page.locator('#hud')).toContainText('swarms')
+  await expect(page.locator('#hud')).toContainText('battalions')
   await expect(page.locator('#connection')).toBeHidden()
 })
 
@@ -155,9 +161,8 @@ test('two isolated browsers match, survive disconnect/reload, and see end report
     await expect(page.locator('#hud')).toBeVisible()
     const resumed = (await state(page)).matchId
     expect(resumed).toBe(id)
+    await surrender(page)
     await Promise.all([ended(page), ended(b)])
-    await expect(page.locator('#big')).toContainText('Same match replayed')
-    await expect(b.locator('#big')).toContainText('Same match replayed')
     expect(errors).toEqual([])
   } finally { await other.close() }
 })
@@ -171,7 +176,7 @@ test('local server progresses on real time', async ({ page, request, baseURL }) 
   await expect.poll(async () => (await state(page)).view?.tick, { timeout: 20000 }).toBeGreaterThan(0)
 })
 
-test('local two-player manual route survives reconnect and opponent plays', async ({ page, browser }) => {
+test('local two-player hand order survives reconnect and opponent plays', async ({ page, browser }) => {
   test.skip(remote, 'Local isolated backend only')
   const other = await browser.newContext(), b = await other.newPage()
   try {
@@ -182,26 +187,22 @@ test('local two-player manual route survives reconnect and opponent plays', asyn
     await expect.poll(async () => (await state(page)).startsIn).toBe(0)
     const first = await state(page), second = await state(b)
     expect(first.matchId).toBe(second.matchId)
-    await page.bringToFront(); await page.keyboard.press('Tab')
-    await expect(page.locator('#hud')).toContainText('grabbed: swarm #')
-    const swarm = Number((await page.locator('#hud').textContent()).match(/grabbed: swarm #(\d+)/)[1])
-    const box = await page.locator('#c').boundingBox()
-    const response = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && !!r.request().postDataJSON()?.route)
-    await page.keyboard.down('Shift')
-    await page.mouse.move(box.x + box.width * .4, box.y + box.height * .4); await page.mouse.down()
-    await page.mouse.move(box.x + box.width * .6, box.y + box.height * .4); await page.mouse.up()
-    await page.keyboard.up('Shift')
-    const sent = await response, route = sent.request().postDataJSON().route
-    expect(sent.status()).toBe(200); expect(route.swarm).toBe(swarm)
-    await expect.poll(async () => (await state(page)).feed.some(f => f.text.includes(`routed swarm ${swarm} through`))).toBe(true)
+    const order = async p => {
+      const row = p.locator('#battalions [data-bat]').first(), id = await row.getAttribute('data-bat')
+      await row.click()
+      const canvas = p.locator('#c'), box = await canvas.boundingBox()
+      const response = p.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && !!r.request().postDataJSON()?.order)
+      await canvas.click({ position: { x: box.width - 3, y: box.height - 3 } })
+      const sent = await response
+      expect(sent.status()).toBe(200); expect(sent.request().postDataJSON().order.bat).toBe(Number(id))
+      await expect(p.locator(`#battalions [data-bat="${id}"]`)).toContainText('hand order')
+      return id
+    }
+    const id = await order(page)
     await page.reload(); await expect(page.locator('#hud')).toContainText('Route B')
     expect((await state(page)).matchId).toBe(first.matchId)
-    await b.bringToFront(); await b.keyboard.press('Tab')
-    await expect(b.locator('#hud')).toContainText('grabbed: swarm #')
-    const bBox = await b.locator('#c').boundingBox()
-    const orderResponse = b.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/input' && !!r.request().postDataJSON()?.order)
-    await b.mouse.click(bBox.x + bBox.width / 2, bBox.y + bBox.height / 2)
-    expect((await orderResponse).status()).toBe(200)
+    await expect(page.locator(`#battalions [data-bat="${id}"]`)).toContainText('hand order')
+    await order(b)
   } finally { await other.close() }
 })
 
@@ -219,11 +220,13 @@ test('room link joins, host starts, both finish and rematch in the same room', a
     await expect(b.locator('#startRoom')).toBeHidden()
     await page.locator('#startRoom').click()
     await expect(page.locator('#hud')).toBeVisible(); await expect(b.locator('#hud')).toBeVisible()
+    await surrender(page)
     await Promise.all([ended(page), ended(b)])
     await page.locator('#again').click()
     await expect(page.locator('#roomReady')).toContainText('1/2 ready')
     await b.locator('#again').click()
     await expect(page.locator('#hud')).toBeVisible(); await expect(b.locator('#hud')).toBeVisible()
+    await surrender(b)
     await Promise.all([ended(page), ended(b)])
     await page.locator('#menu').click()
     await expect(page.locator('#roomCode')).toHaveText(code)
@@ -251,10 +254,10 @@ test('room surrender reaches both browsers and permits a rematch in the same roo
     expect((await state(b)).view.ended).toBeNull()
     b.once('dialog', dialog => dialog.accept())
     await b.locator('#surrender').click()
-    await expect(b.locator('#big')).toContainText('you surrendered')
-    await expect(page.locator('#big')).toContainText('opponent surrendered')
-    expect((await state(b)).report.actual.result).toBe('lost')
-    expect((await state(page)).report.actual.result).toBe('won')
+    await expect(b.locator('#big')).toContainText('You surrendered.')
+    await expect(page.locator('#big')).toContainText('Your opponent surrendered.')
+    expect((await state(b)).report.result).toBe('lost')
+    expect((await state(page)).report.result).toBe('won')
     await b.locator('#again').click()
     await expect(b.locator('#roomReady')).toContainText('1/2 ready')
     await page.locator('#again').click()

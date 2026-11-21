@@ -6,7 +6,7 @@ import { DEFAULT_GAMBITS } from '../sim.js'
 
 if (process.env.BOTTERS_SERVER || process.env.BOTTERS_LIVE_SERVER) throw new Error('Layout regression requires local ephemeral fixtures')
 let server, origin
-const custom = [{ if: 'enemy_near', p: 123.5, then: 'retreat', on: false }, { if: 'always', then: 'hold', on: true }]
+const custom = [{ if: 'bigger_enemy_near', p: 1.5, then: 'retreat', on: false }, { if: 'always', then: 'hold', on: true }]
 test.beforeAll(async () => {
   const reservation = net.createServer()
   await new Promise(r => reservation.listen(0, '127.0.0.1', r))
@@ -33,7 +33,7 @@ for (const width of [390, 1440]) for (const [name, raw, opening] of [
   await page.locator('#startName').fill('Layout recovery')
   await page.locator('#startSolo').click()
   await page.locator('#play').click()
-  await expect(page.locator('#hud')).toContainText('swarms')
+  await expect(page.locator('#hud')).toContainText('battalions')
   const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
   await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(0)
   const first = await read(), session = await page.evaluate(() => localStorage.getItem('botters.session'))
@@ -54,18 +54,15 @@ for (const width of [390, 1440]) for (const [name, raw, opening] of [
   }
   async function pointerOrder() {
     const box = await page.locator('#c').boundingBox(), size = await page.locator('#c').evaluate(c => ({ w: c.width, h: c.height }))
-    const frame = await read(), swarm = frame.view.swarms[0]
-    const point = (x, y) => ({ x: box.x + x * box.width / size.w, y: box.y + y * box.height / size.h })
-    const s = point(swarm.x, swarm.y)
-    await page.mouse.click(s.x, s.y)
-    await expect(page.locator('#hud')).toContainText(`grabbed: swarm #${swarm.id}`)
+    const button = page.locator('#battalions [data-bat]').first()
+    const bat = Number(await button.getAttribute('data-bat'))
+    await button.click()
     // Chromium dispatches integer client coordinates; invert those actual pixels.
-    const p = point(600, 350)
-    p.x = Math.round(p.x); p.y = Math.round(p.y)
+    const p = { x: Math.round(box.x + 600 * box.width / size.w), y: Math.round(box.y + 350 * box.height / size.h) }
     const target = { x: Math.round((p.x - box.x) * size.w / box.width), y: Math.round((p.y - box.y) * size.h / box.height) }
     await page.mouse.click(p.x, p.y)
-    await expect.poll(async () => { const s = (await read()).view.swarms.find(s => s.id === swarm.id); return s && { manual: s.manual, tx: s.tx, ty: s.ty } }).toEqual({ manual: true, tx: target.x, ty: target.y })
-    await info.attach('pointer-order.json', { body: JSON.stringify({ swarm: swarm.id, client: p, target }), contentType: 'application/json' })
+    await expect.poll(async () => { const b = (await read()).view.battalions.find(b => b.id === bat); return b && { manual: b.manual, tx: b.tx, ty: b.ty } }).toEqual({ manual: true, tx: target.x, ty: target.y })
+    await info.attach('pointer-order.json', { body: JSON.stringify({ battalion: bat, client: p, target }), contentType: 'application/json' })
   }
   await visibleMap('before-order')
   await pointerOrder()
@@ -76,7 +73,7 @@ for (const width of [390, 1440]) for (const [name, raw, opening] of [
   await expect(page.locator('#leave')).toBeInViewport()
   const postsBefore = [...posts]
   await page.reload()
-  await expect(page.locator('#hud')).toContainText('swarms')
+  await expect(page.locator('#hud')).toContainText('battalions')
   await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(first.view.tick)
   expect(map(await read())).toEqual(map(first))
   expect((await read()).view.gambits).toEqual(opening)

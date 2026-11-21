@@ -39,6 +39,7 @@ export async function transaction(store, fn, { deadline = Infinity } = {}) {
     const records = new Map()
     const beforeCommit = []
     const onRetry = []
+    const afterCommit = []
     const tx = {
       async get(key, fallback = null, ttl = 86400) {
         if (!records.has(key)) {
@@ -53,6 +54,7 @@ export async function transaction(store, fn, { deadline = Infinity } = {}) {
       async read(key) { const raw = await store.get(key, { deadline, fresh: true }); checkDeadline(deadline); return raw ? JSON.parse(raw) : null },
       beforeCommit(fn) { beforeCommit.push(fn) },
       onRetry(fn) { onRetry.push(fn) },
+      afterCommit(fn) { afterCommit.push(fn) },
     }
     let result, failure
     try { result = await fn(tx) } catch (e) { if (!e.status || e.code === 'DEADLINE') throw e; failure = e }
@@ -63,7 +65,7 @@ export async function transaction(store, fn, { deadline = Infinity } = {}) {
       const value = JSON.stringify(r.object)
       return { key: r.key, raw: r.raw, value: value === r.raw || (!r.raw && r.object === null) ? '' : value, ttl: r.ttl }
     })
-    if (await store.commit(entries, { deadline })) { if (failure) throw failure; return result }
+    if (await store.commit(entries, { deadline })) { for (const fn of afterCommit) fn(); if (failure) throw failure; return result }
     for (const fn of onRetry) fn()
     await new Promise(r => setTimeout(r, Math.min(30, attempt * 2)))
   }

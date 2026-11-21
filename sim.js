@@ -1,208 +1,350 @@
-import './sim/runtime.js'
-import { initial_geometry, RustMatch } from './sim/pkg/botters_sim.js'
-
-// Botters simulation: space swarms conquer and eat planets. Pure and deterministic: state = f(seed, inputs by tick).
-// A swarm is a cohort (centre + particle count); individual particles only exist in the browser.
-// A match has 2 to 6 sides grouped in teams (1v1, 2v2, free-for-all). Every swarm follows its side's gambits
-// (IF condition → action) unless a human grabbed it.
-//
-// Combat: only the contact front fights (width = the smaller swarm's diameter); a swarm much bigger than its enemy wraps it and
-// bites from all sides. Half of what a swarm kills joins it, but is digested slowly (belly), which also slows it.
-// Swarms that touch no planet and kill nothing for a while starve; overlapping friendly swarms merge.
-
+// Particle war spike: every particle is a unit. Deterministic (state = f(seed, inputs by tick)): only + - * / sqrt, no trig, no Math.random.
+// Two sides fight over planets. Owned planets breed units, which join the nearest battalion. Battalions follow their side's doctrine
+// (IF condition → action, first match wins) unless the player ordered them by hand; units decide for themselves from their role:
+// tanks lead and block, grunts follow, runners hold back with the battalion, then circle round the enemy they meet.
 export const W = 1200, H = 700, TPS = 20
-export const MAX_SWARMS = 40, MAX_GAMBITS = 10
-export const T = { C: 0.2, E: 3, G: 0.5, DIG: 0.004, SLOW: 2, GRACE: 400, STARVE: 0.0008 }
-export const MODES = { '1v1': [0, 1], '2v2': [0, 0, 1, 1], ffa4: [0, 1, 2, 3], ffa6: [0, 1, 2, 3, 4, 5] } // team of each side
+export const ROLES = [ // speed px/tick, hp, damage per tick in melee, separation weight (heavy units shove light ones)
+  { name: 'runner', speed: 1.7, hp: 0.6, dmg: 0.05, push: 0.6 },
+  { name: 'grunt', speed: 1.1, hp: 1, dmg: 0.05, push: 1 },
+  { name: 'tank', speed: 0.7, hp: 2.6, dmg: 0.03, push: 2.2 },
+]
+const SIGHT = 26, REACH = 5, SEP = 5, CELL = 26, GW = Math.ceil(W / CELL), GH = Math.ceil(H / CELL)
+export const MAXPER = 4000, MAXBATS = 14 // units and live battalions per side
+export const THINK = 10 // battalions, planets and doctrine update every THINK ticks
+const PROD = 0.06 // units bred per think per unit of planet radius
+const NEAR = 40 // a planet counts the units within its radius + NEAR
 
-export const rad = n => 4 + Math.sqrt(n) * 0.32
-
-// ---------- gambits ----------
-// A condition returns what it found (an enemy, a planet, a friend) or nothing. `p` tunes it.
+// ---------- doctrine ----------
 export const CONDITIONS = {
-  bigger_enemy_near: { p: 1.2, doc: 'a visible enemy swarm at least p× our size within 170 → that enemy' },
-  weaker_enemy_near: { p: 0.9, doc: 'a visible enemy swarm at most p× our size within 230 → that enemy' },
-  enemy_near: { p: 200, doc: 'any visible enemy swarm within p → that enemy' },
-  planet_attacked: { p: 500, doc: 'one of our planets within p has a visible enemy next to it → that planet' },
-  small: { p: 400, doc: 'this swarm has fewer than p particles → the nearest friendly swarm' },
-  big: { p: 4000, doc: 'this swarm has more than p particles → itself' },
-  hungry: { p: 0.6, doc: 'this swarm has gone p (0 to 1) of its starvation time without touching a planet or killing → the nearest planet with mass left' },
-  full: { p: 0.1, doc: 'this swarm is still digesting more than p× its size in eaten particles → itself (digesting swarms are slow: hold or retreat)' },
-  free_planet: { p: 2000, doc: 'an unowned planet with mass left within p → that planet' },
-  enemy_planet: { p: 2000, doc: 'an enemy planet with mass left within p → that planet' },
-  always: { p: 0, doc: 'always true → nothing' },
+  bigger_enemy_near: { p: 1.3, doc: 'an enemy battalion at least p× our size within 180 → that enemy' },
+  planet_attacked: { p: 350, doc: 'one of our planets within p has enemies on it → that planet' },
+  ally_fighting: { p: 450, doc: 'we are not fighting and a friendly battalion within p is → the enemy it fights' },
+  weaker_enemy_near: { p: 0.8, doc: 'an enemy battalion at most p× our size within 260 → that enemy' },
+  small: { p: 120, doc: 'this battalion has fewer than p units → the nearest friendly battalion' },
+  big: { p: 900, doc: 'this battalion has more than p units → itself' },
+  free_planet: { p: 2000, doc: 'an unowned planet within p → that planet' },
+  enemy_planet: { p: 2000, doc: 'an enemy planet within p → that planet' },
+  always: { p: 0, doc: 'always true → itself' },
 }
 export const ACTIONS = {
-  go: { doc: 'move to what the condition found: attack the enemy, capture or defend the planet, merge into the friend' },
-  retreat: { doc: 'move to the nearest friendly swarm at least half our size, else home' },
-  split: { doc: 'split in two; the new half heads for the second-nearest planet we do not own' },
-  hold: { doc: 'stop where it is' },
+  go: 'move to what the condition found: attack the enemy, take or defend the planet, merge into the friend',
+  flank: 'swing wide round the enemy the condition found and hit it from the side',
+  retreat: 'fall back to the nearest friendly battalion at least half our size, else our nearest planet',
+  split: 'split in two; the new half heads for the second-nearest planet we do not own',
+  hold: 'stop where it is',
 }
-const rule = (cond, then) => ({ if: cond, then, on: true })
-export const DEFAULT_GAMBITS = [
-  rule('bigger_enemy_near', 'retreat'), rule('planet_attacked', 'go'), rule('hungry', 'go'), rule('weaker_enemy_near', 'go'), rule('small', 'go'),
-  rule('big', 'split'), rule('free_planet', 'go'), rule('enemy_planet', 'go'),
-]
-export const HOUSE = { // fixed opponents. Measured vs DEFAULT_GAMBITS over 24 seeds (3 min, 28 planets): the default wins 20 vs easy, 14 vs normal, 7 vs hard
-  easy: [rule('free_planet', 'go'), rule('small', 'go'), rule('always', 'hold')], // never fights on purpose
-  normal: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go'), rule('hungry', 'go'), rule('free_planet', 'go'), rule('small', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // defends its planets, then a greedy blob: never retreats, never splits
-  hard: [rule('bigger_enemy_near', 'retreat'), rule('weaker_enemy_near', 'go'), rule('planet_attacked', 'go'), rule('hungry', 'go'), rule('small', 'go'), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')],
+const rule = (cond, then, p) => ({ if: cond, then, on: true, ...(p !== undefined && { p }) })
+export const DOCTRINES = { // measured over 3 seeds × both sides (bench.mjs): flanker beats blob 4-2, blob beats cautious 5-1
+  flanker: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('ally_fighting', 'flank'), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')],
+  blob: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // never retreats, never splits
+  cautious: [rule('bigger_enemy_near', 'retreat'), rule('planet_attacked', 'go'), rule('ally_fighting', 'flank'), rule('weaker_enemy_near', 'go'), rule('small', 'go'), rule('big', 'split'), rule('free_planet', 'go'), rule('enemy_planet', 'go')],
 }
-export const OPTIONS = { minutes: [3, 5, 8], planets: [16, 28, 40], mode: Object.keys(MODES) } // allowed match settings; the first mode is the default
-const DEFAULT_OPTS = { minutes: 5, planets: 28, mode: '1v1' }
-export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes) ? o.minutes : DEFAULT_OPTS.minutes, planets: OPTIONS.planets.includes(o?.planets) ? o.planets : DEFAULT_OPTS.planets, mode: Object.hasOwn(MODES, o?.mode) ? o.mode : DEFAULT_OPTS.mode })
 
-export function checkGambits(list) {
-  if (!Array.isArray(list) || !list.length || list.length > MAX_GAMBITS) return `send 1 to ${MAX_GAMBITS} gambits`
-  for (const r of list) {
-    if (typeof r?.if !== 'string' || !Object.hasOwn(CONDITIONS, r.if)) return `unknown condition "${r?.if}". Known: ${Object.keys(CONDITIONS).join(', ')}`
-    if (typeof r.then !== 'string' || !Object.hasOwn(ACTIONS, r.then)) return `unknown action "${r.then}". Known: ${Object.keys(ACTIONS).join(', ')}`
-    if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) return 'p must be a number in (0, 100000]'
+const rnd = s => (s.rng = (Math.imul(s.rng, 1664525) + 1013904223) >>> 0) / 4294967296
+const d2 = (ax, ay, bx, by) => (ax - bx) ** 2 + (ay - by) ** 2
+
+export function createMatch(seed = 1, options = {}) {
+  const opts = matchOptions(options), perSide = 1200, minutes = opts.minutes
+  const N = 2 * MAXPER, s = {
+    seed, N, tick: 0, rng: seed >>> 0 || 1, endTick: minutes * 60 * TPS, ended: null,
+    x: new Float32Array(N), y: new Float32Array(N), vx: new Float32Array(N), vy: new Float32Array(N), hp: new Float32Array(N),
+    side: new Uint8Array(N), role: new Uint8Array(N), bat: new Uint16Array(N), alive: new Uint8Array(N),
+    dmg: new Float32Array(N), head: new Int32Array(GW * GH), next: new Int32Array(N),
+    bats: [], planets: [], opts, gambits: [structuredClone(DEFAULT_GAMBITS), structuredClone(DEFAULT_GAMBITS)],
+  }
+  for (let i = 0; i < N; i++) s.side[i] = i < MAXPER ? 0 : 1
+  // planets: two homes, a big centre prize, 7 random pairs mirrored through the centre so the map is fair
+  const add = (x, y, r, owner) => s.planets.push({ id: s.planets.length, x, y, r, owner, prog: owner >= 0 ? 100 : 0, by: -1, acc: 0, pres: [0, 0] })
+  add(110, H / 2, 24, 0); add(W - 110, H / 2, 24, 1); add(W / 2, H / 2, 28, -1)
+  for (let k = 0, tries = 0; k < (opts.planets - 3) / 2 && tries < 5000; tries++) {
+    const x = 170 + rnd(s) * 380, y = 40 + rnd(s) * (H - 80), r = 10 + rnd(s) * 16
+    if (s.planets.some(p => d2(p.x, p.y, x, y) < 120 * 120) || d2(W - x, H - y, x, y) < 120 * 120) continue
+    add(x, y, r, -1); add(W - x, H - y, r, -1); k++
+  }
+  for (let side = 0; side < 2; side++) {
+    const home = s.planets[side]
+    for (let b = 0; b < 3; b++) {
+      const o = newBat(s, side); o.tx = o.cx = home.x + (side ? -60 : 60); o.ty = o.cy = home.y + (b - 1) * 110
+      for (let k = 0; k < perSide / 3; k++) spawn(s, side, o.cx + (rnd(s) - 0.5) * 70, o.cy + (rnd(s) - 0.5) * 80, o.id)
+    }
+  }
+  think(s)
+  return s
+}
+
+function newBat(s, side) {
+  const o = { id: s.bats.length, side, tx: 0, ty: 0, manual: false, via: [], cx: 0, cy: 0, n: 0, hit: -1e9, rule: -1, key: '', busy: 0 }
+  s.bats.push(o); return o
+}
+function spawn(s, side, x, y, bat) {
+  for (let i = side * MAXPER; i < (side + 1) * MAXPER; i++) if (!s.alive[i]) {
+    const r = rnd(s); s.alive[i] = 1; s.bat[i] = bat; s.role[i] = r < 0.25 ? 0 : r < 0.75 ? 1 : 2; s.hp[i] = ROLES[s.role[i]].hp
+    s.x[i] = Math.min(W - 1, Math.max(0, x)); s.y[i] = Math.min(H - 1, Math.max(0, y)); s.vx[i] = s.vy[i] = 0; s.bats[bat].n++
+    return true
+  }
+  return false
+}
+export const live = (s, side) => s.bats.filter(o => o.n && o.side === side)
+export const fighting = (s, o) => s.tick - o.hit < THINK * 2
+
+// ---------- orders: the player's hand. An ordered battalion ignores doctrine until released ----------
+export function order(s, b, tx, ty) { const o = s.bats[b]; if (!o?.n) return false; o.tx = tx; o.ty = ty; o.via = []; o.manual = true; return true }
+export function release(s, b) { const o = s.bats[b]; if (!o?.n) return false; o.manual = false; o.key = ''; o.rule = -1; return true }
+export function flank(s, b) { // hand-ordered flank on the nearest enemy battalion, fighting ones count as 2× nearer
+  const o = s.bats[b]; if (!o?.n) return false
+  const foes = live(s, 1 - o.side); if (!foes.length) return false
+  const score = q => d2(q.cx, q.cy, o.cx, o.cy) * (fighting(s, q) ? 0.25 : 1)
+  flankAt(s, o, foes.reduce((m, q) => (score(q) < score(m) ? q : m))); o.manual = true
+  return true
+}
+export function detach(s, b, roleName) {
+  const o = s.bats[b]; if (!o || o.n < 2 || live(s, o.side).length >= MAXBATS) return -1
+  const nb = newBat(s, o.side); Object.assign(nb, { tx: o.tx, ty: o.ty, manual: o.manual, via: o.via.slice(), cx: o.cx, cy: o.cy })
+  const r = roleName ? ROLES.findIndex(q => q.name === roleName) : -1; let k = 0
+  for (let i = 0; i < s.N; i++) if (s.alive[i] && s.bat[i] === b && (r >= 0 ? s.role[i] === r : (k++ & 1))) { s.bat[i] = nb.id; nb.n++; o.n-- }
+  return nb.n ? nb.id : -1
+}
+export function setDoctrine(s, side, rules) { s.gambits[side] = structuredClone(rules); for (const o of s.bats) if (o.side === side) o.key = '' }
+
+// Swing round enemy q: first to a point 170 px beside it (on our side of the fight axis), then into its flank.
+function flankAt(s, o, q) {
+  let ax = q.cx - o.cx, ay = q.cy - o.cy
+  const ally = live(s, o.side).find(f => f !== o && fighting(s, f) && d2(f.cx, f.cy, q.cx, q.cy) < 120 * 120)
+  if (ally) { ax = q.cx - ally.cx; ay = q.cy - ally.cy } // the fight axis
+  const d = Math.sqrt(ax * ax + ay * ay) || 1, ux = ax / d, uy = ay / d
+  const sgn = (o.cx - q.cx) * -uy + (o.cy - q.cy) * ux >= 0 ? 1 : -1, clampX = v => Math.min(W - 20, Math.max(20, v)), clampY = v => Math.min(H - 20, Math.max(20, v))
+  o.via = [{ x: clampX(q.cx - uy * sgn * 170), y: clampY(q.cy + ux * sgn * 170) }]
+  o.tx = clampX(q.cx + ux * 30); o.ty = clampY(q.cy + uy * 30)
+}
+function merge(s, from, into) {
+  for (let i = 0; i < s.N; i++) if (s.alive[i] && s.bat[i] === from.id) s.bat[i] = into.id
+  into.n += from.n; from.n = 0
+}
+
+// A condition returns what it found (a battalion, a planet, or the battalion itself) or null.
+function test(s, o, r) {
+  const p = r.p ?? CONDITIONS[r.if].p, foes = live(s, 1 - o.side), friends = live(s, o.side).filter(f => f !== o)
+  const nearest = (list, ok, max) => { let best = null, bd = max * max; for (const q of list) { const d = d2(q.cx ?? q.x, q.cy ?? q.y, o.cx, o.cy); if (d < bd && ok(q)) { bd = d; best = q } } return best }
+  switch (r.if) {
+    case 'bigger_enemy_near': return nearest(foes, q => q.n >= p * o.n, 180)
+    case 'planet_attacked': return nearest(s.planets, q => q.owner === o.side && q.pres[1 - o.side] > 0, p)
+    case 'ally_fighting': {
+      if (fighting(s, o)) return null
+      const f = nearest(friends, q => fighting(s, q), p); if (!f) return null
+      let best = null, bd = Infinity; for (const q of foes) { const d = d2(q.cx, q.cy, f.cx, f.cy); if (d < bd) { bd = d; best = q } } return best
+    }
+    case 'weaker_enemy_near': return nearest(foes, q => q.n <= p * o.n, 260)
+    case 'small': return o.n < p ? nearest(friends, () => true, 5000) : null
+    case 'big': return o.n > p ? o : null
+    case 'free_planet': return nearest(s.planets, q => q.owner < 0, p)
+    case 'enemy_planet': return nearest(s.planets, q => q.owner === 1 - o.side, p)
+    case 'always': return o
   }
   return null
 }
+function act(s, o, then, t, key) {
+  const fresh = key !== o.key, isBat = t.n !== undefined; o.key = key
+  const tx = isBat ? t.cx : t.x, ty = isBat ? t.cy : t.y
+  if (then === 'go') {
+    o.via = []; o.tx = tx; o.ty = ty
+    if (isBat && t !== o && t.side === o.side && d2(tx, ty, o.cx, o.cy) < 45 * 45) merge(s, o, t)
+  } else if (then === 'flank') { if (fresh && isBat && t.side !== o.side) flankAt(s, o, t) }
+  else if (then === 'hold') { if (fresh) { o.via = []; o.tx = o.cx; o.ty = o.cy } }
+  else if (then === 'retreat') {
+    const f = live(s, o.side).filter(q => q !== o && q.n >= o.n / 2).reduce((m, q) => (!m || d2(q.cx, q.cy, o.cx, o.cy) < d2(m.cx, m.cy, o.cx, o.cy) ? q : m), null)
+    const home = s.planets.filter(p => p.owner === o.side).reduce((m, p) => (!m || d2(p.x, p.y, o.cx, o.cy) < d2(m.x, m.y, o.cx, o.cy) ? p : m), null) ?? s.planets[o.side]
+    o.via = []; o.tx = f ? f.cx : home.x; o.ty = f ? f.cy : home.y
+  } else if (then === 'split') {
+    const nb = detach(s, o.id); if (nb < 0) return
+    const targets = s.planets.filter(p => p.owner !== o.side).sort((a, b) => d2(a.x, a.y, o.cx, o.cy) - d2(b.x, b.y, o.cx, o.cy) || a.id - b.id)
+    const t2 = targets[1] ?? targets[0], q = s.bats[nb]
+    if (t2) { q.tx = t2.x; q.ty = t2.y; q.via = [] }
+    q.busy = s.tick + 300; o.key = '' // the new half commits to its planet for 15 s
+  }
+}
 
-// Snapshot encoding is used only at creation, load and explicit reads.
-const conditionNames = Object.keys(CONDITIONS), actionNames = Object.keys(ACTIONS)
-const swarmRow = c => [c.id, c.side, c.x, c.y, c.n, c.tx, c.ty, +c.manual, c.rule, c.noMerge, +c.eng, c.belly, c.meal, c.roll === undefined ? NaN : +c.roll]
-const planetRow = p => [p.x, p.y, p.r, p.owner, p.cap, p.id, p.m0, p.mass, p.stock, p.prog, p.claim, p.by]
-const rows = (values, size, make) => { const out = []; for (let i = 0; i < values.length; i += size) out.push(make(values.subarray(i, i + size))); return out }
-const encodeRules = list => Float64Array.from(list.flatMap(r => [conditionNames.indexOf(r.if), actionNames.indexOf(r.then), r.p ?? CONDITIONS[r.if].p, +(r.on !== false), +(r.p !== undefined)]))
-const reasons = [null, 'wipe', 'time', 'surrender']
-const matchHandles = new WeakMap()
-const routes = new WeakMap()
+function think(s) {
+  for (const o of s.bats) { o.cx = 0; o.cy = 0; o.n = 0 }
+  for (const p of s.planets) p.pres = [0, 0]
+  const R2 = s.planets.map(p => (p.r + NEAR) ** 2)
+  for (let i = 0; i < s.N; i++) if (s.alive[i]) {
+    const o = s.bats[s.bat[i]]; o.cx += s.x[i]; o.cy += s.y[i]; o.n++
+    for (let k = 0; k < s.planets.length; k++) { const p = s.planets[k]; if (d2(p.x, p.y, s.x[i], s.y[i]) < R2[k]) p.pres[s.side[i]]++ }
+  }
+  for (const o of s.bats) if (o.n) { o.cx /= o.n; o.cy /= o.n }
+  for (const o of s.bats) if (o.via.length && o.n && d2(o.cx, o.cy, o.via[0].x, o.via[0].y) < 70 * 70) o.via.shift() // waypoint reached
 
-class Match {
-  constructor(data) {
-    const descriptors = Object.getOwnPropertyDescriptors(Match.prototype)
-    for (const name of ['seed', 'opts', 'teams', 'endTick', 'tick', 'nextId', 'planets', 'swarms', 'gambits', 'ended']) {
-      Object.defineProperty(this, name, { ...descriptors[name], enumerable: true })
+  // planets: an uncontested crowd drains then takes a planet; owned, unthreatened planets breed into the nearest battalion
+  for (const p of s.planets) {
+    const [a, b] = p.pres, side = a >= 8 && !b ? 0 : b >= 8 && !a ? 1 : -1
+    if (side >= 0) {
+      const rate = Math.min(12, 2 + p.pres[side] / 40)
+      if (p.owner === side) p.prog = Math.min(100, p.prog + rate)
+      else if (p.owner >= 0) { p.prog -= rate; if (p.prog <= 0) { p.owner = -1; p.prog = 0; p.by = side } }
+      else { if (p.by !== side) { p.by = side; p.prog = 0 } p.prog += rate; if (p.prog >= 100) { p.owner = side; p.prog = 100; p.acc = 0 } }
     }
-    for (const name of ['load', 'free', 'toJSON']) Object.defineProperty(this, name, descriptors[name])
-    Object.setPrototypeOf(this, Object.prototype)
-    this.load(data)
+    if (p.owner >= 0 && !p.pres[1 - p.owner]) {
+      p.acc += p.r * PROD
+      let o = live(s, p.owner).filter(q => !q.manual && d2(q.cx, q.cy, p.x, p.y) < 140 * 140).sort((u, v) => d2(u.cx, u.cy, p.x, p.y) - d2(v.cx, v.cy, p.x, p.y) || u.id - v.id)[0]
+      for (; p.acc >= 1; p.acc--) {
+        if (!o) { if (live(s, p.owner).length >= MAXBATS) break; o = newBat(s, p.owner); o.cx = o.tx = p.x; o.cy = o.ty = p.y }
+        let x, y; do { x = (rnd(s) - 0.5) * 2; y = (rnd(s) - 0.5) * 2 } while (x * x + y * y > 1)
+        if (!spawn(s, p.owner, p.x + x * p.r, p.y + y * p.r, o.id)) { p.acc = 0; break }
+      }
+    }
   }
-  load(data) {
-    if (typeof data === 'string') data = JSON.parse(data)
-    routes.set(this, structuredClone(data.routes || []))
-    const h = new RustMatch(data.seed, JSON.stringify(data.opts), Uint32Array.from(data.teams), data.tick, data.endTick, data.nextId,
-      Float64Array.from(data.swarms.flatMap(swarmRow)), Float64Array.from(data.planets.flatMap(planetRow)))
-    for (let side = 0; side < data.teams.length; side++) h.set_rules(side, encodeRules(data.gambits[side]))
-    if (data.ended) h.set_outcome(data.ended.winner === null ? -1 : data.ended.winner, reasons.indexOf(data.ended.reason))
-    matchHandles.get(this)?.free(); matchHandles.set(this, h)
-    return this
+
+  // doctrine: the first rule whose condition finds something decides; hand-ordered battalions are left alone
+  for (const o of s.bats) if (o.n && !o.manual && s.tick >= o.busy) {
+    const rules = s.gambits[o.side]
+    for (let k = 0; k < rules.length; k++) {
+      if (rules[k].on === false) continue
+      const t = test(s, o, rules[k]); if (!t) continue
+      o.rule = k; act(s, o, rules[k].then, t, `${k}:${t.n !== undefined ? 'b' : 'p'}${t.id}`); break
+    }
   }
-  free() { matchHandles.get(this)?.free(); matchHandles.delete(this) }
-  get seed() { return matchHandles.get(this).seed() }
-  get opts() { return JSON.parse(matchHandles.get(this).options()) }
-  get teams() { return Array.from(matchHandles.get(this).teams()) }
-  get endTick() { return matchHandles.get(this).end_tick() }
-  get tick() { return matchHandles.get(this).tick() }
-  get nextId() { return matchHandles.get(this).next_id() }
-  get ended() { const [winner, reason] = matchHandles.get(this).outcome(); return reason ? { winner: winner < 0 ? null : winner, reason: reasons[reason] } : null }
-  get swarms() { return rows(matchHandles.get(this).swarm_snapshot(), 14, c => ({ id: c[0], side: c[1], x: c[2], y: c[3], n: c[4], tx: c[5], ty: c[6], manual: !!c[7], rule: c[8], noMerge: c[9], eng: !!c[10], belly: c[11], meal: c[12], ...(!Number.isNaN(c[13]) && { roll: !!c[13] }) })) }
-  get planets() { return rows(matchHandles.get(this).planet_snapshot(), 12, p => ({ x: p[0], y: p[1], r: p[2], owner: p[3], cap: p[4], id: p[5], m0: p[6], mass: p[7], stock: p[8], prog: p[9], claim: p[10], by: p[11] })) }
-  get gambits() { return this.teams.map((_, side) => rows(matchHandles.get(this).rule_snapshot(side), 5, r => ({ if: conditionNames[r[0]], ...(r[4] && { p: r[2] }), then: actionNames[r[1]], on: !!r[3] }))) }
-  toJSON() { const r = routes.get(this); return { seed: this.seed, opts: this.opts, teams: this.teams, endTick: this.endTick, tick: this.tick, nextId: this.nextId, planets: this.planets, swarms: this.swarms, gambits: this.gambits, ended: this.ended, ...(r.length && { routes: structuredClone(r) }) } }
+
+  // end: a side with no units and no planets loses; at time, more planets wins, then more units
+  if (!s.ended) {
+    const n = count(s), pl = owned(s), out = [0, 1].map(side => !n[side] && !pl[side])
+    if (out[0] || out[1]) s.ended = { winner: out[0] && out[1] ? null : out[0] ? 1 : 0, reason: 'wipe' }
+    else if (s.tick >= s.endTick) s.ended = { winner: pl[0] !== pl[1] ? (pl[0] > pl[1] ? 0 : 1) : n[0] !== n[1] ? (n[0] > n[1] ? 0 : 1) : null, reason: 'time' }
+  }
 }
-export function createMatch(seed, options) {
-  const opts = matchOptions(options), teams = MODES[opts.mode]
-  const { planets, swarms } = JSON.parse(initial_geometry(seed >>> 0, teams.length, opts.planets))
-  return new Match({ seed, opts, teams, endTick: opts.minutes * 60 * TPS, tick: 0, nextId: swarms.length + 1, planets, swarms, gambits: teams.map(() => DEFAULT_GAMBITS), ended: null })
+
+export function step(s) {
+  if (s.ended) return
+  s.tick++
+  if (s.tick % THINK === 0) think(s)
+  const { x, y, vx, vy, hp, side, role, bat, alive, dmg, head, next, N } = s
+  head.fill(-1)
+  for (let i = 0; i < N; i++) if (alive[i]) { const c = ((y[i] / CELL) | 0) * GW + ((x[i] / CELL) | 0); next[i] = head[c]; head[c] = i }
+  dmg.fill(0)
+  for (let i = 0; i < N; i++) {
+    if (!alive[i]) continue
+    const R = ROLES[role[i]], cx = Math.min(GW - 1, Math.max(0, (x[i] / CELL) | 0)), cy = Math.min(GH - 1, Math.max(0, (y[i] / CELL) | 0))
+    let sx = 0, sy = 0, foe = -1, fd = SIGHT * SIGHT
+    for (let gy = Math.max(0, cy - 1); gy <= Math.min(GH - 1, cy + 1); gy++) for (let gx = Math.max(0, cx - 1); gx <= Math.min(GW - 1, cx + 1); gx++)
+      for (let j = head[gy * GW + gx]; j >= 0; j = next[j]) {
+        if (j === i) continue
+        const dx = x[i] - x[j], dy = y[i] - y[j], dd = dx * dx + dy * dy
+        if (dd < SEP * SEP) { const d = Math.sqrt(dd) || 0.01, k = (SEP - d) / SEP / d * ROLES[role[j]].push / R.push; sx += (dd ? dx : (i & 1) - 0.5) * k; sy += (dd ? dy : (j & 1) - 0.5) * k }
+        if (side[j] !== side[i] && dd < fd) { fd = dd; foe = j }
+      }
+    const o = s.bats[bat[i]]
+    let tx, ty, v = R.speed
+    if (foe >= 0) {
+      tx = x[foe]; ty = y[foe]
+      if (R.name === 'runner' && fd > REACH * REACH * 4) { // runners swing round: aim at the far side of the foe, on the side set by their number
+        const dx = tx - x[i], dy = ty - y[i], d = Math.sqrt(dx * dx + dy * dy) || 1, sgn = i & 2 ? 1 : -1
+        tx += (-dy / d * sgn + dx / d) * 18; ty += (dx / d * sgn + dy / d) * 18
+      }
+      if (fd < REACH * REACH) { dmg[foe] += R.dmg; o.hit = s.tick }
+    } else {
+      const wp = o.via[0], gx = wp ? wp.x : o.tx, gy = wp ? wp.y : o.ty, ddx = gx - x[i], ddy = gy - y[i], dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1, off = Math.sqrt((o.cx - x[i]) ** 2 + (o.cy - y[i]) ** 2)
+      tx = x[i] + ddx / dd * 50 + (o.cx - x[i]) * (off > 60 ? 0.4 : 0.02); ty = y[i] + ddy / dd * 50 + (o.cy - y[i]) * (off > 60 ? 0.4 : 0.02)
+      if (R.name === 'runner' && off < 90) v = ROLES[1].speed * 0.9 // runners keep to the battalion's pace until they see the enemy
+      if (dd < 8) v = 0
+    }
+    const dx = tx - x[i], dy = ty - y[i], d = Math.sqrt(dx * dx + dy * dy) || 1
+    const m = foe >= 0 && fd < REACH * REACH ? 0.2 : 1
+    vx[i] = dx / d * v * m + sx; vy[i] = dy / d * v * m + sy
+    const sp = vx[i] * vx[i] + vy[i] * vy[i], cap = 2 * R.speed; if (sp > cap * cap) { const k = cap / Math.sqrt(sp); vx[i] *= k; vy[i] *= k } // nobody ever outruns twice its own speed
+  }
+  for (let i = 0; i < N; i++) if (alive[i]) {
+    hp[i] -= dmg[i]
+    if (hp[i] <= 0) { alive[i] = 0; s.bats[bat[i]].n--; continue }
+    x[i] = Math.min(W - 1, Math.max(0, x[i] + vx[i])); y[i] = Math.min(H - 1, Math.max(0, y[i] + vy[i]))
+  }
 }
-export const fromJSON = json => new Match(json)
-export const load = (s, json) => s.load(json)
-export function addSwarm(s, side, x, y, n) { const id = matchHandles.get(s).add_swarm(side, x, y, n); return id < 0 ? null : s.swarms.find(c => c.id === id) }
-export function seen(s, side) { const swarms = s.swarms; return Array.from(matchHandles.get(s).visible_indices(side), i => swarms[i]) }
+
+export const count = s => { const n = [0, 0]; for (let i = 0; i < s.N; i++) if (s.alive[i]) n[s.side[i]]++; return n }
+export const owned = s => [0, 1].map(side => s.planets.filter(p => p.owner === side).length)
+export const hash = s => { let h = 2166136261 >>> 0; for (let i = 0; i < s.N; i++) { h = Math.imul(h ^ (s.alive[i] ? (s.x[i] * 16) | 0 : -1), 16777619) >>> 0; h = Math.imul(h ^ (s.alive[i] ? (s.y[i] * 16) | 0 : 0), 16777619) >>> 0 } h = Math.imul(h ^ s.tick, 16777619) >>> 0; for (const p of s.planets) h = Math.imul(h ^ p.owner, 16777619) >>> 0; return h }
+
+export const MAX_GAMBITS = 10
+export const DEFAULT_GAMBITS = DOCTRINES.flanker
+export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'blob', hard: 'flanker' }
+export const HOUSE = Object.fromEntries(Object.entries(HOUSE_DOCTRINE).map(([k, v]) => [k, DOCTRINES[v]]))
+export const OPTIONS = { minutes: [3, 5, 8], planets: [9, 17, 25] }
+export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes) ? o.minutes : 5, planets: OPTIONS.planets.includes(o?.planets) ? o.planets : 17 })
+export function checkGambits(list) {
+  if (!Array.isArray(list) || !list.length || list.length > MAX_GAMBITS) return `send 1 to ${MAX_GAMBITS} gambits`
+  for (const r of list) {
+    if (!r || !Object.hasOwn(CONDITIONS, r.if)) return 'unknown condition'
+    if (!Object.hasOwn(ACTIONS, r.then)) return 'unknown action'
+    if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) return 'invalid p'
+    if (r.on !== undefined && typeof r.on !== 'boolean') return 'invalid on'
+  }
+  return null
+}
 export function applyInput(s, side, input) {
-  if (input.surrender !== true && ['route', 'gambits', 'toggle', 'order', 'split', 'release'].filter(k => k === 'order' ? !!input[k] : input[k] !== undefined).length > 1) {
-    const candidate = fromJSON(s.toJSON())
-    try { const result = applyInputUnchecked(candidate, side, input); if (result.ok) s.load(candidate.toJSON()); return result } finally { candidate.free() }
-  }
-  return applyInputUnchecked(s, side, input)
-}
-function applyInputUnchecked(s, side, input) {
-  if (s.ended) return { ok: false, error: 'match ended' }
-  if (input.surrender === true) { matchHandles.get(s).surrender(side); return { ok: true } }
-  const own = id => s.swarms.find(c => c.id === id && c.side === side)
-  const missingSwarm = id => {
-    const swarms = s.swarms.filter(c => c.side === side).sort((a, b) => b.n - a.n).slice(0, 10)
-    const current = swarms.map(c => `#${c.id} n${Math.round(c.n)} at (${Math.round(c.x)},${Math.round(c.y)})`).join(', ') || 'none'
-    return { ok: false, error: `no swarm ${id} of yours (it may have merged or died). Your swarms now: ${current}` }
-  }
-  const clearRoute = id => routes.set(s, routes.get(s).filter(r => r.swarm !== id))
-  if (input.route !== undefined) {
-    const { swarm, points } = input.route || {}
-    if (!own(swarm)) return missingSwarm(swarm)
-    if (!Array.isArray(points) || points.length < 2 || points.length > 8 || points.some(p => !p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.x > W || p.y < 0 || p.y > H)) return { ok: false, error: 'route needs 2 to 8 points inside the map' }
-    clearRoute(swarm)
-    routes.get(s).push({ swarm, side, points: points.map(({ x, y }) => ({ x, y })) })
-    matchHandles.get(s).set_order(side, swarm, points[0].x, points[0].y)
-  }
-  if (input.gambits !== undefined) { const err = checkGambits(input.gambits); if (err) return { ok: false, error: err }; matchHandles.get(s).set_rules(side, encodeRules(input.gambits)) }
-  if (input.toggle !== undefined) {
-    if (!s.gambits[side][input.toggle]) return { ok: false, error: 'no such gambit' }
-    if (typeof input.toggle === 'number') matchHandles.get(s).toggle_rule(side, input.toggle)
-  }
-  if (input.order) {
-    const c = own(input.order.swarm), { x, y } = input.order
-    if (!c) return missingSwarm(input.order.swarm)
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, error: 'x and y required' }
-    clearRoute(c.id)
-    matchHandles.get(s).set_order(side, c.id, x, y)
-  }
-  if (input.split !== undefined) {
-    const c = own(input.split); if (!c) return missingSwarm(input.split)
-    if (matchHandles.get(s).split_id(side, c.id) !== 1) return { ok: false, error: 'cannot split (under 200 particles, or 40 swarms already)' }
-  }
-  if (input.release !== undefined) {
-    const c = own(input.release); if (!c) return missingSwarm(input.release)
-    clearRoute(c.id)
-    matchHandles.get(s).release(side, c.id)
+  const fail = error => ({ ok: false, error })
+  if (s.ended) return fail('match ended')
+  if ((side !== 0 && side !== 1) || !input || typeof input !== 'object' || Array.isArray(input)) return fail('invalid input or side')
+  const keys = Object.keys(input)
+  if (keys.length !== 1 || !['gambits', 'toggle', 'order', 'flank', 'detach', 'release', 'surrender'].includes(keys[0])) return fail('send exactly one input')
+  const key = keys[0], arg = input[key]
+  if (key === 'surrender') { if (arg !== true) return fail('invalid surrender'); s.ended = { winner: 1 - side, reason: 'surrender' }; return { ok: true } }
+  if (key === 'gambits') { const error = checkGambits(arg); if (error) return fail(error); setDoctrine(s, side, arg); return { ok: true } }
+  if (key === 'toggle') { if (!Number.isInteger(arg) || !s.gambits[side][arg]) return fail('no such gambit'); const r = s.gambits[side][arg]; r.on = r.on === false; for (const b of live(s, side)) b.key = ''; return { ok: true } }
+  const id = key === 'order' || key === 'detach' ? arg?.bat : arg
+  if (!Number.isInteger(id) || !s.bats[id]?.n || s.bats[id].side !== side) return fail(`no battalion ${id} of yours. Your live battalions: ${live(s, side).map(b => b.id).join(', ') || 'none'}`)
+  if (key === 'order') {
+    if (!Number.isFinite(arg.x) || !Number.isFinite(arg.y) || arg.x < 0 || arg.x > W || arg.y < 0 || arg.y > H) return fail('x and y must be inside the map')
+    order(s, id, arg.x, arg.y)
+  } else if (key === 'release') release(s, id)
+  else if (key === 'flank') { if (!flank(s, id)) return fail('no enemy battalion') }
+  else {
+    if (arg.role !== undefined && !ROLES.some(r => r.name === arg.role)) return fail('unknown role')
+    if (arg.role && !s.role.some((r, i) => s.alive[i] && s.bat[i] === id && ROLES[r].name === arg.role)) return fail('no units of that role')
+    const bat = detach(s, id, arg.role); if (bat < 0) return fail('cannot detach'); return { ok: true, bat }
   }
   return { ok: true }
 }
-export function step(s) {
-  const h = matchHandles.get(s); h.advance()
-  if (!routes.get(s).length || s.ended) return
-  const swarms = s.swarms
-  for (const r of routes.get(s)) {
-    const c = swarms.find(c => c.id === r.swarm && c.side === r.side)
-    if (!c || !c.manual) { r.points = []; continue }
-    if (Math.hypot(c.x - r.points[0].x, c.y - r.points[0].y) < 3) {
-      r.points.shift()
-      if (r.points.length) h.set_order(r.side, r.swarm, r.points[0].x, r.points[0].y)
-    }
-  }
-  routes.set(s, routes.get(s).filter(r => r.points.length))
-}
-export function advanceTo(s, tick) { if (!routes.get(s).length) return matchHandles.get(s).advance_to(tick); while (s.tick < tick && !s.ended) step(s) }
+export function advanceTo(s, tick) { while (s.tick < tick && !s.ended) step(s) }
 export function replay(seed, log, opts) {
-  const s = createMatch(seed, opts); let i = 0
-  while (i < log.length && !s.ended && log[i].tick >= s.tick) {
-    advanceTo(s, log[i].tick)
-    if (s.ended) break
-    for (; i < log.length && log[i].tick === s.tick; i++) applyInput(s, log[i].side, log[i].input)
+  const s = createMatch(seed, opts)
+  for (const e of log) { if (e.tick < s.tick) throw new Error('input log out of order'); advanceTo(s, e.tick); if (s.ended) break; const result = applyInput(s, e.side, e.input); if (!result.ok) throw new Error(result.error) }
+  advanceTo(s, opts?.tick ?? s.endTick); return s
+}
+// A packed record contains index, the raw float32 fields, role and battalion.
+export function snapshot(s) {
+  const length = count(s).reduce((a, b) => a + b, 0), bytes = new Uint8Array(length * 27), d = new DataView(bytes.buffer)
+  let n = 0
+  for (let i = 0; i < s.N; i++) if (s.alive[i]) {
+    const p = n++ * 27; d.setUint32(p, i, true)
+    for (let k = 0; k < 5; k++) d.setUint32(p + 4 + 4 * k, new Uint32Array(s[['x','y','vx','vy','hp'][k]].buffer)[i], true)
+    d.setUint8(p + 24, s.role[i]); d.setUint16(p + 25, s.bat[i], true)
   }
-  if (routes.get(s).length) advanceTo(s, s.endTick); else matchHandles.get(s).finish(); return s
+  let binary = ''; for (const b of bytes) binary += String.fromCharCode(b)
+  return { seed: s.seed, opts: structuredClone(s.opts), tick: s.tick, rng: s.rng, endTick: s.endTick, ended: structuredClone(s.ended), bats: structuredClone(s.bats), planets: structuredClone(s.planets), gambits: structuredClone(s.gambits), units: btoa(binary) }
 }
-export const totals = s => Array.from(matchHandles.get(s).populations())
+export function restore(data) {
+  if (typeof data === 'string') data = JSON.parse(data)
+  const s = createMatch(data.seed, data.opts), binary = atob(data.units), bytes = Uint8Array.from(binary, c => c.charCodeAt(0)), d = new DataView(bytes.buffer)
+  if (bytes.length % 27) throw new Error('invalid snapshot')
+  for (const name of ['x','y','vx','vy','hp','role','bat','alive']) s[name].fill(0)
+  for (let p = 0; p < bytes.length; p += 27) {
+    const i = d.getUint32(p, true); if (i >= s.N) throw new Error('invalid unit index')
+    s.alive[i] = 1
+    for (let k = 0; k < 5; k++) new Uint32Array(s[['x','y','vx','vy','hp'][k]].buffer)[i] = d.getUint32(p + 4 + 4 * k, true)
+    s.role[i] = d.getUint8(p + 24); s.bat[i] = d.getUint16(p + 25, true)
+  }
+  for (const k of ['tick','rng','endTick','ended','bats','planets','gambits','opts']) s[k] = structuredClone(data[k])
+  return s
+}
+export const visible = (s, side, x, y) => live(s, side).some(b => d2(b.cx, b.cy, x, y) <= 150 ** 2) || s.planets.some(p => p.owner === side && d2(p.x, p.y, x, y) <= 80 ** 2)
 export function view(s, side) {
-  const h = matchHandles.get(s), summary = h.view_totals(side), header = h.view_header(side)
-  const own = rows(matchHandles.get(s).view_swarms(side, 0), 11, c => ({ id: c[0], x: c[1], y: c[2], n: c[3], tx: c[4], ty: c[5], manual: !!c[6], rule: c[7], fighting: !!c[8], belly: c[9], hunger: c[10] }))
-  for (const c of own) { const r = routes.get(s).find(r => r.side === side && r.swarm === c.id); if (r) c.route = structuredClone(r.points) }
-  const allies = rows(matchHandles.get(s).view_swarms(side, 1), 5, c => ({ id: c[0], x: c[1], y: c[2], n: c[3], fighting: !!c[4] }))
-  const enemies = rows(matchHandles.get(s).view_swarms(side, 2), 6, c => ({ id: c[0], k: c[1], x: c[2], y: c[3], n: c[4], fighting: !!c[5] }))
-  const planets = rows(matchHandles.get(s).view_planets(side), 10, p => ({ id: p[0], x: p[1], y: p[2], r: p[3], owner: p[4] < 0 ? null : ['you', 'ally', 'enemy'][p[4]], k: p[5], massLeft: p[6], mass: p[7], capture: p[8], ck: p[9] }))
-  return { tick: s.tick, secondsLeft: header[0], mode: s.opts.mode,
-    ended: header[1] < 0 ? null : { reason: s.ended.reason, result: ['won', 'draw', 'lost'][header[1]] },
-    totals: { you: summary[0], enemy: summary[1], foes: Array.from(summary.subarray(2), (n, k) => ({ k, n })) },
-    swarms: own, allies, enemies, planets, gambits: s.gambits[side] }
+  const units = count(s), planets = owned(s), battalions = live(s, side).map(b => {
+    const roles = { runner: 0, grunt: 0, tank: 0 }
+    for (let i = 0; i < s.N; i++) if (s.alive[i] && s.bat[i] === b.id) roles[ROLES[s.role[i]].name]++
+    return { id: b.id, x: b.cx, y: b.cy, n: b.n, roles, tx: b.tx, ty: b.ty, manual: b.manual, rule: b.rule, fighting: fighting(s, b) }
+  })
+  return { tick: s.tick, secondsLeft: Math.max(0, (s.endTick - s.tick) / TPS), ended: s.ended ? { reason: s.ended.reason, result: s.ended.winner === null ? 'draw' : s.ended.winner === side ? 'won' : 'lost' } : null,
+    totals: { you: units[side], enemy: units[1-side], planets: { you: planets[side], enemy: planets[1-side] } }, battalions,
+    enemies: live(s, 1-side).filter(b => visible(s, side, b.cx, b.cy)).map(b => ({ id: b.id, x: b.cx, y: b.cy, n: b.n, fighting: fighting(s, b) })),
+    planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', capture: p.prog })), gambits: structuredClone(s.gambits[side]) }
 }
-
-export const rules = () => ({
-  conditions: Object.fromEntries(Object.entries(CONDITIONS).map(([k, c]) => [k, { doc: c.doc, p: c.p }])),
-  actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, a]) => [k, { doc: a.doc }])),
-  modes: Object.keys(MODES),
-})
+export const rules = () => ({ conditions: structuredClone(CONDITIONS), actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, doc]) => [k, { doc }])) })
 export const describe = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`

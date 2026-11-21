@@ -12,7 +12,7 @@ test('workerd: pending pairing honors bounded HTTP polling without a match queue
 })
 
 test('workerd: verified accounts, unique live ticket, consent, two-player room and result', { timeout: 60000 }, async t => {
-  const { mf, db, mail } = await runtime({assets:{directory:'public',binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}}}); t.after(() => mf.dispose())
+  const { mf, db, mail } = await runtime({assets:{directory:'public',binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}}}); let ws; t.after(async () => { ws?.close(); await mf.dispose() })
   const alice = client(mf), bob = client(mf)
   const signup = await alice.signUp('Alice')
   assert.equal(signup.status, 200, JSON.stringify(signup.body))
@@ -58,11 +58,13 @@ test('workerd: verified accounts, unique live ticket, consent, two-player room a
   const before = performance.now()
   const socketResponse = await mf.dispatchFetch(ORIGIN + `/socket?token=${a.humanToken}`, { headers: { upgrade: 'websocket', origin: ORIGIN, cookie: [...alice.cookies].map(([k,v]) => `${k}=${v}`).join('; ') } })
   assert.equal(socketResponse.status, 101)
-  const ws = socketResponse.webSocket; ws.accept()
+  ws = socketResponse.webSocket; ws.accept()
   const frame = await new Promise((resolve, reject) => { ws.addEventListener('message', e => resolve(JSON.parse(e.data)), { once: true }); setTimeout(() => reject(new Error('No real WebSocket frame')), 5000).unref() })
-  assert.equal(frame.view?.side, state.body.view.side)
+  assert.equal(frame.t, 'snap')
+  assert.equal(frame.side, next.body.match.side)
+  assert.ok(frame.state && Number.isInteger(frame.log))
   assert.ok(performance.now() - before < 5000)
-  ws.close()
+  ws.close(); ws = null
   assert.equal((await alice.call('POST', `/surrender?token=${a.humanToken}`, {})).status, 200)
   const lobby = await alice.call('GET', `/lobby?token=${a.humanToken}`)
   assert.equal(lobby.body.history.length, 1)

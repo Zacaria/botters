@@ -28,12 +28,12 @@ test('workerd cadence: real 20 Hz match, two live readers, bounded local resourc
   }
   t.after(()=>sockets.forEach(s=>s.close()))
   await new Promise((resolve,reject)=>{
-    sockets[0].addEventListener('message',function started(e){const f=JSON.parse(e.data);if(f.view.tick>0){sockets[0].removeEventListener('message',started);resolve()}})
+    sockets[0].addEventListener('message',function started(e){const f=JSON.parse(e.data);if(f.t==='step' && f.tick>0){sockets[0].removeEventListener('message',started);resolve()}})
     setTimeout(()=>reject(new Error('Match did not advance after planning')),14000).unref()
   })
   const frames=[],second=[]; let collecting=true
-  sockets[0].addEventListener('message',e=>collecting && frames.push({at:performance.now(),bytes:Buffer.byteLength(e.data),tick:JSON.parse(e.data).view.tick}))
-  sockets[1].addEventListener('message',e=>collecting && second.push(JSON.parse(e.data).view.tick))
+  sockets[0].addEventListener('message',e=>{const f=JSON.parse(e.data);if(collecting && f.t==='step') frames.push({at:performance.now(),bytes:Buffer.byteLength(e.data),tick:f.tick})})
+  sockets[1].addEventListener('message',e=>{const f=JSON.parse(e.data);if(collecting && f.t==='step') second.push(f.tick)})
   const before=await resources(),start=performance.now()
   await new Promise(r=>setTimeout(r,5000))
   collecting=false
@@ -45,6 +45,6 @@ test('workerd cadence: real 20 Hz match, two live readers, bounded local resourc
   assert.ok(after.workerdProcesses>0)
   const data=await db.prepare('SELECT count(*) AS records,sum(length(key)+length(value)) AS payloadBytes FROM game_records').first()
   const tickHz=+execFileSync('getconf',['CLK_TCK'],{encoding:'utf8'}).trim()
-  const evidence={proof:'local-workerd-cadence',durationMs:elapsed,frames:frames.length,secondReaderFrames:second.length,framesPerSecond:hz,p95GapMs:gaps[Math.floor(gaps.length*.95)],simulationTicks:frames.at(-1).tick-frames[0].tick,bytesSentOneReader:frames.reduce((a,f)=>a+f.bytes,0),workerdCpuMs:(after.jiffies-before.jiffies)*1000/tickHz,workerdRssKiB:after.rssKiB,workerdProcesses:after.workerdProcesses,d1:data,scope:'one 40-planet match, two readers; local shared workerd process, not per-isolate or hosted billing proof'}
+  const evidence={proof:'local-workerd-cadence',durationMs:elapsed,frames:frames.length,secondReaderFrames:second.length,framesPerSecond:hz,p95GapMs:gaps[Math.floor(gaps.length*.95)],simulationTicks:frames.at(-1).tick-frames[0].tick,bytesSentOneReader:frames.reduce((a,f)=>a+f.bytes,0),workerdCpuMs:(after.jiffies-before.jiffies)*1000/tickHz,workerdRssKiB:after.rssKiB,workerdProcesses:after.workerdProcesses,d1:data,scope:'one 17-planet match, two readers; local shared workerd process, not per-isolate or hosted billing proof'}
   console.log(JSON.stringify(evidence))
 })
