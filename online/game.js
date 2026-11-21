@@ -301,7 +301,7 @@ export class OnlineGame {
         const idx = await index(), queued = idx.queue.find(e => e.id === s.id)
         if (queued) queued.seen = now
         s.queued = queued ? queued.at : null
-        return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, agentGranted: !!s.agentGranted, doctrine: s.doctrine, history: s.history, live: active(m), inMatch: !!m, notice: s.notice,
+        return { online: true, name: s.name, agent: connected(s, now) ? s.setup : null, agentGranted: !!s.agentGranted, doctrine: s.doctrine, history: s.history.filter(h => h.result), live: active(m), inMatch: !!m, notice: s.notice,
           queued: !!queued, queuedAt: s.queued, inQueue: idx.queue.length,
           playersOnline: Object.values(await tx.get('presence', {}, 0)).filter(at => now - at <= 120000).length, room: await roomInfo(idx), leaderboard: await board(), doctrineMax: 500,
           choices: { vs: Object.keys(HOUSE), ...OPTIONS, planning: PLANNING } }
