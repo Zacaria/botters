@@ -20,6 +20,7 @@ test('per-identity Elo exceeds 1MiB in aggregate without any oversized record; b
   const session = await game.request('POST', '/session', undefined, { name: 'new-player' }), q = new URLSearchParams({ token: session.humanToken })
   await game.request('POST', '/play', q, { vs: 'easy', minutes: 3, planets: 16, planning: 10, withAgent: false })
   const cold = new OnlineGame(store, { now: () => now + 200000 })
+  await cold.request('POST', '/surrender', q)
   const lobby = await cold.request('GET', '/lobby', q)
   assert.equal(lobby.history.length, 1)
   assert.equal(lobby.leaderboard.length, 10)
