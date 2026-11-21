@@ -8,7 +8,7 @@ test.describe('public explanation without JavaScript', () => {
     expect((await page.goto('/')).status()).toBe(200)
     await expect(page.locator('#authPanel')).toBeInViewport()
     await page.getByRole('link', { name: 'How it works', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'You set the strategy. Swarms follow the rules.', exact: true })).toBeInViewport()
+    await expect(page.getByRole('heading', { name: 'You set the strategy. Battalions follow the rules.', exact: true })).toBeInViewport()
     await expect(page.locator('#understand')).toContainText('first matching rule')
     await expect(page.locator('#understand')).toContainText('Most particles')
     await expect(page.locator('#demo-video')).toHaveAttribute('controls', '')
