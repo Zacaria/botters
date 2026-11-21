@@ -1,0 +1,88 @@
+<!doctype html><meta charset="utf-8"><title>Botters particles spike</title>
+<style>
+body{margin:0;background:#07070c;color:#cfd;font:13px monospace;display:flex;gap:10px;padding:8px;box-sizing:border-box}
+canvas{display:block;max-width:calc(100vw - 300px);cursor:crosshair}#side{width:270px;flex:none}#h{margin-bottom:8px;line-height:1.5}
+select{background:#111;color:#cfd;border:1px solid #444;font:inherit}ol{padding-left:22px;margin:6px 0}li{margin:2px 0;color:#889}li.on{color:#fff}li b{color:#f6a}
+#end{font-size:18px;color:#fff;margin:8px 0}.k{color:#889}
+</style>
+<canvas id="c" width="1200" height="700"></canvas>
+<div id="side">
+  <div id="h"></div><div id="end"></div>
+  <div>Your doctrine <select id="d0"></select></div><ol id="r0"></ol>
+  <div>House doctrine <select id="d1"></select></div><ol id="r1"></ol>
+  <div class="k">click a ring: select · click elsewhere: move<br>right-click or X: flank the nearest enemy<br>Q: back to doctrine · D: detach half · R: detach runners<br>Tab / Shift+Tab / 1-9: select · V: look · space: pause · N: new map</div>
+</div>
+<script type="module">
+import { createMatch, step, order, release, detach, flank, setDoctrine, count, owned, live, fighting, DOCTRINES, TPS } from './psim.js'
+const c = document.getElementById('c'), g = c.getContext('2d'), img = g.createImageData(1200, 700), px = new Uint32Array(img.data.buffer)
+const COL = [[[255, 150, 205], [255, 80, 150], [255, 200, 225]], [[130, 200, 255], [60, 140, 255], [200, 230, 255]]] // [camp][runner, grunt, tank]
+const CAMP = ['#ff5096', '#3c8cff']
+const pack = ([r, gg, b]) => 0xff000000 | b << 16 | gg << 8 | r
+const q = new URLSearchParams(location.search)
+let seed = +q.get('seed') || 1, s, sel = -1, paused = false, acc = 0, last = performance.now(), look = 1
+const LOOKS = ['shade', 'trails (runners streak)']
+const dsel = [document.getElementById('d0'), document.getElementById('d1')]
+for (const d of dsel) for (const k of Object.keys(DOCTRINES)) d.add(new Option(k, k))
+dsel[0].value = q.get('you') || 'flanker'; dsel[1].value = q.get('house') || 'blob'
+dsel.forEach((d, side) => d.onchange = () => { setDoctrine(s, side, DOCTRINES[d.value]); d.blur() })
+const start = () => { s = createMatch(seed, { doctrines: dsel.map(d => d.value) }); sel = live(s, 0)[0]?.id ?? -1 }
+start()
+const mine = () => live(s, 0)
+const ringR = b => 14 + Math.sqrt(b.n) * 1.6
+const at = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * 1200 / r.width, (e.clientY - r.top) * 700 / r.height] }
+c.addEventListener('click', e => {
+  const [x, y] = at(e), hit = mine().find(b => (b.cx - x) ** 2 + (b.cy - y) ** 2 < ringR(b) ** 2)
+  if (hit) sel = hit.id; else order(s, sel, x, y)
+})
+c.addEventListener('contextmenu', e => { e.preventDefault(); flank(s, sel) })
+const cycle = d => { const m = mine(); if (m.length) sel = m[(m.findIndex(b => b.id === sel) + d + m.length) % m.length].id }
+addEventListener('keydown', e => {
+  const m = mine()
+  if (e.key === 'Tab') { e.preventDefault(); cycle(e.shiftKey ? -1 : 1) }
+  if (/^[1-9]$/.test(e.key)) sel = m[+e.key - 1]?.id ?? sel
+  if (e.key === 'd') { const n = detach(s, sel); if (n >= 0) sel = n }
+  if (e.key === 'r') { const n = detach(s, sel, 'runner'); if (n >= 0) sel = n }
+  if (e.key === 'x') flank(s, sel)
+  if (e.key === 'q') release(s, sel)
+  if (e.key === 'v') look = (look + 1) % LOOKS.length
+  if (e.key === 'n') { seed++; start() }
+  if (e.key === ' ') { e.preventDefault(); paused = !paused }
+})
+function dot(k, p, w) { px[k] = p; if (w > 1) { px[k + 1] = p; px[k + 1200] = p; px[k + 1201] = p } if (w > 2) { px[k + 2] = p; px[k + 1202] = p; px[k + 2400] = p; px[k + 2401] = p; px[k + 2402] = p } }
+function draw() {
+  if (!s.bats[sel]?.n) sel = mine()[0]?.id ?? -1
+  px.fill(0xff0a0a10)
+  for (let i = 0; i < s.N; i++) if (s.alive[i]) {
+    const x = Math.min(1197, s.x[i] | 0), y = Math.min(696, s.y[i] | 0), k = y * 1200 + x, role = s.role[i], camp = s.side[i]
+    let col = COL[camp][role]; if (s.bat[i] === sel) col = col.map(v => Math.min(255, v + 90))
+    const p = pack(col)
+    dot(k, p, role === 2 && look ? 3 : 2)
+    if (look && role === 0) for (let t = 1; t <= 5; t++) { const tx = (x - s.vx[i] * t * 2.5) | 0, ty = (y - s.vy[i] * t * 2.5) | 0; if (tx >= 0 && tx < 1198 && ty >= 0 && ty < 697) px[ty * 1200 + tx] = pack(col.map(v => v * (1 - t * 0.15))) }
+  }
+  g.putImageData(img, 0, 0)
+  g.setLineDash([])
+  for (const p of s.planets) { // body, owner ring, capture arc in the capturer's colour
+    g.globalAlpha = 0.35; g.fillStyle = p.owner >= 0 ? CAMP[p.owner] : '#666'; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); g.globalAlpha = 1
+    g.lineWidth = 2; g.strokeStyle = p.owner >= 0 ? CAMP[p.owner] : '#555'; g.beginPath(); g.arc(p.x, p.y, p.r + 3, 0, 7); g.stroke()
+    const who = p.owner >= 0 ? p.owner : p.by
+    if (who >= 0 && p.prog < 100) { g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(p.x, p.y, p.r + 7, -1.5708, -1.5708 + p.prog / 100 * 6.2832); g.stroke() }
+  }
+  for (const b of mine()) {
+    const on = b.id === sel, r = ringR(b) // soft ring round every battalion, bold round the selected one; dashed red when fighting
+    g.strokeStyle = fighting(s, b) ? 'rgba(255,90,90,.7)' : on ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.28)'; g.lineWidth = on ? 1.5 : 1; g.setLineDash(on ? [] : [3, 5])
+    g.beginPath(); g.arc(b.cx, b.cy, r, 0, 7); g.stroke()
+    const tag = `${mine().indexOf(b) + 1}${b.manual ? ' by hand' : b.rule >= 0 ? ' ' + s.doctrine[0][b.rule].if.replaceAll('_', ' ') : ''}`
+    g.fillStyle = on ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.5)'; g.font = '11px monospace'; g.fillText(tag, b.cx - 3, b.cy - r - 4)
+    if (on) { g.setLineDash([2, 4]); g.strokeStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.moveTo(b.cx, b.cy); for (const w of b.via) g.lineTo(w.x, w.y); g.lineTo(b.tx, b.ty); g.stroke(); g.fillStyle = '#fff'; g.fillRect(b.tx - 3, b.ty - 3, 6, 6) }
+  }
+  const [a, b] = count(s), [pa, pb] = owned(s), left = Math.max(0, (s.endTick - s.tick) / TPS | 0)
+  document.getElementById('h').innerHTML = `<b style="color:${CAMP[0]}">you</b> ${a} units · ${pa} planets<br><b style="color:${CAMP[1]}">house</b> ${b} units · ${pb} planets<br>${left / 60 | 0}:${String(left % 60).padStart(2, '0')} left · map ${seed}${paused ? ' · paused' : ''}<br>selected: battalion ${mine().findIndex(q => q.id === sel) + 1} (${s.bats[sel]?.n ?? 0})${s.bats[sel]?.manual ? ' — by hand, Q to release' : ''}<br>look: ${LOOKS[look]}`
+  document.getElementById('end').textContent = s.ended ? `${s.ended.winner === 0 ? 'You win' : s.ended.winner === 1 ? 'House wins' : 'Draw'} (${s.ended.reason}) — N for a new map` : ''
+  for (const side of [0, 1]) { // each doctrine rule with how many battalions it drives right now
+    const counts = s.doctrine[side].map((_, k) => live(s, side).filter(o => !o.manual && o.rule === k).length)
+    document.getElementById('r' + side).innerHTML = s.doctrine[side].map((r, k) => `<li class="${counts[k] ? 'on' : ''}">IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}${counts[k] ? ` <b>${counts[k]}</b>` : ''}</li>`).join('')
+  }
+}
+function frame(now) { acc += now - last; last = now; let n = 0; while (!paused && acc > 1000 / TPS && n++ < 3) { step(s); acc -= 1000 / TPS } if (acc > 200) acc = 0; draw(); requestAnimationFrame(frame) }
+requestAnimationFrame(frame)
+</script>
