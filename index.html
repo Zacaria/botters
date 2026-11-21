@@ -510,7 +510,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
     if (joined.error) lobbyError = joined.error; else return lobby()
   }
   $('agentState').innerHTML = L.agent ? `<span class="agent">● ${esc(L.agent)} connected</span>` : agentOk ? '<span class="agent">○ authorized · opens when you play</span>' : `<span class="dim">none connected · <a href="/guide" target="_blank">connect one</a></span>`
-  $('history').innerHTML = L.history.length ? '<table>' + L.history.map(h => `<tr><td class="${h.actual.result === 'won' ? 'you' : 'dim'}">${h.actual.result.toUpperCase()}</td><td>vs ${esc(h.vs)}</td><td>${n(h.actual.you)}–${n(h.actual.enemy)}</td></tr>`).join('') + '</table>' : 'none yet'
+  $('history').innerHTML = L.history.length ? '<table>' + L.history.map(h => `<tr><td class="${h.result === 'won' ? 'you' : 'dim'}">${h.result.toUpperCase()}</td><td>vs ${esc(h.vs)}</td><td>${n(h.you)}–${n(h.enemy)}</td></tr>`).join('') + '</table>' : 'none yet'
   $('board').innerHTML = L.leaderboard.length ? '<table>' + L.leaderboard.map((b, i) => `<tr><td>${i + 1}.</td><td>${esc(b.name)} <span class="dim">${esc(b.setup || '')}</span></td><td>${b.rating}</td></tr>`).join('') + '</table>' : 'empty'
   $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError || L.notice || ''
   $('viewReport').hidden = !L.inMatch || L.live
