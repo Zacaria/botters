@@ -67,6 +67,14 @@ test('input log rolls into bounded chunks and stays out of hot state transaction
   assert.ok(ended.report && ended.view.ended)
 })
 
+test('commands are refused while a cold match is catching up', async () => {
+  const f = fixture(), a = await f.session('catchup')
+  await f.call(a, 'POST', '/play', { vs: 'normal', minutes: 3, planning: 10, withAgent: false })
+  f.advance(200000)
+  await assert.rejects(f.call(a, 'POST', '/input', { toggle: 0 }), { status: 503 })
+  await assert.rejects(f.call(a, 'POST', '/surrender'), { status: 503 })
+})
+
 test('order and detach journal canonical inputs and replay the checkpoint', async () => {
   const f = fixture(), a = await f.session('orders')
   await f.call(a, 'POST', '/play', { vs: 'normal', withAgent: false, planning: 10 })

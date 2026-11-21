@@ -441,6 +441,7 @@ export class OnlineGame {
       }
       if (method === 'POST' && path === '/surrender') {
         human(); requireMatch()
+        if (m.catchupCheckpoint) fail(503, 'Match is catching up. Retry shortly.')
         if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
         if (m.s.ended) fail(409, 'Match is over.')
         const input = { surrender: true }
@@ -455,6 +456,7 @@ export class OnlineGame {
         if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
         if (m.s.ended) fail(409, 'Match is over.')
         if (auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.')
+        if (m.catchupCheckpoint) fail(503, 'Match is catching up. Retry shortly.')
         const sentKey = auth.role === 'agent' ? 'sent' : 'humanSent', limit = auth.role === 'agent' ? 5 : 15
         p[sentKey] = p[sentKey].filter(t => now - t < 1000)
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
