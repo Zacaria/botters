@@ -20,4 +20,4 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 
 ## Old infrastructure still running
 
-Nothing points to these any more; Zacaria decides when to stop them: the Lightsail instance in Paris (`51.44.31.107`, `/opt/stacks/botters`), the old hosted backend `fastidious-kookabura-364`, the test Worker `botters` (https://botters.chtatar-zacaria.workers.dev) with its D1 `botters`, and the old origins in the Google OAuth client's authorized URIs.
+Nothing points to these any more; Zacaria decides when to stop them: the old hosted backend `fastidious-kookabura-364`, the test Worker `botters` (https://botters.chtatar-zacaria.workers.dev) with its D1 `botters`, and the old origins in the Google OAuth client's authorized URIs.
