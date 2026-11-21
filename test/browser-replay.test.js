@@ -17,12 +17,17 @@ test('browser /sim.js replays the same fixed log as Node', async () => {
     browser = await chromium.launch({ executablePath: process.env.BOTTERS_BROWSER || '/usr/bin/brave-browser', args: ['--no-sandbox'] })
     const page = await browser.newPage()
     await page.goto(`http://127.0.0.1:${server.address().port}/`)
+    // One minute with both sides colliding in the centre: by tick 1200 each side has lost most of its 1200 units,
+    // so the hash covers combat, captures, breeding, flank and detach, not only movement.
     const log = [
       { tick: 0, side: 0, input: { order: { bat: 0, x: 600, y: 350 } } },
+      { tick: 0, side: 1, input: { order: { bat: 3, x: 600, y: 350 } } },
       { tick: 12, side: 0, input: { toggle: 0 } },
-      { tick: 24, side: 0, input: { release: 0 } },
+      { tick: 200, side: 0, input: { flank: 1 } },
+      { tick: 400, side: 1, input: { detach: { bat: 4, role: 'runner' } } },
+      { tick: 600, side: 0, input: { release: 0 } },
     ]
-    const opts = { tick: 80, minutes: 3, planets: 9 }
+    const opts = { tick: 1200, minutes: 3, planets: 9 }
     const expected = hash(replay(1729, log, opts))
     const actual = await page.evaluate(async ({ log, opts }) => {
       const sim = await import('/sim.js')
