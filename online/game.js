@@ -469,7 +469,7 @@ export class OnlineGame {
         await appendLog(m, { tick: m.s.tick, side: s.side, role: auth.role, input })
         if (m.s.ended) { for (const player of m.players) diffEvents(m, player); await finish(m) }
         const why = text(body.why, 120), change = changes(before, m.s.gambits[s.side]), doctrine = 'gambits' in input || 'toggle' in input
-        if (doctrine) { p.edits.push({ t: Math.floor(m.s.tick / TPS), who: auth.role === 'agent' ? 'agent' : 'you', why, change }); p.edits = p.edits.slice(-10) }
+        if (doctrine) p.edits = [...(p.edits || []), { t: Math.floor(m.s.tick / TPS), who: auth.role === 'agent' ? 'agent' : 'you', why, change }].slice(-10) // matches started before edits existed have none
         if (auth.role === 'human') emit(m, p, `HUMAN ${doctrine ? ('toggle' in input ? `switched ${change}` : `rewrote gambits: ${change}`) : JSON.stringify(input)}`)
         feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${auth.role === 'agent' && doctrine ? change : Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
         return result
