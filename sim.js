@@ -351,11 +351,18 @@ export const describe = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !
 
 export function changes(before, after) {
   const plain = r => describe({ ...r, on: true })
-  if (before.length === after.length && before.every((r, i) => plain(r) === plain(after[i]))) {
+  const p = r => r.p ?? CONDITIONS[r.if]?.p, same = (a, b) => a.if === b.if && a.then === b.then && p(a) === p(b) // an explicit default p is no change
+  if (before.length === after.length && before.every((r, i) => same(r, after[i]))) {
     const toggles = before.flatMap((r, i) => (r.on !== false) === (after[i].on !== false) ? [] : [`rule ${i + 1} ${after[i].on === false ? 'off' : 'on'}: ${plain(r)}`])
     return toggles.join('; ') || 'no change'
   }
-  const remaining = after.map(plain), removed = []
-  for (const r of before) { const text = plain(r), i = remaining.indexOf(text); if (i < 0) removed.push(`- ${text}`); else remaining.splice(i, 1) }
-  return [...removed, ...remaining.map(text => `+ ${text}`)].join('; ') || 'reordered'
+  const added = after.slice(), removed = []
+  for (const r of before) { const i = added.findIndex(a => same(a, r)); if (i < 0) removed.push(r); else added.splice(i, 1) }
+  const out = []
+  for (const r of removed) { // same rule, new p: one line
+    const i = added.findIndex(a => a.if === r.if && a.then === r.then)
+    if (i < 0) { out.push(`- ${plain(r)}`); continue }
+    out.push(`IF ${r.if} → ${r.then}: p ${p(r)} → ${p(added[i])}`); added.splice(i, 1)
+  }
+  return [...out, ...added.map(r => `+ ${plain(r)}`)].join('; ') || 'reordered'
 }

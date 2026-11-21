@@ -9,6 +9,9 @@ test('doctrine changes describe toggles, replacements, reordering and no change'
   assert.equal(sim.changes([a], [b]), '- IF always → hold; + IF ally_fighting → flank')
   assert.equal(sim.changes([a, b], [b, a]), 'reordered')
   assert.equal(sim.changes([a], [{ ...a }]), 'no change')
+  const attacked = { if: 'planet_attacked', then: 'go' }
+  assert.equal(sim.changes([attacked, a], [{ ...attacked, p: 350 }, a]), 'no change') // explicit default p
+  assert.equal(sim.changes([attacked, a], [{ ...attacked, p: 130 }, b]), 'IF planet_attacked → go: p 350 → 130; - IF always → hold; + IF ally_fighting → flank')
 })
 test('view includes active rule text and per-rule counts excluding manual battalions', () => {
   const s = sim.createMatch(1); s.bats[0].rule = 0; s.bats[1].rule = 0; s.bats[1].manual = true
