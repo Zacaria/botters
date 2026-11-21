@@ -26,6 +26,19 @@ test('room settings do not disclose private openings; next delivery can be retri
   assert.equal((await f.call(a, 'GET', '/next', {}, 'agent')).lobby, undefined)
 })
 
+test('lobby skips history entries saved before the particle war', async () => {
+  const f = fixture(), a = await f.session('a')
+  const [key, record] = [...f.store.data].find(([k]) => k.startsWith('session:'))
+  record.value = JSON.stringify({ ...JSON.parse(record.value), history: [{ matchId: 'm-old', actual: 'won', humanInputs: 3, vs: 'house', reason: 'time' }] })
+  assert.ok(key)
+  await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false })
+  await f.advance(6000)
+  await f.call(a, 'POST', '/surrender')
+  const lobby = await f.call(a, 'GET', '/lobby')
+  assert.equal(lobby.history.length, 1)
+  assert.equal(lobby.history[0].result, 'lost')
+})
+
 test('logs canonical inputs only, rejects no-op padding and applies invalid mixed inputs atomically', async () => {
   const f = fixture(), a = await f.session('a')
   await f.call(a, 'POST', '/play', { vs: 'normal', withAgent: false })
