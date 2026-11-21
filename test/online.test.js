@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { OnlineGame } from '../online/game.js'
 import { MemoryStore } from '../online/store.js'
-import { replay } from '../sim.js'
+import { replay, snapshot } from '../sim.js'
 
 function fixture() {
   let now = 1_800_000_000_000
@@ -19,7 +19,7 @@ test('house match waits for agent, then gives the full planning window', async (
   f.advance(120000)
   const waiting = await f.call(a, 'GET', '/state')
   assert.equal(waiting.waitingForAgent, true); assert.equal(waiting.startsIn, null); assert.equal(waiting.view.tick, 0)
-  await assert.rejects(f.call(a, 'POST', '/input', { order: { swarm: 1, x: 100, y: 100 } }), { status: 409 })
+  await assert.rejects(f.call(a, 'POST', '/input', { order: { bat: 1, x: 100, y: 100 } }), { status: 409 })
   const joined = await f.call(a, 'GET', '/next', {}, 'agent')
   assert.equal(joined.match.startsIn, 20)
   f.advance(5000)
@@ -66,20 +66,20 @@ test('role-scoped capabilities, validation, fog and server authority', async () 
   const state = await f.call(a, 'GET', '/state')
   assert.equal(state.view.enemies.length, 0)
   assert.equal(state.s, undefined); assert.equal(state.log, undefined)
-  assert.equal(state.opponent.name, 'house (easy)')
+  assert.equal(state.opponent.name, 'house (easy · cautious)')
   await assert.rejects(f.call(a, 'POST', '/input', { toggle: 0 }, 'agent'), { status: 403 })
-  await assert.rejects(f.call(a, 'POST', '/input', { order: { swarm: 1, x: 200, y: 200 } }), { status: 409 })
+  await assert.rejects(f.call(a, 'POST', '/input', { order: { bat: 1, x: 200, y: 200 } }), { status: 409 })
   await assert.rejects(f.call({ humanToken: 'bad' }, 'GET', '/state'), { status: 401 })
 })
 
 test('atomic compatible matchmaking, any settings, cancellation, no duplicate/self match', async () => {
   const f = fixture(), a = await f.session('a'), b = await f.session('b'), c = await f.session('c')
-  await f.call(a, 'POST', '/play', { vs: 'player', minutes: 8, planets: 40 })
-  await f.call(b, 'POST', '/play', { vs: 'player', minutes: 3, planets: 16 })
+  await f.call(a, 'POST', '/play', { vs: 'player', minutes: 8, planets: 25 })
+  await f.call(b, 'POST', '/play', { vs: 'player', minutes: 3, planets: 9 })
   assert.equal((await f.call(a, 'GET', '/lobby')).queued, true)
   await f.call(c, 'POST', '/play', { vs: 'player', minutes: 'any', planets: 'any' })
   const [aa, cc] = await Promise.all([f.call(a, 'GET', '/state'), f.call(c, 'GET', '/state')])
-  assert.equal(aa.matchId, cc.matchId); assert.deepEqual(aa.options, { minutes: 8, planets: 40, mode: '1v1' })
+  assert.equal(aa.matchId, cc.matchId); assert.deepEqual(aa.options, { minutes: 8, planets: 25 })
   assert.equal((await f.call(b, 'GET', '/lobby')).queued, true)
   await f.call(b, 'POST', '/cancel')
   assert.equal((await f.call(b, 'GET', '/lobby')).queued, false)
@@ -97,7 +97,7 @@ test('lobby shows players online in the last two minutes and the queue size', as
 
 test('matchmaking rematch keeps the same two players and settings, with separate human consent', async () => {
   const f = fixture(), a = await f.session('a', 'codex'), b = await f.session('b', 'claude'), c = await f.session('c')
-  const prefs = { vs: 'player', minutes: 8, planets: 40, planning: 30, withAgent: false }
+  const prefs = { vs: 'player', minutes: 8, planets: 25, planning: 30, withAgent: false }
   await f.call(a, 'POST', '/play', prefs); await f.call(b, 'POST', '/play', prefs)
   const first = await f.call(a, 'GET', '/state')
   assert.equal(first.opponent.human, true)
@@ -118,11 +118,11 @@ test('matchmaking rematch keeps the same two players and settings, with separate
   assert.equal((await f.call(c, 'GET', '/lobby')).room, null)
   assert.equal((await f.call(a, 'GET', '/room')).players.length, 1)
   const opening = [{ if: 'always', then: 'hold' }]
-  await f.call(b, 'POST', '/rooms/rematch', { matchId: first.matchId, minutes: 3, planets: 16, planning: 10, withAgent: false, opening })
+  await f.call(b, 'POST', '/rooms/rematch', { matchId: first.matchId, minutes: 3, planets: 9, planning: 10, withAgent: false, opening })
   const again = await f.call(a, 'GET', '/state'), other = await f.call(b, 'GET', '/state')
   assert.equal(again.matchId, other.matchId); assert.notEqual(again.matchId, first.matchId)
   assert.equal(again.opponent.name, 'b'); assert.equal(other.opponent.name, 'a')
-  assert.deepEqual(again.options, { minutes: 8, planets: 40, mode: '1v1' }); assert.equal(again.startsIn, 30)
+  assert.deepEqual(again.options, { minutes: 8, planets: 25 }); assert.equal(again.startsIn, 30)
   assert.equal(again.roomCode, waiting.room.code); assert.equal(other.roomCode, again.roomCode)
   assert.equal(again.me.withAgent, false); assert.equal(other.me.withAgent, false)
   assert.deepEqual(other.view.gambits, [{ ...opening[0], on: true }])
@@ -132,7 +132,7 @@ test('matchmaking rematch keeps the same two players and settings, with separate
 test('matchmaking rematch handles concurrent acceptance and refuses stale or departed opponents', async () => {
   for (const departure of [null, 'queue', 'house', 'room']) {
     const f = fixture(), a = await f.session('a'), b = await f.session('b')
-    const prefs = { vs: 'player', minutes: 3, planets: 16, planning: 10 }
+    const prefs = { vs: 'player', minutes: 3, planets: 9, planning: 10 }
     await f.call(a, 'POST', '/play', prefs); await f.call(b, 'POST', '/play', prefs)
     await f.call(a, 'POST', '/surrender')
     const old = await f.call(a, 'GET', '/state'), body = { matchId: old.matchId, withAgent: false }
@@ -157,14 +157,14 @@ test('matchmaking rematch handles concurrent acceptance and refuses stale or dep
 
 test('room host authority, code/link, settings, concurrent membership, finish and rematch', async () => {
   const f = fixture(), a = await f.session('a', 'A'), b = await f.session('b', 'B'), c = await f.session('c')
-  const room = await f.call(a, 'POST', '/rooms', { minutes: 3, planets: 16, planning: 10 })
+  const room = await f.call(a, 'POST', '/rooms', { minutes: 3, planets: 9, planning: 10 })
   assert.match(room.code, /^[A-Z2-9]{6}$/); assert.equal(room.link, `https://example.test/r/${room.code}`)
   const joins = await Promise.allSettled([f.call(b, 'POST', '/rooms/join', { code: room.code.toLowerCase() }), f.call(c, 'POST', '/rooms/join', { code: room.code })])
   assert.equal(joins.filter(r => r.status === 'fulfilled').length, 1)
   const guest = joins[0].status === 'fulfilled' ? b : c
   await assert.rejects(f.call(guest, 'POST', '/rooms/start'), { status: 403 })
   await f.call(a, 'POST', '/rooms/start')
-  f.advance(191_000)
+  await f.call(a, 'POST', '/surrender')
   const end = await f.call(a, 'GET', '/state')
   assert.ok(end.view.ended); assert.ok(end.report)
   const old = end.matchId
@@ -179,7 +179,7 @@ test('room host authority, code/link, settings, concurrent membership, finish an
 
 test('rejected room join leaves membership, readiness, timestamps and guest preferences unchanged', async () => {
   const f = fixture(), host = await f.session('host'), guest = await f.session('guest'), replacement = await f.session('replacement')
-  const room = await f.call(host, 'POST', '/rooms', { minutes: 3, planets: 16, planning: 10 })
+  const room = await f.call(host, 'POST', '/rooms', { minutes: 3, planets: 9, planning: 10 })
   // Retain saved preferences from an earlier room so a partial overwrite is observable.
   await f.call(guest, 'POST', '/rooms', { withAgent: false, opening: [{ if: 'always', then: 'hold' }] })
   await f.call(guest, 'POST', '/rooms/leave')
@@ -213,12 +213,12 @@ test('cold instance resumes, concurrent agent rate limit is shared, replay and E
   const results = await Promise.allSettled(Array.from({ length: 8 }, () => f.call(a, 'POST', '/input', { gambits: [{ if: 'always', then: 'hold' }] }, 'agent')))
   assert.equal(results.filter(r => r.status === 'fulfilled').length, 5)
   assert.equal(results.filter(r => r.reason?.status === 429).length, 3)
-  f.advance(15_000)
+  f.advance(11_000)
   const before = await f.call(a, 'GET', '/state')
   const cold = new OnlineGame(f.store, { now: f.game.now, origin: 'https://example.test' })
   const after = await cold.request('GET', '/state', new URLSearchParams({ token: a.humanToken }))
   assert.deepEqual(before, after)
-  f.advance(180_000)
+  await f.call(a, 'POST', '/surrender')
   await Promise.all(Array.from({ length: 6 }, () => f.call(a, 'GET', '/state')))
   const lobby = await f.call(a, 'GET', '/lobby')
   assert.equal(lobby.history.length, 1)
@@ -228,14 +228,15 @@ test('cold instance resumes, concurrent agent rate limit is shared, replay and E
   assert.deepEqual(await persisted.request('GET', '/leaderboard', new URLSearchParams()), { leaderboard: lobby.leaderboard })
   const m = JSON.parse(await f.store.get(`match:${before.matchId}`))
   const log = (await Promise.all(Array.from({ length: Math.ceil(m.logCount / 64) }, (_, i) => f.store.get(`log:${m.id}:${i}`).then(JSON.parse)))).flat()
-  assert.deepEqual(replay(m.s.seed, log, m.s.opts), m.s)
+  const saved = JSON.parse(await f.store.get(`state:${m.id}`))
+  assert.deepEqual(snapshot(replay(saved.seed, log, { ...saved.opts, tick: saved.tick })), saved)
 })
 
 test('surrender finishes either room side once, notifies both agents and permits rematch or leave', async () => {
   for (const side of [0, 1]) {
     const f = fixture(), a = await f.session('a', 'A'), b = await f.session('b', 'B')
     await assert.rejects(f.call(a, 'POST', '/surrender'), { status: 409 })
-    const room = await f.call(a, 'POST', '/rooms', { minutes: 3, planets: 16, planning: 10 })
+    const room = await f.call(a, 'POST', '/rooms', { minutes: 3, planets: 9, planning: 10 })
     await f.call(b, 'POST', '/rooms/join', { code: room.code })
     await f.call(a, 'POST', '/rooms/start')
     for (const player of [a, b]) await f.call(player, 'GET', '/next', {}, 'agent')
@@ -249,14 +250,15 @@ test('surrender finishes either room side once, notifies both agents and permits
     assert.deepEqual(lost.view.ended, { reason: 'surrender', result: 'lost' })
     assert.deepEqual(won.view.ended, { reason: 'surrender', result: 'won' })
     assert.equal(lost.view.tick, before.view.tick)
-    assert.equal(lost.report.actual.result, 'lost'); assert.equal(won.report.actual.result, 'won')
+    assert.equal(lost.report.result, 'lost'); assert.equal(won.report.result, 'won')
     for (const [player, result] of [[loser, 'lost'], [winner, 'won']]) {
       const events = await f.call(player, 'GET', '/events', {}, 'agent')
       assert.equal(events.events.filter(e => e.text.includes(`match over: you ${result} (surrender)`)).length, 1)
     }
     const m = JSON.parse(await f.store.get(`match:${lost.matchId}`))
     const log = (await Promise.all(Array.from({ length: Math.ceil(m.logCount / 64) }, (_, i) => f.store.get(`log:${m.id}:${i}`).then(JSON.parse)))).flat()
-    assert.deepEqual(replay(m.s.seed, log, m.s.opts), m.s)
+    const saved = JSON.parse(await f.store.get(`state:${m.id}`))
+  assert.deepEqual(snapshot(replay(saved.seed, log, { ...saved.opts, tick: saved.tick })), saved)
     await assert.rejects(f.call(winner, 'POST', '/surrender'), { status: 409 })
     await assert.rejects(f.call(loser, 'POST', '/input', { toggle: 0 }), { status: 409 })
     f.advance(20_000)
@@ -287,7 +289,7 @@ test('abandoned queue expires, room leave removes stale membership, ended input 
   await f.call(b, 'POST', '/rooms/leave')
   assert.equal((await f.call(b, 'GET', '/lobby')).room, null)
   await f.call(b, 'POST', '/play', { vs: 'normal', minutes: 3 })
-  f.advance(220_000)
+  await f.call(b, 'POST', '/surrender')
   await assert.rejects(f.call(b, 'POST', '/input', { toggle: 0 }), { status: 409 })
 })
 
@@ -337,8 +339,8 @@ test('a player connected only through the match socket still shows as connected 
   const { matchId } = await f.call(a, 'GET', '/state')
   f.advance(20000)
   const frames = await f.game.request('INTERNAL', '/tick', new URLSearchParams(), { id: matchId, live: [0, 1] })
-  assert.deepEqual(frames.map(frame => frame.opponent.connected), [true, true])
+  assert.deepEqual(frames.frames.map(frame => frame.opponent.connected), [true, true])
   f.advance(20000)
   const idle = await f.game.request('INTERNAL', '/tick', new URLSearchParams(), { id: matchId })
-  assert.deepEqual(idle.map(frame => frame.opponent.connected), [false, false])
+  assert.deepEqual(idle.frames.map(frame => frame.opponent.connected), [false, false])
 })
