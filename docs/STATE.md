@@ -2,7 +2,7 @@
 
 ## Goal
 
-A real-time space strategy game you play with your own AI agent: you set the doctrine, the agent writes the swarm rules, and you take over by hand when it matters. Players sign in, play online 1v1 or against the house bot, and plug in ChatGPT, Claude Code, Codex or any MCP client.
+A real-time space strategy game you play with your own AI agent: you set the doctrine, the agent writes the gambits every battalion follows, and you take over by hand when it matters. Since 21/11 every match is the particle war (one particle = one unit, planets that breed); browsers replay the match locally from the orders the server relays (DESIGN.md). Players sign in, play online 1v1 or against the house bot, and plug in ChatGPT, Claude Code, Codex or any MCP client.
 
 ## What works today
 
