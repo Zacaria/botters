@@ -61,9 +61,10 @@ test('workerd: verified accounts, unique live ticket, consent, two-player room a
   ws = socketResponse.webSocket; ws.accept()
   const frame = await new Promise((resolve, reject) => { ws.addEventListener('message', e => resolve(JSON.parse(e.data)), { once: true }); setTimeout(() => reject(new Error('No real WebSocket frame')), 5000).unref() })
   assert.equal(frame.t, 'snap')
-  assert.equal(frame.side, state.body.view.side)
+  assert.equal(frame.side, next.body.match.side)
+  assert.ok(frame.state && Number.isInteger(frame.log))
   assert.ok(performance.now() - before < 5000)
-  ws.close()
+  ws.close(); ws = null
   assert.equal((await alice.call('POST', `/surrender?token=${a.humanToken}`, {})).status, 200)
   const lobby = await alice.call('GET', `/lobby?token=${a.humanToken}`)
   assert.equal(lobby.body.history.length, 1)
