@@ -4,7 +4,7 @@ import http from 'node:http'
 import { readFileSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
 import { servePublicMedia } from './public-media.js'
-import { createMatch, applyInput, step, view, rules, snapshot, hash, describe, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS } from './sim.js'
+import { createMatch, applyInput, step, view, rules, snapshot, hash, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
@@ -52,10 +52,10 @@ function startMatch(entries, req, waitingForAgent = false) { // entries[1] === n
   entries.forEach((e, side) => {
     const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
       withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
-      events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null, gambitsBy: { who: e ? 'default' : 'house', t: 0, why: '' } }
+      events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null, edits: [] }
     m.players[side] = p
     const opening = e ? e.req.opening : HOUSE[req.vs]
-    if (opening) { applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role: e ? 'human' : 'house', input: { gambits: opening } }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
+    if (opening) { const before = structuredClone(m.s.gambits[side]); applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role: e ? 'human' : 'house', input: { gambits: opening } }); p.edits.push({ t: 0, who: e ? 'you' : 'house', why: 'opening gambits', change: changes(before, m.s.gambits[side]) }) }
     if (e) { e.s.match = m; e.s.side = side }
   })
   for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}). You start with three battalions of 400 units. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits.' : 'Write your opening gambits from the doctrine now.'}`)
@@ -81,7 +81,7 @@ function cancelMatch(m, notice) {
 
 const frame = (m, side) => {
   const p = m.players[side]
-  return { matchId: m.id, side, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
+  return { matchId: m.id, side, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
     me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: foe(m, side), options: m.s.opts }
 }
 const write = (st, data) => st.res.write(`data: ${JSON.stringify(data)}\n\n`)
@@ -233,6 +233,7 @@ const routes = {
     const m = a.s.match, side = a.s.side; if (!m) return json(res, 409, { error: 'not in a match' })
     const b = await body(req), p = m.players[side], now = Date.now()
     if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
+    if (a.role === 'agent' && ['order', 'flank', 'detach', 'release'].some(k => Object.hasOwn(b, k))) return json(res, 403, { error: 'Hand orders are for your human. Ask with call_human.' })
     if (a.role === 'agent') {
       if (!p.withAgent) return json(res, 403, { error: 'your human is playing this match alone' })
       p.sent = p.sent.filter(x => now - x < 1000)
@@ -241,14 +242,14 @@ const routes = {
     }
     const input = Object.fromEntries(['gambits', 'toggle', 'order', 'flank', 'detach', 'release'].filter(k => Object.hasOwn(b, k)).map(k => [k, b[k]]))
     if ((m.waitingForAgent || now < m.startsAt) && Object.keys(input).some(k => k !== 'gambits' && k !== 'toggle')) return json(res, 409, { error: 'match not started: only gambits and toggle can change now' })
-    const r = applyInput(m.s, side, input)
+    const before = structuredClone(m.s.gambits[side]), r = applyInput(m.s, side, input)
     if (r.ok) {
       m.log.push({ tick: m.s.tick, side, role: a.role, input })
-      const why = b.why ? String(b.why).slice(0, 120) : '', t = Math.floor(m.s.tick / TPS), list = m.s.gambits[side]
-      if (b.gambits || b.toggle !== undefined) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why: b.toggle !== undefined ? `switched rule ${b.toggle + 1} ${list[b.toggle].on ? 'on' : 'off'}` : why }
+      const why = typeof b.why === 'string' ? b.why.trim().slice(0, 120) : '', t = Math.floor(m.s.tick / TPS), change = changes(before, m.s.gambits[side]), doctrine = Object.hasOwn(input, 'gambits') || Object.hasOwn(input, 'toggle')
+      if (doctrine) { p.edits.push({ t, who: a.role === 'agent' ? 'agent' : 'you', why, change }); p.edits = p.edits.slice(-10) }
       const action = b.gambits ? 'rewrote the gambits' : b.toggle !== undefined ? `switched gambit ${b.toggle + 1}` : b.order ? `ordered battalion ${b.order.bat}` : b.detach ? `detached battalion ${b.detach.bat}` : b.flank !== undefined ? `flanked battalion ${b.flank}` : `released battalion ${b.release}`
-      feed(m, side, a.role === 'agent' ? 'agent' : 'you', `${action}${why ? `: ${why}` : ''}`)
-      if (a.role === 'human') { if (b.order) p.calls = p.calls.filter(c => c.bat !== b.order.bat); emit(m, side, `HUMAN ${action}`) }
+      feed(m, side, a.role === 'agent' ? 'agent' : 'you', `${a.role === 'agent' && doctrine ? change : action}${why ? `: ${why}` : ''}`)
+      if (a.role === 'human') { if (b.order) p.calls = p.calls.filter(c => c.bat !== b.order.bat); emit(m, side, `HUMAN ${doctrine ? (b.toggle !== undefined ? `switched ${change}` : `rewrote gambits: ${change}`) : action}`) }
     }
     json(res, r.ok ? 200 : 400, r)
   },

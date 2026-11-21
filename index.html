@@ -159,7 +159,7 @@
 <!-- lobby: one choice and one button up front; everything else folds away -->
 <div id="lobby" class="screen" hidden>
   <div class="row" id="accountControls" hidden><span id="accountName"></span> <button id="signout">Sign out</button> <button id="revokeAgent">Disconnect agent</button></div>
-  <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. The agent can read your match view, rewrite your gambits and send instructions to your battalions. It cannot manage your account or command an opponent's battalions. Connecting replaces any currently authorized agent.</p><p>Access lasts up to seven days, including while you are signed out. Use Disconnect agent in the lobby to revoke access.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
+  <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. The agent can read your match view and rewrite your gambits. Only you move battalions by hand. It cannot manage your account or command an opponent's battalions. Connecting replaces any currently authorized agent.</p><p>Access lasts up to seven days, including while you are signed out. Use Disconnect agent in the lobby to revoke access.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
   <main class="hero">
     <h1><b>BOT</b><i>TERS</i></h1>
     <p class="tag">Capture planets. Grow your army.<br>Most units at the end wins.</p>
@@ -238,7 +238,7 @@
     <div id="calls"></div>
     <h3>gambits <span class="dim">· click a rule to toggle</span></h3>
     <div id="byline" class="by"></div>
-    <div id="gambits"></div>
+    <div id="gambits"></div><h3>doctrine edits</h3><div id="edits"></div>
     <div id="gEditor" hidden></div>
     <div class="row"><button id="editG">edit gambits</button><button id="applyG" hidden>apply</button><button id="cancelG" hidden>cancel</button></div>
     <div id="agentBox">
@@ -692,7 +692,7 @@ function panel() {
   const rules = s.gambits[side], ruleKey = JSON.stringify(rules)
   if (ruleKey !== lastRules) { lastRules = ruleKey; $('gambits').innerHTML = rules.map((r, i) => `<div class="g${r.on === false ? ' off' : ''}" data-g="${i}" role="button" tabindex="0">${esc(label(r))} <i></i></div>`).join('') }
   document.querySelectorAll('[data-g]').forEach(el => { const c = own.filter(b => !b.manual && b.rule === Number(el.dataset.g)).length; el.classList.toggle('hot', c > 0); el.querySelector('i').textContent = c ? `${c} battalion${c === 1 ? '' : 's'}` : '' })
-  const by = F.gambitsBy; $('byline').textContent = by ? `${by.who} · ${clock(by.t || 0)} ${by.why || ''}` : ''
+  const edits = F.edits || [], by = edits.at(-1); $('byline').textContent = by ? `${by.who} · ${clock(by.t)}${by.why ? ` · ${by.why}` : ''}` : ''; $('edits').innerHTML = [...edits].reverse().map(e => `<div>${esc(clock(e.t))} · ${esc(e.who)} · ${esc(e.change)} <span class="dim">${esc(e.why)}</span></div>`).join('')
   const calls = F.calls || []; $('calls').innerHTML = calls.map((c, i) => `<div class="call">${esc(c.message)}${c.bat != null ? ` · battalion #${c.bat}` : ''} ${c.bat != null && c.x != null ? `<button data-do="${i}">do it</button>` : ''}<button data-no="${i}">dismiss</button></div>`).join('')
   $('feed').innerHTML = (F.feed || []).slice().reverse().map(f => `<div><span class="dim">${clock(f.t || 0)}</span> ${esc(f.who)} ${esc(f.text)}</div>`).join('')
   renderGuide()

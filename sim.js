@@ -339,12 +339,23 @@ export function view(s, side) {
   const units = count(s), planets = owned(s), battalions = live(s, side).map(b => {
     const roles = { runner: 0, grunt: 0, tank: 0 }
     for (let i = 0; i < s.N; i++) if (s.alive[i] && s.bat[i] === b.id) roles[ROLES[s.role[i]].name]++
-    return { id: b.id, x: b.cx, y: b.cy, n: b.n, roles, tx: b.tx, ty: b.ty, manual: b.manual, rule: b.rule, fighting: fighting(s, b) }
+    return { id: b.id, x: b.cx, y: b.cy, n: b.n, roles, tx: b.tx, ty: b.ty, manual: b.manual, rule: b.rule, ruleText: !b.manual && b.rule >= 0 && s.gambits[side][b.rule] ? describe(s.gambits[side][b.rule]) : null, fighting: fighting(s, b) }
   })
   return { tick: s.tick, secondsLeft: Math.max(0, (s.endTick - s.tick) / TPS), ended: s.ended ? { reason: s.ended.reason, result: s.ended.winner === null ? 'draw' : s.ended.winner === side ? 'won' : 'lost' } : null,
     totals: { you: units[side], enemy: units[1-side], planets: { you: planets[side], enemy: planets[1-side] } }, battalions,
     enemies: live(s, 1-side).filter(b => visible(s, side, b.cx, b.cy)).map(b => ({ id: b.id, x: b.cx, y: b.cy, n: b.n, fighting: fighting(s, b) })),
-    planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', capture: p.prog })), gambits: structuredClone(s.gambits[side]) }
+    planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', capture: p.prog })), gambits: structuredClone(s.gambits[side]), perRule: s.gambits[side].map((_, i) => battalions.filter(b => !b.manual && b.rule === i).length) }
 }
 export const rules = () => ({ conditions: structuredClone(CONDITIONS), actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, doc]) => [k, { doc }])) })
 export const describe = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
+
+export function changes(before, after) {
+  const plain = r => describe({ ...r, on: true })
+  if (before.length === after.length && before.every((r, i) => plain(r) === plain(after[i]))) {
+    const toggles = before.flatMap((r, i) => (r.on !== false) === (after[i].on !== false) ? [] : [`rule ${i + 1} ${after[i].on === false ? 'off' : 'on'}: ${plain(r)}`])
+    return toggles.join('; ') || 'no change'
+  }
+  const remaining = after.map(plain), removed = []
+  for (const r of before) { const text = plain(r), i = remaining.indexOf(text); if (i < 0) removed.push(`- ${text}`); else remaining.splice(i, 1) }
+  return [...removed, ...remaining.map(text => `+ ${text}`)].join('; ') || 'reordered'
+}

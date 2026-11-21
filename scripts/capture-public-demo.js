@@ -83,7 +83,7 @@ try {
   await page.waitForTimeout(16000)
   const end = await sample('clip end')
   assert.ok(end.view.tick > 760, 'real simulation advanced about 40 seconds')
-  assert.equal(end.gambitsBy.who, 'agent')
+  assert.equal(end.edits.at(-1).who, 'agent')
   assert.deepEqual(end.view.gambits, opening)
   assert.deepEqual(errors, [])
   await page.screenshot({ path: `${out}/frame-40.png` })
