@@ -24,6 +24,27 @@ import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
 import { createReplica } from '../browser-live.js'
 import * as sim from '../sim.js'
 
+test('cold catch-up returns bounded progress and checkpoints survive repeated eviction', async () => {
+  let now = 100000
+  const store = new MemoryStore(() => now)
+  const make = () => new OnlineGame(store, { now: () => now, seed: () => 42 })
+  const session = await make().request('POST', '/session', new URLSearchParams(), { name: 'A' })
+  const q = new URLSearchParams({ token: session.humanToken })
+  await make().request('POST', '/play', q, { vs: 'normal', withAgent: false, planning: 10, planets: 9 })
+  const matchId = (await make().request('GET', '/state', q)).matchId
+  const initial = await make().request('INTERNAL', '/tick', new URLSearchParams(), { id: matchId, snap: true })
+  now += 25000
+  let previous = 0, current
+  do {
+    current = await make().request('INTERNAL', '/tick', new URLSearchParams(), { id: matchId, snap: true })
+    assert.ok(current.tick > previous && current.tick - previous <= 100, `unbounded progress ${previous} -> ${current.tick}`)
+    previous = current.tick
+  } while (current.tick < 300)
+  const expected = sim.restore(initial.state)
+  sim.advanceTo(expected, current.tick)
+  assert.equal(sim.hash(sim.restore(current.state)), sim.hash(expected))
+})
+
 const waitFor = async (predicate, ms = 45000) => {
   const end = Date.now() + ms
   while (!predicate()) {

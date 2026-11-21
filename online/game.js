@@ -1,6 +1,6 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
 import { createMatch, restore, snapshot, hash as simHash, applyInput, step, view, rules, describe, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
-import { transaction, checkDeadline } from './store.js'
+import { transaction } from './store.js'
 import { rankPairs } from './ratings.js'
 
 const token = () => randomBytes(24).toString('base64url')
@@ -16,8 +16,8 @@ const canonicalRules = list => {
   return list.map(r => ({ if: r.if, ...(r.p !== undefined ? { p: r.p } : {}), then: r.then, on: r.on !== false }))
 }
 const cleanInput = b => {
-  if (['route', 'split'].some(k => b[k] !== undefined)) fail(400, 'Unknown action.')
-  const keys = ['gambits', 'toggle', 'order', 'flank', 'detach', 'release', 'surrender'].filter(k => b[k] !== undefined)
+  if (['route', 'split', 'surrender'].some(k => b[k] !== undefined)) fail(400, 'Unknown action.')
+  const keys = ['gambits', 'toggle', 'order', 'flank', 'detach', 'release'].filter(k => b[k] !== undefined)
   if (keys.length !== 1) fail(400, 'Send exactly one input.')
   const k = keys[0], arg = b[k]
   if (k === 'gambits') return { gambits: canonicalRules(arg) }
@@ -90,7 +90,7 @@ export class OnlineGame {
         Object.defineProperty(m, 's', { value: state, writable: true, configurable: true })
         tx.beforeCommit(async () => {
           m.stateTick = m.s.tick
-          if (initial || (m.s.ended && !m.checkpointEnded) || m.s.tick - (m.checkpointTick ?? 0) >= 200) {
+          if (initial || (m.s.ended && !m.checkpointEnded) || m.s.tick - (m.checkpointTick ?? 0) >= 100 || m.catchupCheckpoint) {
             await tx.set(`state:${m.id}`, snapshot(m.s))
             m.checkpointTick = m.s.tick; m.checkpointLog = m.logCount; m.checkpointEnded = !!m.s.ended
           }
@@ -168,12 +168,13 @@ export class OnlineGame {
         attachState(m, state)
         const target = m.waitingForAgent ? 0 : Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
 
-        while (m.s.tick < target && !m.s.ended) {
-          if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
+        const batchEnd = Math.min(target, m.s.tick + 100), budgetEnd = Math.min(this.deadline - 500, performance.now() + 500)
+        while (m.s.tick < batchEnd && !m.s.ended && performance.now() < budgetEnd) {
           step(m.s)
           if (m.s.tick % 20 === 0) { m.hashes ||= []; m.hashes.push([m.s.tick, simHash(m.s)]); m.hashes = m.hashes.slice(-16) }
           if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
         }
+        if (m.s.tick < target && !m.s.ended) Object.defineProperty(m, 'catchupCheckpoint', { value: true })
 
         await finish(m)
         return m
