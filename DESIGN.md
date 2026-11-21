@@ -145,6 +145,30 @@ Owner, after playing the typed and grouped version: "I don't like the rendering 
 - House levels re-measured without types (24 seeds, 3 min, 28 planets, default list wins): easy 20, normal 14, hard 7. `normal` now defends its planets first.
 - Next: spike where every particle is a unit (own speed, blockers and flankers, detachable battalions). Worst case to design for: 3,000 units per side (a throwaway probe measured about 6 ms per tick for that, against a 50 ms budget; 9,000 per side did not fit).
 
+## Particle war replaces the cohort model (2026-11-21) ✅
+
+Owner played the `feat/particles` spike and approved replacing production with it ("je valide et enchaîne"). The cohort sim, its Rust/WASM build and every swarm-only mechanic (digestion, hunger, merging overlap, routes, split, 2v2/free-for-all) are deleted, not kept as a fallback.
+
+**Game.** One particle = one unit, three roles (runner fast/fragile, grunt, tank slow/tough). Units belong to battalions. Owned, unthreatened planets breed units into the nearest battalion. A crowd standing alone on a planet drains it and takes it. Each battalion follows its side's gambits (`IF condition → action`, first match wins, every 10 ticks) unless a human holds it. Duels only (1v1). Length 3 / 5 / 8 min; map 9 / 17 / 25 planets (two homes, one centre prize, mirrored pairs). A side with no units and no planets loses at once; at time, more planets wins, then more units.
+
+**Gambits.** Conditions `bigger_enemy_near, planet_attacked, ally_fighting, weaker_enemy_near, small, big, free_planet, enemy_planet, always`; actions `go, flank, retreat, split, hold`. House bots are fixed gambit sets: `blob` (never retreats or splits), `flanker` (the default for players), `cautious`. Wire name stays `gambits`; the lobby "doctrine" is still the human's free text for the agent.
+
+**Hand orders** (human or agent, agents still capped at 5 inputs/s): `order {bat, x, y}` (move), `flank bat` (swing round the nearest enemy), `detach {bat, role?}` (half, or only one role), `release bat` (back to the gambits). API: `docs/specs/particle-sim.md`.
+
+**Lockstep replica.** The server still runs the authoritative match (results, Elo, agent views). Browsers run the same `sim.js` and never receive positions. Every message, over the online WebSocket and the local SSE stream alike:
+
+| Message | Meaning |
+|---|---|
+| `{t:'snap', side, log, state}` | Full state at `state.tick`; `log` inputs are already in it. Sent on connect and on `{t:'resync'}` from the client. |
+| `{t:'step', tick, inputs:[{i, tick, side, input}], hash?:[tick, h]}` | Advance up to `tick`. Each input applies at its own tick, before that tick's step, in `i` order. `hash` is the server's `hash(s)` at the last multiple of 20 ticks. |
+| `{t:'meta', ...}` | Match frame without positions (ids, side, players, startsIn, calls, feed, gambitsBy, result report). On change, at most once a second. |
+
+The server stamps an input with its own tick when it accepts it, and announces tick T only after stepping to T, so every input at a tick below T is sent before the client may pass it. A client that sees a gap in `i`, an input older than its tick, or a different hash asks for a snapshot. Clients play the announced ticks at 20 Hz, about one message behind.
+
+**Fog is display only.** Each browser runs the whole match, so a modified client can see through fog and read the opponent's orders. Agent views from the server keep fog. Accepted for now; a ranked anti-cheat would need server-side views again.
+
+**Cost.** A 5-minute match is ~2.6 ms per tick in Node (bench: `node scripts/bench-sim.js`). A what-if replay of a whole match is ~15 s of CPU, too slow for the Worker, so the end report shows the result and input counts only.
+
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 
 | Role | Model | Speed | Does |
