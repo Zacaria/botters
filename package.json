@@ -10,13 +10,12 @@
     "public-media.js",
     "media/",
     "sim.js",
-    "sim/runtime.js",
-    "sim/pkg/",
     "index.html",
     "guide.html",
     "privacy.html",
     "terms.html",
-    "DOCTRINE.md"
+    "DOCTRINE.md",
+    "browser-live.js"
   ],
   "engines": {
     "node": ">=22"
@@ -31,7 +30,6 @@
     "server": "node server.js",
     "dev": "wrangler dev",
     "build": "node scripts/build.js",
-    "build:sim": "node scripts/build-sim.js",
     "check": "node scripts/check.js",
     "build:worker": "npm run build && node scripts/build-cloudflare.js",
     "test": "node scripts/build-cloudflare.js && node --test --test-concurrency=1 test/*.test.js",
@@ -42,19 +40,15 @@
     "@cfworker/json-schema": "^4.1.6",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "better-auth": "1.7.18",
-
     "cross-spawn": "^7.0.6",
     "jsonc-parser": "^3.3.1",
-
     "smol-toml": "^1.9.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-
     "esbuild": "^0.28.2",
     "miniflare": "^5.20261104.0-beta",
-
     "wrangler": "^4.158.0"
   }
 }

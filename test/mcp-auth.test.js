@@ -98,9 +98,9 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
 const gameplay = [
   ['wait_for_event', { timeout_s: 1 }],
   ['set_gambits', { gambits: [{ if: 'always', then: 'hold' }], why: 'fixture' }],
-  ['order_swarm', { swarm: 1, x: 100, y: 100, why: 'fixture' }],
-  ['split_swarm', { swarm: 1, why: 'fixture' }],
-  ['release_swarm', { swarm: 1 }],
+  ['order_battalion', { bat: 1, x: 100, y: 100, why: 'fixture' }],
+  ['detach_battalion', { bat: 1, why: 'fixture' }],
+  ['release_battalion', { bat: 1 }],
   ['call_human', { message: 'fixture' }],
 ]
 
@@ -232,7 +232,7 @@ test('an externally supplied agent capability is forgotten after real revocation
 test('OAuth-bound clients never fall back to anonymous pairing after their approved capability is revoked', async () => {
   const f = await callbackFixture({ supplied: true, bound: true }); await f.join()
   await f.revoke()
-  assert.match(await f.call('split_swarm', { swarm: 1, why: 'revoked OAuth grant' }), /Reconnect Botters in your assistant/)
+  assert.match(await f.call('detach_battalion', { bat: 1, why: 'revoked OAuth grant' }), /Reconnect Botters in your assistant/)
   disconnected(f.S)
   const sent = f.requests.length
   for (const [name, args] of gameplay) assert.match(await f.call(name, args), /join_match/)

@@ -11,7 +11,6 @@ A real-time space strategy game played with an AI agent through MCP. Node.js 22+
 - `npm install` installs dependencies; `npm run server` starts local development on port 8787.
 - `npm test` runs Node tests; `npm run check` checks JavaScript, inline scripts and JSON; `npm run build` writes public assets.
 - `npm run test:browser` covers browser paths; `npm run test:cloudflare` covers the isolated Worker runtime. Consult the README for prerequisites.
-- After Rust changes, `npm run build:sim` requires the wasm32 target and wasm-bindgen CLI 0.2.100.
 
 ## Boundaries and conventions
 

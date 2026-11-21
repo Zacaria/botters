@@ -1,10 +1,10 @@
 // Game server: lobby sessions (one human + optionally one agent), matches vs the house or another player,
 // 20 Hz match loop, agent API, browser stream, what-if report, Elo.
 import http from 'node:http'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
 import { servePublicMedia } from './public-media.js'
-import { createMatch, fromJSON, applyInput, step, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, HOUSE, TPS, W, H, MAX_GAMBITS } from './sim.js'
+import { createMatch, applyInput, step, view, rules, snapshot, hash, describe, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
@@ -12,8 +12,7 @@ const RATE = 5, FINISHED_TTL = 10 * 60 * 1000, FRAME_EVERY = 2, DOCTRINE_MAX = 5
 const PLANNING = [10, 20, 30] // seconds before the match starts: time for the agent to write opening gambits
 const FORCED_DELAY = process.env.BOTTERS_START_DELAY && Number(process.env.BOTTERS_START_DELAY) // ms, tests only
 const SEED = process.env.BOTTERS_SEED ? Number(process.env.BOTTERS_SEED) : undefined // fixed map, tests only
-const DOCTRINE_FILE = new URL('DOCTRINE.md', import.meta.url)
-const DEFAULT_DOCTRINE = (existsSync(DOCTRINE_FILE) ? readFileSync(DOCTRINE_FILE, 'utf8') : 'Grab free planets fast, fight only when bigger, protect what we own.').trim().slice(0, DOCTRINE_MAX)
+const DEFAULT_DOCTRINE = 'Take free planets early, defend threatened planets, and flank weaker enemies. Avoid larger enemy battalions.'
 const LEVELS = Object.keys(HOUSE)
 const tokens = new Map(), elo = new Map()
 let waiting = null // a session queued for "another player"
@@ -32,7 +31,6 @@ const live = s => s.match && !s.match.s.ended
 
 function parsePlay(b) { // validated match request from the lobby (or a script)
   const vs = [...LEVELS, 'player'].includes(b.vs) ? b.vs : 'normal'
-  if (matchOptions(b).mode !== '1v1' && vs === 'player') b = { ...b, mode: '1v1' } // 2v2 and free-for-all are played against house bots for now
   return { vs, ...matchOptions(b), planning: PLANNING.includes(b.planning) ? b.planning : 20, withAgent: b.withAgent !== false, opening: Array.isArray(b.opening) ? b.opening : null }
 }
 
@@ -47,13 +45,12 @@ function play(s, req, human = false) {
 }
 
 // ---------- matches ----------
-const foe = (m, side) => { const f = m.players.filter(p => m.s.teams[p.side] !== m.s.teams[side]); return { name: f.length > 1 ? `${f.length} house bots` : f[0].name, setup: f.length > 1 ? 'fixed gambits' : f[0].setup } }
+const foe = (m, side) => ({ name: m.players[1 - side].name, setup: m.players[1 - side].setup })
 function startMatch(entries, req, waitingForAgent = false) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
   const delay = FORCED_DELAY ?? req.planning * 1000
-  entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
-  const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
+  const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], hashes: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
-    const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
+    const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
       withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
       events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null, gambitsBy: { who: e ? 'default' : 'house', t: 0, why: '' } }
     m.players[side] = p
@@ -61,12 +58,13 @@ function startMatch(entries, req, waitingForAgent = false) { // entries[1] === n
     if (opening) { applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role: e ? 'human' : 'house', input: { gambits: opening } }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
     if (e) { e.s.match = m; e.s.side = side }
   })
-  for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[p.side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with three swarms of 3,000 particles. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits: keep them unless the situation demands a change.' : 'Write your opening gambits from the doctrine now.'}`)
+  for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}). You start with three battalions of 400 units. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits.' : 'Write your opening gambits from the doctrine now.'}`)
   m.timer = setInterval(() => {
     if (m.waitingForAgent && Date.now() >= m.createdAt + 300000) return cancelMatch(m, 'Match cancelled: your agent did not join within 5 minutes.')
     if (m.waitingForAgent) { for (const st of m.streams) send(st, m); return }
     if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
     step(m.s)
+    if (m.s.tick % 20 === 0) { m.hashes.push([m.s.tick, hash(m.s)]); if (m.hashes.length > 32) m.hashes.shift() }
     if (m.s.ended) return finish(m)
     if (m.s.tick % TPS === 0) for (const p of m.players) diffEvents(m, p)
     if (m.s.tick % FRAME_EVERY === 0) for (const st of m.streams) send(st, m)
@@ -79,15 +77,23 @@ function cancelMatch(m, notice) {
   clearInterval(m.timer)
   for (const p of m.players) if (p.session?.match === m) { p.session.match = null; p.session.notice = notice }
   for (const st of m.streams) st.res.end()
-  m.s.free()
 }
 
 const frame = (m, side) => {
   const p = m.players[side]
-  return { matchId: m.id, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
+  return { matchId: m.id, side, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, gambitsBy: p.gambitsBy, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
     me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: foe(m, side), options: m.s.opts }
 }
-const send = (st, m) => st.res.write(`data: ${JSON.stringify(frame(m, st.side))}\n\n`)
+const write = (st, data) => st.res.write(`data: ${JSON.stringify(data)}\n\n`)
+const send = (st, m, force = false) => {
+  const inputs = m.log.slice(st.next).map((entry, n) => ({ i: st.next + n, tick: entry.tick, side: entry.side, input: entry.input }))
+  st.next = m.log.length
+  write(st, { t: 'step', tick: m.s.tick, inputs, hash: m.hashes.at(-1) || null })
+  const { view: v, ...meta } = frame(m, st.side)
+  meta.gambits = v.gambits
+  const data = JSON.stringify(meta), now = Date.now()
+  if (force || (data !== st.meta && now - st.metaAt >= 1000)) { write(st, { t: 'meta', ...meta }); st.meta = data; st.metaAt = now }
+}
 
 function finish(m) {
   if (m.report) return
@@ -99,22 +105,11 @@ function finish(m) {
     const exp = 1 / (1 + 10 ** ((rb - ra) / 400)), got = w === 0 ? 1 : w === 1 ? 0 : 0.5
     elo.set(a.name, Math.round(ra + 32 * (got - exp))); elo.set(b.name, Math.round(rb - 32 * (got - exp)))
   }
-  m.report = m.players.map(p => p.session && whatIf(m, p))
+  m.report = m.players.map(p => { const v = view(m.s, p.side); return { result: v.ended.result, reason: v.ended.reason, you: v.totals.you, enemy: v.totals.enemy, planets: v.totals.planets } })
   for (const p of m.players) if (p.session) p.session.history = [{ ...m.report[p.side], reason: m.s.ended.reason, at: Math.round(m.s.tick / TPS), vs: foe(m, p.side).name, withAgent: p.withAgent }, ...p.session.history].slice(0, 10)
-  for (const st of m.streams) send(st, m)
+  for (const st of m.streams) send(st, m, true)
   setTimeout(() => { for (const p of m.players) if (p.session?.match === m) p.session.match = null }, FINISHED_TTL)
   console.error(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${foe(m, 0).name} (${foe(m, 0).setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0] }))
-}
-
-// Who won it? Replay the match without this side's human inputs, then without its agent's. Same seed, same opponent inputs.
-// ponytail: honest but partial — in the replay the agent repeats its orders blindly instead of reacting to the new situation.
-// ponytail: synchronous replays (~0.5 s each) at match end block the server loop; move to a worker if matches overlap.
-function whatIf(m, p) {
-  const side = p.side
-  const res = s => { const t = view(s, side).totals, w = s.ended.winner; return { result: w === s.teams[side] ? 'won' : w === null ? 'draw' : 'lost', you: t.you, enemy: t.enemy } }
-  const without = role => res(replay(m.s.seed, m.log.filter(l => l.side !== side || l.role !== role), m.s.opts))
-  const count = role => m.log.filter(l => l.side === side && l.role === role).length
-  return { actual: res(m.s), humanInputs: count('human'), agentInputs: count('agent'), withoutHuman: without('human'), withoutAgent: p.withAgent ? without('agent') : null }
 }
 
 function emit(m, side, text) {
@@ -130,16 +125,13 @@ function diffEvents(m, p) { // once per second: turn state changes into things a
   p.prev = v
   if (v.ended) return emit(m, p.side, `match over: you ${v.ended.result} (${v.ended.reason}). Particles ${v.totals.you} vs ${v.totals.enemy}.`)
   if (!was) return
-  for (const e of v.enemies) if (e.n >= 1500 && !was.enemies.some(o => o.id === e.id)) emit(m, p.side, `enemy swarm ${e.id} (${e.n}) spotted at (${e.x},${e.y})`)
   for (const pl of v.planets) {
     const before = was.planets[pl.id].owner
-    if (pl.owner === before || pl.massLeft <= 0) continue
-    emit(m, p.side, pl.owner === 'you' ? `you captured planet ${pl.id} (${pl.x},${pl.y})` : pl.owner === 'enemy' ? `ENEMY captured planet ${pl.id} at (${pl.x},${pl.y})` : `planet ${pl.id} at (${pl.x},${pl.y}) is neutral again (was ${before === 'you' ? 'yours' : 'enemy'})`)
+    if (pl.owner !== before) emit(m, p.side, `planet ${pl.id} ${pl.owner === 'you' ? 'taken' : before === 'you' ? 'lost' : 'changed hands'}`)
   }
-  for (const c of was.swarms) if (c.n >= 500 && !v.swarms.some(o => o.id === c.id) && c.fighting) emit(m, p.side, `your swarm ${c.id} (${c.n}) was destroyed near (${c.x},${c.y})`)
-  const behind = v.totals.you < v.totals.enemy
-  if (behind !== was.totals.you < was.totals.enemy) emit(m, p.side, behind ? `you fell behind: ${v.totals.you} vs ${v.totals.enemy} particles` : `you took the lead: ${v.totals.you} vs ${v.totals.enemy} particles`)
-  if (v.secondsLeft === 60) emit(m, p.side, `1 minute left. Particles ${v.totals.you} vs ${v.totals.enemy}.`)
+  for (const bat of was.battalions) if (!v.battalions.some(b => b.id === bat.id)) emit(m, p.side, `battalion ${bat.id} lost`)
+  for (const bat of v.battalions) if (bat.fighting && !was.battalions.find(b => b.id === bat.id)?.fighting) emit(m, p.side, `battalion ${bat.id} fighting`)
+
 }
 
 function joinInfo(s) { // what the agent learns when it joins its session's match
@@ -247,40 +239,26 @@ const routes = {
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
     }
-    const input = { gambits: b.gambits, toggle: b.toggle, order: b.order, route: b.route, split: b.split, release: b.release }
-    if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.route !== undefined || input.split !== undefined || input.release !== undefined)) return json(res, 409, { error: 'match not started: only gambits can change now' })
-    const candidate = fromJSON(m.s.toJSON())
-    const r = applyInput(candidate, side, input)
+    const input = Object.fromEntries(['gambits', 'toggle', 'order', 'flank', 'detach', 'release'].filter(k => Object.hasOwn(b, k)).map(k => [k, b[k]]))
+    if ((m.waitingForAgent || now < m.startsAt) && Object.keys(input).some(k => k !== 'gambits' && k !== 'toggle')) return json(res, 409, { error: 'match not started: only gambits and toggle can change now' })
+    const r = applyInput(m.s, side, input)
     if (r.ok) {
-      m.s.free(); m.s = candidate
       m.log.push({ tick: m.s.tick, side, role: a.role, input })
       const why = b.why ? String(b.why).slice(0, 120) : '', t = Math.floor(m.s.tick / TPS), list = m.s.gambits[side]
-      if (b.gambits) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why }
-      if (b.toggle !== undefined) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why: `switched rule ${b.toggle + 1} ${list[b.toggle].on ? 'on' : 'off'}` }
-      if (a.role === 'agent') {
-        if (b.route) feed(m, side, 'agent', `routed swarm ${b.route.swarm} through ${b.route.points.length} points${why && `: ${why}`}`)
-        if (b.gambits) feed(m, side, 'agent', `rewrote the gambits${why && `: ${why}`}`)
-        if (b.order) feed(m, side, 'agent', `took swarm ${b.order.swarm} to (${Math.round(b.order.x)},${Math.round(b.order.y)})${why && `: ${why}`}`)
-        if (b.split !== undefined) feed(m, side, 'agent', `split swarm ${b.split}${why && `: ${why}`}`)
-        if (b.release !== undefined) feed(m, side, 'agent', `gave swarm ${b.release} back to the gambits`)
-      } else {
-        if (b.route) { p.calls = p.calls.filter(c => c.swarm !== b.route.swarm); emit(m, side, `HUMAN routed swarm ${b.route.swarm} through ${b.route.points.length} points`) }
-        if (b.gambits) { emit(m, side, `HUMAN rewrote the gambits:\n${list.map((r, i) => `${i + 1}. ${describe(r)}`).join('\n')}`); feed(m, side, 'you', 'rewrote the gambits') }
-        if (b.toggle !== undefined) emit(m, side, `HUMAN switched gambit ${b.toggle + 1} ${list[b.toggle].on ? 'ON' : 'OFF'}: ${describe(list[b.toggle])}`)
-        if (b.order) { p.calls = p.calls.filter(c => c.swarm !== b.order.swarm); emit(m, side, `HUMAN took swarm ${b.order.swarm} by hand to (${Math.round(b.order.x)},${Math.round(b.order.y)})`) }
-        if (b.split !== undefined) emit(m, side, `HUMAN split swarm ${b.split}`)
-        if (b.release !== undefined) emit(m, side, `HUMAN gave swarm ${b.release} back to the gambits`)
-      }
-    } else candidate.free()
+      if (b.gambits || b.toggle !== undefined) p.gambitsBy = { who: a.role === 'agent' ? 'agent' : 'you', t, why: b.toggle !== undefined ? `switched rule ${b.toggle + 1} ${list[b.toggle].on ? 'on' : 'off'}` : why }
+      const action = b.gambits ? 'rewrote the gambits' : b.toggle !== undefined ? `switched gambit ${b.toggle + 1}` : b.order ? `ordered battalion ${b.order.bat}` : b.detach ? `detached battalion ${b.detach.bat}` : b.flank !== undefined ? `flanked battalion ${b.flank}` : `released battalion ${b.release}`
+      feed(m, side, a.role === 'agent' ? 'agent' : 'you', `${action}${why ? `: ${why}` : ''}`)
+      if (a.role === 'human') { if (b.order) p.calls = p.calls.filter(c => c.bat !== b.order.bat); emit(m, side, `HUMAN ${action}`) }
+    }
     json(res, r.ok ? 200 : 400, r)
   },
-  'POST /call': async (req, res, q) => { // agent asks its human to take a swarm somewhere by hand
+  'POST /call': async (req, res, q) => { // agent asks its human to take a battalion somewhere by hand
     const a = auth(q, 'agent'); if (!a?.s.match) return json(res, a ? 409 : 401, { error: a ? 'not in a match' : 'bad token' })
     const m = a.s.match, b = await body(req)
     if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
     const p = m.players[a.s.side]
-    const call = { swarm: Number.isFinite(b.swarm) ? b.swarm : null, x: Number.isFinite(b.x) ? Math.round(b.x) : null, y: Number.isFinite(b.y) ? Math.round(b.y) : null, message: String(b.message || '').slice(0, 140), t: Math.floor(m.s.tick / TPS) }
-    p.calls = [...p.calls.filter(c => call.swarm === null || c.swarm !== call.swarm), call].slice(-3)
+    const call = { bat: Number.isFinite(b.bat) ? b.bat : null, x: Number.isFinite(b.x) ? Math.round(b.x) : null, y: Number.isFinite(b.y) ? Math.round(b.y) : null, message: String(b.message || '').slice(0, 140), t: Math.floor(m.s.tick / TPS) }
+    p.calls = [...p.calls.filter(c => call.bat === null || c.bat !== call.bat), call].slice(-3)
     feed(m, a.s.side, 'agent', `asks you: ${call.message}`)
     json(res, 200, { ok: true })
   },
@@ -303,16 +281,16 @@ const routes = {
   'GET /stream': (req, res, q) => { // human browser: frames of the session's current match
     const a = auth(q, 'human'); if (!a?.s.match) return json(res, 409, { error: 'not in a match' })
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
-    const st = { res, side: a.s.side }, m = a.s.match
-    send(st, m)
+    const m = a.s.match, st = { res, side: a.s.side, next: m.log.length, meta: null, metaAt: 0 }
+    write(st, { t: 'snap', side: st.side, log: st.next, state: snapshot(m.s) })
+    const { view: initialView, ...initialMeta } = frame(m, st.side)
+    initialMeta.gambits = initialView.gambits; st.meta = JSON.stringify(initialMeta); st.metaAt = Date.now(); write(st, { t: 'meta', ...initialMeta })
     m.streams.add(st); req.on('close', () => m.streams.delete(st))
   },
   'GET /leaderboard': (req, res) => json(res, 200, leaderboard()),
   'GET /': page('index.html'),
   'GET /sim.js': page('sim.js'),
-  'GET /sim/runtime.js': page('sim/runtime.js'),
-  'GET /sim/pkg/botters_sim.js': page('sim/pkg/botters_sim.js'),
-  'GET /sim/pkg/botters_sim_bg.wasm': (req, res) => { res.writeHead(200, { 'content-type': 'application/wasm' }); res.end(readFileSync(new URL('sim/pkg/botters_sim_bg.wasm', import.meta.url))) },
+  'GET /browser-live.js': page('browser-live.js'),
   'GET /guide': page('guide.html'),
   'GET /privacy': page('privacy.html'),
   'GET /privacy.html': page('privacy.html'),
