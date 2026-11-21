@@ -7,7 +7,7 @@ const bounded = (work, ms = 750) => {
   return Promise.race([work, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Authority unavailable')), ms) })]).finally(() => clearTimeout(timer))
 }
 export class MatchRoom extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); this.sockets = new Map(); this.handles = new Map(); this.tail = Promise.resolve(); this.timer = null; this.matchId = null }
+  constructor(ctx, env) { super(ctx, env); this.sockets = new Map(); this.stateCache = new Map(); this.tail = Promise.resolve(); this.timer = null; this.matchId = null }
   serial(fn) { const work = this.tail.then(fn, fn); this.tail = work.catch(() => {}); return work }
   async wake(id) {
     if (!this.ctx.id.equals(this.env.MATCHES.idFromName(id))) throw new Error('Wrong match owner')
@@ -17,7 +17,7 @@ export class MatchRoom extends DurableObject {
   }
   async fetch(request) {
     try {
-      if (request.headers.get('upgrade') !== 'websocket') return await this.serial(() => gameHTTP(this.env, request, this.handles))
+      if (request.headers.get('upgrade') !== 'websocket') return await this.serial(() => gameHTTP(this.env, request, this.stateCache))
       const admitted = await bounded(admission(this.env, request))
       if (!admitted.session.match || !this.ctx.id.equals(this.env.MATCHES.idFromName(admitted.session.match))) return json({ error: 'Match changed. Reconnect.' }, 409)
       await this.wake(admitted.session.match)
@@ -31,9 +31,19 @@ export class MatchRoom extends DurableObject {
       server.addEventListener('close', drop); server.addEventListener('error', drop)
       // Independent watchdog still fires when D1 or the game queue is stalled.
       entry.watchdog = setInterval(() => { if (!this.sockets.has(server)) return clearInterval(entry.watchdog); if (Date.now() >= entry.until) { server.close(4401, 'Access ended'); drop(); clearInterval(entry.watchdog) } }, 100)
+      server.addEventListener('message', event => { try { if (JSON.parse(event.data).t === 'resync') void this.serial(() => this.sendSnapshot(server, entry)) } catch {} })
+      await this.serial(() => this.sendSnapshot(server, entry))
       this.schedule()
       return new Response(null, { status: 101, webSocket: pair[0] })
     } catch (e) { return failure(e) }
+  }
+  async sendSnapshot(socket, entry) {
+    const data = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: entry.matchId, snap: true }, null, undefined, this.stateCache)
+    if (!data || !this.sockets.has(socket)) return
+    socket.send(JSON.stringify({ t: 'snap', side: entry.side, log: data.log, state: data.state }))
+    entry.next = data.log
+    const meta = { t: 'meta', ...data.frames[entry.side] }
+    socket.send(JSON.stringify(meta)); entry.meta = JSON.stringify(meta); entry.metaAt = Date.now()
   }
   schedule() {
     if (this.timer || !this.sockets.size) return
@@ -58,11 +68,18 @@ export class MatchRoom extends DurableObject {
     if (!this.sockets.size) return
     try {
       const live = [...new Set([...this.sockets.values()].map(entry => entry.side))]
-      const frames = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId, live }, null, undefined, this.handles)
+      const from = Math.min(...[...this.sockets.values()].map(entry => entry.next ?? 0))
+      const data = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId, live, from }, null, undefined, this.stateCache)
       for (const [socket, entry] of this.sockets) {
         if (Date.now() >= entry.until) { socket.close(4401, 'Access ended'); this.sockets.delete(socket); continue }
-        const frame = frames?.[entry.side]
-        if (frame) socket.send(JSON.stringify(frame))
+        if (!data) continue
+        const inputs = data.inputs.filter(input => input.i >= entry.next)
+        socket.send(JSON.stringify({ t: 'step', tick: data.tick, inputs, hash: data.hash }))
+        entry.next = data.log
+        const meta = JSON.stringify({ t: 'meta', ...data.frames[entry.side] })
+        if (meta !== entry.meta && (data.frames[entry.side].result || Date.now() - entry.metaAt >= 1000)) {
+          socket.send(meta); entry.meta = meta; entry.metaAt = Date.now()
+        }
       }
     } catch {
       for (const [socket, entry] of this.sockets) { clearInterval(entry.watchdog); socket.close(4503, 'Service unavailable') }
@@ -73,8 +90,8 @@ export class MatchRoom extends DurableObject {
     this.matchId ||= await this.ctx.storage.get('matchId')
     if (!this.matchId) return
     try {
-      const frames = await this.serial(() => runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId }, null, undefined, this.handles))
-      if (frames?.some(f => !f.view.ended)) await this.ctx.storage.setAlarm(Date.now() + 1000)
+      const frames = await this.serial(() => runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId }, null, undefined, this.stateCache))
+      if (frames?.frames.some(f => !f.result)) await this.ctx.storage.setAlarm(Date.now() + 1000)
     } catch { await this.ctx.storage.setAlarm(Date.now() + 1000) }
   }
 }

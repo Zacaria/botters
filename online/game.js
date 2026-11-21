@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, fromJSON, applyInput, step, advanceTo, view, rules, replay, totals, describe, matchOptions, OPTIONS, MODES, HOUSE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, restore, snapshot, hash as simHash, applyInput, step, view, rules, describe, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { transaction, checkDeadline } from './store.js'
 import { rankPairs } from './ratings.js'
 
@@ -16,29 +16,23 @@ const canonicalRules = list => {
   return list.map(r => ({ if: r.if, ...(r.p !== undefined ? { p: r.p } : {}), then: r.then, on: r.on !== false }))
 }
 const cleanInput = b => {
-  const input = {}
-  if (b.gambits !== undefined) input.gambits = canonicalRules(b.gambits)
-  for (const k of ['toggle', 'split', 'release']) if (b[k] !== undefined) {
-    if (!Number.isSafeInteger(b[k]) || b[k] < 0 || (k === 'toggle' && b[k] >= MAX_GAMBITS)) fail(400, `Invalid ${k}.`)
-    input[k] = b[k]
-  }
-  if (b.order !== undefined) {
-    if (!Number.isSafeInteger(b.order?.swarm) || !Number.isFinite(b.order?.x) || !Number.isFinite(b.order?.y)) fail(400, 'Send a swarm ID and finite x/y coordinates.')
-    input.order = { swarm: b.order.swarm, x: Math.max(0, Math.min(W, b.order.x)), y: Math.max(0, Math.min(H, b.order.y)) }
-  }
-  if (b.route !== undefined) input.route = b.route
-  if (!Object.keys(input).length) fail(400, 'Send a gambit change or swarm action.')
-  return input
+  if (['route', 'split'].some(k => b[k] !== undefined)) fail(400, 'Unknown action.')
+  const keys = ['gambits', 'toggle', 'order', 'flank', 'detach', 'release', 'surrender'].filter(k => b[k] !== undefined)
+  if (keys.length !== 1) fail(400, 'Send exactly one input.')
+  const k = keys[0], arg = b[k]
+  if (k === 'gambits') return { gambits: canonicalRules(arg) }
+  if (k === 'order') return { order: { bat: arg?.bat, x: arg?.x, y: arg?.y } }
+  if (k === 'detach') return { detach: { bat: arg?.bat, ...(arg?.role !== undefined ? { role: arg.role } : {}) } }
+  return { [k]: arg }
 }
 const parsePlay = b => {
   if (b.opening != null && checkGambits(b.opening)) fail(400, checkGambits(b.opening))
-  if (matchOptions(b).mode !== '1v1' && b.vs === 'player') fail(400, '2v2 and free-for-all are played against house bots for now. Pick Easy, Normal or Hard.')
   return { ...matchOptions(b), vs: [...Object.keys(HOUSE), 'player'].includes(b.vs) ? b.vs : 'normal', planning: PLANNING.includes(b.planning) ? b.planning : 20,
     withAgent: b.withAgent !== false, opening: b.opening ? canonicalRules(b.opening) : null,
     anyMinutes: b.minutes === 'any', anyPlanets: b.planets === 'any' }
 }
-const sharedSettings = req => ({ ...matchOptions(req), mode: '1v1', planning: req.planning, vs: 'player' }) // human rooms and the queue are duels
-const foes = (m, side) => m.players.filter(p => m.s.teams[p.side] !== m.s.teams[side])
+const sharedSettings = req => ({ ...matchOptions(req), planning: req.planning, vs: 'player' }) // human rooms and the queue are duels
+const foes = (m, side) => m.players.filter(p => p.side !== side)
 const opponent = (m, side) => { const f = foes(m, side); return f.length > 1 ? { ...f[0], name: `${f.length} house bots (${f[0].name.replace(/^house \(|\)$/g, '')})` } : f[0] }
 const emit = (m, p, message) => { p.events.push({ seq: ++p.seq, t: Math.floor(m.s.tick / TPS), text: message }); p.events = p.events.slice(-200) }
 const feed = (m, p, who, message) => { p.feed.push({ t: Math.floor(m.s.tick / TPS), who, text: message }); p.feed = p.feed.slice(-12) }
@@ -46,35 +40,11 @@ const feed = (m, p, who, message) => { p.feed.push({ t: Math.floor(m.s.tick / TP
 function diffEvents(m, p) {
   const v = view(m.s, p.side), was = p.prev
   p.prev = v
-  if (v.ended) return emit(m, p, `match over: you ${v.ended.result} (${v.ended.reason}). Particles ${v.totals.you} vs ${v.totals.enemy}.`)
+  if (v.ended) return emit(m, p, `match over: you ${v.ended.result} (${v.ended.reason}).`)
   if (!was) return
-  for (const e of v.enemies) if (e.n >= 1500 && !was.enemies.some(o => o.id === e.id)) emit(m, p, `enemy swarm ${e.id} (${e.n}) spotted at (${e.x},${e.y})`)
-  for (const pl of v.planets) if (pl.owner !== was.planets[pl.id].owner && pl.massLeft > 0) emit(m, p, `${pl.owner || 'neutral'} captured planet ${pl.id} (${pl.x},${pl.y})`)
-  for (const c of v.swarms) if (c.hunger >= 1 && !was.swarms.some(o => o.id === c.id && o.hunger >= 1)) emit(m, p, `swarm ${c.id} is starving at (${c.x},${c.y}): it has not touched a planet or killed anything for too long`)
-  for (const c of was.swarms) if (c.n >= 500 && c.fighting && !v.swarms.some(o => o.id === c.id)) emit(m, p, `your swarm ${c.id} was destroyed near (${c.x},${c.y})`)
-  if ((v.totals.you < v.totals.enemy) !== (was.totals.you < was.totals.enemy)) emit(m, p, `lead changed: ${v.totals.you} vs ${v.totals.enemy} particles`)
-  if (v.secondsLeft === 60) emit(m, p, '1 minute left.')
-}
-
-function whatIf(m, p, log, deadline) {
-  const result = s => { const t = view(s, p.side).totals; return { result: s.ended.winner === s.teams[p.side] ? 'won' : s.ended.winner === null ? 'draw' : 'lost', you: t.you, enemy: t.enemy } }
-  const count = role => log.filter(l => l.side === p.side && l.role === role).length
-  const boundedReplay = entries => {
-    if (!Number.isFinite(deadline)) return replay(m.s.seed, entries, m.s.opts)
-    const s = createMatch(m.s.seed, m.s.opts); let i = 0
-    while (!s.ended) {
-      checkDeadline(deadline)
-      for (; i < entries.length && entries[i].tick === s.tick; i++) applyInput(s, entries[i].side, entries[i].input)
-      if (!s.ended) advanceTo(s, Math.min(s.tick + 100, entries[i]?.tick > s.tick ? entries[i].tick : Infinity))
-    }
-    return s
-  }
-  const without = role => {
-    if (!count(role)) return result(m.s)
-    const replayed = boundedReplay(log.filter(l => l.side !== p.side || l.role !== role))
-    try { return result(replayed) } finally { replayed.free() }
-  }
-  return { actual: result(m.s), humanInputs: count('human'), agentInputs: count('agent'), withoutHuman: without('human'), withoutAgent: p.withAgent ? without('agent') : null }
+  for (const e of v.enemies) if (!was.enemies.some(o => o.id === e.id)) emit(m, p, `enemy battalion ${e.id} spotted at (${Math.round(e.x)},${Math.round(e.y)})`)
+  for (const pl of v.planets) if (pl.owner !== was.planets[pl.id]?.owner) emit(m, p, `${pl.owner || 'neutral'} controls planet ${pl.id}`)
+  for (const bat of was.battalions) if (!v.battalions.some(o => o.id === bat.id)) emit(m, p, `battalion ${bat.id} lost`)
 }
 
 function matchFrame(m, side, now) {
@@ -85,7 +55,7 @@ function matchFrame(m, side, now) {
 }
 
 export class OnlineGame {
-  constructor(store, { now = Date.now, seed = () => randomInt(2 ** 31), origin = 'https://play.botters.havesomecode.io', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId, handles = null } = {}) { this.store = store; this.now = now; this.seed = seed; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId; this.handles = handles; if (handles) handles.versions ||= new Map() }
+  constructor(store, { now = Date.now, seed = () => randomInt(2 ** 31), origin = 'https://play.botters.havesomecode.io', deadline = Infinity, requireAccount = false, liveExchange = false, identity = null, startId, stateCache = null } = {}) { this.store = store; this.now = now; this.seed = seed; this.origin = origin; this.deadline = deadline; this.requireAccount = requireAccount; this.liveExchange = liveExchange; this.identity = identity?.emailVerified === true ? identity : null; this.startId = startId; this.stateCache = stateCache }
   async request(method, path, q = new URLSearchParams(), body = {}) {
     if (!body || Array.isArray(body) || typeof body !== 'object') fail(400, 'Send a JSON object.')
     if (method === 'GET' && path === '/rules') return { online: true, map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }
@@ -115,20 +85,17 @@ export class OnlineGame {
         const chunk = await tx.get(`log:${m.id}:${Math.floor(m.logCount / 64)}`, [])
         chunk.push(entry); m.logCount++
       }
-      const version = m => JSON.stringify([m.stateTick ?? 0, m.logCount, m.checkpointTick ?? 0, !!m.checkpointEnded])
       const attachState = (m, state, initial = false) => {
-        this.handles.set(m.id, state)
         delete m.s
         Object.defineProperty(m, 's', { value: state, writable: true, configurable: true })
-        const original = state
-        tx.onRetry(() => { this.handles.get(m.id)?.free(); this.handles.delete(m.id); this.handles.versions.delete(m.id) })
         tx.beforeCommit(async () => {
-          if (initial || m.s !== original || (m.s.ended && !m.checkpointEnded) || m.s.tick - (m.checkpointTick ?? 0) >= 100) {
-            await tx.set(`state:${m.id}`, m.s.toJSON())
-            m.checkpointTick = m.s.tick; m.checkpointEnded = !!m.s.ended
+          m.stateTick = m.s.tick
+          if (initial || (m.s.ended && !m.checkpointEnded) || m.s.tick - (m.checkpointTick ?? 0) >= 200) {
+            await tx.set(`state:${m.id}`, snapshot(m.s))
+            m.checkpointTick = m.s.tick; m.checkpointLog = m.logCount; m.checkpointEnded = !!m.s.ended
           }
-          this.handles.versions.set(m.id, version(m))
         })
+        tx.afterCommit(() => { if (this.stateCache) this.stateCache.set(m.id, { tick: m.s.tick, log: m.logCount, state: m.s }) })
       }
       const index = async () => {
         const idx = await tx.get('index', { queue: [], rooms: {} }, 0)
@@ -150,8 +117,7 @@ export class OnlineGame {
           if (!chunk) fail(503, 'Match log is unavailable. Retry shortly.')
           chunks.push(chunk)
         }
-        const log = chunks.flat().slice(0, m.logCount)
-        m.report = m.players.map(p => p.session ? whatIf(m, p, log, this.deadline) : null)
+        m.report = m.players.map(p => { const v = view(m.s, p.side); return { ...v.ended, you: v.totals.you, enemy: v.totals.enemy, planets: v.totals.planets } })
         const rated = m.players.length === 2 && (!this.requireAccount || m.players.every(p => p.accountId) && m.players[0].accountId !== m.players[1].accountId)
         if (rated) {
           const ratings = await Promise.all(m.players.map(async p => {
@@ -185,47 +151,48 @@ export class OnlineGame {
           }
           return null
         }
-        if (typeof m.s?.toJSON !== 'function') {
-          let cached = this.handles?.get(id)
-          if (cached && this.handles.versions.get(id) !== version(m)) {
-            cached.free(); this.handles.delete(id); this.handles.versions.delete(id); cached = null
+        const cached = this.stateCache?.get(id)
+        let state
+        if (cached && cached.tick === m.stateTick && cached.log === m.logCount) state = structuredClone(cached.state)
+        else {
+          const checkpoint = await tx.get(`state:${id}`)
+          state = restore(checkpoint)
+          for (let i = m.checkpointLog || 0; i < m.logCount; i++) {
+            const chunk = await tx.get(`log:${id}:${Math.floor(i / 64)}`)
+            const e = chunk[i % 64]
+            while (state.tick < e.tick && !state.ended) step(state)
+            const result = applyInput(state, e.side, e.input)
+            if (!result.ok) throw new Error(`Invalid persisted input: ${result.error}`)
           }
-          const checkpoint = cached ? null : (m.s || await tx.get(`state:${id}`))
-          const state = cached || fromJSON(checkpoint)
-          if (this.handles) {
-            // Reconstruct the already-reported interval without emitting it again.
-            if (!cached) while (state.tick < (m.stateTick ?? checkpoint.tick) && !state.ended) step(state)
-            this.handles.set(id, state); attachState(m, state, !!m.s)
-          } else m.s = state
         }
+        attachState(m, state)
         const target = m.waitingForAgent ? 0 : Math.min(m.s.endTick, Math.max(0, Math.floor((now - m.startsAt) * TPS / 1000)))
 
         while (m.s.tick < target && !m.s.ended) {
           if (m.s.tick % 100 === 0) checkDeadline(this.deadline)
           step(m.s)
+          if (m.s.tick % 20 === 0) { m.hashes ||= []; m.hashes.push([m.s.tick, simHash(m.s)]); m.hashes = m.hashes.slice(-16) }
           if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
         }
 
-        if (this.handles) m.stateTick = m.s.tick
         await finish(m)
         return m
       }
       const start = async (entries, req, roomCode = null, waitingForAgent = false) => {
         const m = { id: this.startId || token(), s: createMatch(this.seed(), req), players: [], logCount: 0, roomCode, planning: req.planning, createdAt: now, waitingForAgent, startsAt: now + req.planning * 1000 }
-        if (this.handles) { m.options = m.s.opts; attachState(m, m.s, true) }
-        entries = Array.from({ length: MODES[req.mode].length }, (_, side) => entries[side] || null) // sides nobody sits on are played by the house
+        attachState(m, m.s, true)
+        entries = Array.from({ length: 2 }, (_, side) => entries[side] || null)
         for (const [side, e] of entries.entries()) {
-          const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
+          const p = { side, session: e?.s.id || null, accountId: e?.s.accountId || null, name: e?.s.name || `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits', withAgent: !!e?.req.withAgent,
             agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', events: [], seq: 0, sent: [], humanSent: [], calls: [], feed: [], prev: null, seen: now,
             gambitsBy: { who: e ? 'default' : 'house', t: 0, why: '' } }
           m.players.push(p)
           const opening = e ? e.req.opening : HOUSE[req.vs]
           if (opening) { const input = { gambits: canonicalRules(opening) }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); if (e) p.gambitsBy = { who: 'you', t: 0, why: 'your opening gambits' } }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
-          emit(m, p, `${waitingForAgent ? 'waiting for your agent; planning begins when they join' : `match starts in ${req.planning}s`}. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}).${m.s.teams.length > 2 ? ` Mode ${req.mode}: ${m.s.teams.filter(t => t === m.s.teams[side]).length > 1 ? 'a house ally shares your team. ' : ''}${new Set(m.s.teams).size - 1} enemy team${new Set(m.s.teams).size > 2 ? 's' : ''}.` : ''} You start with three swarms of 3,000 particles. ${p.openingBy === 'human' ? 'Keep your human’s opening gambits unless a change is needed.' : 'Write opening gambits from the doctrine now.'}`)
+          emit(m, p, `${waitingForAgent ? 'waiting for your agent' : `match starts in ${req.planning}s`}. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}). You start with three battalions.`)
         }
         await tx.set(`match:${m.id}`, m)
-        this.handles?.set(m.id, m.s)
         return m
       }
       if (method === 'INTERNAL' && path === '/tick') {
@@ -235,7 +202,13 @@ export class OnlineGame {
         const live = m.players.filter(p => body.live?.includes(p.side) && now - p.seen >= 5000)
         for (const p of live) p.seen = now
         if (live.length) await tx.set(`match:${m.id}`, m)
-        return m.players.map(p => matchFrame(m, p.side, now))
+        const from = Math.max(0, Math.min(m.logCount, body.from || 0)), inputs = []
+        for (let i = from; i < m.logCount; i++) {
+          const chunk = await tx.get(`log:${m.id}:${Math.floor(i / 64)}`)
+          const { tick, side, input } = chunk[i % 64]
+          inputs.push({ i, tick, side, input })
+        }
+        return { frames: m.players.map(p => { const { view: ignored, ...meta } = matchFrame(m, p.side, now); return { ...meta, side: p.side, gambits: m.s.gambits[p.side], result: m.s.ended ? view(m.s, p.side).ended : null } }), tick: m.s.tick, inputs, log: m.logCount, hash: m.hashes?.at(-1) || null, ...(body.snap ? { state: snapshot(m.s) } : {}) }
       }
       if (method === 'POST' && path === '/agent/pair' && this.requireAccount) {
         const agentToken = token(), id = token(), setup = text(body.setup, 40, 'agent')
@@ -486,24 +459,18 @@ export class OnlineGame {
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
         const input = cleanInput(body)
-        if ((m.waitingForAgent || now < m.startsAt) && (input.order || input.route !== undefined || input.split !== undefined || input.release !== undefined)) fail(409, 'Match not started: only gambits can change now.')
-        const candidate = fromJSON(m.s.toJSON())
-        const result = applyInput(candidate, s.side, input)
-        if (!result.ok) { candidate.free(); fail(400, result.error) }
-        if (input.route !== undefined) input.route = { swarm: input.route.swarm, points: input.route.points.map(({ x, y }) => ({ x, y })) }
-        if (auth.role === 'human' && (input.order || input.route)) p.calls = p.calls.filter(c => c.swarm !== input.order?.swarm && c.swarm !== input.route?.swarm)
-        if (JSON.stringify(candidate) === JSON.stringify(m.s)) { candidate.free(); return { ok: true } }
-        m.s.free()
-        m.s = candidate
-        this.handles?.set(m.id, candidate)
+        if ((m.waitingForAgent || now < m.startsAt) && !('gambits' in input || 'toggle' in input)) fail(409, 'Match not started: only gambits can change now.')
+        const result = applyInput(m.s, s.side, input)
+        if (!result.ok) fail(400, result.error)
         await appendLog(m, { tick: m.s.tick, side: s.side, role: auth.role, input })
+        if (m.s.ended) { for (const player of m.players) diffEvents(m, player); await finish(m) }
         const why = text(body.why, 120), list = m.s.gambits[s.side]
         if (body.gambits || body.toggle !== undefined) p.gambitsBy = { who: auth.role === 'agent' ? 'agent' : 'you', t: Math.floor(m.s.tick / TPS), why: why || (body.toggle !== undefined ? `switched rule ${body.toggle + 1}` : '') }
         if (auth.role === 'human') {
           emit(m, p, `HUMAN ${body.gambits ? `rewrote gambits: ${list.map(describe).join('; ')}` : JSON.stringify(input)}`)
         }
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${body.gambits ? 'rewrote gambits' : body.toggle !== undefined ? 'switched a rule' : body.order ? `ordered swarm ${body.order.swarm}` : input.route ? `routed swarm ${input.route.swarm} through ${input.route.points.length} points` : body.split !== undefined ? 'split a swarm' : 'released a swarm'}${why ? `: ${why}` : ''}`)
-        return { ok: true }
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
+        return result
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {
         requireMatch()
@@ -511,8 +478,8 @@ export class OnlineGame {
         if (!active(m)) fail(409, 'Match is over.')
         if (path === '/call') {
           agent(); if (!p.withAgent) fail(403, 'Your human is playing alone.')
-          const call = { swarm: Number.isFinite(body.swarm) ? body.swarm : null, x: Number.isFinite(body.x) ? Math.round(body.x) : null, y: Number.isFinite(body.y) ? Math.round(body.y) : null, message: text(body.message, 140), t: Math.floor(m.s.tick / TPS) }
-          p.calls = [...p.calls.filter(c => call.swarm === null || call.swarm !== c.swarm), call].slice(-3); feed(m, p, 'agent', `asks you: ${call.message}`)
+          const call = { bat: Number.isFinite(body.bat) ? body.bat : null, x: Number.isFinite(body.x) ? Math.round(body.x) : null, y: Number.isFinite(body.y) ? Math.round(body.y) : null, message: text(body.message, 140), t: Math.floor(m.s.tick / TPS) }
+          p.calls = [...p.calls.filter(c => call.bat === null || call.bat !== c.bat), call].slice(-3); feed(m, p, 'agent', `asks you: ${call.message}`)
         } else {
           human()
           if (path === '/dismiss') p.calls.splice(Number(body.index), 1)

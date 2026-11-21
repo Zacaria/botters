@@ -15,21 +15,15 @@ export async function body(request, max = 16384) {
   try { return JSON.parse(new TextDecoder().decode(Uint8Array.from(chunks.flatMap(c => [...c])))) }
   catch { throw Object.assign(new Error('Send valid JSON.'), { status: 400 }) }
 }
-export async function runGame(env, method, path, q = new URLSearchParams(), data = {}, user = null, store = new D1Store(env.DB), retainedHandles = null) {
-  // Only simulation handles are retained; D1 versions validate them on every read.
-  // Authority is never cached. Uncertain commits discard all speculative handles.
-  const handles = retainedHandles || new Map()
-  const clear = () => { for (const handle of new Set(handles.values())) handle.free(); handles.clear(); handles.versions?.clear() }
-  const game = new OnlineGame(store, { requireAccount: true, liveExchange: true, origin: env.SITE_URL, identity: user, handles, deadline: performance.now() + 4000 })
-  try { return await game.request(method, path, q, data) }
-  catch (e) { clear(); throw e }
-  finally { if (!retainedHandles) clear() }
+export async function runGame(env, method, path, q = new URLSearchParams(), data = {}, user = null, store = new D1Store(env.DB), stateCache = null) {
+  const game = new OnlineGame(store, { requireAccount: true, liveExchange: true, origin: env.SITE_URL, identity: user, stateCache, deadline: performance.now() + 4000 })
+  return game.request(method, path, q, data)
 }
 export async function admission(env, request) {
   const url = new URL(request.url), bearer = url.searchParams.get('token') || ''
   return authorize(env, `token:${hash(bearer)}`, proof(request, env))
 }
-export async function gameHTTP(env, request, handles = null) {
+export async function gameHTTP(env, request, stateCache = null) {
   const url = new URL(request.url), path = url.pathname, store = new D1Store(env.DB)
   if (!['GET', 'POST'].includes(request.method)) return json({ error: 'Method not allowed.' }, 405)
   const auth = createAuth(env), user = await identity(auth, request)
@@ -48,7 +42,7 @@ export async function gameHTTP(env, request, handles = null) {
     const admitted = await admission(env, request)
     if (admitted.token.role === 'human' && (user?.id !== admitted.session.accountId || user?.authSessionId !== admitted.token.authSessionId)) throw denied()
   }
-  const result = await runGame(env, request.method, path, url.searchParams, data, user, store, handles)
+  const result = await runGame(env, request.method, path, url.searchParams, data, user, store, stateCache)
   // Wake a newly-created match even when neither participant opens a socket.
   const humanToken = result.humanToken || url.searchParams.get('token')
   const t = humanToken && await store.get(`token:${hash(humanToken)}`)
