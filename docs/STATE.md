@@ -1,4 +1,4 @@
-# Botters — state (19 November 2026)
+# Botters — state (21 November 2026)
 
 ## Goal
 
@@ -10,6 +10,7 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 - **Old address:** https://botters.havesomecode.io (Vercel project `botters`) redirects every path to the play origin.
 - **Accounts:** email sign-up open to everyone (mail from `botters@mail.havesomecode.io`) and Google sign-in (callback `https://play.botters.havesomecode.io/api/auth/callback/google`). The database started empty on 19/11: no accounts or Elo were imported.
 - **Checked at the real URL on 19/11:** two new accounts signed up by email and verified from an outside inbox, then played a full online 1v1 (match `9PBH3n3kPVHEzP76eQwZNcOBkWXj-aPn`, both drew a manual route, finished on time); Google sign-in returned to the signed-in lobby; MCP OAuth metadata answers on the new origin.
+- **Agent doctrine (21/11):** agents read the battle per battalion and rewrite or toggle gambits with a reason; hand orders are human-only (an agent asks with `call_human`). The match panel lists each edit (time, author, change, reason). Checked at the real URL: Claude Code over the stdio client beat the house `blob` with 8 live edits (about $2.2 of model usage for a 3–5 minute match).
 - **Usage counts:** `npm run usage` reads D1 through wrangler and prints weekly counts only.
 - **Local:** `npx -y github:Zacaria/botters` (house game, no account) and `npx -y github:Zacaria/botters install` (stdio MCP for Claude Code, Codex, Cursor, Windsurf, Claude Desktop).
 
