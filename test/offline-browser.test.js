@@ -98,12 +98,21 @@ test('offline surrender confirms, recovers from refusal, shows the real result a
   await page.locator('#leave').click()
   await expect(page.locator('#play')).toHaveText('RESUME MATCH')
   await page.locator('#play').click()
-  await page.route('**/surrender?*', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Synthetic surrender refusal"}' }), { times: 1 })
+  await page.route('**/surrender?*', route => route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"Synthetic surrender refusal"}' }), { times: 1 })
   page.once('dialog', dialog => dialog.accept())
   await page.locator('#surrender').click()
   await expect(page.locator('#toast')).toHaveText('Synthetic surrender refusal')
   await expect(page.locator('#surrender')).toBeEnabled()
   assert.equal((await read()).view.ended, null)
+  // A room that is catching up answers 503: the order is retried, not dropped. The route answers once, then lets the retry through.
+  let catchingUp = 0
+  await page.route('**/input?*', route => { catchingUp++; return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Match is catching up. Retry shortly."}' }) }, { times: 1 })
+  const rule = page.locator('#gambits [data-g]').first(), wasOff = /off/.test(await rule.getAttribute('class') || '')
+  const accepted = page.waitForResponse(r => r.url().includes('/input?') && r.status() === 200)
+  await rule.click()
+  await accepted
+  assert.equal(catchingUp, 1)
+  await expect(rule).toHaveClass(wasOff ? /^(?!.*\boff\b)/ : /\boff\b/)
   page.once('dialog', async dialog => { assert.match(dialog.message(), /You will lose/); await dialog.accept() })
   await page.locator('#surrender').focus(); await page.keyboard.press('Enter')
   await expect(page.locator('#again')).toBeVisible()
