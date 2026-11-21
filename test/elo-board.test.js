@@ -11,11 +11,7 @@ test('finish overlays rating drops before returning an exact top ten', async () 
   const sessions = await Promise.all(['p13', 'p0'].map(name => game.request('POST', '/session', undefined, { name })))
   const q = sessions.map(s => new URLSearchParams({ token: s.humanToken }))
   await Promise.all(q.map(params => game.request('POST', '/play', params, { vs: 'player', minutes: 3, withAgent: false })))
-  const frame = await game.request('GET', '/state', q[0]), key = `match:${frame.matchId}`
-  const m = JSON.parse(await store.get(key)); m.s.tick = m.s.endTick
-  const losingSide = m.players.findIndex(p => p.name === 'p13')
-  m.s.ended = { winner: 1 - losingSide, reason: 'time' }
-  store.data.set(key, { value: JSON.stringify(m), expires: 0 })
+  await game.request('POST', '/surrender', q[0])
   const lobby = await game.request('GET', '/lobby', q[0])
   assert.equal(lobby.leaderboard.length, 10)
   assert.ok(lobby.leaderboard.every(p => p.name !== 'p13'))
