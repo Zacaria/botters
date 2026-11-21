@@ -691,8 +691,20 @@ function panel() {
   $('feed').innerHTML = (F.feed || []).slice().reverse().map(f => `<div><span class="dim">${clock(f.t || 0)}</span> ${esc(f.who)} ${esc(f.text)}</div>`).join('')
   renderGuide()
   if (s.ended || F.report) {
-    const result = F.report ? (F.report.result === 'draw' ? 'Draw' : F.report.result === 'won' ? 'YOU WIN' : 'You lose') : s.ended.winner === null ? 'Draw' : s.ended.winner === side ? 'YOU WIN' : 'You lose'
-    if (!$('again')) { $('big').innerHTML = `${result}<div class="box">${esc(F.report?.reason || s.ended?.reason || "")}<br><button id="copyResult">Copy result</button><button id="again">PLAY AGAIN</button><button id="menu">Menu</button></div>`; $('menu').onclick = () => { es?.close(); lobby(false) }; $('again').onclick = () => { es?.close(); show('lobby'); startPlay() }; $('copyResult').onclick = () => navigator.clipboard.writeText(`Botters: ${result}`).catch(() => toast('Could not copy result.', false)) }
+    if (F.report && !$('again')) {
+      const report = F.report, result = report.result === 'draw' ? 'Draw' : report.result === 'won' ? 'You win' : 'You lose'
+      const reason = report.reason === 'surrender' ? (report.result === 'lost' ? 'You surrendered.' : 'Your opponent surrendered.') : report.reason === 'wipe' ? (report.result === 'won' ? 'You wiped out the enemy.' : report.result === 'lost' ? 'Your forces were wiped out.' : 'Both forces were wiped out.') : report.reason === 'time' ? 'Time is up: more planets wins, then more units.' : ''
+      const scores = `${n(report.you)} vs ${n(report.enemy)}`
+      const summary = `Botters: ${report.result}\n${scores}\nhttps://play.botters.havesomecode.io/`
+      $('big').innerHTML = `${result}<div class="box">${esc(reason)}<table><tr><td>Result</td><td>${esc(report.result.toUpperCase())}</td><td>${esc(scores)}</td></tr></table><button id="copyResult">Copy result</button><button id="again">${F.opponent?.human ? (F.roomCode ? 'REMATCH IN ROOM' : 'REMATCH') : 'PLAY AGAIN'}</button><button id="menu">Menu</button><div id="copyResultStatus" role="status"></div><textarea id="resultSummary" aria-label="Result summary" readonly hidden></textarea></div>`
+      $('menu').onclick = () => { es?.close(); lobby(false) }
+      $('again').onclick = () => { es?.close(); if (F.opponent?.human) roomAction('/rooms/rematch', { ...playOptions(), matchId: F.matchId }); else { show('lobby'); startPlay() } }
+      const copy = $('copyResult'), status = $('copyResultStatus'), field = $('resultSummary')
+      copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(summary); if (copy.isConnected) status.textContent = 'Result copied.' }
+        catch { if (copy.isConnected) { status.textContent = 'Copy manually'; field.hidden = false; field.value = summary; field.focus(); field.select() } }
+      }
+    }
   } else if (F.waitingForAgent) {
     if (!$('startWithoutAgent')) { $('big').innerHTML = 'Waiting for your agent<div class="box"><button id="startWithoutAgent">Start without agent</button><button id="cancelWaiting">Cancel</button></div>'; $('startWithoutAgent').onclick = () => api('POST', '/start-without-agent', {}); $('cancelWaiting').onclick = async () => { await api('POST', '/cancel', {}); es?.close(); lobby(false) } }
   } else $('big').innerHTML = F.startsIn > 0 ? `Starts in ${F.startsIn}s` : ''

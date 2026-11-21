@@ -29,3 +29,7 @@ Unit `i` belongs to side `i < MAXPER ? 0 : 1`. Determinism uses only `+ - * / Ma
 | `visible(s, side, x, y)` | fog: within 150 of an own battalion centre or 80 of an own planet |
 | `view(s, side)` | agent view, fogged: `{tick, secondsLeft, ended: {reason, result: 'won'|'draw'|'lost'} \| null, totals: {you, enemy, planets: {you, enemy}}, battalions: [{id, x, y, n, roles: {runner, grunt, tank}, tx, ty, manual, rule, fighting}], enemies: [{id, x, y, n, fighting}], planets: [{id, x, y, r, owner: 'you'|'enemy'|null, capture}], gambits}` |
 | `rules()`, `describe(rule)` | catalogue for agents, one-line rule text |
+
+## Match results
+
+The result screen explains surrender, wipe or time in plain language. Share only the result and unit totals, never a room link or private match data. Room rematches keep the two players together.
