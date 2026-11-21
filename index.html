@@ -587,8 +587,8 @@ function fit() {
 addEventListener('resize', fit)
 const at = e => { const r = cv.getBoundingClientRect(); return { x: Math.round((e.clientX - r.left) * W / r.width), y: Math.round((e.clientY - r.top) * H / r.height) } }
 function act(body, message) {
-  const generation = matchGeneration, session = token, matchId = F?.matchId
-  actionQueue = actionQueue.then(() => generation === matchGeneration && session === token && matchId && !$('game').hidden && !replica?.state?.ended && !F?.report ? api('POST', '/input', { ...body, matchId }) : null).then(r => { if (r && generation === matchGeneration && session === token) toast(r.ok ? message : r.error, r.ok) })
+  const generation = matchGeneration, session = token, matchId = F?.matchId, path = body.surrender ? '/surrender' : '/input'
+  actionQueue = actionQueue.then(() => generation === matchGeneration && session === token && matchId && !$('game').hidden && !replica?.state?.ended && !F?.report ? api('POST', path, body.surrender ? { matchId } : { ...body, matchId }) : null).then(r => { if (r && generation === matchGeneration && session === token) toast(r.ok ? message : r.error, r.ok) })
   return actionQueue
 }
 function select(id) { sel = id; panel() }

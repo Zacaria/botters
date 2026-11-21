@@ -36,12 +36,13 @@ export function createReplica(sim, requestSnapshot) {
       // Catch up in bounded batches without spending minutes replaying a hidden tab.
       let budget = target - state.tick > 40 ? 100 : Math.floor(accumulator / 50)
       budget = Math.min(budget, 100)
-      while (budget-- > 0 && state.tick < target && !resyncing) {
-        while (inputs.length && inputs[0].tick === state.tick) {
-          const entry = inputs.shift(); sim.applyInput(state, entry.side, entry.input)
-        }
+      // Inputs at the current tick apply as soon as they arrive: the server applied them in log order with no step between,
+      // which also lands a final surrender logged at the last announced tick.
+      const drain = () => { while (inputs.length && inputs[0].tick === state.tick) { const entry = inputs.shift(); sim.applyInput(state, entry.side, entry.input) } }
+      drain()
+      while (budget-- > 0 && state.tick < target && !resyncing && !state.ended) {
         if (inputs.length && inputs[0].tick < state.tick) { resync(); break }
-        sim.step(state); accumulator = Math.max(0, accumulator - 50); record()
+        sim.step(state); accumulator = Math.max(0, accumulator - 50); record(); drain()
       }
       if (state.tick >= target) accumulator = Math.min(accumulator, 50)
     },
