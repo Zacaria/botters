@@ -1,4 +1,4 @@
-# Botters — state (21 November 2026)
+# Botters — state (22 November 2026)
 
 ## Goal
 
@@ -14,10 +14,15 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 - **Usage counts:** `npm run usage` reads D1 through wrangler and prints weekly counts only.
 - **Local:** `npx -y github:Zacaria/botters` (house game, no account) and `npx -y github:Zacaria/botters install` (stdio MCP for Claude Code, Codex, Cursor, Windsurf, Claude Desktop).
 
+## Next player feature: play without an account (22/11)
+
+- A signed-out visitor clicks **PLAY NOW** on the first screen and is in a real match against the house bot (Normal, 5 min, 17 planets) within a second: no account, no server, nothing stored.
+- The match runs in the browser (`createPractice` in `browser-live.js`: `sim.js` steps at 20 Hz and feeds the same fog frames and meta as the online socket), so hand orders, gambit edits, the in-match guide (on by default) and surrender all work as online.
+- The result screen offers **PLAY AGAIN** and **Sign in to play online**; online play, Elo and agents still need an account.
+
 ## What is left to make the product viable (in order)
 
 1. **Reconnect the agents:** the MCP URL is unchanged (`https://play.botters.havesomecode.io/mcp`), but OAuth clients registered on the old server are gone, so ChatGPT and Claude must add the connector again.
-2. **First contact:** decide whether signed-out visitors get a literal Play entry; today the first screen asks them to sign in.
 
 ## Old infrastructure still running
 
