@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { createMirror, decodeFrame } from '../wire.js'
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
 
 test('workerd: pending pairing honors bounded HTTP polling without a match queue lock', {timeout:10000},async t=>{
@@ -59,10 +60,10 @@ test('workerd: verified accounts, unique live ticket, consent, two-player room a
   const socketResponse = await mf.dispatchFetch(ORIGIN + `/socket?token=${a.humanToken}`, { headers: { upgrade: 'websocket', origin: ORIGIN, cookie: [...alice.cookies].map(([k,v]) => `${k}=${v}`).join('; ') } })
   assert.equal(socketResponse.status, 101)
   ws = socketResponse.webSocket; ws.accept()
-  const frame = await new Promise((resolve, reject) => { ws.addEventListener('message', e => resolve(JSON.parse(e.data)), { once: true }); setTimeout(() => reject(new Error('No real WebSocket frame')), 5000).unref() })
-  assert.equal(frame.t, 'snap')
-  assert.equal(frame.side, next.body.match.side)
-  assert.ok(frame.state && Number.isInteger(frame.log))
+  const frame = await new Promise((resolve, reject) => { ws.addEventListener('message', e => resolve(e.data), { once: true }); setTimeout(() => reject(new Error('No real WebSocket frame')), 5000).unref() })
+  const mirror = createMirror(), bytes = new Uint8Array(frame)
+  assert.ok(bytes[0] & 1); decodeFrame(bytes, mirror)
+  assert.equal(mirror.side, next.body.match.side); assert.ok(mirror.n > 0)
   assert.ok(performance.now() - before < 5000)
   ws.close(); ws = null
   assert.equal((await alice.call('POST', `/surrender?token=${a.humanToken}`, {})).status, 200)

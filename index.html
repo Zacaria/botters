@@ -256,8 +256,8 @@
 
 <script type="module">
 import * as sim from '/sim.js'
-const { createReplica, connectLive } = await import('/browser-live.js').catch(() => import('/live-client.js'))
-const { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, HOUSE, checkGambits, createMatch, applyInput, step, live, fighting, visible, W, H, TPS } = sim
+const { createLiveView, connectLive } = await import('/browser-live.js').catch(() => import('/live-client.js'))
+const { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, HOUSE, checkGambits, createMatch, applyInput, step, W, H, TPS } = sim
 const $ = id => document.getElementById(id)
 const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
 const n = c => Math.round(c).toLocaleString('en')
@@ -567,15 +567,15 @@ async function startPlay() {
 }
 $('cancel').onclick = async () => { await api('POST', '/cancel'); lobby() }
 
-// ---------- lockstep match ----------
+// ---------- match ----------
 const cv = $('c'), g = cv.getContext('2d'), img = g.createImageData(W, H), px = new Uint32Array(img.data.buffer)
 const bg = $('bg'), bgx = bg.getContext('2d'), bgimg = bgx.createImageData(W, H), bgpx = new Uint32Array(bgimg.data.buffer)
 bg.width = W; bg.height = H; cv.width = W; cv.height = H
-let F = null, replica = null, es = null, streamRetry = null, sel = null, editing = null, gEd = null, matchGeneration = 0, actionQueue = Promise.resolve()
+let F = null, liveView = null, es = null, streamRetry = null, sel = null, editing = null, gEd = null, matchGeneration = 0, actionQueue = Promise.resolve()
 let guidance = null, guidePending = false, lastPanel = 0, lastRules = ''
 const colours = [['#ff96cd', '#ff5096', '#ffc8e1'], ['#82c8ff', '#3c8cff', '#c8e6ff']]
 const camps = ['#ff5096', '#3c8cff']
-const mine = () => replica?.state ? live(replica.state, replica.side) : []
+const mine = () => (liveView?.battalions || []).map(b => ({ manual: false, rule: -1, tx: b.cx, ty: b.cy, via: [], fighting: false, ...b, ...F?.board?.bats.find(o => o.id === b.id) }))
 const ringR = b => 14 + Math.sqrt(b.n) * 1.6
 const colour = (side, role, own) => colours[side === own ? 0 : 1][role]
 const pack = css => 0xff000000 | parseInt(css.slice(5, 7), 16) << 16 | parseInt(css.slice(3, 5), 16) << 8 | parseInt(css.slice(1, 3), 16)
@@ -592,7 +592,7 @@ addEventListener('resize', fit)
 const at = e => { const r = cv.getBoundingClientRect(); return { x: Math.round((e.clientX - r.left) * W / r.width), y: Math.round((e.clientY - r.top) * H / r.height) } }
 function act(body, message) {
   const generation = matchGeneration, session = token, matchId = F?.matchId, path = body.surrender ? '/surrender' : '/input'
-  const live = () => generation === matchGeneration && session === token && matchId && !$('game').hidden && !replica?.state?.ended && !F?.report
+  const live = () => generation === matchGeneration && session === token && matchId && !$('game').hidden && !F?.board?.ended && !F?.report
   // 503 means the room is catching up or the connection dropped: retry for a few seconds instead of dropping the order.
   const send = tries => api('POST', path, body.surrender ? { matchId } : { ...body, matchId })
     .then(r => r.status === 503 && tries < 10 && live() ? new Promise(done => setTimeout(done, 500)).then(() => live() ? send(tries + 1) : null) : r)
@@ -610,49 +610,47 @@ function connectStream() {
   clearTimeout(streamRetry); es?.close()
   if ($('game').hidden) return
   let stream
-  replica = createReplica(sim, () => { if (es !== stream) return; if (stream instanceof EventSource) connectStream(); else stream.resync() })
+  liveView = createLiveView()
   const receive = msg => {
     if (es !== stream) return
     lastFrame = Date.now(); $('connection').hidden = true
-    if (msg.t === 'snap' || msg.t === 'step') replica.receive(msg)
-    else if (msg.t === 'meta') F = msg
-    if (replica.state && F) { if (guidePending) { guidePending = false; startGuide() } panel() }
+    if (msg.t === 'f' && !liveView.receive(msg.bytes, performance.now())) { if (stream instanceof EventSource) connectStream(); else stream.resync(); return }
+    if (msg.t === 'meta') F = msg
+    if (liveView.ready && F?.board) { liveView.scene(performance.now()); if (guidePending) { guidePending = false; startGuide() } panel() }
   }
-  const disconnected = () => { if (es === stream && !$('game').hidden && !replica?.state?.ended) { $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…' } }
+  const disconnected = () => { if (es === stream && !$('game').hidden && !F?.board?.ended) { $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…' } }
   if (!liveOrigin && !L?.online) {
     stream = es = new EventSource(`/stream?token=${encodeURIComponent(token)}`)
+    stream.addEventListener('f', e => { try { receive({ t: 'f', bytes: Uint8Array.from(atob(e.data), c => c.charCodeAt(0)) }) } catch { connectStream() } })
     stream.onmessage = e => { try { receive(JSON.parse(e.data)) } catch { disconnected() } }
     stream.onerror = () => { disconnected(); if (es === stream && stream.readyState === EventSource.CLOSED) streamRetry = setTimeout(connectStream, 1000) }
   } else stream = es = connectLive(liveOrigin || location.origin, token, receive, disconnected)
 }
-setInterval(() => { if (!$('game').hidden && !replica?.state?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
+setInterval(() => { if (!$('game').hidden && !F?.board?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
 $('leave').onclick = () => { es?.close(); lobby(false) }
-$('surrender').onclick = async () => { if (!replica?.state || replica.state.ended || !confirm('Surrender this match? You will lose and your opponent will win.')) return; $('surrender').disabled = true; await act({ surrender: true }, 'Surrendered'); $('surrender').disabled = false }
-function paint(s, ctx, pixels, image, side, fog) {
+$('surrender').onclick = async () => { if (!liveView?.ready || F?.board?.ended || !confirm('Surrender this match? You will lose and your opponent will win.')) return; $('surrender').disabled = true; await act({ surrender: true }, 'Surrendered'); $('surrender').disabled = false }
+function paint(s, ctx, pixels, image, side, planets, match) {
   pixels.fill(0xff0a0a10)
-  // Visibility is computed once per grid cell rather than for every unit.
-  const cell = 16, cols = Math.ceil(W / cell), rows = Math.ceil(H / cell), sight = new Uint8Array(cols * rows)
-  if (fog) for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) sight[y * cols + x] = visible(s, side, x * cell + cell / 2, y * cell + cell / 2)
   for (let i = 0; i < s.N; i++) if (s.alive[i]) {
     const x = s.x[i] | 0, y = s.y[i] | 0
-    if (x < 0 || x >= W - 3 || y < 0 || y >= H - 3 || fog && s.side[i] !== side && (!sight[(y / cell | 0) * cols + (x / cell | 0)] || !visible(s, side, s.x[i], s.y[i]))) continue
+    if (x < 0 || x >= W - 3 || y < 0 || y >= H - 3) continue
     const role = s.role[i], col = pack(colour(s.side[i], role, side)), k = y * W + x
     pixels[k] = pixels[k + 1] = pixels[k + W] = pixels[k + W + 1] = col
     if (role === 2) pixels[k + 2] = pixels[k + W + 2] = pixels[k + W * 2] = pixels[k + W * 2 + 1] = pixels[k + W * 2 + 2] = col
     if (role === 0) for (let t = 1; t <= 5; t++) { const tx = (x - s.vx[i] * t * 2.5) | 0, ty = (y - s.vy[i] * t * 2.5) | 0; if (tx >= 0 && tx < W && ty >= 0 && ty < H) pixels[ty * W + tx] = col }
   }
   ctx.putImageData(image, 0, 0)
-  for (const p of s.planets) {
+  for (const p of planets) {
     const col = p.owner < 0 ? '#666' : camps[p.owner === side ? 0 : 1]
     ctx.globalAlpha = .35; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); ctx.globalAlpha = 1
     ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 3, 0, 7); ctx.stroke()
     if ((p.owner >= 0 || p.by >= 0) && p.prog < 100) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 7, -Math.PI / 2, -Math.PI / 2 + p.prog / 100 * Math.PI * 2); ctx.stroke() }
   }
-  if (!fog) return
-  const own = live(s, side), labels = []
+  if (!match) return
+  const own = mine(), labels = []
   for (const b of own) {
     const selected = b.id === sel, r = ringR(b)
-    ctx.strokeStyle = fighting(s, b) ? 'rgba(255,90,90,.7)' : selected ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.28)'; ctx.lineWidth = selected ? 1.5 : 1; ctx.setLineDash(selected ? [] : [3, 5]); ctx.beginPath(); ctx.arc(b.cx, b.cy, r, 0, 7); ctx.stroke()
+    ctx.strokeStyle = b.fighting ? 'rgba(255,90,90,.7)' : selected ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.28)'; ctx.lineWidth = selected ? 1.5 : 1; ctx.setLineDash(selected ? [] : [3, 5]); ctx.beginPath(); ctx.arc(b.cx, b.cy, r, 0, 7); ctx.stroke()
     const size = Math.max(12, 12 * W / cv.clientWidth), height = size + 4
     ctx.font = `bold ${size}px monospace`; ctx.textBaseline = 'middle'
     const text = String(own.indexOf(b) + 1), width = ctx.measureText(text).width + 6
@@ -666,30 +664,29 @@ function paint(s, ctx, pixels, image, side, fog) {
 let bgstate, bgTime = 0, previous = performance.now()
 function draw(now) {
   const dt = Math.min(250, now - previous); previous = now; requestAnimationFrame(draw)
-  if (!$('game').hidden && replica) {
-    replica.advance(dt); const s = replica.state
-    if (!s) return
+  if (!$('game').hidden && liveView) {
+    if (!liveView.ready || !F?.board) return
+    const s = liveView.scene(now)
     if (sel !== null && !mine().some(b => b.id === sel)) sel = null
-    paint(s, g, px, img, replica.side, true)
+    paint(s, g, px, img, liveView.side, F.board.planets, true)
     if (now - lastPanel > 250) { lastPanel = now; observeGuide(); panel() }
   } else if (!$('bg').hidden && !document.hidden) {
     if (!bgstate || bgstate.ended) { bgstate = createMatch((Math.random() * 2 ** 32) >>> 0, { minutes: 8, planets: 17 }); applyInput(bgstate, 0, { gambits: HOUSE.hard }); applyInput(bgstate, 1, { gambits: HOUSE.normal }) }
     bgTime += dt; let steps = 0; while (bgTime >= 50 && steps++ < 3) { step(bgstate); bgTime -= 50 }
-    paint(bgstate, bgx, bgpx, bgimg, 0, false)
+    paint(bgstate, bgx, bgpx, bgimg, 0, bgstate.planets, false)
   }
 }
 requestAnimationFrame(draw)
 function panel() {
-  const s = replica?.state, side = replica?.side
-  if (!s || !F) return
-  const own = mine(), selected = own.find(b => b.id === sel), enemy = live(s, 1 - side), total = a => a.reduce((sum, b) => sum + b.n, 0), left = Math.max(0, Math.floor((s.endTick - s.tick) / TPS))
-  $('hud').innerHTML = `<b class="you">${esc(F.me?.name || 'you')} ${n(total(own))}</b> · ${own.length} battalions · ${s.planets.filter(p => p.owner === side).length} planets<br><b class="foe">${esc(F.opponent?.name || 'opponent')} ${n(total(enemy))}</b> · ${s.planets.filter(p => p.owner === 1 - side).length} planets<br>${clock(left)} left`
-  const counts = new Map(own.map(b => [b.id, [0, 0, 0]])); for (let i = 0; i < s.N; i++) if (s.alive[i] && counts.has(s.bat[i])) counts.get(s.bat[i])[s.role[i]]++
-  $('battalions').innerHTML = `<h3>Your battalions</h3>` + own.map((b, i) => { const [r, g, t] = counts.get(b.id), order = b.manual ? 'hand order' : b.rule >= 0 && s.gambits[side][b.rule] ? `rule ${b.rule + 1}` : 'no matching rule', detail = !b.manual && b.rule >= 0 && s.gambits[side][b.rule] ? label(s.gambits[side][b.rule]) : order; return `<button data-bat="${b.id}" class="${b.id === sel ? 'on' : ''}" title="${esc(`Battalion ${i + 1}: ${r} runners, ${g} grunts, ${t} tanks. ${detail}`)}">${i + 1} · ${b.n} · R${r} G${g} T${t} · ${esc(order)}</button>` }).join('')
+  const side = liveView?.side, s = F?.board
+  if (!liveView?.ready || !s) return
+  const own = mine(), selected = own.find(b => b.id === sel), total = a => a.reduce((sum, b) => sum + b.n, 0), left = Math.max(0, Math.floor((s.endTick - liveView.tick) / TPS))
+  $('hud').innerHTML = `<b class="you">${esc(F.me?.name || 'you')} ${n(total(own))}</b> · ${own.length} battalions · ${s.planets.filter(p => p.owner === side).length} planets<br><b class="foe">${esc(F.opponent?.name || 'opponent')} ${n(s.totals.enemy)}</b> · ${s.planets.filter(p => p.owner === 1 - side).length} planets<br>${clock(left)} left`
+  $('battalions').innerHTML = `<h3>Your battalions</h3>` + own.map((b, i) => { const [r, g, t] = b.roles, order = b.manual ? 'hand order' : b.rule >= 0 && F.gambits[b.rule] ? `rule ${b.rule + 1}` : 'no matching rule', detail = !b.manual && b.rule >= 0 && F.gambits[b.rule] ? label(F.gambits[b.rule]) : order; return `<button data-bat="${b.id}" class="${b.id === sel ? 'on' : ''}" title="${esc(`Battalion ${i + 1}: ${r} runners, ${g} grunts, ${t} tanks. ${detail}`)}">${i + 1} · ${b.n} · R${r} G${g} T${t} · ${esc(order)}</button>` }).join('')
   for (const id of ['flank', 'detach', 'runners', 'release']) $(id).disabled = !selected || !!s.ended
   $('surrender').hidden = !!s.ended || !!F.report || !!F.waitingForAgent
   $('agentBox').hidden = !F.me?.withAgent; $('pingHelp').hidden = !F.me?.withAgent
-  const rules = s.gambits[side], ruleKey = JSON.stringify(rules)
+  const rules = F.gambits, ruleKey = JSON.stringify(rules)
   if (ruleKey !== lastRules) { lastRules = ruleKey; $('gambits').innerHTML = rules.map((r, i) => `<div class="g${r.on === false ? ' off' : ''}" data-g="${i}" role="button" tabindex="0">${esc(label(r))} <i></i></div>`).join('') }
   document.querySelectorAll('[data-g]').forEach(el => { const c = own.filter(b => !b.manual && b.rule === Number(el.dataset.g)).length; el.classList.toggle('hot', c > 0); el.querySelector('i').textContent = c ? `${c} battalion${c === 1 ? '' : 's'}` : '' })
   const edits = F.edits || [], by = edits.at(-1); $('byline').textContent = by ? `${by.who} · ${clock(by.t)}${by.why ? ` · ${by.why}` : ''}` : ''; $('edits').innerHTML = [...edits].reverse().map(e => `<div>${esc(clock(e.t))} · ${esc(e.who)} · ${esc(e.change)} <span class="dim">${esc(e.why)}</span></div>`).join('')
@@ -720,11 +717,11 @@ $('flank').onclick = () => sel !== null && act({ flank: sel }, 'Flank ordered')
 $('detach').onclick = () => sel !== null && act({ detach: { bat: sel } }, 'Half detached')
 $('runners').onclick = () => sel !== null && act({ detach: { bat: sel, role: 'runner' } }, 'Runners detached')
 $('release').onclick = () => sel !== null && act({ release: sel }, 'Returned to gambits')
-cv.onclick = e => { if (!replica?.state || replica.state.ended) return; const p = at(e), hit = mine().find(b => Math.hypot(b.cx - p.x, b.cy - p.y) < ringR(b)); if (hit) select(hit.id); else if (sel !== null) act({ order: { bat: sel, ...p } }, 'Move ordered'); else if (F?.me?.withAgent) { api('POST', '/say', { text: 'look here', ...p, matchId: F.matchId }); toast('Ping sent') } }
+cv.onclick = e => { if (!liveView?.ready || F?.board?.ended) return; const p = at(e), hit = mine().find(b => Math.hypot(b.cx - p.x, b.cy - p.y) < ringR(b)); if (hit) select(hit.id); else if (sel !== null) act({ order: { bat: sel, ...p } }, 'Move ordered'); else if (F?.me?.withAgent) { api('POST', '/say', { text: 'look here', ...p, matchId: F.matchId }); toast('Ping sent') } }
 cv.oncontextmenu = e => { e.preventDefault(); $('flank').click() }
-addEventListener('keydown', e => { if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || $('game').hidden || !replica?.state || replica.state.ended || editing) return; const key = e.key.toLowerCase(), own = mine(); if (key === 'tab' && (e.target === document.body || e.target === cv)) { e.preventDefault(); if (own.length) select(own[(own.findIndex(b => b.id === sel) + (e.shiftKey ? own.length - 1 : 1)) % own.length].id) } else if (/^[1-9]$/.test(key)) { if (own[+key - 1]) select(own[+key - 1].id) } else if (key === 'escape') select(null); else if (key === 'x') $('flank').click(); else if (key === 'd') $('detach').click(); else if (key === 'r') $('runners').click(); else if (key === 'q') $('release').click(); else if (key === 'f1') { e.preventDefault(); startGuide() } })
+addEventListener('keydown', e => { if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || $('game').hidden || !liveView?.ready || F?.board?.ended || editing) return; const key = e.key.toLowerCase(), own = mine(); if (key === 'tab' && (e.target === document.body || e.target === cv)) { e.preventDefault(); if (own.length) select(own[(own.findIndex(b => b.id === sel) + (e.shiftKey ? own.length - 1 : 1)) % own.length].id) } else if (/^[1-9]$/.test(key)) { if (own[+key - 1]) select(own[+key - 1].id) } else if (key === 'escape') select(null); else if (key === 'x') $('flank').click(); else if (key === 'd') $('detach').click(); else if (key === 'r') $('runners').click(); else if (key === 'q') $('release').click(); else if (key === 'f1') { e.preventDefault(); startGuide() } })
 function stopEditing() { editing = null; $('gEditor').hidden = true; $('gambits').hidden = false; $('editG').hidden = false; $('applyG').hidden = $('cancelG').hidden = true }
-$('editG').onclick = () => { if (!replica?.state) return; editing = true; gEd = editor($('gEditor'), replica.state.gambits[replica.side]); $('gEditor').hidden = false; $('gambits').hidden = true; $('editG').hidden = true; $('applyG').hidden = $('cancelG').hidden = false }
+$('editG').onclick = () => { if (!liveView?.ready || !F?.board) return; editing = true; gEd = editor($('gEditor'), F.gambits); $('gEditor').hidden = false; $('gambits').hidden = true; $('editG').hidden = true; $('applyG').hidden = $('cancelG').hidden = false }
 $('cancelG').onclick = stopEditing
 $('applyG').onclick = async () => { await act({ gambits: gEd.get() }, 'Gambits applied'); stopEditing() }
 $('gambits').onclick = e => { const row = e.target.closest('[data-g]'); if (row) act({ toggle: +row.dataset.g }, 'Rule toggled') }
@@ -733,10 +730,10 @@ $('calls').onclick = e => { const i = e.target.dataset.do ?? e.target.dataset.no
 $('doctrine2').oninput = () => editDoctrine($('doctrine2')); $('sendDoctrine').onclick = () => saveDoctrine(true)
 $('say').onsubmit = e => { e.preventDefault(); const input = $('msg'); if (input.value) { api('POST', '/say', { text: input.value, matchId: F?.matchId }); toast('Sent to your agent') } input.value = '' }
 const guideSteps = [['Select a battalion', 'Choose one of your pink rings or use the battalion list.'], ['Move to a planet', 'Choose a planet and send the battalion. It stays under your control.'], ['Return to gambits', 'Release the same battalion so it follows your rules again.'], ['Complete', 'Capture planets, adjust your gambits, and keep playing.']]
-function startGuide() { if (!replica?.state || replica.state.ended) return; guidance = { step: 0, bat: null }; renderGuide() }
-function observeGuide() { if (!guidance || !replica?.state) return; const b = mine().find(b => b.id === sel); if (guidance.step === 0 && b) { guidance.step = 1; guidance.bat = b.id } else if (guidance.step === 1 && b?.id === guidance.bat && b.manual) guidance.step = 2; else if (guidance.step === 2) { const target = mine().find(q => q.id === guidance.bat); if (target && !target.manual) guidance.step = 3 } }
-function renderGuide() { $('guideLaunch').hidden = !!guidance; $('guidePanel').hidden = !guidance; if (!guidance) return; $('guideStep').textContent = guideSteps[guidance.step][0]; $('guideInstruction').textContent = guideSteps[guidance.step][1]; const opts = mine().map(b => `<option value="${b.id}">Battalion #${b.id}</option>`).join(''); if ($('guideSwarm').innerHTML !== opts) $('guideSwarm').innerHTML = opts; if (sel !== null) $('guideSwarm').value = sel; const planets = replica.state.planets.map(p => `<option value="${p.id}">Planet #${p.id}</option>`).join(''); if ($('guidePlanet').innerHTML !== planets) $('guidePlanet').innerHTML = planets }
-$('guideLaunch').onclick = startGuide; $('guideReplay').onclick = startGuide; $('guideDismiss').onclick = () => { guidance = null; renderGuide() }; $('guideSwarm').onchange = () => select(+$('guideSwarm').value); $('guideSend').onclick = () => { const p = replica?.state?.planets.find(p => String(p.id) === $('guidePlanet').value); if (p && sel !== null) act({ order: { bat: sel, x: p.x, y: p.y } }, 'Move ordered') }; $('guideRelease').onclick = () => $('release').click()
+function startGuide() { if (!liveView?.ready || F?.board?.ended) return; guidance = { step: 0, bat: null }; renderGuide() }
+function observeGuide() { if (!guidance || !liveView?.ready) return; const b = mine().find(b => b.id === sel); if (guidance.step === 0 && b) { guidance.step = 1; guidance.bat = b.id } else if (guidance.step === 1 && b?.id === guidance.bat && b.manual) guidance.step = 2; else if (guidance.step === 2) { const target = mine().find(q => q.id === guidance.bat); if (target && !target.manual) guidance.step = 3 } }
+function renderGuide() { $('guideLaunch').hidden = !!guidance; $('guidePanel').hidden = !guidance; if (!guidance) return; $('guideStep').textContent = guideSteps[guidance.step][0]; $('guideInstruction').textContent = guideSteps[guidance.step][1]; const opts = mine().map(b => `<option value="${b.id}">Battalion #${b.id}</option>`).join(''); if ($('guideSwarm').innerHTML !== opts) $('guideSwarm').innerHTML = opts; if (sel !== null) $('guideSwarm').value = sel; const planets = F.board.planets.map(p => `<option value="${p.id}">Planet #${p.id}</option>`).join(''); if ($('guidePlanet').innerHTML !== planets) $('guidePlanet').innerHTML = planets }
+$('guideLaunch').onclick = startGuide; $('guideReplay').onclick = startGuide; $('guideDismiss').onclick = () => { guidance = null; renderGuide() }; $('guideSwarm').onchange = () => select(+$('guideSwarm').value); $('guideSend').onclick = () => { const p = F?.board?.planets.find(p => String(p.id) === $('guidePlanet').value); if (p && sel !== null) act({ order: { bat: sel, x: p.x, y: p.y } }, 'Move ordered') }; $('guideRelease').onclick = () => $('release').click()
 
 // Initialize once: a late account response must not reset a form already in use.
 setAuthMode(authMode)

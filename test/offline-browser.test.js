@@ -130,7 +130,7 @@ test('offline surrender confirms, recovers from refusal, shows the real result a
   assert.deepEqual(errors, [])
 })
 
-test('map orders use the selected battalion and reach the replica', { timeout: 30000 }, async t => {
+test('map orders use the selected battalion and reach the live view', { timeout: 30000 }, async t => {
   const { browser, origin } = await fixture(t)
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } }), inputs = []
   page.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/input') inputs.push(r.postDataJSON()) })

@@ -20,7 +20,7 @@ test('clean build and actual package contain the exact delivered media', async (
     execFileSync(process.execPath, [new URL('../scripts/build.js', import.meta.url).pathname], { cwd: dir })
     for (const file of files) assert.deepEqual(await readFile(join(dir, 'public/media', file)), await source(`media/${file}`))
     const [pack] = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json'], { cwd: new URL('../', import.meta.url), encoding: 'utf8' }))
-    for (const file of [...files.map(f => `media/${f}`), 'public-media.js', 'browser-live.js']) assert.ok(pack.files.some(f => f.path === file), `not packaged: ${file}`)
+    for (const file of [...files.map(f => `media/${f}`), 'public-media.js', 'browser-live.js', 'wire.js']) assert.ok(pack.files.some(f => f.path === file), `not packaged: ${file}`)
   } finally { await rm(dir, { recursive: true, force: true }) }
 })
 
@@ -34,9 +34,7 @@ test('offline server serves public media, byte ranges, HEAD and refuses unrelate
   t.after(async () => { server.kill(); if (server.exitCode === null) await once(server, 'exit') })
   await Promise.race([once(server.stderr, 'data'), once(server, 'exit').then(() => { throw Error('offline server exited') })])
   const base = `http://127.0.0.1:${port}`
-  const replica = await fetch(`${base}/browser-live.js`)
-  assert.equal(replica.status, 200)
-  assert.deepEqual(Buffer.from(await replica.arrayBuffer()), await source('browser-live.js'))
+  for (const file of ['browser-live.js', 'wire.js']) { const response = await fetch(`${base}/${file}`); assert.equal(response.status, 200); assert.deepEqual(Buffer.from(await response.arrayBuffer()), await source(file)) }
   for (const [i, file] of files.entries()) {
     const data = await source(`media/${file}`), response = await fetch(`${base}/media/${file}`)
     assert.equal(response.status, 200)

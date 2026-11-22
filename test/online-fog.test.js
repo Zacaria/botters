@@ -21,7 +21,7 @@ test('house duel persists particle state and accepts battalion orders', async ()
 })
 
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
-import { createReplica } from '../browser-live.js'
+import { createMirror, decodeFrame } from '../wire.js'
 import * as sim from '../sim.js'
 
 test('cold catch-up returns bounded progress and checkpoints survive repeated eviction', async () => {
@@ -40,9 +40,9 @@ test('cold catch-up returns bounded progress and checkpoints survive repeated ev
     assert.ok(current.tick > previous && current.tick - previous <= 100, `unbounded progress ${previous} -> ${current.tick}`)
     previous = current.tick
   } while (current.tick < 300)
-  const expected = sim.restore(initial.state)
+  const expected = structuredClone(initial.state)
   sim.advanceTo(expected, current.tick)
-  assert.equal(sim.hash(sim.restore(current.state)), sim.hash(expected))
+  assert.equal(sim.hash(current.state), sim.hash(expected))
 })
 
 const waitFor = async (predicate, ms = 45000) => {
@@ -52,7 +52,7 @@ const waitFor = async (predicate, ms = 45000) => {
     await new Promise(resolve => setTimeout(resolve, 50))
   }
 }
-test('workerd two-player replicas receive indexed inputs, hashes and resync', { timeout: 90000 }, async t => {
+test('workerd two-player fog frames decode and resync', { timeout: 90000 }, async t => {
   const { mf, mail } = await runtime(); t.after(() => mf.dispose())
   const players = []
   for (const name of ['One', 'Two']) {
@@ -61,7 +61,7 @@ test('workerd two-player replicas receive indexed inputs, hashes and resync', { 
     await c.call('GET', verify.pathname + verify.search)
     const session = (await c.call('POST', '/session', {})).body
     assert.equal((await c.call('POST', '/exchange', { ticket: session.liveTicket })).status, 200)
-    players.push({ c, token: session.humanToken, bytes: 0, snaps: 0, resyncs: 0, hashes: 0, result: null })
+    players.push({ c, token: session.humanToken, bytes: 0, resets: 0, error: null, result: null })
   }
   const [a,b] = players
   const room = await a.c.call('POST', `/rooms?token=${a.token}`, { withAgent: false, planning: 10, minutes: 3, planets: 9 })
@@ -72,37 +72,33 @@ test('workerd two-player replicas receive indexed inputs, hashes and resync', { 
     const response = await mf.dispatchFetch(ORIGIN + `/socket?token=${p.token}`, { headers: { upgrade: 'websocket', origin: ORIGIN, cookie: [...p.c.cookies].map(([k,v]) => `${k}=${v}`).join('; ') } })
     assert.equal(response.status, 101)
     p.ws = response.webSocket
-    p.replica = createReplica(sim, () => { p.resyncs++; p.ws.send(JSON.stringify({ t: 'resync' })) })
+    p.mirror = createMirror()
     p.ws.addEventListener('message', e => {
-      p.bytes += Buffer.byteLength(e.data)
-      const message = JSON.parse(e.data)
-      if (message.t === 'snap') p.snaps++
-      if (message.t === 'step' && message.hash) p.hashes++
-      if (message.t === 'meta' && message.result) p.result = message.result
-      p.replica.receive(message); p.replica.advance(10000)
+      if (typeof e.data === 'string') { p.bytes += Buffer.byteLength(e.data); const message = JSON.parse(e.data); if (message.result) p.result = message.result; return }
+      const bytes = new Uint8Array(e.data); p.bytes += bytes.length
+      try { if (bytes[0] & 1) p.resets++; decodeFrame(bytes, p.mirror) } catch (e) { p.error = e }
     })
     p.ws.accept(); t.after(() => p.ws.close())
   }
   const start = performance.now()
-  await waitFor(() => players.every(p => p.replica.state?.tick >= 20))
+  await waitFor(() => players.every(p => p.mirror.tick >= 20))
   for (const p of players) {
-    const bat = sim.view(p.replica.state, p.replica.side).battalions[0].id
+    const bat = p.mirror.bat[p.mirror.has.findIndex((v, i) => v && (i < sim.MAXPER ? 0 : 1) === p.mirror.side)]
     const order = await p.c.call('POST', `/input?token=${p.token}`, { order: { bat, x: 600, y: 350 } })
     assert.equal(order.status, 200, JSON.stringify(order.body))
   }
-  await waitFor(() => players.every(p => p.replica.state?.tick >= 220))
-  assert.deepEqual(players.map(p => p.resyncs), [0,0])
-  assert.ok(players.every(p => p.hashes >= 10))
+  await waitFor(() => players.every(p => p.mirror.tick >= 220))
+  for (const p of players) { assert.ifError(p.error); assert.ok(p.mirror.n > 0); assert.equal(p.resets, 1) }
   a.ws.send(JSON.stringify({ t: 'resync' }))
-  await waitFor(() => a.snaps >= 2)
-  const tick = a.replica.state.tick
-  await waitFor(() => a.replica.state.tick >= tick + 20)
-  assert.equal(a.resyncs, 0)
+  await waitFor(() => a.resets >= 2)
+  const tick = a.mirror.tick
+  await waitFor(() => a.mirror.tick >= tick + 20)
+  assert.ifError(a.error)
   assert.equal((await a.c.call('POST', `/surrender?token=${a.token}`, {})).status, 200)
   await waitFor(() => players.every(p => p.result))
   assert.deepEqual(players.map(p => p.result.result), ['lost', 'won'])
   const seconds = (performance.now() - start) / 1000
   const rates = players.map(p => p.bytes / seconds / 1024)
   assert.ok(rates.every(rate => rate < 100))
-  console.log(JSON.stringify({ proof: 'workerd-lockstep', kbPerSecond: rates, ticks: players.map(p => p.replica.state.tick) }))
+  console.log(JSON.stringify({ proof: 'workerd-fog', kbPerSecond: rates, ticks: players.map(p => p.mirror.tick) }))
 })

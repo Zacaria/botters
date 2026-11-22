@@ -1,6 +1,6 @@
 # sim.js — particle war core (2026-11-21)
 
-`sim.js` is the only simulation. It is plain JavaScript, imported unchanged by Node (`server.js`, `online/game.js`, the Worker bundle) and the browser (`/sim.js`). The rules are `spikes/particles/psim.js` (validated by Zacaria); the spike folder is deleted once `sim.js` carries them. Decision and lockstep protocol: `DESIGN.md`, "Particle war replaces the cohort model".
+`sim.js` is the only simulation. It is plain JavaScript, imported unchanged by Node (`server.js`, `online/game.js`, the Worker bundle) and by the browser only for the lobby background demo and rule constants; matches run on the server alone. The rules are `spikes/particles/psim.js` (validated by Zacaria); the spike folder is deleted once `sim.js` carries them. Decision: `DESIGN.md`, "Particle war replaces the cohort model"; what browsers receive: "Fog transport".
 
 ## State
 
