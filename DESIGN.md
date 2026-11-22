@@ -155,17 +155,29 @@ Owner played the `feat/particles` spike and approved replacing production with i
 
 **Hand orders** (human or agent, agents still capped at 5 inputs/s): `order {bat, x, y}` (move), `flank bat` (swing round the nearest enemy), `detach {bat, role?}` (half, or only one role), `release bat` (back to the gambits). API: `docs/specs/particle-sim.md`.
 
-**Lockstep replica.** The server still runs the authoritative match (results, Elo, agent views). Browsers run the same `sim.js` and never receive positions. Every message, over the online WebSocket and the local SSE stream alike:
+**Fog transport (2026-11-22, replaces the lockstep replica).** Owner rejected the lockstep replica on 21/11: every browser held the whole match, so fog was display only. Now only the server runs the match. Each browser receives its own units and the enemy units its side can see (`sim.visible`), nothing else. One module, `wire.js`, holds the encoder, the decoder and the per-client mirror; the local SSE stream and the online WebSocket use it alike.
 
 | Message | Meaning |
 |---|---|
-| `{t:'snap', side, log, state}` | Full state at `state.tick`; `log` inputs are already in it. Sent on connect and on `{t:'resync'}` from the client. |
-| `{t:'step', tick, inputs:[{i, tick, side, input}], hash?:[tick, h]}` | Advance up to `tick`. Each input applies at its own tick, before that tick's step, in `i` order. `hash` is the server's `hash(s)` at the last multiple of 20 ticks. |
-| `{t:'meta', ...}` | Match frame without positions (ids, side, players, startsIn, calls, feed, edits (last 10 doctrine edits: t, who, why, change), result report). On change, at most once a second. |
+| frame (binary; SSE: `event: f`, base64 data) | Units at `tick`, 10 Hz, as corrections to the predicted position. |
+| `{t:'meta', ...}` (JSON) | Match frame without unit positions: players, startsIn, calls, feed, edits, gambits, result report, and `board` (`endTick`, `ended`, totals, own battalions `{id, manual, rule, tx, ty, via, fighting}`, planets `{id, x, y, r, owner, prog, by}`). On change, at most once a second, at once when a battalion appears, disappears or changes hand/doctrine control. |
+| `{t:'resync'}` (client → server, WebSocket) | Reset this client's mirror; the next frame is a full snapshot. SSE clients reconnect instead. |
 
-The server stamps an input with its own tick when it accepts it, and announces tick T only after stepping to T, so every input at a tick below T is sent before the client may pass it. A client that sees a gap in `i`, an input older than its tick, or a different hash asks for a snapshot. Clients play the announced ticks at 20 Hz, about one message behind.
+The server keeps, per connection, a mirror of what that client has decoded (the server literally decodes its own frame into it), so rounding never accumulates. Positions are integers in ¼ px. Prediction for a unit already in the mirror is `2×last − previous`; a newborn's previous equals its position.
 
-**Fog is display only.** Each browser runs the whole match, so a modified client can see through fog and read the opponent's orders. Agent views from the server keep fog. Accepted for now; a ranked anti-cheat would need server-side views again.
+Frame layout (varint = unsigned LEB128, ascending unit indices, a *gap* is `index − previous index − 1`, starting from −1):
+
+1. `u8 flags`: bit 0 reset (clear the mirror first), bit 1 the receiver's side.
+2. `varint tick`.
+3. Removals: `varint count`, then one gap per unit. A unit that died, left vision, or whose slot was reused.
+4. Moves: for every unit still in the mirror, in index order, `i8 dx, i8 dy` = position − prediction. No count: both ends know the mirror.
+5. Births: `varint count`, then per unit `gap, varint kind, u16 x, u16 y`. `kind` = `bat × 4 + role` for own units, `role` for enemies (enemy battalions are never sent). A unit entering vision is a birth. A correction outside ±127, or a changed role, is sent as removal + birth of the same index.
+6. Battalion changes of own units already in the mirror: `varint count`, then `gap, varint bat`.
+7. `varint n`: units in the mirror after this frame. A decoder whose count differs asks for a resync.
+
+Clients draw one frame behind and interpolate between the last two positions at display rate. Own battalion rings are the mean of their decoded units; everything else about battalions and planets comes from `meta`. Join, reconnect and `resync` all start from a reset frame. Measured with `node scripts/bench-net.js` (one 5-minute house match, both sides).
+
+Agent views were always server-side and keep fog. The lobby background demo still runs `sim.js` in the browser on a throwaway local match.
 
 **Cost.** A 5-minute match is ~2.6 ms per tick in Node (bench: `node scripts/bench-sim.js`). A what-if replay of a whole match is ~15 s of CPU, too slow for the Worker, so the end report shows the result and input counts only.
 

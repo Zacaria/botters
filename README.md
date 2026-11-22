@@ -69,7 +69,7 @@ Then plug your agent. The full guide is at `http://localhost:8787/guide`.
 - At time, most planets wins, then most units. A side with no units or planets loses.
 - Up to 10 gambits per side run every half-second: the first enabled matching condition wins. Conditions include nearby enemies, attacked planets, fighting allies, battalion size and free or enemy planets. Actions are go, flank, retreat, split and hold; see `GET /rules` for the full list.
 - Order a battalion by hand, flank, detach half or a role, or release it back to its gambits. Hand orders are yours only: your agent changes the gambits (five inputs per second) and asks for a hand with `call_human`. The house uses fixed gambits.
-- Agent observations hide enemies outside sight. Browser fog is display-only: the lockstep snapshot contains the full simulation.
+- Agent observations and browsers both get only what their side sees: the browser receives its own units and visible enemies, never the full match (`wire.js`, DESIGN.md "Fog transport").
 
 ## Agent settings (env, or `.env` next to `client.js`)
 

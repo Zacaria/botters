@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
+import { createMirror, decodeFrame } from '../wire.js'
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
 async function resources() {
   const rows=execFileSync('ps',['-eo','pid=,ppid=,comm='],{encoding:'utf8'}).trim().split('\n').map(l=>l.trim().split(/\s+/))
@@ -21,19 +22,22 @@ test('workerd cadence: real 20 Hz match, two live readers, bounded local resourc
   const verify=new URL(mail[0].text.match(/http:\/\/[^\s]+/)[0]);await c.call('GET',verify.pathname+verify.search)
   const s=(await c.call('POST','/session',{})).body;await c.call('POST','/exchange',{ticket:s.liveTicket})
   await c.call('POST',`/play?token=${s.humanToken}`,{withAgent:false,vs:'normal',minutes:3,planets:40,planning:10})
-  const sockets=[]
+  const sockets=[], mirrors=[createMirror(),createMirror()], frames=[], second=[]; let collecting=false
   for(let i=0;i<2;i++){
     const r=await mf.dispatchFetch(ORIGIN+`/socket?token=${s.humanToken}`,{headers:{upgrade:'websocket',origin:ORIGIN,cookie:[...c.cookies].map(([k,v])=>`${k}=${v}`).join('; ')}})
-    assert.equal(r.status,101);r.webSocket.accept();sockets.push(r.webSocket)
+    assert.equal(r.status,101)
+    r.webSocket.addEventListener('message',e=>{
+      if(typeof e.data==='string')return
+      decodeFrame(new Uint8Array(e.data),mirrors[i])
+      if(collecting) { if(i===0) frames.push({at:performance.now(),bytes:e.data.byteLength,tick:mirrors[i].tick}); else second.push(mirrors[i].tick) }
+    })
+    r.webSocket.accept();sockets.push(r.webSocket)
   }
   t.after(()=>sockets.forEach(s=>s.close()))
-  await new Promise((resolve,reject)=>{
-    sockets[0].addEventListener('message',function started(e){const f=JSON.parse(e.data);if(f.t==='step' && f.tick>0){sockets[0].removeEventListener('message',started);resolve()}})
-    setTimeout(()=>reject(new Error('Match did not advance after planning')),14000).unref()
-  })
-  const frames=[],second=[]; let collecting=true
-  sockets[0].addEventListener('message',e=>{const f=JSON.parse(e.data);if(collecting && f.t==='step') frames.push({at:performance.now(),bytes:Buffer.byteLength(e.data),tick:f.tick})})
-  sockets[1].addEventListener('message',e=>{const f=JSON.parse(e.data);if(collecting && f.t==='step') second.push(f.tick)})
+  const deadline=Date.now()+14000
+  while(mirrors[0].tick===0 && Date.now()<deadline) await new Promise(r=>setTimeout(r,50))
+  assert.ok(mirrors[0].tick>0,'Match did not advance after planning')
+  collecting=true
   const before=await resources(),start=performance.now()
   await new Promise(r=>setTimeout(r,5000))
   collecting=false

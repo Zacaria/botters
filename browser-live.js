@@ -1,50 +1,33 @@
-// The replica never predicts beyond an announced tick. A snapshot replaces all
-// pending inputs and hashes, including after reconnecting or a resync.
-export function createReplica(sim, requestSnapshot) {
-  let state = null, side = null, nextI = 0, target = 0, accumulator = 0, resyncing = false
-  let inputs = [], localHashes = new Map(), serverHashes = new Map()
-  const resync = () => { if (!resyncing) { resyncing = true; requestSnapshot() } }
-  const compare = tick => {
-    if (localHashes.has(tick) && serverHashes.has(tick)) {
-      if (localHashes.get(tick) !== serverHashes.get(tick)) resync()
-      localHashes.delete(tick); serverHashes.delete(tick)
-    }
-  }
-  const record = () => {
-    if (state.tick % 20 === 0) { localHashes.set(state.tick, sim.hash(state)); compare(state.tick) }
-  }
+import { createMirror, decodeFrame } from './wire.js'
+import { MAXPER } from './sim.js'
+
+export function createLiveView() {
+  const mirror = createMirror(), N = 2 * MAXPER
+  let arrivedAt = 0, ready = false, broken = false, battalions = []
   return {
-    get state() { return state },
-    get side() { return side },
-    receive(message) {
-      if (message.t === 'snap') {
-        state = sim.restore(message.state); side = message.side; nextI = message.log
-        target = state.tick; accumulator = 0; inputs = []; localHashes = new Map(); serverHashes = new Map(); resyncing = false
-        record()
-      } else if (message.t === 'step' && state && !resyncing) {
-        for (const entry of message.inputs) {
-          if (entry.i !== nextI || entry.tick < state.tick) { resync(); return }
-          nextI++; inputs.push(entry)
-        }
-        target = Math.max(target, message.tick)
-        if (message.hash) { const [tick, h] = message.hash; serverHashes.set(tick, h); compare(tick) }
-      }
+    get side() { return mirror.side },
+    get tick() { return mirror.tick },
+    get ready() { return ready && !broken },
+    get battalions() { return battalions },
+    receive(bytes, now) {
+      if (broken && !(bytes[0] & 1)) return false
+      try { decodeFrame(bytes, mirror); broken = false; ready = true; arrivedAt = now; return true }
+      catch { broken = true; return false }
     },
-    advance(elapsed) {
-      if (!state || resyncing) return
-      accumulator += Math.max(0, elapsed)
-      // Catch up in bounded batches without spending minutes replaying a hidden tab.
-      let budget = target - state.tick > 40 ? 100 : Math.floor(accumulator / 50)
-      budget = Math.min(budget, 100)
-      // Inputs at the current tick apply as soon as they arrive: the server applied them in log order with no step between,
-      // which also lands a final surrender logged at the last announced tick.
-      const drain = () => { while (inputs.length && inputs[0].tick === state.tick) { const entry = inputs.shift(); sim.applyInput(state, entry.side, entry.input) } }
-      drain()
-      while (budget-- > 0 && state.tick < target && !resyncing && !state.ended) {
-        if (inputs.length && inputs[0].tick < state.tick) { resync(); break }
-        sim.step(state); accumulator = Math.max(0, accumulator - 50); record(); drain()
+    scene(now) {
+      const alpha = Math.max(0, Math.min(1, (now - arrivedAt) / 100)), x = new Float32Array(N), y = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N), side = new Uint8Array(N), bats = new Map()
+      for (let i = 0; i < N; i++) if (mirror.has[i]) {
+        x[i] = (mirror.px[i] + (mirror.x[i] - mirror.px[i]) * alpha) / 4
+        y[i] = (mirror.py[i] + (mirror.y[i] - mirror.py[i]) * alpha) / 4
+        vx[i] = (mirror.x[i] - mirror.px[i]) / 8; vy[i] = (mirror.y[i] - mirror.py[i]) / 8; side[i] = i < MAXPER ? 0 : 1
+        if (side[i] === mirror.side) {
+          const id = mirror.bat[i], b = bats.get(id) || { id, cx: 0, cy: 0, n: 0, roles: [0, 0, 0] }
+          b.cx += x[i]; b.cy += y[i]; b.n++; b.roles[mirror.role[i]]++; bats.set(id, b)
+        }
       }
-      if (state.tick >= target) accumulator = Math.min(accumulator, 50)
+      battalions = [...bats.values()].sort((a, b) => a.id - b.id)
+      for (const b of battalions) { b.cx /= b.n; b.cy /= b.n }
+      return { N, alive: mirror.has, x, y, vx, vy, side, role: mirror.role, bat: mirror.bat }
     },
   }
 }
@@ -57,8 +40,9 @@ export function connectLive(origin, token, onFrame, onDisconnect) {
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     url.searchParams.set('token', token)
     const next = new WebSocket(url)
+    next.binaryType = 'arraybuffer'
     socket = next
-    next.onmessage = event => { if (!closed && socket === next) { try { onFrame(JSON.parse(event.data)) } catch { onDisconnect() } } }
+    next.onmessage = event => { if (!closed && socket === next) { try { onFrame(typeof event.data === 'string' ? JSON.parse(event.data) : { t: 'f', bytes: new Uint8Array(event.data) }) } catch { onDisconnect() } } }
     next.onclose = () => { if (!closed && socket === next) { onDisconnect(); retry = setTimeout(connect, 1000) } }
     next.onerror = () => { if (!closed && socket === next) onDisconnect() }
   }

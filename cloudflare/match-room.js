@@ -1,4 +1,5 @@
 import { DurableObject } from 'cloudflare:workers'
+import { createMirror, encodeFrame, boardKey } from '../wire.js'
 import { admission, gameHTTP, runGame, failure, json } from './http.js'
 import { authorize, hash } from './authority.js'
 
@@ -25,25 +26,24 @@ export class MatchRoom extends DurableObject {
       if (this.sockets.size >= 8) return json({ error: 'Too many connections. Close another game tab.' }, 429)
       const pair = new WebSocketPair(), server = pair[1]
       server.accept()
-      const entry = { key: `token:${hash(new URL(request.url).searchParams.get('token') || '')}`, cookieHash: admitted.token.liveCookieHash, side: admitted.session.side, until: Math.min(Date.now() + 1000, admitted.expires), checked: Date.now(), matchId: admitted.session.match }
+      const entry = { key: `token:${hash(new URL(request.url).searchParams.get('token') || '')}`, cookieHash: admitted.token.liveCookieHash, side: admitted.session.side, until: Math.min(Date.now() + 1000, admitted.expires), checked: Date.now(), matchId: admitted.session.match, mirror: createMirror() }
       this.sockets.set(server, entry)
       const drop = () => { this.sockets.delete(server); if (!this.sockets.size) { clearTimeout(this.timer); this.timer = null } }
       server.addEventListener('close', drop); server.addEventListener('error', drop)
       // Independent watchdog still fires when D1 or the game queue is stalled.
       entry.watchdog = setInterval(() => { if (!this.sockets.has(server)) return clearInterval(entry.watchdog); if (Date.now() >= entry.until) { server.close(4401, 'Access ended'); drop(); clearInterval(entry.watchdog) } }, 100)
-      server.addEventListener('message', event => { try { if (JSON.parse(event.data).t === 'resync') void this.serial(() => this.sendSnapshot(server, entry)) } catch {} })
-      await this.serial(() => this.sendSnapshot(server, entry))
+      server.addEventListener('message', event => { try { if (JSON.parse(event.data).t === 'resync') void this.serial(() => { entry.mirror.reset = true; return this.sendFrame(server, entry) }) } catch {} })
+      await this.serial(() => this.sendFrame(server, entry))
       this.schedule()
       return new Response(null, { status: 101, webSocket: pair[0] })
     } catch (e) { return failure(e) }
   }
-  async sendSnapshot(socket, entry) {
-    const data = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: entry.matchId, snap: true }, null, undefined, this.stateCache)
+  async sendFrame(socket, entry) {
+    const data = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: entry.matchId }, null, undefined, this.stateCache)
     if (!data || !this.sockets.has(socket)) return
-    socket.send(JSON.stringify({ t: 'snap', side: entry.side, log: data.log, state: data.state }))
-    entry.next = data.log
+    socket.send(encodeFrame(data.state, entry.side, entry.mirror))
     const meta = { t: 'meta', ...data.frames[entry.side] }
-    socket.send(JSON.stringify(meta)); entry.meta = JSON.stringify(meta); entry.metaAt = Date.now()
+    socket.send(JSON.stringify(meta)); entry.meta = JSON.stringify(meta); entry.metaAt = Date.now(); entry.board = boardKey(meta.board)
   }
   schedule() {
     if (this.timer || !this.sockets.size) return
@@ -68,17 +68,15 @@ export class MatchRoom extends DurableObject {
     if (!this.sockets.size) return
     try {
       const live = [...new Set([...this.sockets.values()].map(entry => entry.side))]
-      const from = Math.min(...[...this.sockets.values()].map(entry => entry.next ?? 0))
-      const data = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId, live, from }, null, undefined, this.stateCache)
+      const data = await runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId, live }, null, undefined, this.stateCache)
       for (const [socket, entry] of this.sockets) {
         if (Date.now() >= entry.until) { socket.close(4401, 'Access ended'); this.sockets.delete(socket); continue }
         if (!data) continue
-        const inputs = data.inputs.filter(input => input.i >= entry.next)
-        socket.send(JSON.stringify({ t: 'step', tick: data.tick, inputs, hash: data.hash }))
-        entry.next = data.log
+        socket.send(encodeFrame(data.state, entry.side, entry.mirror))
         const meta = JSON.stringify({ t: 'meta', ...data.frames[entry.side] })
-        if (meta !== entry.meta && (data.frames[entry.side].result || Date.now() - entry.metaAt >= 1000)) {
-          socket.send(meta); entry.meta = meta; entry.metaAt = Date.now()
+        const key = boardKey(data.frames[entry.side].board)
+        if (key !== entry.board || data.frames[entry.side].result || (meta !== entry.meta && Date.now() - entry.metaAt >= 1000)) {
+          socket.send(meta); entry.meta = meta; entry.metaAt = Date.now(); entry.board = key
         }
       }
     } catch {

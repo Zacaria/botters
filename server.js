@@ -3,8 +3,9 @@
 import http from 'node:http'
 import { readFileSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
+import { createMirror, encodeFrame, board, boardKey } from './wire.js'
 import { servePublicMedia } from './public-media.js'
-import { createMatch, applyInput, step, view, rules, snapshot, hash, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS } from './sim.js'
+import { createMatch, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
@@ -48,7 +49,7 @@ function play(s, req, human = false) {
 const foe = (m, side) => ({ name: m.players[1 - side].name, setup: m.players[1 - side].setup })
 function startMatch(entries, req, waitingForAgent = false) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
   const delay = FORCED_DELAY ?? req.planning * 1000
-  const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], hashes: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
+  const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
     const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
       withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
@@ -59,12 +60,12 @@ function startMatch(entries, req, waitingForAgent = false) { // entries[1] === n
     if (e) { e.s.match = m; e.s.side = side }
   })
   for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}). You start with three battalions of 400 units. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits.' : 'Write your opening gambits from the doctrine now.'}`)
+  let waitingFrame = 0
   m.timer = setInterval(() => {
     if (m.waitingForAgent && Date.now() >= m.createdAt + 300000) return cancelMatch(m, 'Match cancelled: your agent did not join within 5 minutes.')
-    if (m.waitingForAgent) { for (const st of m.streams) send(st, m); return }
-    if (Date.now() < m.startsAt) { for (const st of m.streams) send(st, m); return }
+    if (m.waitingForAgent) { if (++waitingFrame % FRAME_EVERY === 0) for (const st of m.streams) send(st, m); return }
+    if (Date.now() < m.startsAt) { if (++waitingFrame % FRAME_EVERY === 0) for (const st of m.streams) send(st, m); return }
     step(m.s)
-    if (m.s.tick % 20 === 0) { m.hashes.push([m.s.tick, hash(m.s)]); if (m.hashes.length > 32) m.hashes.shift() }
     if (m.s.ended) return finish(m)
     if (m.s.tick % TPS === 0) for (const p of m.players) diffEvents(m, p)
     if (m.s.tick % FRAME_EVERY === 0) for (const st of m.streams) send(st, m)
@@ -86,13 +87,11 @@ const frame = (m, side) => {
 }
 const write = (st, data) => st.res.write(`data: ${JSON.stringify(data)}\n\n`)
 const send = (st, m, force = false) => {
-  const inputs = m.log.slice(st.next).map((entry, n) => ({ i: st.next + n, tick: entry.tick, side: entry.side, input: entry.input }))
-  st.next = m.log.length
-  write(st, { t: 'step', tick: m.s.tick, inputs, hash: m.hashes.at(-1) || null })
+  st.res.write(`event: f\ndata: ${Buffer.from(encodeFrame(m.s, st.side, st.mirror)).toString('base64')}\n\n`)
   const { view: v, ...meta } = frame(m, st.side)
-  meta.gambits = v.gambits
-  const data = JSON.stringify(meta), now = Date.now()
-  if (force || (data !== st.meta && now - st.metaAt >= 1000)) { write(st, { t: 'meta', ...meta }); st.meta = data; st.metaAt = now }
+  meta.gambits = v.gambits; meta.board = board(m.s, st.side)
+  const data = JSON.stringify(meta), now = Date.now(), key = boardKey(meta.board)
+  if (force || key !== st.key || (data !== st.meta && now - st.metaAt >= 1000)) { write(st, { t: 'meta', ...meta }); st.meta = data; st.metaAt = now; st.key = key }
 }
 
 function finish(m) {
@@ -282,15 +281,14 @@ const routes = {
   'GET /stream': (req, res, q) => { // human browser: frames of the session's current match
     const a = auth(q, 'human'); if (!a?.s.match) return json(res, 409, { error: 'not in a match' })
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
-    const m = a.s.match, st = { res, side: a.s.side, next: m.log.length, meta: null, metaAt: 0 }
-    write(st, { t: 'snap', side: st.side, log: st.next, state: snapshot(m.s) })
-    const { view: initialView, ...initialMeta } = frame(m, st.side)
-    initialMeta.gambits = initialView.gambits; st.meta = JSON.stringify(initialMeta); st.metaAt = Date.now(); write(st, { t: 'meta', ...initialMeta })
+    const m = a.s.match, st = { res, side: a.s.side, mirror: createMirror(), meta: null, metaAt: 0, key: null }
+    send(st, m, true)
     m.streams.add(st); req.on('close', () => m.streams.delete(st))
   },
   'GET /leaderboard': (req, res) => json(res, 200, leaderboard()),
   'GET /': page('index.html'),
   'GET /sim.js': page('sim.js'),
+  'GET /wire.js': page('wire.js'),
   'GET /browser-live.js': page('browser-live.js'),
   'GET /guide': page('guide.html'),
   'GET /privacy': page('privacy.html'),

@@ -1,5 +1,6 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, restore, snapshot, hash as simHash, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, restore, snapshot, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { board as fogBoard } from '../wire.js'
 import { transaction } from './store.js'
 import { rankPairs } from './ratings.js'
 
@@ -171,7 +172,6 @@ export class OnlineGame {
         const batchEnd = Math.min(target, m.s.tick + 100), budgetEnd = Math.min(this.deadline - 500, performance.now() + 500)
         while (m.s.tick < batchEnd && !m.s.ended && performance.now() < budgetEnd) {
           step(m.s)
-          if (m.s.tick % 20 === 0) { m.hashes ||= []; m.hashes.push([m.s.tick, simHash(m.s)]); m.hashes = m.hashes.slice(-16) }
           if (m.s.tick % TPS === 0 || m.s.ended) for (const p of m.players) diffEvents(m, p)
         }
         if (m.s.tick < target && !m.s.ended) Object.defineProperty(m, 'catchupCheckpoint', { value: true })
@@ -203,13 +203,7 @@ export class OnlineGame {
         const live = m.players.filter(p => body.live?.includes(p.side) && now - p.seen >= 5000)
         for (const p of live) p.seen = now
         if (live.length) await tx.set(`match:${m.id}`, m)
-        const from = Math.max(0, Math.min(m.logCount, body.from || 0)), inputs = []
-        for (let i = from; i < m.logCount; i++) {
-          const chunk = await tx.get(`log:${m.id}:${Math.floor(i / 64)}`)
-          const { tick, side, input } = chunk[i % 64]
-          inputs.push({ i, tick, side, input })
-        }
-        return { frames: m.players.map(p => { const { view: ignored, ...meta } = matchFrame(m, p.side, now); return { ...meta, side: p.side, gambits: m.s.gambits[p.side], result: m.s.ended ? view(m.s, p.side).ended : null } }), tick: m.s.tick, inputs, log: m.logCount, hash: m.hashes?.at(-1) || null, ...(body.snap ? { state: snapshot(m.s) } : {}) }
+        return { frames: m.players.map(p => { const { view: ignored, ...meta } = matchFrame(m, p.side, now); return { ...meta, side: p.side, gambits: m.s.gambits[p.side], result: m.s.ended ? view(m.s, p.side).ended : null, board: fogBoard(m.s, p.side) } }), tick: m.s.tick, state: m.s }
       }
       if (method === 'POST' && path === '/agent/pair' && this.requireAccount) {
         const agentToken = token(), id = token(), setup = text(body.setup, 40, 'agent')
