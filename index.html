@@ -96,6 +96,7 @@
     <p class="tag">Capture planets. Command battalions.<br>Your AI agent can write their rules.</p>
     <div id="offlineEntry" hidden><div class="row" style="justify-content: center"><input id="startName" placeholder="your name" maxlength="24"> <button class="main" id="startSolo" disabled>Enter</button></div>
       <p class="help">To play with an agent locally, open the lobby link it gives you.</p></div>
+      <section id="practiceEntry" hidden><button class="main" id="practice">PLAY NOW</button><p class="help">No account. A 5-minute match against the house bot, in your browser.</p></section>
       <section id="authPanel" aria-labelledby="authTitle">
         <h2 id="authTitle">Sign in to play online</h2>
         <p id="canonicalLogin" hidden><a id="canonicalLink" href="https://play.botters.havesomecode.io">Continue to Botters sign-in →</a></p>
@@ -256,7 +257,7 @@
 
 <script type="module">
 import * as sim from '/sim.js'
-const { createLiveView, connectLive } = await import('/browser-live.js').catch(() => import('/live-client.js'))
+const { createLiveView, connectLive, createPractice } = await import('/browser-live.js').catch(() => import('/live-client.js'))
 const { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, HOUSE, checkGambits, createMatch, applyInput, step, W, H, TPS } = sim
 const $ = id => document.getElementById(id)
 const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
@@ -384,7 +385,7 @@ async function bootAccount() {
   catch { $('authMessage').textContent = 'Connection lost. Reload when you are online.'; return }
   if (account.error) { $('authMessage').textContent = account.error; return }
   accountRequired = account.required
-  $('authPanel').hidden = !accountRequired; $('offlineEntry').hidden = accountRequired
+  $('authPanel').hidden = !accountRequired; $('practiceEntry').hidden = !accountRequired; $('offlineEntry').hidden = accountRequired
   $('accountControls').hidden = !accountRequired
   if (!accountRequired) return token ? lobby() : show('start')
   if (location.origin !== account.origin) {
@@ -571,7 +572,7 @@ $('cancel').onclick = async () => { await api('POST', '/cancel'); lobby() }
 const cv = $('c'), g = cv.getContext('2d'), img = g.createImageData(W, H), px = new Uint32Array(img.data.buffer)
 const bg = $('bg'), bgx = bg.getContext('2d'), bgimg = bgx.createImageData(W, H), bgpx = new Uint32Array(bgimg.data.buffer)
 bg.width = W; bg.height = H; cv.width = W; cv.height = H
-let F = null, liveView = null, es = null, streamRetry = null, sel = null, editing = null, gEd = null, matchGeneration = 0, actionQueue = Promise.resolve()
+let F = null, liveView = null, practice = null, es = null, streamRetry = null, sel = null, editing = null, gEd = null, matchGeneration = 0, actionQueue = Promise.resolve()
 let guidance = null, guidePending = false, lastPanel = 0, lastRules = ''
 const colours = [['#ff96cd', '#ff5096', '#ffc8e1'], ['#82c8ff', '#3c8cff', '#c8e6ff']]
 const camps = ['#ff5096', '#3c8cff']
@@ -591,6 +592,7 @@ function fit() {
 addEventListener('resize', fit)
 const at = e => { const r = cv.getBoundingClientRect(); return { x: Math.round((e.clientX - r.left) * W / r.width), y: Math.round((e.clientY - r.top) * H / r.height) } }
 function act(body, message) {
+  if (practice) { const r = practice.input(body); toast(r.ok ? message : r.error, r.ok); return r }
   const generation = matchGeneration, session = token, matchId = F?.matchId, path = body.surrender ? '/surrender' : '/input'
   const live = () => generation === matchGeneration && session === token && matchId && !$('game').hidden && !F?.board?.ended && !F?.report
   // 503 means the room is catching up or the connection dropped: retry for a few seconds instead of dropping the order.
@@ -601,33 +603,43 @@ function act(body, message) {
 }
 function select(id) { sel = id; panel() }
 function match() {
+  practice?.close(); practice = null
   ++matchGeneration; actionQueue = Promise.resolve(); clearTimeout(lobbyTimer); clearTimeout(streamRetry); es?.close()
   F = null; sel = null; guidance = null; guidePending = $('guidedHouse').checked; lastRules = ''; lastFrame = Date.now()
   $('big').innerHTML = ''; $('feed').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
   show('game'); fit(); stopEditing(); connectStream()
 }
+function startPractice() {
+  practice?.close(); es?.close(); clearTimeout(lobbyTimer); clearTimeout(streamRetry)
+  ++matchGeneration; actionQueue = Promise.resolve(); F = null; sel = null; guidance = null; guidePending = true; lastRules = ''; lastFrame = Date.now()
+  $('big').innerHTML = ''; $('feed').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
+  liveView = createLiveView(); practice = createPractice({ seed: (Math.random() * 2 ** 32) >>> 0 })
+  show('game'); fit(); stopEditing(); practice.start(receive)
+}
+$('practice').onclick = startPractice
+function receive(msg) {
+  lastFrame = Date.now(); $('connection').hidden = true
+  if (msg.t === 'f' && !liveView.receive(msg.bytes, performance.now())) { if (!practice) { if (es instanceof EventSource) connectStream(); else es?.resync() } return }
+  if (msg.t === 'meta') F = msg
+  if (liveView.ready && F?.board) { liveView.scene(performance.now()); if (guidePending) { guidePending = false; startGuide() } panel() }
+}
+function leavePractice(focus = false) { practice?.close(); practice = null; ++matchGeneration; show('start'); if (focus) $('googleLogin').focus() }
 function connectStream() {
   clearTimeout(streamRetry); es?.close()
   if ($('game').hidden) return
   let stream
   liveView = createLiveView()
-  const receive = msg => {
-    if (es !== stream) return
-    lastFrame = Date.now(); $('connection').hidden = true
-    if (msg.t === 'f' && !liveView.receive(msg.bytes, performance.now())) { if (stream instanceof EventSource) connectStream(); else stream.resync(); return }
-    if (msg.t === 'meta') F = msg
-    if (liveView.ready && F?.board) { liveView.scene(performance.now()); if (guidePending) { guidePending = false; startGuide() } panel() }
-  }
+  const incoming = msg => { if (es === stream) receive(msg) }
   const disconnected = () => { if (es === stream && !$('game').hidden && !F?.board?.ended) { $('connection').hidden = false; $('connection').textContent = 'Disconnected. Reconnecting to the same match…' } }
   if (!liveOrigin && !L?.online) {
     stream = es = new EventSource(`/stream?token=${encodeURIComponent(token)}`)
-    stream.addEventListener('f', e => { try { receive({ t: 'f', bytes: Uint8Array.from(atob(e.data), c => c.charCodeAt(0)) }) } catch { connectStream() } })
-    stream.onmessage = e => { try { receive(JSON.parse(e.data)) } catch { disconnected() } }
+    stream.addEventListener('f', e => { try { incoming({ t: 'f', bytes: Uint8Array.from(atob(e.data), c => c.charCodeAt(0)) }) } catch { connectStream() } })
+    stream.onmessage = e => { try { incoming(JSON.parse(e.data)) } catch { disconnected() } }
     stream.onerror = () => { disconnected(); if (es === stream && stream.readyState === EventSource.CLOSED) streamRetry = setTimeout(connectStream, 1000) }
-  } else stream = es = connectLive(liveOrigin || location.origin, token, receive, disconnected)
+  } else stream = es = connectLive(liveOrigin || location.origin, token, incoming, disconnected)
 }
 setInterval(() => { if (!$('game').hidden && !F?.board?.ended && Date.now() - lastFrame > 3000) { $('connection').hidden = false; $('connection').textContent = 'Connection interrupted. The match continues; reconnecting…' } }, 1000)
-$('leave').onclick = () => { es?.close(); lobby(false) }
+$('leave').onclick = () => { if (practice) leavePractice(); else { es?.close(); lobby(false) } }
 $('surrender').onclick = async () => { if (!liveView?.ready || F?.board?.ended || !confirm('Surrender this match? You will lose and your opponent will win.')) return; $('surrender').disabled = true; await act({ surrender: true }, 'Surrendered'); $('surrender').disabled = false }
 function paint(s, ctx, pixels, image, side, planets, match) {
   pixels.fill(0xff0a0a10)
@@ -699,9 +711,9 @@ function panel() {
       const reason = report.reason === 'surrender' ? (report.result === 'lost' ? 'You surrendered.' : 'Your opponent surrendered.') : report.reason === 'wipe' ? (report.result === 'won' ? 'You wiped out the enemy.' : report.result === 'lost' ? 'Your forces were wiped out.' : 'Both forces were wiped out.') : report.reason === 'time' ? 'Time is up: more planets wins, then more units.' : ''
       const scores = `${n(report.you)} vs ${n(report.enemy)}`
       const summary = `Botters: ${report.result}\n${scores}\nhttps://play.botters.havesomecode.io/`
-      $('big').innerHTML = `${result}<div class="box">${esc(reason)}<table><tr><td>Result</td><td>${esc(report.result.toUpperCase())}</td><td>${esc(scores)}</td></tr></table><button id="copyResult">Copy result</button><button id="again">${F.opponent?.human ? (F.roomCode ? 'REMATCH IN ROOM' : 'REMATCH') : 'PLAY AGAIN'}</button><button id="menu">Menu</button><div id="copyResultStatus" role="status"></div><textarea id="resultSummary" aria-label="Result summary" readonly hidden></textarea></div>`
-      $('menu').onclick = () => { es?.close(); lobby(false) }
-      $('again').onclick = () => { es?.close(); if (F.opponent?.human) roomAction('/rooms/rematch', { ...playOptions(), matchId: F.matchId }); else { show('lobby'); startPlay() } }
+      $('big').innerHTML = `${result}<div class="box">${esc(reason)}<table><tr><td>Result</td><td>${esc(report.result.toUpperCase())}</td><td>${esc(scores)}</td></tr></table><button id="copyResult">Copy result</button><button id="again">${F.opponent?.human ? (F.roomCode ? 'REMATCH IN ROOM' : 'REMATCH') : 'PLAY AGAIN'}</button><button id="menu">${practice ? 'Sign in to play online' : 'Menu'}</button><div id="copyResultStatus" role="status"></div><textarea id="resultSummary" aria-label="Result summary" readonly hidden></textarea></div>`
+      $('menu').onclick = () => { if (practice) leavePractice(true); else { es?.close(); lobby(false) } }
+      $('again').onclick = () => { if (practice) return startPractice(); es?.close(); if (F.opponent?.human) roomAction('/rooms/rematch', { ...playOptions(), matchId: F.matchId }); else { show('lobby'); startPlay() } }
       const copy = $('copyResult'), status = $('copyResultStatus'), field = $('resultSummary')
       copy.onclick = async () => {
         try { await navigator.clipboard.writeText(summary); if (copy.isConnected) status.textContent = 'Result copied.' }

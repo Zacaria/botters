@@ -1,5 +1,29 @@
-import { createMirror, decodeFrame } from './wire.js'
-import { MAXPER } from './sim.js'
+import { createMirror, decodeFrame, encodeFrame, board } from './wire.js'
+import { MAXPER, TPS, DEFAULT_GAMBITS, HOUSE, createMatch, applyInput, step, view } from './sim.js'
+
+export function createPractice({ seed, minutes = 5, planets = 17, vs = 'normal', opening = DEFAULT_GAMBITS, name = 'you' }) {
+  const s = createMatch(seed, { minutes, planets }), mirror = createMirror()
+  applyInput(s, 0, { gambits: opening }); applyInput(s, 1, { gambits: HOUSE[vs] })
+  let timer = null, report = null, startedAt = 0, closed = false
+  return {
+    start(onMessage) {
+      if (timer || closed) return
+      startedAt = Date.now()
+      timer = setInterval(() => {
+        const target = Math.floor((Date.now() - startedAt) * TPS / 1000), end = Math.min(target, s.tick + 20)
+        while (s.tick < end && !s.ended) step(s)
+        if (s.ended && !report) { const v = view(s, 0); report = { ...v.ended, you: v.totals.you, enemy: v.totals.enemy, planets: v.totals.planets } }
+        onMessage({ t: 'f', bytes: encodeFrame(s, 0, mirror) })
+        onMessage({ t: 'meta', matchId: `practice-${seed}`, roomCode: null, report, calls: [], feed: [], edits: [], startsIn: 0, waitingForAgent: false,
+          me: { name, setup: 'no agent', withAgent: false, agentJoined: false }, opponent: { name: `House bot (${vs[0].toUpperCase() + vs.slice(1)})`, setup: 'fixed gambits', human: false, connected: true },
+          options: s.opts, side: 0, gambits: s.gambits[0], result: report ? view(s, 0).ended : null, board: board(s, 0) })
+        if (s.ended) { clearInterval(timer); timer = null; closed = true }
+      }, 100)
+    },
+    input(body) { return closed ? { ok: false, error: 'match ended' } : applyInput(s, 0, body) },
+    close() { closed = true; clearInterval(timer); timer = null },
+  }
+}
 
 export function createLiveView() {
   const mirror = createMirror(), N = 2 * MAXPER
