@@ -17,6 +17,20 @@ test('homepage introduces Botters and exposes policy links before JavaScript run
   assert.match(await source('guide.html'), /href="\/terms"/)
 })
 
+test('guide adds Botters to Claude in one click and the lobby leads there', async () => {
+  const guide = await source('guide.html')
+  const href = guide.match(/id="claude-link"[^>]*href="([^"]+)"/)[1].replaceAll('&amp;', '&')
+  const url = new URL(href)
+  assert.equal(url.origin + url.pathname, 'https://claude.ai/customize/connectors')
+  assert.equal(url.searchParams.get('modal'), 'add-custom-connector')
+  assert.equal(url.searchParams.get('connectorName'), 'Botters')
+  assert.equal(url.searchParams.get('connectorUrl'), 'https://play.botters.havesomecode.io/mcp')
+  assert.match(guide, /id="chatgpt-link"/)
+  assert.match(guide, /https:\/\/chatgpt\.com\/plugins/)
+  assert.match(guide, /<pre id="mcp-address">https:\/\/play\.botters\.havesomecode\.io\/mcp<\/pre>/)
+  assert.match(await source('index.html'), /href="\/guide#web-client"[^>]*>No Botters connector/)
+})
+
 test('public policy documents have real content, navigation and no JavaScript dependency', async () => {
   for (const route of policies) {
     const html = await source(`${route}.html`)
