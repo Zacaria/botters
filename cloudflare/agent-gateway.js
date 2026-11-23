@@ -20,7 +20,11 @@ export class AgentGateway extends DurableObject {
       this.state ||= await this.ctx.storage.get('tools') || {session:{agentToken:grant.agentToken,lobby:this.env.SITE_URL,online:true},since:0,opened:false,inMatch:false,matchId:null}
       if (!entry) {
         if (request.method!=='POST') return json({error:'Initialize an MCP session.'},400)
-        if (this.sessions.size>=8) return json({error:'Too many MCP sessions.'},429)
+        // Some clients (ChatGPT) open a session per call and never close it. State lives on the grant, so evict the least recently used session.
+        while (this.sessions.size>=8) {
+          const [oldest,old]=[...this.sessions].reduce((a,b)=>b[1].touched<a[1].touched?b:a)
+          this.sessions.delete(oldest); await old.transport.close()
+        }
         const internalFetch=async(url,options={})=>{
           const u=new URL(url)
           if(u.origin!==this.env.SITE_URL) throw new Error('Unexpected game target')
