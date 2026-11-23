@@ -1,0 +1,192 @@
+{
+ "seeds": [
+  1000,
+  1001,
+  1002,
+  1003,
+  1004,
+  1005,
+  1006,
+  1007,
+  1008,
+  1009,
+  1010,
+  1011,
+  1012,
+  1013,
+  1014,
+  1015
+ ],
+ "sets": [
+  "pincer",
+  "blob",
+  "flanker"
+ ],
+ "tune": {
+  "counter": 1.25
+ },
+ "headToHead": [
+  {
+   "a": "pincer+counter",
+   "b": "pincer+runner",
+   "win": 32,
+   "loss": 0,
+   "draw": 0,
+   "score": 1
+  },
+  {
+   "a": "pincer+counter",
+   "b": "pincer+grunt",
+   "win": 21,
+   "loss": 11,
+   "draw": 0,
+   "score": 0.656
+  },
+  {
+   "a": "pincer+counter",
+   "b": "pincer+tank",
+   "win": 31,
+   "loss": 1,
+   "draw": 0,
+   "score": 0.969
+  },
+  {
+   "a": "pincer+counter",
+   "b": "blob+runner",
+   "win": 32,
+   "loss": 0,
+   "draw": 0,
+   "score": 1
+  },
+  {
+   "a": "pincer+counter",
+   "b": "blob+grunt",
+   "win": 24,
+   "loss": 8,
+   "draw": 0,
+   "score": 0.75
+  },
+  {
+   "a": "pincer+counter",
+   "b": "blob+tank",
+   "win": 31,
+   "loss": 1,
+   "draw": 0,
+   "score": 0.969
+  },
+  {
+   "a": "pincer+counter",
+   "b": "flanker+runner",
+   "win": 32,
+   "loss": 0,
+   "draw": 0,
+   "score": 1
+  },
+  {
+   "a": "pincer+counter",
+   "b": "flanker+grunt",
+   "win": 24,
+   "loss": 8,
+   "draw": 0,
+   "score": 0.75
+  },
+  {
+   "a": "pincer+counter",
+   "b": "flanker+tank",
+   "win": 30,
+   "loss": 2,
+   "draw": 0,
+   "score": 0.938
+  }
+ ],
+ "vsHouse": [
+  {
+   "a": "pincer+runner",
+   "b": "house pincer+seeded",
+   "win": 15,
+   "loss": 17,
+   "draw": 0,
+   "score": 0.469
+  },
+  {
+   "a": "pincer+grunt",
+   "b": "house pincer+seeded",
+   "win": 21,
+   "loss": 11,
+   "draw": 0,
+   "score": 0.656
+  },
+  {
+   "a": "pincer+tank",
+   "b": "house pincer+seeded",
+   "win": 15,
+   "loss": 17,
+   "draw": 0,
+   "score": 0.469
+  },
+  {
+   "a": "blob+runner",
+   "b": "house pincer+seeded",
+   "win": 14,
+   "loss": 18,
+   "draw": 0,
+   "score": 0.438
+  },
+  {
+   "a": "blob+grunt",
+   "b": "house pincer+seeded",
+   "win": 21,
+   "loss": 11,
+   "draw": 0,
+   "score": 0.656
+  },
+  {
+   "a": "blob+tank",
+   "b": "house pincer+seeded",
+   "win": 17,
+   "loss": 15,
+   "draw": 0,
+   "score": 0.531
+  },
+  {
+   "a": "flanker+runner",
+   "b": "house pincer+seeded",
+   "win": 11,
+   "loss": 21,
+   "draw": 0,
+   "score": 0.344
+  },
+  {
+   "a": "flanker+grunt",
+   "b": "house pincer+seeded",
+   "win": 21,
+   "loss": 11,
+   "draw": 0,
+   "score": 0.656
+  },
+  {
+   "a": "flanker+tank",
+   "b": "house pincer+seeded",
+   "win": 12,
+   "loss": 20,
+   "draw": 0,
+   "score": 0.375
+  },
+  {
+   "a": "pincer+counter",
+   "b": "house pincer+seeded",
+   "win": 30,
+   "loss": 2,
+   "draw": 0,
+   "score": 0.938
+  },
+  {
+   "a": "pincer+cycle20",
+   "b": "house pincer+seeded",
+   "win": 19,
+   "loss": 13,
+   "draw": 0,
+   "score": 0.594
+  }
+ ]
+}

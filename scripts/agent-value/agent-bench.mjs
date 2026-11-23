@@ -25,7 +25,7 @@ async function one(seed, port) {
   const t0 = Date.now(), stream = createWriteStream(`${out}/${tag}.stream.jsonl`)
   const claude = spawn('claude', ['-p', prompt, '--mcp-config', cfg, '--strict-mcp-config', '--allowedTools', 'mcp__botters__*', '--tools', '', '--setting-sources', 'project',
     '--output-format', 'stream-json', '--verbose', '--model', model, '--no-session-persistence', '--max-budget-usd', '4'], { cwd: scratch, stdio: ['ignore', 'pipe', 'pipe'] })
-  let buf = '', result = null, edits = [], calls = { wait: 0, state: 0, set: 0, toggle: 0, call_human: 0, join: 0 }, lastToolAt = 0
+  let buf = '', result = null, edits = [], calls = { wait: 0, state: 0, set: 0, toggle: 0, breed: 0, call_human: 0, join: 0 }, lastToolAt = 0
   claude.stdout.on('data', d => {
     stream.write(d); buf += d
     for (let nl; (nl = buf.indexOf('\n')) >= 0;) {
@@ -37,6 +37,7 @@ async function one(seed, port) {
         const n = c.name.replace('mcp__botters__', '')
         if (n === 'wait_for_event') calls.wait++; else if (n === 'get_state') calls.state++; else if (n === 'join_match') calls.join++; else if (n === 'call_human') calls.call_human++
         else if (n === 'set_gambits') { calls.set++; edits.push({ at: Math.round((Date.now() - t0) / 1000), why: c.input.why, gambits: c.input.gambits }) }
+        else if (n === 'set_breed') { calls.breed++; edits.push({ at: Math.round((Date.now() - t0) / 1000), why: c.input.why, breed: c.input.breed }) }
         else if (n === 'toggle_gambit') { calls.toggle++; edits.push({ at: Math.round((Date.now() - t0) / 1000), why: c.input.why, toggle: c.input.index }) }
       }
     }

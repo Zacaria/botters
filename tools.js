@@ -57,7 +57,7 @@ async function session() {
 }
 
 mcp.registerTool('join_match', {
-  description: `Play Botters with your human: a real-time duel. Each particle is a unit in a battalion; runners, grunts and tanks fight for planets. Owned planets breed units. Gambits are ordered IF condition → action rules; the first match controls each battalion unless held by hand. Battalions follow your side’s gambits; only the human moves battalions by hand. Ask them with call_human. Call join_match, write gambits from your human's doctrine, then wait for events and adapt.`,
+  description: `Play Botters with your human: a real-time duel. Each particle is a unit in a battalion; runners, grunts and tanks fight for planets. Owned planets breed units. Choose a breed: runners counter tanks, tanks counter grunts, and grunts counter runners. Gambits are ordered IF condition → action rules; the first match controls each battalion unless held by hand. Battalions follow your side’s gambits; only the human moves battalions by hand. Ask them with call_human. Call join_match, write gambits from your human's doctrine, then wait for events and adapt.`,
   inputSchema: {
     vs: z.enum(['easy', 'normal', 'hard', 'player']).optional().describe('start a match now instead of waiting for the human: a house level or another player'),
     minutes: z.number().optional().describe('with vs: 3, 5 or 8'),
@@ -104,9 +104,9 @@ mcp.registerTool('join_match', {
     return text({
       matchId: m.id, opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
       opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
-      rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
+      rules: { conditions: rules.conditions, actions: rules.actions, breeds: rules.breeds, maxGambits: rules.maxGambits, map: rules.map },
       state: brief(m.state, m.startsIn),
-      next: 'set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, battalions they took): follow them.',
+      next: 'set_gambits and set_breed if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, battalions they took): follow them.',
     })
   } finally { release(); if (joins.get(s) === turn) joins.delete(s) }
 })
@@ -135,6 +135,11 @@ mcp.registerTool('toggle_gambit', {
   description: 'Switch one gambit on or off by its zero-based index.',
   inputSchema: { matchId: MATCH_ID, index: z.number().int().min(0), why: z.string().max(120) },
 }, async ({ index, why, matchId }) => need() || input({ toggle: index, why, matchId }))
+
+mcp.registerTool('set_breed', {
+  description: 'Choose the one role your planets breed from now on (starting armies are mixed). Counters: runners beat tanks, tanks beat grunts, grunts beat runners (1.25× damage dealt, 0.8× received). Enemy battalions in sight show their roles in get_state and wait_for_event. Say why in one short sentence.',
+  inputSchema: { matchId: MATCH_ID, breed: z.enum(['runner', 'grunt', 'tank']), why: z.string().max(120) },
+}, async ({ breed, why, matchId }) => need() || input({ breed, why, matchId }))
 
 mcp.registerTool('get_state', {
   description: 'Battle view: your battalions (size, roles, fighting, active rule), planets (owner, capture progress), enemy battalions visible under fog, your gambits with battalions per rule (perRule) and the recent doctrine edits.', inputSchema: {},

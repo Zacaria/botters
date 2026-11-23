@@ -1,0 +1,58 @@
+[
+ {
+  "set": "flanker+grunt",
+  "vs": "blobflank+seeded",
+  "wins": 13,
+  "games": 20,
+  "perSeed": "10111110100110100111"
+ },
+ {
+  "set": "blobflank+seeded",
+  "vs": "blobflank+seeded",
+  "wins": 10,
+  "games": 20,
+  "perSeed": "10101010001111000011"
+ },
+ {
+  "set": "blob+grunt",
+  "vs": "blobflank+seeded",
+  "wins": 13,
+  "games": 20,
+  "perSeed": "10101110111111100100"
+ },
+ {
+  "set": "blobflank+runner",
+  "vs": "blobflank+seeded",
+  "wins": 9,
+  "games": 20,
+  "perSeed": "01101001001101001001"
+ },
+ {
+  "set": "blobflank+grunt",
+  "vs": "blobflank+seeded",
+  "wins": 11,
+  "games": 20,
+  "perSeed": "10101110100110100110"
+ },
+ {
+  "set": "blobflank+tank",
+  "vs": "blobflank+seeded",
+  "wins": 7,
+  "games": 20,
+  "perSeed": "00011000001011000101"
+ },
+ {
+  "set": "blobflank+counter",
+  "vs": "blobflank+seeded",
+  "wins": 18,
+  "games": 20,
+  "perSeed": "10111111111111101111"
+ },
+ {
+  "set": "blobflank+cycle",
+  "vs": "blobflank+seeded",
+  "wins": 12,
+  "games": 20,
+  "perSeed": "11101101000101101101"
+ }
+]
