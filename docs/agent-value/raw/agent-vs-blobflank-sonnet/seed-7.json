@@ -1,0 +1,118 @@
+{
+ "seed": 7,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 151,
+ "planets": {
+  "you": 0,
+  "enemy": 13
+ },
+ "units": [
+  0,
+  1168
+ ],
+ "edits": 2,
+ "calls": {
+  "wait": 82,
+  "state": 0,
+  "set": 2,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 178,
+ "wall": 184,
+ "cost": 1.6300694000000004,
+ "turns": 87,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Defend, avoid bigger enemies, grab planets, attack.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 63,
+   "why": "Merge small battalions into larger ones to concentrate force.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 100
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

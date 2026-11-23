@@ -1,0 +1,208 @@
+{
+ "seed": 14,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 185.5,
+ "planets": {
+  "you": 0,
+  "enemy": 14
+ },
+ "units": [
+  0,
+  1066
+ ],
+ "edits": 5,
+ "calls": {
+  "wait": 88,
+  "state": 0,
+  "set": 5,
+  "toggle": 0,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 213,
+ "wall": 219,
+ "cost": 1.1477045999999997,
+ "turns": 95,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 7,
+   "why": "Grab free planets first, defend, then push enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 58,
+   "why": "Support fights in the center and merge small squads.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 107,
+   "why": "Stop trickling into the center; consolidate and avoid bigger enemies.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 111,
+   "why": "Kill fragmented enemy groups; only tiny squads merge.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 60
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 135,
+   "why": "Stop piecemeal trickle; mass squads near home and fight together.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 100
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,494 @@
+[
+ {
+  "name": "control blob",
+  "vs": "blobflank",
+  "win": 9,
+  "loss": 7,
+  "draw": 0,
+  "score": 0.56,
+  "editsMean": 0,
+  "perMatch": [
+   {
+    "seed": 2000,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2000,
+    "side": 1,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2001,
+    "side": 0,
+    "won": 1,
+    "t": 188.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2001,
+    "side": 1,
+    "won": 0,
+    "t": 212,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2002,
+    "side": 0,
+    "won": 1,
+    "t": 284.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2002,
+    "side": 1,
+    "won": 1,
+    "t": 226.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2003,
+    "side": 0,
+    "won": 1,
+    "t": 209,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2003,
+    "side": 1,
+    "won": 0,
+    "t": 210,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2004,
+    "side": 0,
+    "won": 1,
+    "t": 211.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2004,
+    "side": 1,
+    "won": 0,
+    "t": 260,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2005,
+    "side": 0,
+    "won": 0,
+    "t": 280,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2005,
+    "side": 1,
+    "won": 1,
+    "t": 270,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2006,
+    "side": 0,
+    "won": 0,
+    "t": 217,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2006,
+    "side": 1,
+    "won": 1,
+    "t": 200,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2007,
+    "side": 0,
+    "won": 1,
+    "t": 239,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2007,
+    "side": 1,
+    "won": 0,
+    "t": 213,
+    "reason": "wipe"
+   }
+  ]
+ },
+ {
+  "name": "blob then greedy at 120s",
+  "vs": "blobflank",
+  "win": 7,
+  "loss": 9,
+  "draw": 0,
+  "score": 0.44,
+  "editsMean": 1,
+  "perMatch": [
+   {
+    "seed": 2000,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2000,
+    "side": 1,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2001,
+    "side": 0,
+    "won": 1,
+    "t": 243,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2001,
+    "side": 1,
+    "won": 0,
+    "t": 211.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2002,
+    "side": 0,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2002,
+    "side": 1,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2003,
+    "side": 0,
+    "won": 1,
+    "t": 275,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2003,
+    "side": 1,
+    "won": 0,
+    "t": 210,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2004,
+    "side": 0,
+    "won": 1,
+    "t": 260.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2004,
+    "side": 1,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2005,
+    "side": 0,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2005,
+    "side": 1,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2006,
+    "side": 0,
+    "won": 0,
+    "t": 214.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2006,
+    "side": 1,
+    "won": 1,
+    "t": 228,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2007,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2007,
+    "side": 1,
+    "won": 0,
+    "t": 233.5,
+    "reason": "wipe"
+   }
+  ]
+ },
+ {
+  "name": "lead: blob, ahead turtle, behind rush",
+  "vs": "blobflank",
+  "win": 9,
+  "loss": 7,
+  "draw": 0,
+  "score": 0.56,
+  "editsMean": 1,
+  "perMatch": [
+   {
+    "seed": 2000,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2000,
+    "side": 1,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2001,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2001,
+    "side": 1,
+    "won": 0,
+    "t": 210,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2002,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2002,
+    "side": 1,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2003,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2003,
+    "side": 1,
+    "won": 0,
+    "t": 212,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2004,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2004,
+    "side": 1,
+    "won": 0,
+    "t": 274.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2005,
+    "side": 0,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2005,
+    "side": 1,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2006,
+    "side": 0,
+    "won": 0,
+    "t": 211.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2006,
+    "side": 1,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2007,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2007,
+    "side": 1,
+    "won": 0,
+    "t": 221,
+    "reason": "wipe"
+   }
+  ]
+ },
+ {
+  "name": "lead: blob, ahead greedy, behind blobflank",
+  "vs": "blobflank",
+  "win": 9,
+  "loss": 7,
+  "draw": 0,
+  "score": 0.56,
+  "editsMean": 0.9,
+  "perMatch": [
+   {
+    "seed": 2000,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2000,
+    "side": 1,
+    "won": 0,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2001,
+    "side": 0,
+    "won": 1,
+    "t": 230.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2001,
+    "side": 1,
+    "won": 0,
+    "t": 212,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2002,
+    "side": 0,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2002,
+    "side": 1,
+    "won": 1,
+    "t": 290.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2003,
+    "side": 0,
+    "won": 1,
+    "t": 268.5,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2003,
+    "side": 1,
+    "won": 0,
+    "t": 210,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2004,
+    "side": 0,
+    "won": 1,
+    "t": 251,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2004,
+    "side": 1,
+    "won": 0,
+    "t": 260,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2005,
+    "side": 0,
+    "won": 0,
+    "t": 280,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2005,
+    "side": 1,
+    "won": 1,
+    "t": 300,
+    "reason": "time"
+   },
+   {
+    "seed": 2006,
+    "side": 0,
+    "won": 0,
+    "t": 217,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2006,
+    "side": 1,
+    "won": 1,
+    "t": 240,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2007,
+    "side": 0,
+    "won": 1,
+    "t": 281,
+    "reason": "wipe"
+   },
+   {
+    "seed": 2007,
+    "side": 1,
+    "won": 0,
+    "t": 213,
+    "reason": "wipe"
+   }
+  ]
+ }
+]

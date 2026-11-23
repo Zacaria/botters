@@ -1,0 +1,148 @@
+{
+ "seed": 6,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 136,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1234
+ ],
+ "edits": 3,
+ "calls": {
+  "wait": 73,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 160,
+ "wall": 170,
+ "cost": 0.8812985999999998,
+ "turns": 79,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Defend, take free planets, then attack enemy planets",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 58,
+   "why": "Merge small battalions into big ones to fight as a mass",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 100,
+   "why": "Hunt weakened enemy stacks first with the largest force",
+   "gambits": [
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 100
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

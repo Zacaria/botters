@@ -13,7 +13,8 @@ const RATE = 5, FINISHED_TTL = 10 * 60 * 1000, FRAME_EVERY = 2, DOCTRINE_MAX = 5
 const PLANNING = [10, 20, 30] // seconds before the match starts: time for the agent to write opening gambits
 const FORCED_DELAY = process.env.BOTTERS_START_DELAY && Number(process.env.BOTTERS_START_DELAY) // ms, tests only
 const SEED = process.env.BOTTERS_SEED ? Number(process.env.BOTTERS_SEED) : undefined // fixed map, tests only
-const DEFAULT_DOCTRINE = 'Take free planets early, defend threatened planets, and flank weaker enemies. Avoid larger enemy battalions.'
+const HOUSE_GAMBITS = process.env.BOTTERS_HOUSE_GAMBITS ? JSON.parse(process.env.BOTTERS_HOUSE_GAMBITS) : null // house rules for every level, benches only
+const DEFAULT_DOCTRINE = 'Take free planets early, defend threatened planets, and attack weaker enemies. Never retreat from a larger battalion: flank it.'
 const LEVELS = Object.keys(HOUSE)
 const tokens = new Map(), elo = new Map()
 let waiting = null // a session queued for "another player"
@@ -51,11 +52,11 @@ function startMatch(entries, req, waitingForAgent = false) { // entries[1] === n
   const delay = FORCED_DELAY ?? req.planning * 1000
   const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
-    const p = { side, session: e?.s || null, name: e ? e.s.name : `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
+    const p = { side, session: e?.s || null, name: e ? e.s.name : HOUSE_GAMBITS ? 'house' : `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
       withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
       events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null, edits: [] }
     m.players[side] = p
-    const opening = e ? e.req.opening : HOUSE[req.vs]
+    const opening = e ? e.req.opening : HOUSE_GAMBITS ?? HOUSE[req.vs]
     if (opening) { const before = structuredClone(m.s.gambits[side]); applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role: e ? 'human' : 'house', input: { gambits: opening } }); p.edits.push({ t: 0, who: e ? 'you' : 'house', why: 'opening gambits', change: changes(before, m.s.gambits[side]) }) }
     if (e) { e.s.match = m; e.s.side = side }
   })
@@ -108,7 +109,7 @@ function finish(m) {
   for (const p of m.players) if (p.session) p.session.history = [{ ...m.report[p.side], reason: m.s.ended.reason, at: Math.round(m.s.tick / TPS), vs: foe(m, p.side).name, withAgent: p.withAgent }, ...p.session.history].slice(0, 10)
   for (const st of m.streams) send(st, m, true)
   setTimeout(() => { for (const p of m.players) if (p.session?.match === m) p.session.match = null }, FINISHED_TTL)
-  console.error(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${foe(m, 0).name} (${foe(m, 0).setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0] }))
+  console.error(JSON.stringify({ ...m.s.ended, at: m.s.tick / TPS, left: `${a.name} (${a.setup})`, right: `${foe(m, 0).name} (${foe(m, 0).setup})`, options: m.s.opts, inputs: m.log.length, report: m.report[0], ...(HOUSE_GAMBITS && { seed: m.s.seed, log: m.log }) }))
 }
 
 function emit(m, side, text) {

@@ -12,7 +12,7 @@ test('house duel persists particle state and accepts battalion orders', async ()
   await game.request('POST', '/play', q, { vs: 'hard', withAgent: false, planning: 10 })
   now += 11000
   const frame = await game.request('GET', '/state', q)
-  assert.equal(frame.opponent.name, 'house (hard · flanker)')
+  assert.equal(frame.opponent.name, 'house (hard · pincer)')
   assert.equal(frame.view.battalions.length > 0, true)
   const bat = frame.view.battalions[0].id
   assert.deepEqual(await game.request('POST', '/input', q, { order: { bat, x: 300, y: 350 } }), { ok: true })

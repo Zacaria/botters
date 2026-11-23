@@ -1,0 +1,288 @@
+{
+ "seed": 12,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 234,
+ "planets": {
+  "you": 0,
+  "enemy": 16
+ },
+ "units": [
+  0,
+  1795
+ ],
+ "edits": 6,
+ "calls": {
+  "wait": 101,
+  "state": 0,
+  "set": 6,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 265,
+ "wall": 269,
+ "cost": 2.3865703000000003,
+ "turns": 110,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Defend, avoid bigger foes, grab free planets, then push enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 38,
+   "why": "Split big battalions to grab more planets in parallel.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "big",
+     "then": "split",
+     "p": 380
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 61,
+   "why": "Mass together and fight; stop splitting/retreating piecemeal.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.5
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 600
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 100
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 110,
+   "why": "Grab nearby partly-captured free planets for breeding before chasing.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 400
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.5
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 600
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 126,
+   "why": "Merge small battalions into bigger ones to stop piecemeal losses.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 70
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 400
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.2
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 500
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 188,
+   "why": "Enemy is split into fragments; engage nearby ones first to stop chasing.",
+   "gambits": [
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.5
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 60
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 400
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 500
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

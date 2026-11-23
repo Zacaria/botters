@@ -151,7 +151,7 @@ Owner played the `feat/particles` spike and approved replacing production with i
 
 **Game.** One particle = one unit, three roles (runner fast/fragile, grunt, tank slow/tough). Units belong to battalions. Owned, unthreatened planets breed units into the nearest battalion. A crowd standing alone on a planet drains it and takes it. Each battalion follows its side's gambits (`IF condition → action`, first match wins, every 10 ticks) unless a human holds it. Duels only (1v1). Length 3 / 5 / 8 min; map 9 / 17 / 25 planets (two homes, one centre prize, mirrored pairs). A side with no units and no planets loses at once; at time, more planets wins, then more units.
 
-**Gambits.** Conditions `bigger_enemy_near, planet_attacked, ally_fighting, weaker_enemy_near, small, big, free_planet, enemy_planet, always`; actions `go, flank, retreat, split, hold`. House bots are fixed gambit sets: `blob` (never retreats or splits), `flanker` (the default for players), `cautious`. Wire name stays `gambits`; the lobby "doctrine" is still the human's free text for the agent.
+**Gambits.** Conditions `bigger_enemy_near, planet_attacked, ally_fighting, weaker_enemy_near, small, big, free_planet, enemy_planet, always`; actions `go, flank, retreat, split, hold`. House bots are fixed gambit sets: `pincer` (hard: blob that flanks a bigger battalion), `blob` (normal: never retreats or splits), `cautious` (easy); `flanker` is the default for players. Wire name stays `gambits`; the lobby "doctrine" is still the human's free text for the agent.
 
 **Hand orders** (human or agent, agents still capped at 5 inputs/s): `order {bat, x, y}` (move), `flank bat` (swing round the nearest enemy), `detach {bat, role?}` (half, or only one role), `release bat` (back to the gambits). API: `docs/specs/particle-sim.md`.
 
@@ -180,6 +180,15 @@ Clients draw one frame behind and interpolate between the last two positions at 
 Agent views were always server-side and keep fog. The lobby background demo still runs `sim.js` in the browser on a throwaway local match.
 
 **Cost.** A 5-minute match is ~2.6 ms per tick in Node (bench: `node scripts/bench-sim.js`). A what-if replay of a whole match is ~15 s of CPU, too slow for the Worker, so the end report shows the result and input counts only.
+
+## Does an agent beat good fixed rules? (2026-11-23) ❌ not yet
+
+Verdict: no. Claude Sonnet, playing through `client.js`, won 3 of 20 matches against the strongest fixed set found (`pincer`, now the hard house); not touching the starting gambits wins 8 of the same 20 maps. Full table, premises and raw logs: `docs/agent-value/RESULTS.md`.
+
+- Matches snowball (80 % wipes, median 0 lead changes) and the winner depends mostly on the map and the opening. Mid-match switching from the fogged view gains nothing; only an oracle that sees the future gains (0.94 vs 0.75).
+- The agent's first edit, 5–8 s in, added `bigger_enemy_near → retreat` in 19 of 20 matches, following the old default doctrine "Avoid larger enemy battalions". Every retreating set loses. The default doctrine now says to flank instead.
+- Choosing the right fixed set per map would win 15/20. That is the measured room for an agent, if something can predict the right set before the first fight.
+- Cost: $2.36 median per Sonnet match, not $0.13.
 
 ## Previous proposal (2026-10-13 #2, superseded on cost): pilot / commander / human
 

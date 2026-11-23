@@ -1,0 +1,44 @@
+[
+ {
+  "set": "flanker",
+  "vs": "blobflank",
+  "wins": 8,
+  "games": 20,
+  "perSeed": "11001011001010010000"
+ },
+ {
+  "set": "blob",
+  "vs": "blobflank",
+  "wins": 8,
+  "games": 20,
+  "perSeed": "10001010000111001001"
+ },
+ {
+  "set": "blobflank",
+  "vs": "blobflank",
+  "wins": 10,
+  "games": 20,
+  "perSeed": "10101010001011001011"
+ },
+ {
+  "set": "rush",
+  "vs": "blobflank",
+  "wins": 5,
+  "games": 20,
+  "perSeed": "00100001001000010100"
+ },
+ {
+  "set": "greedy",
+  "vs": "blobflank",
+  "wins": 2,
+  "games": 20,
+  "perSeed": "01000000000000000010"
+ },
+ {
+  "set": "cautious",
+  "vs": "blobflank",
+  "wins": 0,
+  "games": 20,
+  "perSeed": "00000000000000000000"
+ }
+]

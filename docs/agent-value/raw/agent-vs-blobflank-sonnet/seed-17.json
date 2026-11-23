@@ -1,0 +1,147 @@
+{
+ "seed": 17,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "time",
+ "at": 300,
+ "planets": {
+  "you": 8,
+  "enemy": 9
+ },
+ "units": [
+  399,
+  440
+ ],
+ "edits": 3,
+ "calls": {
+  "wait": 133,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 321,
+ "wall": 330,
+ "cost": 3.9976863000000007,
+ "turns": 139,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Defend, avoid bigger foes, grab planets, then attack enemy planets",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 61,
+   "why": "Merge small spawns into main stacks for stronger assaults",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 132,
+   "why": "Stop small-unit oscillation; all stacks converge on the centre fight",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 500
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

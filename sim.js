@@ -34,7 +34,8 @@ export const ACTIONS = {
   hold: 'stop where it is',
 }
 const rule = (cond, then, p) => ({ if: cond, then, on: true, ...(p !== undefined && { p }) })
-export const DOCTRINES = { // measured over 3 seeds × both sides (bench.mjs): flanker beats blob 4-2, blob beats cautious 5-1
+export const DOCTRINES = { // 16 maps × both sides (docs/agent-value/RESULTS.md): pincer beats blob 0.63, flanker 0.72; blob beats flanker 0.69; everything beats cautious
+  pincer: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('bigger_enemy_near', 'flank', 1), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // blob that flanks an equal or bigger enemy
   flanker: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('ally_fighting', 'flank'), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')],
   blob: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // never retreats, never splits
   cautious: [rule('bigger_enemy_near', 'retreat'), rule('planet_attacked', 'go'), rule('ally_fighting', 'flank'), rule('weaker_enemy_near', 'go'), rule('small', 'go'), rule('big', 'split'), rule('free_planet', 'go'), rule('enemy_planet', 'go')],
@@ -264,7 +265,7 @@ export const hash = s => { let h = 2166136261 >>> 0; for (let i = 0; i < s.N; i+
 
 export const MAX_GAMBITS = 10
 export const DEFAULT_GAMBITS = DOCTRINES.flanker
-export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'blob', hard: 'flanker' }
+export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'blob', hard: 'pincer' }
 export const HOUSE = Object.fromEntries(Object.entries(HOUSE_DOCTRINE).map(([k, v]) => [k, DOCTRINES[v]]))
 export const OPTIONS = { minutes: [3, 5, 8], planets: [9, 17, 25] }
 export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes) ? o.minutes : 5, planets: OPTIONS.planets.includes(o?.planets) ? o.planets : 17 })

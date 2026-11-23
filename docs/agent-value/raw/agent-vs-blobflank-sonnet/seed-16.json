@@ -1,0 +1,143 @@
+{
+ "seed": 16,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 134,
+ "planets": {
+  "you": 0,
+  "enemy": 16
+ },
+ "units": [
+  0,
+  1154
+ ],
+ "edits": 3,
+ "calls": {
+  "wait": 60,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 162,
+ "wall": 166,
+ "cost": 1.0281034999999998,
+ "turns": 66,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 5,
+   "why": "Take planets, defend, avoid bigger enemies, attack weaker.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 55,
+   "why": "Merge small spawned battalions into larger ones.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 100
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 103,
+   "why": "Losing: consolidate, avoid bigger enemies, defend nearby.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.2
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 600
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}
