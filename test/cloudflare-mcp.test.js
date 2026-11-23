@@ -22,6 +22,8 @@ test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, re
   assert.equal((await human.call('GET', consent)).status, 403)
   const page = await browser.call('GET', consent)
   assert.equal(page.status, 200)
+  assert.match(page.headers.get('content-security-policy'), /style-src 'nonce-[^']+'/)
+  assert.doesNotMatch(page.headers.get('content-security-policy'), /unsafe-inline/)
   const pairId = page.body.match(/\?pair=([\w-]{32})/)[1]
   assert.equal((await browser.call('POST', '/consent/complete', { transaction })).body.approved, false)
   await human.call('POST', `/agent/approve?token=${session.humanToken}`, { id: pairId })
@@ -62,6 +64,17 @@ test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, re
   const init2 = await rpc({ jsonrpc:'2.0',id:4,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'proof',version:'1'}} })
   const gambit = await rpc({ jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'set_gambits',arguments:{gambits:[{if:'always',then:'hold'}],why:'shared grant state'}} }, {'mcp-session-id':init2.headers.get('mcp-session-id')})
   assert.equal(JSON.parse(gambit.body.result.content[0].text).ok, true)
+  // ChatGPT opens a session per call and never closes it: the least recently used one is evicted, never the new one.
+  const opened=[]
+  for (let i=0;i<9;i++) {
+    const r=await rpc({jsonrpc:'2.0',id:100+i,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'per-call',version:'1'}}})
+    assert.equal(r.status,200,JSON.stringify(r.body)); opened.push(r.headers.get('mcp-session-id'))
+  }
+  const ninth=await rpc({jsonrpc:'2.0',id:110,method:'tools/call',params:{name:'get_state',arguments:{}}},{'mcp-session-id':opened[8]})
+  assert.equal(ninth.status,200); assert.ok(JSON.parse(ninth.body.result.content[0].text).edits)
+  const first=await rpc({jsonrpc:'2.0',id:111,method:'tools/list'},{'mcp-session-id':opened[0]})
+  assert.equal(first.status,404); assert.match(first.body.error.message,/Session ended/)
+  sid=opened[8]
   const observed=await rpc({jsonrpc:'2.0',id:51,method:'tools/call',params:{name:'wait_for_event',arguments:{timeout_s:1}}},{'mcp-session-id':sid})
   const originalEvents=JSON.parse(observed.body.result.content[0].text).events
   assert.ok(originalEvents.length)
