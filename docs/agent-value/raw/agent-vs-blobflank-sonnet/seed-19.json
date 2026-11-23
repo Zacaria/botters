@@ -1,0 +1,358 @@
+{
+ "seed": 19,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 232.5,
+ "planets": {
+  "you": 0,
+  "enemy": 16
+ },
+ "units": [
+  0,
+  1784
+ ],
+ "edits": 9,
+ "calls": {
+  "wait": 107,
+  "state": 0,
+  "set": 9,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 255,
+ "wall": 263,
+ "cost": 2.517088400000001,
+ "turns": 119,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Defend, fight weaker, grab planets, then push enemy planets",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 33,
+   "why": "Split big battalions to capture more planets in parallel",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "big",
+     "then": "split",
+     "p": 300
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 56,
+   "why": "Stop piecemeal feeding; retreat from bigger enemies, regroup",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.2
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 60,
+   "why": "Consolidate forces, avoid larger stacks, only grab nearby planets",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 86,
+   "why": "Add counterattack on nearby enemy planets and wider free-planet grab",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 700
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 700
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 97,
+   "why": "Replace ping-ponging merge rule with join-the-fight reinforcement",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 600
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 700
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 700
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 139,
+   "why": "Stop feeding units piecemeal; defend near own planets and pick off weaker enemies",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 155,
+   "why": "Stop everyone chasing distant planet 13; idle stacks join the main fight",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 60
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 158,
+   "why": "Remove planet_attacked pulling units away from the main fight",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

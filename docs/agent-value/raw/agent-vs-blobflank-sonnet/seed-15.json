@@ -1,0 +1,203 @@
+{
+ "seed": 15,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 174.5,
+ "planets": {
+  "you": 14,
+  "enemy": 0
+ },
+ "units": [
+  1154,
+  0
+ ],
+ "edits": 5,
+ "calls": {
+  "wait": 77,
+  "state": 0,
+  "set": 5,
+  "toggle": 0,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 206,
+ "wall": 210,
+ "cost": 1.8274111000000006,
+ "turns": 84,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 8,
+   "why": "Take planets, defend, avoid bigger enemies, fight weaker ones",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 68,
+   "why": "Merge small battalions into larger ones to concentrate force",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 74,
+   "why": "Stop merge swapping; all battalions reinforce fights together",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 700
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 149,
+   "why": "Enemy is crushed; capture all planets, including their home",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 156,
+   "why": "Everyone was rushing far free planet; attack nearest enemy planets first",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

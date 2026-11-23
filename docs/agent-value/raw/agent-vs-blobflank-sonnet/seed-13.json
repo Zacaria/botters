@@ -1,0 +1,548 @@
+{
+ "seed": 13,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "time",
+ "at": 300,
+ "planets": {
+  "you": 3,
+  "enemy": 13
+ },
+ "units": [
+  17,
+  1141
+ ],
+ "edits": 16,
+ "calls": {
+  "wait": 119,
+  "state": 0,
+  "set": 16,
+  "toggle": 0,
+  "call_human": 2,
+  "join": 1
+ },
+ "agentStoppedAt": 333,
+ "wall": 337,
+ "cost": 3.3984323999999995,
+ "turns": 139,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 5,
+   "why": "Defend, avoid bigger enemies, grab planets, attack.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 86,
+   "why": "Small battalions merge instead of trickling into death.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 121,
+   "why": "Prioritize capturing planets over chasing stragglers.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 124,
+   "why": "East army was sent across map to a free planet; attack nearby enemy planets first.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 132,
+   "why": "Retreating split groups dies piecemeal; converge and fight together.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.2
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 138,
+   "why": "Engage nearby enemies first instead of walking away mid-fight.",
+   "gambits": [
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.5
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 152,
+   "why": "Enemy stack broken; retake neutral planets 7/15 then push.",
+   "gambits": [
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.5
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 175,
+   "why": "Reserves should join the central fight, not wander to far planets.",
+   "gambits": [
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1.5
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 600
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 179,
+   "why": "Outnumbered: stop feeding piecemeal; consolidate and defend own planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 400
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 400
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 182,
+   "why": "Stop marching into the enemy blob; defend only when planets are actually hit.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 185,
+   "why": "Chasing tiny enemies drags units into their blob; merge and defend.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 200
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 200
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 189,
+   "why": "Small-merge rule still marches units toward the enemy blob; hold and defend.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 200
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 196,
+   "why": "Enemy blob is thinning; bring reserves to support the fight.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 200
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 207,
+   "why": "Big northern stack should engage weaker enemies nearby.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 200
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.5
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 235,
+   "why": "Enemy army wiped locally; push nearest enemy planets to turn the planet count.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 200
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 700
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 258,
+   "why": "Offensive failed; fall back and protect my 7 planets until time runs out.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,209 @@
+{
+ "seed": 9,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 195.5,
+ "planets": {
+  "you": 0,
+  "enemy": 13
+ },
+ "units": [
+  0,
+  888
+ ],
+ "edits": 4,
+ "calls": {
+  "wait": 100,
+  "state": 0,
+  "set": 4,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 226,
+ "wall": 230,
+ "cost": 2.4801938000000003,
+ "turns": 107,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 5,
+   "why": "Take planets, fight weaker enemies, support allies",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350,
+     "on": true
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8,
+     "on": true
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450,
+     "on": true
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "always",
+     "then": "hold",
+     "on": true
+    }
+   ]
+  },
+  {
+   "at": 60,
+   "why": "Merge small battalions into larger ones to concentrate force",
+   "gambits": [
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120,
+     "on": true
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350,
+     "on": true
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8,
+     "on": true
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450,
+     "on": true
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "always",
+     "then": "hold",
+     "on": true
+    }
+   ]
+  },
+  {
+   "at": 66,
+   "why": "Small groups were swapping; send them to reinforce fights",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350,
+     "on": true
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 600,
+     "on": true
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8,
+     "on": true
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "always",
+     "then": "hold",
+     "on": true
+    }
+   ]
+  },
+  {
+   "at": 122,
+   "why": "Stop feeding small groups into larger enemy stacks; fall back and merge",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350,
+     "on": true
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5,
+     "on": true
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 600,
+     "on": true
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8,
+     "on": true
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000,
+     "on": true
+    },
+    {
+     "if": "always",
+     "then": "hold",
+     "on": true
+    }
+   ]
+  }
+ ]
+}

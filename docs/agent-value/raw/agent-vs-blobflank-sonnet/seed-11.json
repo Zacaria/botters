@@ -1,0 +1,263 @@
+{
+ "seed": 11,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 242,
+ "planets": {
+  "you": 15,
+  "enemy": 0
+ },
+ "units": [
+  1315,
+  0
+ ],
+ "edits": 7,
+ "calls": {
+  "wait": 107,
+  "state": 0,
+  "set": 7,
+  "toggle": 0,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 272,
+ "wall": 278,
+ "cost": 3.0998615000000003,
+ "turns": 116,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Defend, avoid bigger foes, grab planets, then attack enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 91,
+   "why": "Merge small stragglers, stop retreat-dancing, fight together.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 94,
+   "why": "Small-merge made stragglers chase each other; rally to fights instead.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 600
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 145,
+   "why": "Enemy army broken; push to capture planets for a win.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 213,
+   "why": "Stop army getting pinned by raiders; push enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 60
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 218,
+   "why": "Army is pinned at planet 8; drop defend rule and push.",
+   "gambits": [
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 225,
+   "why": "Nearby units grab neutral planets; rest keep attacking enemy planets.",
+   "gambits": [
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 220
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

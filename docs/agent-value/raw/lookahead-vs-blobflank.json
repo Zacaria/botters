@@ -1,0 +1,994 @@
+{
+ "opp": "blobflank",
+ "cands": [
+  "blobflank",
+  "blob",
+  "rush",
+  "flanker",
+  "greedy",
+  "turtle"
+ ],
+ "every": 30,
+ "until": 150,
+ "oracleScore": 0.9375,
+ "bestFixed": [
+  {
+   "c": "blobflank",
+   "score": 0.5
+  },
+  {
+   "c": "blob",
+   "score": 0.5
+  },
+  {
+   "c": "rush",
+   "score": 0.1875
+  },
+  {
+   "c": "flanker",
+   "score": 0.75
+  },
+  {
+   "c": "greedy",
+   "score": 0
+  },
+  {
+   "c": "turtle",
+   "score": 0
+  }
+ ],
+ "res": [
+  {
+   "seed": 3001,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 287.5,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "flanker"
+    },
+    {
+     "t": 30,
+     "set": "flanker"
+    },
+    {
+     "t": 60,
+     "set": "flanker"
+    },
+    {
+     "t": 90,
+     "set": "flanker"
+    },
+    {
+     "t": 120,
+     "set": "blobflank"
+    },
+    {
+     "t": 150,
+     "set": "blobflank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3000,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 282.5,
+   "switches": 0,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob"
+    },
+    {
+     "t": 30,
+     "set": "blob"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "blob"
+    },
+    {
+     "t": 120,
+     "set": "blob"
+    },
+    {
+     "t": 150,
+     "set": "blob"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3001,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 298,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob"
+    },
+    {
+     "t": 30,
+     "set": "blob"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "greedy"
+    },
+    {
+     "t": 120,
+     "set": "greedy"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3000,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 272,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "flanker"
+    },
+    {
+     "t": 30,
+     "set": "flanker"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "blobflank"
+    },
+    {
+     "t": 120,
+     "set": "greedy"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3002,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 281.5,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob"
+    },
+    {
+     "t": 30,
+     "set": "blob"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "blob"
+    },
+    {
+     "t": 120,
+     "set": "greedy"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 0
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3002,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 239,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blobflank"
+    },
+    {
+     "t": 30,
+     "set": "blobflank"
+    },
+    {
+     "t": 60,
+     "set": "blobflank"
+    },
+    {
+     "t": 90,
+     "set": "blob"
+    },
+    {
+     "t": 120,
+     "set": "blob"
+    },
+    {
+     "t": 150,
+     "set": "blob"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3003,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 258,
+   "switches": 4,
+   "plan": [
+    {
+     "t": 0,
+     "set": "flanker"
+    },
+    {
+     "t": 30,
+     "set": "flanker"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "greedy"
+    },
+    {
+     "t": 120,
+     "set": "blobflank"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3003,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 262,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob"
+    },
+    {
+     "t": 30,
+     "set": "blob"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "blobflank"
+    },
+    {
+     "t": 120,
+     "set": "greedy"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3005,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 259.5,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "flanker"
+    },
+    {
+     "t": 30,
+     "set": "rush"
+    },
+    {
+     "t": 60,
+     "set": "rush"
+    },
+    {
+     "t": 90,
+     "set": "blobflank"
+    },
+    {
+     "t": 120,
+     "set": "blobflank"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3005,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 269.5,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "flanker"
+    },
+    {
+     "t": 30,
+     "set": "flanker"
+    },
+    {
+     "t": 60,
+     "set": "blobflank"
+    },
+    {
+     "t": 90,
+     "set": "flanker"
+    },
+    {
+     "t": 120,
+     "set": "greedy"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3004,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 237.5,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "flanker"
+    },
+    {
+     "t": 30,
+     "set": "flanker"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "blob"
+    },
+    {
+     "t": 120,
+     "set": "greedy"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 1
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3004,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 266,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "flanker"
+    },
+    {
+     "t": 30,
+     "set": "flanker"
+    },
+    {
+     "t": 60,
+     "set": "flanker"
+    },
+    {
+     "t": 90,
+     "set": "greedy"
+    },
+    {
+     "t": 120,
+     "set": "greedy"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3007,
+   "me": 1,
+   "won": 0,
+   "reason": "wipe",
+   "t": 118.5,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "rush"
+    },
+    {
+     "t": 30,
+     "set": "flanker"
+    },
+    {
+     "t": 60,
+     "set": "turtle"
+    },
+    {
+     "t": 90,
+     "set": "blobflank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 0
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3006,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 209,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blobflank"
+    },
+    {
+     "t": 30,
+     "set": "blobflank"
+    },
+    {
+     "t": 60,
+     "set": "blobflank"
+    },
+    {
+     "t": 90,
+     "set": "greedy"
+    },
+    {
+     "t": 120,
+     "set": "blobflank"
+    },
+    {
+     "t": 150,
+     "set": "blobflank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 0
+    },
+    {
+     "c": "rush",
+     "won": 1
+    },
+    {
+     "c": "flanker",
+     "won": 1
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3007,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 236.5,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob"
+    },
+    {
+     "t": 30,
+     "set": "blob"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "blobflank"
+    },
+    {
+     "t": 120,
+     "set": "blobflank"
+    },
+    {
+     "t": 150,
+     "set": "greedy"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 1
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 0
+    },
+    {
+     "c": "flanker",
+     "won": 0
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3006,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 218.5,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob"
+    },
+    {
+     "t": 30,
+     "set": "blob"
+    },
+    {
+     "t": 60,
+     "set": "blob"
+    },
+    {
+     "t": 90,
+     "set": "greedy"
+    },
+    {
+     "t": 120,
+     "set": "blob"
+    },
+    {
+     "t": 150,
+     "set": "flanker"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "blobflank",
+     "won": 0
+    },
+    {
+     "c": "blob",
+     "won": 1
+    },
+    {
+     "c": "rush",
+     "won": 1
+    },
+    {
+     "c": "flanker",
+     "won": 0
+    },
+    {
+     "c": "greedy",
+     "won": 0
+    },
+    {
+     "c": "turtle",
+     "won": 0
+    }
+   ]
+  }
+ ]
+}

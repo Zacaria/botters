@@ -1,0 +1,238 @@
+{
+ "seed": 3,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 226.5,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1624
+ ],
+ "edits": 5,
+ "calls": {
+  "wait": 99,
+  "state": 0,
+  "set": 5,
+  "toggle": 0,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 259,
+ "wall": 263,
+ "cost": 2.3941660000000016,
+ "turns": 107,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 7,
+   "why": "Defend, avoid bigger foes, grab planets, then attack",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 450
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 82,
+   "why": "Merge small battalions to stop trickling losses",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 250,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 150,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "retreat"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 450,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 86,
+   "why": "Consolidate forces before engaging the big enemy blob",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 200,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "retreat"
+    },
+    {
+     "if": "planet_attacked",
+     "p": 150,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 300,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 99,
+   "why": "Small-merge made battalions swap places; drop it",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 200,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "retreat"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 300,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 108,
+   "why": "Retake free planets near home before pushing out",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 250,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "retreat"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

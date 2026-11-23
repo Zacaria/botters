@@ -17,7 +17,7 @@ test('local house planning, inputs and surrender', async t => {
   const h = session.humanToken, a = session.agentToken
   assert.equal((await post(`/play?token=${h}`, {vs:'hard', planets:9, minutes:3, withAgent:true})).status, 200)
   const get = () => fetch(`${origin}/state?token=${h}`).then(r => r.json())
-  const before = await get(); assert.equal(before.opponent.name, 'house (hard · flanker)'); assert.equal(before.view.battalions.length, 3)
+  const before = await get(); assert.equal(before.opponent.name, 'house (hard · pincer)'); assert.equal(before.view.battalions.length, 3)
   assert.equal((await post(`/input?token=${a}`, {order:{bat:0,x:300,y:300}})).status, 403)
   await fetch(`${origin}/next?token=${a}&timeout=1`).then(r => r.json())
   assert.deepEqual(before.edits, [])

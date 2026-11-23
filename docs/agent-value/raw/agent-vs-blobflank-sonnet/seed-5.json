@@ -1,0 +1,208 @@
+{
+ "seed": 5,
+ "set": "blobflank",
+ "model": "sonnet",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 185.5,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1145
+ ],
+ "edits": 5,
+ "calls": {
+  "wait": 88,
+  "state": 0,
+  "set": 5,
+  "toggle": 0,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 215,
+ "wall": 219,
+ "cost": 1.8158059,
+ "turns": 95,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Defend, avoid bigger enemies, fight weaker, expand, then attack.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 57,
+   "why": "Merge small squads, concentrate on fights, then expand/attack.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 300
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "ally_fighting",
+     "then": "go",
+     "p": 500
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 106,
+   "why": "Consolidate scattered squads into bigger blobs before fighting.",
+   "gambits": [
+    {
+     "if": "small",
+     "then": "go",
+     "p": 150
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 115,
+   "why": "Only tiny squads merge; avoid mid-size squads chasing each other.",
+   "gambits": [
+    {
+     "if": "small",
+     "then": "go",
+     "p": 60
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 133,
+   "why": "Outnumbered: retreat from bigger enemies to preserve units.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "retreat",
+     "p": 1.5
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 60
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 250
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.9
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

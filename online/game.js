@@ -11,7 +11,7 @@ const text = (s, max, fallback = '') => typeof s === 'string' ? s.trim().slice(0
 const connected = (s, now) => !!s.agentSeen && now - s.agentSeen < 90000
 const active = m => !!m && !m.cancelled && !m.s.ended
 const PLANNING = [10, 20, 30], SESSION_TTL = 7 * 86400
-const DEFAULT_DOCTRINE = 'Grab free planets fast, fight only when bigger, protect what we own.'
+const DEFAULT_DOCTRINE = 'Take free planets early, defend threatened planets, and attack weaker enemies. Never retreat from a larger battalion: flank it.'
 const canonicalRules = list => {
   const error = checkGambits(list); if (error) fail(400, error)
   return list.map(r => ({ if: r.if, ...(r.p !== undefined ? { p: r.p } : {}), then: r.then, on: r.on !== false }))

@@ -31,7 +31,8 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   await page.locator('#play').waitFor({ state: 'visible' }); await page.locator('#play').click()
   await page.waitForFunction(() => document.querySelector('#hud').textContent.includes('battalions'), null, { timeout: 5000 })
   const read = () => page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
-  const first = await read(); assert.ok(first.view.tick > 0)
+  await expect.poll(async () => (await read()).view.tick, { timeout: 5000 }).toBeGreaterThan(0) // the HUD can render before the first tick
+  const first = await read()
   const session = await page.evaluate(() => localStorage.getItem('botters.session'))
   const map = frame => frame.view.planets.map(({ id, x, y, r }) => ({ id, x, y, r }))
   await page.reload()
