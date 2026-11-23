@@ -18,10 +18,15 @@ Hosts that do not render MCP Apps just get the text summary; the other tools and
 
 - `test/mcp-app.test.js`: tool metadata, resource mime/CSP, inline script parses, idle message before a match, live frame after `join_match` over the real stdio client against an isolated local server.
 - The reference host `basic-host` from `modelcontextprotocol/ext-apps` (sandboxed iframe on a second origin, CSP from metadata): the map renders inline and follows the match (clock and battalions move) through repeated `tools/call` from the view.
+- Production, 23 November 2026: `basic-host` connected to `https://play.botters.havesomecode.io/mcp` with a real OAuth grant (QA account) lists `show_match` and `ui://botters/match`, and the map follows a live house match at 1280 and 390 px.
+
+## Not verified in Claude or ChatGPT yet
+
+claude.ai and chatgpt.com answer a Cloudflare human check to the automated browser available to agents, and the owner's Claude account has no Botters connector yet. The in-chat render needs a person: add Botters from the guide ("Add to Claude"), start a match with an agent, then ask the assistant to show the map.
 
 ## Host differences and limits
 
 - Refresh depends on `hostCapabilities.serverTools`. Without it, the view shows the snapshot from the tool result only. A live socket to the match room was not used: it would need the agent token inside the iframe and a CSP `connectDomains` entry.
 - Every refresh is a full MCP tool call (about 1 per second while the view is open). Acceptable for a POC; a real version would want a lighter frame or app-only visibility (`_meta.ui.visibility: ["app"]`) on a dedicated refresh tool.
 - The view is read-only by design. Hand orders stay on the website.
-- Real-host results (Claude, ChatGPT) are recorded on the Kanban card for this POC.
+- Battalion numbers get small on a 390 px frame (the canvas scales the 1200 × 700 map); fullscreen helps where the host offers it.
