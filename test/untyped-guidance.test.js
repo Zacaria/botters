@@ -10,7 +10,7 @@ import { MemoryStore } from '../online/store.js'
 const removed = /locust|carapace|spore|morph|cocoon|swarm|2v2|ffa4|ffa6/i
 const modes = ['1v1']
 const opening = [{ if: 'always', then: 'hold' }]
-const tools = ['join_match', 'wait_for_event', 'get_state', 'set_gambits', 'toggle_gambit', 'call_human'].sort()
+const tools = ['join_match', 'wait_for_event', 'get_state', 'set_gambits', 'toggle_gambit', 'call_human', 'show_match'].sort()
 function startup(events, humanOpening, mode) {
   const event = events.find(text => text.includes('three battalions of 400 units'))
   assert.ok(event, 'startup event reaches the agent')

@@ -1,5 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { W, H } from './sim.js'
+import { MATCH_VIEW_URI, MATCH_VIEW_MIME, matchViewHtml } from './match-view.js'
 
 export async function createBottersTools({ server: SERVER, agentToken, requireAgentToken = false, setup = 'agent', name = 'you', open: openUrl = () => {}, bypassSecret, log = () => {}, fetchImpl = fetch, state = null }) {
 const serverURL = new URL(SERVER)
@@ -106,7 +108,7 @@ mcp.registerTool('join_match', {
       opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
       rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
       state: brief(m.state, m.startsIn),
-      next: 'set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, battalions they took): follow them.',
+      next: 'Call show_match once so your human sees the live map in this conversation. Then set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, battalions they took): follow them.',
     })
   } finally { release(); if (joins.get(s) === turn) joins.delete(s) }
 })
@@ -139,6 +141,29 @@ mcp.registerTool('toggle_gambit', {
 mcp.registerTool('get_state', {
   description: 'Battle view: your battalions (size, roles, fighting, active rule), planets (owner, capture progress), enemy battalions visible under fog, your gambits with battalions per rule (perRule) and the recent doctrine edits.', inputSchema: {},
 }, async () => { if (need()) return need(); const r = await api('GET', `/state?token=${S.session.agentToken}`); return text(r.view ? { matchId: r.matchId, state: brief(r.view, r.startsIn), edits: r.edits } : r) })
+
+// MCP Apps: hosts that render UI (Claude, ChatGPT…) draw this map in the conversation; others just get the text summary.
+mcp.registerResource('match-map', MATCH_VIEW_URI, { title: 'Botters live match map', description: 'Read-only live map of the current match.', mimeType: MATCH_VIEW_MIME }, async () => ({
+  contents: [{ uri: MATCH_VIEW_URI, mimeType: MATCH_VIEW_MIME, text: matchViewHtml({ W, H }), _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] }, prefersBorder: false } } }],
+}))
+const round = o => ({ ...o, x: Math.round(o.x), y: Math.round(o.y) })
+mcp.registerTool('show_match', {
+  title: 'Show the live match map',
+  description: 'Show your human a live, read-only map of the current match inside this conversation (planets, your battalions, enemies in sight). Call it once after join_match; it keeps updating by itself. Hosts without UI get a one-line summary.',
+  inputSchema: {},
+  annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  _meta: { ui: { resourceUri: MATCH_VIEW_URI }, 'openai/outputTemplate': MATCH_VIEW_URI, 'openai/widgetAccessible': true, 'openai/toolInvocation/invoking': 'Opening the map…', 'openai/toolInvocation/invoked': 'Live map' },
+}, async () => {
+  if (!S.session) return { ...text('Not connected to a match yet. Call join_match first.'), structuredContent: { message: 'Waiting for the agent to join a match…' } }
+  const r = await api('GET', `/state?token=${S.session.agentToken}`)
+  if (!r.view) return { ...text(r.error || 'No match running.'), structuredContent: { message: r.error ? `No match yet: ${r.error}` : 'Waiting for a match…' } }
+  const v = r.view
+  const frame = { matchId: r.matchId, opponent: r.opponent?.name, startsIn: r.startsIn, view: { secondsLeft: v.secondsLeft, ended: v.ended, totals: v.totals,
+    battalions: v.battalions.map(b => round({ id: b.id, x: b.x, y: b.y, n: b.n, fighting: b.fighting, manual: b.manual })),
+    enemies: v.enemies.map(e => round({ id: e.id, x: e.x, y: e.y, n: e.n, fighting: e.fighting })),
+    planets: v.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner, capture: Math.round(p.capture) })) } }
+  return { ...text(v.ended ? `Match over: you ${v.ended.result}.` : `Live map shown to your human. ${Math.ceil(v.secondsLeft)}s left, units ${v.totals.you}–${v.totals.enemy}, planets ${v.totals.planets.you}–${v.totals.planets.enemy}. Keep playing with wait_for_event.`), structuredContent: frame }
+})
 
 mcp.registerTool('call_human', {
   description: 'Ask your human for a hand: a yellow card appears in their browser. Use it when a precise move matters more than the gambits can handle (a bait, a flank, a rescue). Give the battalion id and target if you have them, and say why in one short sentence. Your human has faster hands than your tool calls.',

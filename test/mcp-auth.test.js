@@ -9,6 +9,8 @@ import { runtime } from './helpers/cloudflare.js'
 import { z } from 'zod'
 import { OnlineGame } from '../online/game.js'
 import { MemoryStore } from '../online/store.js'
+import { W, H } from '../sim.js'
+import { MATCH_VIEW_URI, MATCH_VIEW_MIME, matchViewHtml } from '../match-view.js'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
@@ -115,8 +117,8 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
   const source = await readFile(new URL('../tools.js', import.meta.url), 'utf8')
   const context = vm.createContext({
     SERVER: origin, serverURL: new URL(origin), agentToken: initial?.agentToken, requireAgentToken: bound, setup: 'agent', name: 'you', bypassSecret: undefined, URL, AbortController, setTimeout, clearTimeout, z,
-    openUrl: () => {}, log: () => {}, state: null,
-    McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
+    openUrl: () => {}, log: () => {}, state: null, W, H, MATCH_VIEW_URI, MATCH_VIEW_MIME, matchViewHtml,
+    McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } registerResource() {} },
     fetch: async (target, options = {}) => {
       const url = new URL(target), path = url.pathname, method = options.method || 'GET', token = url.searchParams.get('token') || ''
       requests.push({ path, token })
