@@ -1,0 +1,70 @@
+{
+ "seed": 14,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 190.5,
+ "planets": {
+  "you": 14,
+  "enemy": 0
+ },
+ "units": [
+  1020,
+  0
+ ],
+ "edits": 2,
+ "calls": {
+  "wait": 85,
+  "state": 0,
+  "set": 1,
+  "toggle": 0,
+  "breed": 1,
+  "call_human": 2,
+  "join": 1
+ },
+ "agentStoppedAt": 228,
+ "wall": 231,
+ "cost": 0.6952489499999999,
+ "turns": 91,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Doctrine: defend threatened planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 71,
+   "why": "Enemy armies are tank-heavy (155, 88 tanks); runners beat tanks.",
+   "breed": "runner"
+  }
+ ]
+}

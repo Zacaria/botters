@@ -1,0 +1,110 @@
+{
+ "seed": 15,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 201.5,
+ "planets": {
+  "you": 13,
+  "enemy": 0
+ },
+ "units": [
+  1123,
+  0
+ ],
+ "edits": 5,
+ "calls": {
+  "wait": 82,
+  "state": 0,
+  "set": 2,
+  "toggle": 0,
+  "breed": 3,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 286,
+ "wall": 290,
+ "cost": 0.6527180100000001,
+ "turns": 89,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 19,
+   "why": "Opening per doctrine: flank bigger enemies, defend planets, hit weaker foes, grab free planets, then pressure enemy planets.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 23,
+   "why": "Opening: flank bigger foes, defend, hit weaker foes, grab free planets, pressure enemy planets.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 114,
+   "why": "Enemy now fields mostly tanks; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 151,
+   "why": "Enemy fielding mostly grunts and tanks now, no runners; tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 195,
+   "why": "Enemy runners now outnumber grunts and tanks; grunts beat runners.",
+   "breed": "grunt"
+  }
+ ]
+}

@@ -1,0 +1,100 @@
+{
+ "seed": 5,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 221,
+ "planets": {
+  "you": 0,
+  "enemy": 13
+ },
+ "units": [
+  0,
+  890
+ ],
+ "edits": 6,
+ "calls": {
+  "wait": 74,
+  "state": 0,
+  "set": 1,
+  "toggle": 0,
+  "breed": 5,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 355,
+ "wall": 363,
+ "cost": 0.5395164300000002,
+ "turns": 83,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 30,
+   "why": "Doctrine: grab free planets, defend threatened ones, hit weaker enemies, flank bigger ones instead of retreating.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 450,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 30,
+   "why": "Starting breed; no enemy roles visible yet, so keep grunts for now.",
+   "breed": "grunt"
+  },
+  {
+   "at": 112,
+   "why": "Enemy 423-unit battalion is 139 tanks, 189 grunts, 95 runners; tanks beat its grunts and only runners beat tanks.",
+   "breed": "tank"
+  },
+  {
+   "at": 123,
+   "why": "Enemy army is now tank-heavy (~450 tanks across three battalions); runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 180,
+   "why": "Enemy grunt battalions (64, 57, 34) now outnumber its tanks; tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 259,
+   "why": "Enemy now runner-heavy (142 + 170 + 46 + 32); runners beat tanks and grunts are nearly gone.",
+   "breed": "runner"
+  }
+ ]
+}

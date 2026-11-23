@@ -1,0 +1,160 @@
+{
+ "seed": 4,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 207.5,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1889
+ ],
+ "edits": 5,
+ "calls": {
+  "wait": 77,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "breed": 2,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 330,
+ "wall": 336,
+ "cost": 0.4528445100000001,
+ "turns": 84,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 21,
+   "why": "Doctrine: grab free planets early, defend ours, hit weaker enemies, flank bigger ones.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 65,
+   "why": "Stragglers under 120 units merge back into the nearest friendly battalion.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank",
+     "p": 1.3
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 96,
+   "why": "Enemy army is mostly grunts (244 of 435); tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 118,
+   "why": "Doctrine says flank bigger enemies first; battalion 2 is being ground down head-on at planet 15.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank",
+     "p": 1.3
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go",
+     "p": 350
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 0.8
+    },
+    {
+     "if": "small",
+     "then": "go",
+     "p": 120
+    },
+    {
+     "if": "free_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go",
+     "p": 2000
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 155,
+   "why": "Enemy is now mostly tanks with almost no grunts; runners beat tanks.",
+   "breed": "runner"
+  }
+ ]
+}

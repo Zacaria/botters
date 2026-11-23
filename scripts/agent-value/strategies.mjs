@@ -35,6 +35,16 @@ export const SCRIPTS = {
     if (best === v.breed || score(best) <= score(v.breed)) return null
     m.at = t; return { breed: best }
   },
+  // one step ahead of a re-countering house: guess the breed it picks against our own army, breed what beats that guess
+  outguess: (v, m, a = {}) => {
+    const mine = { runner: 0, grunt: 0, tank: 0 }; for (const b of v.battalions) for (const k in mine) mine[k] += b.roles[k]
+    const seen = v.enemies.reduce((n, e) => n + e.n, 0), t = elapsed(v)
+    if (seen < (a.min ?? 30) || t - (m.at ?? -1e9) < (a.gap ?? 5)) return null
+    const score = b => mine[PREY[b]] - mine[PREY[PREY[b]]], guess = ['runner', 'grunt', 'tank'].reduce((x, y) => score(y) > score(x) ? y : x)
+    const best = PREY[PREY[guess]] // the breed whose prey is `guess`
+    if (best === v.breed) return null
+    m.at = t; return { breed: best }
+  },
   // blind control: rotate the breed every a.every seconds without looking
   cycle: (v, m, a = {}) => { const k = Math.floor(elapsed(v) / (a.every ?? 20)) % 3, b = ['grunt', 'tank', 'runner'][k]; return b === v.breed ? null : { breed: b } },
   // last `last` seconds: if we lead on planets, defend; if we trail, attack enemy planets

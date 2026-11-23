@@ -14,6 +14,7 @@ const PLANNING = [10, 20, 30] // seconds before the match starts: time for the a
 const FORCED_DELAY = process.env.BOTTERS_START_DELAY && Number(process.env.BOTTERS_START_DELAY) // ms, tests only
 const SEED = process.env.BOTTERS_SEED ? Number(process.env.BOTTERS_SEED) : undefined // fixed map, tests only
 const HOUSE_GAMBITS = process.env.BOTTERS_HOUSE_GAMBITS ? JSON.parse(process.env.BOTTERS_HOUSE_GAMBITS) : null // house rules for every level, benches only
+const HOUSE_SCRIPT = process.env.BOTTERS_HOUSE_SCRIPT ? (await import('./scripts/agent-value/strategies.mjs')).SCRIPTS[process.env.BOTTERS_HOUSE_SCRIPT] : null // house re-breeds from what it sees, benches only
 const DEFAULT_DOCTRINE = 'Take free planets early, defend threatened planets, and attack weaker enemies. Never retreat from a larger battalion: flank it.'
 const LEVELS = Object.keys(HOUSE)
 const tokens = new Map(), elo = new Map()
@@ -69,11 +70,21 @@ function startMatch(entries, req, waitingForAgent = false) { // entries[1] === n
     if (Date.now() < m.startsAt) { if (++waitingFrame % FRAME_EVERY === 0) for (const st of m.streams) send(st, m); return }
     step(m.s)
     if (m.s.ended) return finish(m)
+    if (HOUSE_SCRIPT && m.s.tick % TPS === 0) for (const p of m.players) if (!p.session) houseScript(m, p)
     if (m.s.tick % TPS === 0) for (const p of m.players) diffEvents(m, p)
     if (m.s.tick % FRAME_EVERY === 0) for (const st of m.streams) send(st, m)
   }, 1000 / TPS)
   for (const e of entries) e?.s.nextWaiters.splice(0).forEach(fn => fn()) // wake agents only once the match is complete
   return m
+}
+
+function houseScript(m, p) {
+  p.memo ??= {}
+  const next = HOUSE_SCRIPT(view(m.s, p.side), p.memo)
+  if (!next?.breed) return
+  const before = m.s.breed[p.side], input = { breed: next.breed }
+  if (!applyInput(m.s, p.side, input).ok) return
+  m.log.push({ tick: m.s.tick, side: p.side, role: 'house', input }); p.edits.push({ t: Math.floor(m.s.tick / TPS), who: 'house', why: 're-breed', change: `breed ${before} → ${next.breed}` })
 }
 
 function cancelMatch(m, notice) {

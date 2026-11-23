@@ -2,7 +2,7 @@
 
 **Verdict:** today an agent does not beat good fixed rules in Botters: Claude Sonnet, playing through the real stdio client, won 3 of 20 matches against the `pincer` house, while leaving the starting gambits untouched wins 8 of the same 20 — matches are decided by the map and the opening, and the agent rewrote its rules toward retreating, which loses.
 
-Follow-up: the breed mechanic (`BREED.md`) gives mid-match reading a measured value offline; the tables below are the game before it.
+Follow-up: the breed mechanic (`BREED.md`) gives mid-match reading a measured value to scripts, but a real Haiku agent only matches the no-edit baseline (7/20 vs a re-breeding house, 14/20 vs a fixed one); it is not shipped. The tables below are the game before it.
 
 All numbers: 5-minute matches, 17 planets, `sim.js` at this commit. A score is wins + ½ draws over matches; "both sides" means each map is played once from each home.
 

@@ -1,0 +1,161 @@
+{
+ "seed": 10,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 182.5,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1134
+ ],
+ "edits": 8,
+ "calls": {
+  "wait": 72,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "breed": 5,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 256,
+ "wall": 262,
+ "cost": 0.38997861000000017,
+ "turns": 83,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 21,
+   "why": "Opening from doctrine: defend, flank bigger enemies, hit weaker ones, grab free planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 22,
+   "why": "House armies are unknown; tanks beat grunts, a common mix, and hold planets well.",
+   "breed": "tank"
+  },
+  {
+   "at": 60,
+   "why": "Stragglers under 120 units merge into the nearest friendly army; keep the rest of the doctrine.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 66,
+   "why": "Small-merge rule made the stragglers ping-pong between each other; removed it.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 92,
+   "why": "Enemy front is mostly tanks (~90-100 each) with few grunts; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 119,
+   "why": "Enemy grunt battalions (~74) now beat our runners; tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 130,
+   "why": "Enemy is now mostly runners (67 + 17) with almost no tanks; grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 164,
+   "why": "Enemy's main battalion is now tanks (46) plus runners; runners beat tanks and enemy grunts are gone.",
+   "breed": "runner"
+  }
+ ]
+}
