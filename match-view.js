@@ -73,7 +73,8 @@ function view({ W, H }) {
     }
     polling = false
   }
-  const resize = () => notify('ui/notifications/size-changed', { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })
+  // Report the content height, not the iframe's: documentElement.scrollHeight never shrinks below the frame the host gave us.
+  const resize = () => notify('ui/notifications/size-changed', { height: Math.ceil(document.body.getBoundingClientRect().height) })
   new ResizeObserver(resize).observe(document.body)
   $('full').onclick = () => request('ui/request-display-mode', { mode: host.displayMode === 'fullscreen' ? 'inline' : 'fullscreen' }).then(r => { host.displayMode = r?.mode }, () => {})
   requestAnimationFrame(draw)
@@ -91,7 +92,8 @@ export function matchViewHtml({ W, H }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Botters match</title>
 <style>
   html, body { margin: 0; background: #0a0a10; color: #ddd; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace }
-  header { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 10px }
+  header { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; justify-content: space-between; padding: 8px 10px }
+  @media (max-width: 480px) { html, body { font-size: 11px } #score { order: 3; width: 100% } }
   #status { color: #fff; font-weight: bold } #score { color: #aaa }
   button { background: none; border: 1px solid #444; color: #ccc; font: inherit; padding: 2px 8px; border-radius: 4px; cursor: pointer }
   canvas { display: block; width: 100%; height: auto; aspect-ratio: ${W} / ${H} }
