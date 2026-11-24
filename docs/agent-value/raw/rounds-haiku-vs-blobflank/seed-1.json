@@ -1,0 +1,35 @@
+{
+  "seed": 1,
+  "model": "haiku",
+  "house": "blobflank",
+  "winner": "house",
+  "score": [
+    0,
+    5
+  ],
+  "roundResults": [
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost"
+  ],
+  "versionsPerPause": [
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "late": 0,
+  "invalid": 2,
+  "pausesWithoutVersion": 0,
+  "cost": 0.006052760000000001,
+  "turns": 14,
+  "wall": 208,
+  "stop": "success",
+  "calls": {
+    "wait_for_pause": 6,
+    "set_bot": 7
+  }
+}

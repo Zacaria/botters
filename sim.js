@@ -367,3 +367,19 @@ export function changes(before, after) {
   }
   return [...out, ...added.map(r => `+ ${plain(r)}`)].join('; ') || 'reordered'
 }
+
+// ---------- rounds (prototype; docs/agent-value/RESULTS.md §4) ----------
+export const ROUNDS = { count: 5, seconds: 75, pause: 30, slots: 3 }
+export const nextSlots = (slots, winner) => slots.map((k, side) => Math.min(MAX_GAMBITS, k + 1 + (winner !== null && winner !== undefined && winner !== side ? 1 : 0)))
+export function playRound(seed, gambits, { seconds = ROUNDS.seconds, planets = 17, every = 15 } = {}) {
+  if (!Array.isArray(gambits) || gambits.length !== 2) throw new Error('send gambits for both sides')
+  const s = createMatch(seed, { minutes: 5, planets }), timeline = [], ruleUse = gambits.map(g => Array.isArray(g) ? g.map(() => 0) : [])
+  s.endTick = seconds * TPS
+  gambits.forEach((g, side) => { const r = applyInput(s, side, { gambits: g }); if (!r.ok) throw new Error(r.error) })
+  while (!s.ended) {
+    step(s)
+    if (s.tick % THINK === 0) for (const o of s.bats) if (o.n && !o.manual && o.rule >= 0) ruleUse[o.side][o.rule]++
+    if (every > 0 && s.tick % (every * TPS) === 0) timeline.push({ t: s.tick / TPS, planets: owned(s), units: count(s) })
+  }
+  return { winner: s.ended.winner, reason: s.ended.reason, t: s.tick / TPS, planets: owned(s), units: count(s), timeline, ruleUse }
+}

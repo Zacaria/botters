@@ -1,0 +1,702 @@
+[
+  {
+    "seed": 1,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 2,
+    "pausesWithoutVersion": 0,
+    "cost": 0.006052760000000001,
+    "turns": 14,
+    "wall": 208,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 7
+    }
+  },
+  {
+    "seed": 2,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      0,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 3,
+    "pausesWithoutVersion": 2,
+    "cost": 0.00403506,
+    "turns": 13,
+    "wall": 199,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 6
+    }
+  },
+  {
+    "seed": 3,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0041568199999999994,
+    "turns": 12,
+    "wall": 200,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 4,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 2,
+    "pausesWithoutVersion": 1,
+    "cost": 0.00448587,
+    "turns": 13,
+    "wall": 196,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 6
+    }
+  },
+  {
+    "seed": 5,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0032594199999999994,
+    "turns": 12,
+    "wall": 177,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 6,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      0,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 2,
+    "pausesWithoutVersion": 2,
+    "cost": 0.0040617200000000004,
+    "turns": 12,
+    "wall": 186,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 7,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.00472631,
+    "turns": 12,
+    "wall": 173,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 8,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "late": 0,
+    "invalid": 2,
+    "pausesWithoutVersion": 2,
+    "cost": 0.00462391,
+    "turns": 12,
+    "wall": 188,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 9,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 2,
+    "pausesWithoutVersion": 1,
+    "cost": 0.005328340000000001,
+    "turns": 13,
+    "wall": 179,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 6
+    }
+  },
+  {
+    "seed": 10,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 2,
+    "pausesWithoutVersion": 1,
+    "cost": 0.005422710000000001,
+    "turns": 13,
+    "wall": 188,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 6
+    }
+  },
+  {
+    "seed": 11,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.00329064,
+    "turns": 12,
+    "wall": 187,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 12,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0034659799999999996,
+    "turns": 12,
+    "wall": 186,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 13,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.00497012,
+    "turns": 12,
+    "wall": 194,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 14,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.003974750000000001,
+    "turns": 12,
+    "wall": 184,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 15,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.00453084,
+    "turns": 12,
+    "wall": 189,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 16,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0033795,
+    "turns": 12,
+    "wall": 184,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 17,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.00334119,
+    "turns": 12,
+    "wall": 189,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 18,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.004033920000000001,
+    "turns": 12,
+    "wall": 183,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 19,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 2,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0058395,
+    "turns": 15,
+    "wall": 188,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 8
+    }
+  },
+  {
+    "seed": 20,
+    "model": "haiku",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 3,
+    "pausesWithoutVersion": 2,
+    "cost": 0.004729400000000001,
+    "turns": 13,
+    "wall": 183,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 6
+    }
+  }
+]
