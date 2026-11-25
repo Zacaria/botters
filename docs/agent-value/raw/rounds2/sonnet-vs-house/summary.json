@@ -1,0 +1,842 @@
+[
+  {
+    "seed": 1,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "won",
+      "lost"
+    ],
+    "breeds": [
+      "grunt-grunt",
+      "tank-tank",
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0731131,
+    "turns": 12,
+    "wall": 292,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 2,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0436883,
+    "turns": 11,
+    "wall": 281,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 3,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-runner",
+      "grunt-tank",
+      "runner-tank",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0470683,
+    "turns": 12,
+    "wall": 279,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 4,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "won",
+      "lost",
+      "won"
+    ],
+    "breeds": [
+      "grunt-grunt",
+      "tank-grunt",
+      "tank-grunt",
+      "tank-runner",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0720884,
+    "turns": 12,
+    "wall": 269,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 5,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0435108,
+    "turns": 11,
+    "wall": 255,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 6,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-runner",
+      "grunt-tank",
+      "runner-tank",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.045235,
+    "turns": 12,
+    "wall": 277,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 7,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-grunt",
+      "tank-grunt",
+      "tank-runner",
+      "grunt-runner",
+      "runner-tank"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0505258,
+    "turns": 12,
+    "wall": 231,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 8,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.043478,
+    "turns": 11,
+    "wall": 259,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 9,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-runner",
+      "grunt-tank",
+      "runner-tank",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.046258799999999996,
+    "turns": 12,
+    "wall": 249,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 10,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-grunt",
+      "tank-grunt",
+      "tank-runner",
+      "grunt-runner",
+      "runner-tank"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.04413040000000001,
+    "turns": 11,
+    "wall": 284,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 11,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.042030200000000004,
+    "turns": 11,
+    "wall": 293,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 12,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "lost",
+      "won"
+    ],
+    "breeds": [
+      "grunt-runner",
+      "grunt-tank",
+      "runner-tank",
+      "tank-grunt",
+      "grunt-grunt"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0474358,
+    "turns": 12,
+    "wall": 318,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 13,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "breeds": [
+      "grunt-grunt",
+      "tank-grunt",
+      "tank-grunt",
+      "tank-grunt",
+      "tank-grunt"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0510945,
+    "turns": 12,
+    "wall": 296,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 14,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "breeds": [
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt",
+      "tank-grunt",
+      "grunt-grunt"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0505496,
+    "turns": 12,
+    "wall": 315,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 15,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-runner",
+      "grunt-tank",
+      "runner-tank",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.04681640000000001,
+    "turns": 12,
+    "wall": 302,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 16,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-grunt",
+      "tank-tank",
+      "grunt-tank",
+      "runner-tank",
+      "tank-grunt"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0501795,
+    "turns": 12,
+    "wall": 294,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 17,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.042991800000000004,
+    "turns": 11,
+    "wall": 271,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 18,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-runner",
+      "grunt-tank",
+      "runner-tank",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0433222,
+    "turns": 12,
+    "wall": 287,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 19,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-grunt",
+      "tank-grunt",
+      "tank-runner",
+      "grunt-runner",
+      "runner-tank"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0453701,
+    "turns": 12,
+    "wall": 307,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 20,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "won"
+    ],
+    "breeds": [
+      "grunt-tank",
+      "runner-tank",
+      "runner-grunt",
+      "tank-grunt",
+      "grunt-runner"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0405709,
+    "turns": 11,
+    "wall": 284,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  }
+]

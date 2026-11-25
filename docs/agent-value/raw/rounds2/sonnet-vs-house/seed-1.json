@@ -1,0 +1,42 @@
+{
+  "seed": 1,
+  "model": "sonnet",
+  "house": "variable",
+  "winner": "house",
+  "score": [
+    2,
+    3
+  ],
+  "roundResults": [
+    "won",
+    "lost",
+    "lost",
+    "won",
+    "lost"
+  ],
+  "breeds": [
+    "grunt-grunt",
+    "tank-tank",
+    "grunt-tank",
+    "runner-tank",
+    "runner-grunt"
+  ],
+  "versionsPerPause": [
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "late": 0,
+  "invalid": 0,
+  "pausesWithoutVersion": 0,
+  "cost": 0.0731131,
+  "turns": 12,
+  "wall": 292,
+  "stop": "success",
+  "calls": {
+    "wait_for_pause": 6,
+    "set_bot": 5
+  }
+}

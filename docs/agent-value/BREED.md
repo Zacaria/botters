@@ -105,3 +105,5 @@ node scripts/agent-value/proxy.mjs 16 <out.json> pincer,blob,flanker 7 '{"counte
 node scripts/agent-value/control.mjs blobflank+seeded+counter 1 20 flanker+grunt,blobflank+grunt,blobflank+counter,blobflank+cycle,blobflank+outguess <out.json>
 node scripts/agent-value/agent-bench.mjs --set blobflank --house-script counter --seeds 1,...,20 --out <dir> --model haiku   # BOTTERS_HOUSE_SCRIPT
 ```
+
+Rounds mode (`RESULTS.md` §5) reuses this triangle with ×2 instead of 1.25, one breed per side per round, and a house that changes breed between rounds; there, Sonnet wins 16/20 where the unchanged bot wins 4.

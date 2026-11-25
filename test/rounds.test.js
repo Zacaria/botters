@@ -32,6 +32,7 @@ test('a refusal names every problem and asks for a resend', () => {
   assert.match(msg, /rule 4: unknown action "run"/)
   assert.match(msg, /call set_bot again now/)
   assert.equal(refusal(CORE, 'grunt', 3), null)
+  assert.match(refusal([{ if: 'planet_attacked(350)', then: 'go' }], 'tank', 3), /write the number in p, as \{"if":"planet_attacked","then":"go","p":350\}/)
 })
 test('the house keeps a bot that won and counters the breed that beat it', () => {
   const opening = house(1, 3, [], 4)

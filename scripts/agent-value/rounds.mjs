@@ -61,7 +61,9 @@ export function refusal(gambits, breed, max) {
   if (!gambits.length) problems.push('send at least one rule')
   if (gambits.length > max) problems.push(`you sent ${gambits.length} rules but you have ${max} slots this round: keep your ${max} most important rules`)
   gambits.forEach((r, i) => {
-    if (!Object.hasOwn(CONDITIONS, r.if)) problems.push(`rule ${i + 1}: unknown condition "${r.if}" (use one of ${Object.keys(CONDITIONS).join(', ')})`)
+    const inline = /^(\w+)\(([\d.]+)\)$/.exec(r.if) // `planet_attacked(350)`: the debrief's notation, not the input format
+    if (inline && Object.hasOwn(CONDITIONS, inline[1])) problems.push(`rule ${i + 1}: write the number in p, as {"if":"${inline[1]}","then":"${r.then}","p":${inline[2]}}`)
+    else if (!Object.hasOwn(CONDITIONS, r.if)) problems.push(`rule ${i + 1}: unknown condition "${r.if}" (use one of ${Object.keys(CONDITIONS).join(', ')})`)
     if (!Object.hasOwn(ACTIONS, r.then)) problems.push(`rule ${i + 1}: unknown action "${r.then}" (use one of ${Object.keys(ACTIONS).join(', ')})`)
     if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) problems.push(`rule ${i + 1}: p must be a number above 0 and at most 100000`)
   })

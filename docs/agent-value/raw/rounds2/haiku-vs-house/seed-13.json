@@ -1,0 +1,42 @@
+{
+  "seed": 13,
+  "model": "haiku",
+  "house": "variable",
+  "winner": "house",
+  "score": [
+    2,
+    3
+  ],
+  "roundResults": [
+    "lost",
+    "won",
+    "lost",
+    "won",
+    "lost"
+  ],
+  "breeds": [
+    "grunt-grunt",
+    "tank-grunt",
+    "tank-runner",
+    "grunt-runner",
+    "grunt-tank"
+  ],
+  "versionsPerPause": [
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "late": 0,
+  "invalid": 0,
+  "pausesWithoutVersion": 0,
+  "cost": 0.0045613599999999995,
+  "turns": 13,
+  "wall": 318,
+  "stop": "success",
+  "calls": {
+    "wait_for_pause": 6,
+    "set_bot": 6
+  }
+}
