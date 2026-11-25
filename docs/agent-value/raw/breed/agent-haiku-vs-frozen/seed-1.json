@@ -1,0 +1,319 @@
+{
+ "seed": 1,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "time",
+ "at": 300,
+ "planets": {
+  "you": 9,
+  "enemy": 7
+ },
+ "units": [
+  1655,
+  271
+ ],
+ "edits": 9,
+ "calls": {
+  "wait": 101,
+  "state": 0,
+  "set": 8,
+  "toggle": 0,
+  "breed": 1,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 386,
+ "wall": 390,
+ "cost": 0.8797643500000002,
+ "turns": 113,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 14,
+   "why": "Doctrine: take free planets early, defend threatened ones, hit weaker enemies, flank bigger ones.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 73,
+   "why": "Ally fighting nearby: flank the enemy instead of grabbing planets so the big battalions join the fight at battalion 2.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 95,
+   "why": "Enemy grunts (232) are their biggest role; tanks beat grunts, so new units should be tanks.",
+   "breed": "tank"
+  },
+  {
+   "at": 102,
+   "why": "Enemy has two ~450 battalions; merge fragments under 120 units into the nearest friend so they don't die piecemeal.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 198,
+   "why": "We lead on units (418 vs 285) but trail 7-8 on planets; put enemy planets ahead of neutrals so the army takes planets back.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 202,
+   "why": "Units lead 433-276 but planets trail 7-8; enemy planets now outrank neutrals to take planets back.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go",
+     "p": 1
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 248,
+   "why": "Chasing small enemies wastes time; 118s left and we need planets. Send armies at enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 277,
+   "why": "Planet-attacked keeps pulling the army to 600,350; enemy planets first, we outnumber them 679-236.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 317,
+   "why": "Planet 8 went neutral before capture finished; free planets now outrank enemy planets so the army re-takes it.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

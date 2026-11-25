@@ -13,6 +13,12 @@ export const MAXPER = 4000, MAXBATS = 14 // units and live battalions per side
 export const THINK = 10 // battalions, planets and doctrine update every THINK ticks
 const PROD = 0.06 // units bred per think per unit of planet radius
 const NEAR = 40 // a planet counts the units within its radius + NEAR
+// Breed: the one role a side's planets produce, set by the side at any time (never by a gambit). Counter triangle: a unit deals
+// TUNE.counter× damage to its prey and 1/TUNE.counter× to its predator: runners cut tanks down, tanks crush grunts, grunts overrun runners.
+// Starting armies stay mixed. TUNE is mutable only so offline benches can sweep it (docs/agent-value/BREED.md).
+export const BREEDS = ['runner', 'grunt', 'tank']
+export const TUNE = { counter: 1.25 }
+const counterMatrix = k => Float32Array.from([1, 1 / k, k, k, 1, 1 / k, 1 / k, k, 1])
 
 // ---------- doctrine ----------
 export const CONDITIONS = {
@@ -52,6 +58,7 @@ export function createMatch(seed = 1, options = {}) {
     side: new Uint8Array(N), role: new Uint8Array(N), bat: new Uint16Array(N), alive: new Uint8Array(N),
     dmg: new Float32Array(N), head: new Int32Array(GW * GH), next: new Int32Array(N),
     bats: [], planets: [], opts, gambits: [structuredClone(DEFAULT_GAMBITS), structuredClone(DEFAULT_GAMBITS)],
+    breed: [DEFAULT_BREED, DEFAULT_BREED], ctr: counterMatrix(TUNE.counter),
   }
   for (let i = 0; i < N; i++) s.side[i] = i < MAXPER ? 0 : 1
   // planets: two homes, a big centre prize, 7 random pairs mirrored through the centre so the map is fair
@@ -77,9 +84,9 @@ function newBat(s, side) {
   const o = { id: s.bats.length, side, tx: 0, ty: 0, manual: false, via: [], cx: 0, cy: 0, n: 0, hit: -1e9, rule: -1, key: '', busy: 0 }
   s.bats.push(o); return o
 }
-function spawn(s, side, x, y, bat) {
+function spawn(s, side, x, y, bat, role = -1) {
   for (let i = side * MAXPER; i < (side + 1) * MAXPER; i++) if (!s.alive[i]) {
-    const r = rnd(s); s.alive[i] = 1; s.bat[i] = bat; s.role[i] = r < 0.25 ? 0 : r < 0.75 ? 1 : 2; s.hp[i] = ROLES[s.role[i]].hp
+    const r = rnd(s); s.alive[i] = 1; s.bat[i] = bat; s.role[i] = role >= 0 ? role : r < 0.25 ? 0 : r < 0.75 ? 1 : 2; s.hp[i] = ROLES[s.role[i]].hp
     s.x[i] = Math.min(W - 1, Math.max(0, x)); s.y[i] = Math.min(H - 1, Math.max(0, y)); s.vx[i] = s.vy[i] = 0; s.bats[bat].n++
     return true
   }
@@ -187,10 +194,11 @@ function think(s) {
     if (p.owner >= 0 && !p.pres[1 - p.owner]) {
       p.acc += p.r * PROD
       let o = live(s, p.owner).filter(q => !q.manual && d2(q.cx, q.cy, p.x, p.y) < 140 * 140).sort((u, v) => d2(u.cx, u.cy, p.x, p.y) - d2(v.cx, v.cy, p.x, p.y) || u.id - v.id)[0]
+      const role = BREEDS.indexOf(s.breed[p.owner])
       for (; p.acc >= 1; p.acc--) {
         if (!o) { if (live(s, p.owner).length >= MAXBATS) break; o = newBat(s, p.owner); o.cx = o.tx = p.x; o.cy = o.ty = p.y }
         let x, y; do { x = (rnd(s) - 0.5) * 2; y = (rnd(s) - 0.5) * 2 } while (x * x + y * y > 1)
-        if (!spawn(s, p.owner, p.x + x * p.r, p.y + y * p.r, o.id)) { p.acc = 0; break }
+        if (!spawn(s, p.owner, p.x + x * p.r, p.y + y * p.r, o.id, role)) { p.acc = 0; break }
       }
     }
   }
@@ -240,7 +248,7 @@ export function step(s) {
         const dx = tx - x[i], dy = ty - y[i], d = Math.sqrt(dx * dx + dy * dy) || 1, sgn = i & 2 ? 1 : -1
         tx += (-dy / d * sgn + dx / d) * 18; ty += (dx / d * sgn + dy / d) * 18
       }
-      if (fd < REACH * REACH) { dmg[foe] += R.dmg; o.hit = s.tick }
+      if (fd < REACH * REACH) { dmg[foe] += R.dmg * s.ctr[role[i] * 3 + role[foe]]; o.hit = s.tick }
     } else {
       const wp = o.via[0], gx = wp ? wp.x : o.tx, gy = wp ? wp.y : o.ty, ddx = gx - x[i], ddy = gy - y[i], dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1, off = Math.sqrt((o.cx - x[i]) ** 2 + (o.cy - y[i]) ** 2)
       tx = x[i] + ddx / dd * 50 + (o.cx - x[i]) * (off > 60 ? 0.4 : 0.02); ty = y[i] + ddy / dd * 50 + (o.cy - y[i]) * (off > 60 ? 0.4 : 0.02)
@@ -265,6 +273,7 @@ export const hash = s => { let h = 2166136261 >>> 0; for (let i = 0; i < s.N; i+
 
 export const MAX_GAMBITS = 10
 export const DEFAULT_GAMBITS = DOCTRINES.flanker
+export const DEFAULT_BREED = 'grunt'
 export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'blob', hard: 'pincer' }
 export const HOUSE = Object.fromEntries(Object.entries(HOUSE_DOCTRINE).map(([k, v]) => [k, DOCTRINES[v]]))
 export const OPTIONS = { minutes: [3, 5, 8], planets: [9, 17, 25] }
@@ -284,8 +293,9 @@ export function applyInput(s, side, input) {
   if (s.ended) return fail('match ended')
   if ((side !== 0 && side !== 1) || !input || typeof input !== 'object' || Array.isArray(input)) return fail('invalid input or side')
   const keys = Object.keys(input)
-  if (keys.length !== 1 || !['gambits', 'toggle', 'order', 'flank', 'detach', 'release', 'surrender'].includes(keys[0])) return fail('send exactly one input')
+  if (keys.length !== 1 || !['gambits', 'toggle', 'breed', 'order', 'flank', 'detach', 'release', 'surrender'].includes(keys[0])) return fail('send exactly one input')
   const key = keys[0], arg = input[key]
+  if (key === 'breed') { if (!BREEDS.includes(arg)) return fail(`breed one of ${BREEDS.join(', ')}`); s.breed[side] = arg; return { ok: true } }
   if (key === 'surrender') { if (arg !== true) return fail('invalid surrender'); s.ended = { winner: 1 - side, reason: 'surrender' }; return { ok: true } }
   if (key === 'gambits') { const error = checkGambits(arg); if (error) return fail(error); setDoctrine(s, side, arg); return { ok: true } }
   if (key === 'toggle') { if (!Number.isInteger(arg) || !s.gambits[side][arg]) return fail('no such gambit'); const r = s.gambits[side][arg]; r.on = r.on === false; for (const b of live(s, side)) b.key = ''; return { ok: true } }
@@ -319,7 +329,7 @@ export function snapshot(s) {
     d.setUint8(p + 24, s.role[i]); d.setUint16(p + 25, s.bat[i], true)
   }
   let binary = ''; for (const b of bytes) binary += String.fromCharCode(b)
-  return { seed: s.seed, opts: structuredClone(s.opts), tick: s.tick, rng: s.rng, endTick: s.endTick, ended: structuredClone(s.ended), bats: structuredClone(s.bats), planets: structuredClone(s.planets), gambits: structuredClone(s.gambits), units: btoa(binary) }
+  return { seed: s.seed, opts: structuredClone(s.opts), tick: s.tick, rng: s.rng, endTick: s.endTick, ended: structuredClone(s.ended), bats: structuredClone(s.bats), planets: structuredClone(s.planets), gambits: structuredClone(s.gambits), breed: s.breed.slice(), units: btoa(binary) }
 }
 export function restore(data) {
   if (typeof data === 'string') data = JSON.parse(data)
@@ -333,8 +343,10 @@ export function restore(data) {
     s.role[i] = d.getUint8(p + 24); s.bat[i] = d.getUint16(p + 25, true)
   }
   for (const k of ['tick','rng','endTick','ended','bats','planets','gambits','opts']) s[k] = structuredClone(data[k])
+  if (data.breed) s.breed = data.breed.slice()
   return s
 }
+const roleCount = (s, id) => { const roles = { runner: 0, grunt: 0, tank: 0 }; for (let i = 0; i < s.N; i++) if (s.alive[i] && s.bat[i] === id) roles[ROLES[s.role[i]].name]++; return roles }
 export const visible = (s, side, x, y) => live(s, side).some(b => d2(b.cx, b.cy, x, y) <= 150 ** 2) || s.planets.some(p => p.owner === side && d2(p.x, p.y, x, y) <= 80 ** 2)
 export function view(s, side) {
   const units = count(s), planets = owned(s), battalions = live(s, side).map(b => {
@@ -344,10 +356,13 @@ export function view(s, side) {
   })
   return { tick: s.tick, secondsLeft: Math.max(0, (s.endTick - s.tick) / TPS), ended: s.ended ? { reason: s.ended.reason, result: s.ended.winner === null ? 'draw' : s.ended.winner === side ? 'won' : 'lost' } : null,
     totals: { you: units[side], enemy: units[1-side], planets: { you: planets[side], enemy: planets[1-side] } }, battalions,
-    enemies: live(s, 1-side).filter(b => visible(s, side, b.cx, b.cy)).map(b => ({ id: b.id, x: b.cx, y: b.cy, n: b.n, fighting: fighting(s, b) })),
+    breed: s.breed[side],
+    enemies: live(s, 1-side).filter(b => visible(s, side, b.cx, b.cy)).map(b => ({ id: b.id, x: b.cx, y: b.cy, n: b.n, roles: roleCount(s, b.id), fighting: fighting(s, b) })),
     planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', capture: p.prog })), gambits: structuredClone(s.gambits[side]), perRule: s.gambits[side].map((_, i) => battalions.filter(b => !b.manual && b.rule === i).length) }
 }
-export const rules = () => ({ conditions: structuredClone(CONDITIONS), actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, doc]) => [k, { doc }])) })
+export const BREED_DOC = { runner: 'beats tanks, loses to grunts', grunt: 'beats runners, loses to tanks', tank: 'beats grunts, loses to runners' }
+export const rules = () => ({ conditions: structuredClone(CONDITIONS), actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, doc]) => [k, { doc }])),
+  breeds: { doc: `your planets breed only this role, from the moment you set it; starting armies are mixed. A unit deals ${TUNE.counter}× damage to the role it beats and ${+(1 / TUNE.counter).toFixed(2)}× to the role that beats it`, ...BREED_DOC } })
 export const describe = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 
 export function changes(before, after) {

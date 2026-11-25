@@ -1,0 +1,170 @@
+{
+ "seed": 12,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 245,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1639
+ ],
+ "edits": 7,
+ "calls": {
+  "wait": 84,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "breed": 4,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 354,
+ "wall": 361,
+ "cost": 0.7064721,
+ "turns": 94,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 15,
+   "why": "Doctrine: take free planets early, defend threatened ones, hit weaker enemies, flank bigger ones.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 15,
+   "why": "Starting breed kept; grunts beat runners and the house mix is unknown.",
+   "breed": "grunt"
+  },
+  {
+   "at": 83,
+   "why": "Enemy 422-unit army is engaging my lead battalion; flank it with the others, which are ~200 units back.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 450,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 104,
+   "why": "Enemy remnants are tank-heavy (about 136 tanks vs 12 grunts); runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 136,
+   "why": "Runners now outnumber enemy tank blobs; widen the attack trigger so they engage the 93-tank group nearby.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 3,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 450,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 160,
+   "why": "Enemy fighters are now grunt-heavy (about 75 grunts engaged); tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 211,
+   "why": "Enemy now has about 220 runners in 4 blobs; grunts beat runners.",
+   "breed": "grunt"
+  }
+ ]
+}

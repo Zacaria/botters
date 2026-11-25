@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, restore, snapshot, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, restore, snapshot, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, BREEDS, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { board as fogBoard } from '../wire.js'
 import { transaction } from './store.js'
 import { rankPairs } from './ratings.js'
@@ -18,7 +18,7 @@ const canonicalRules = list => {
 }
 const cleanInput = b => {
   if (['route', 'split', 'surrender'].some(k => b[k] !== undefined)) fail(400, 'Unknown action.')
-  const keys = ['gambits', 'toggle', 'order', 'flank', 'detach', 'release'].filter(k => b[k] !== undefined)
+  const keys = ['gambits', 'toggle', 'breed', 'order', 'flank', 'detach', 'release'].filter(k => b[k] !== undefined)
   if (keys.length !== 1) fail(400, 'Send exactly one input.')
   const k = keys[0], arg = b[k]
   if (k === 'gambits') return { gambits: canonicalRules(arg) }
@@ -42,8 +42,10 @@ function diffEvents(m, p) {
   const v = view(m.s, p.side), was = p.prev
   p.prev = v
   if (v.ended) return emit(m, p, `match over: you ${v.ended.result} (${v.ended.reason}).`)
+  const spotted = new Set(p.spotted || [])
+  for (const e of v.enemies) if (!spotted.has(e.id)) { spotted.add(e.id); emit(m, p, `enemy battalion ${e.id} spotted at (${Math.round(e.x)},${Math.round(e.y)}): ${e.n} units (${e.roles.runner} runners, ${e.roles.grunt} grunts, ${e.roles.tank} tanks)`) }
+  p.spotted = [...spotted]
   if (!was) return
-  for (const e of v.enemies) if (!was.enemies.some(o => o.id === e.id)) emit(m, p, `enemy battalion ${e.id} spotted at (${Math.round(e.x)},${Math.round(e.y)})`)
   for (const pl of v.planets) if (pl.owner !== was.planets[pl.id]?.owner) emit(m, p, `${pl.owner || 'neutral'} controls planet ${pl.id}`)
   for (const bat of was.battalions) if (!v.battalions.some(o => o.id === bat.id)) emit(m, p, `battalion ${bat.id} lost`)
 }
@@ -190,6 +192,7 @@ export class OnlineGame {
           m.players.push(p)
           const opening = e ? e.req.opening : HOUSE[req.vs]
           if (opening) { const input = { gambits: canonicalRules(opening) }, before = structuredClone(m.s.gambits[side]); applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); p.edits.push({ t: 0, who: e ? 'you' : 'house', why: 'opening gambits', change: changes(before, m.s.gambits[side]) }) }
+          if (!e) { const breed = BREEDS[m.s.seed % 3], before = m.s.breed[side], input = { breed }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: 'house', input }); p.edits.push({ t: 0, who: 'house', why: 'opening breed', change: `breed ${before} → ${breed}` }) }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
           emit(m, p, `${waitingForAgent ? 'waiting for your agent' : `match starts in ${req.planning}s`}. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}). You start with three battalions.`)
         }
@@ -456,16 +459,16 @@ export class OnlineGame {
         p[sentKey] = p[sentKey].filter(t => now - t < 1000)
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
-        const input = cleanInput(body), before = structuredClone(m.s.gambits[s.side])
-        if ((m.waitingForAgent || now < m.startsAt) && !('gambits' in input || 'toggle' in input)) fail(409, 'Match not started: only gambits can change now.')
+        const input = cleanInput(body), beforeBreed = m.s.breed[s.side], before = structuredClone(m.s.gambits[s.side])
+        if ((m.waitingForAgent || now < m.startsAt) && !('gambits' in input || 'toggle' in input || 'breed' in input)) fail(409, 'Match not started: only gambits, toggle and breed can change now.')
         const result = applyInput(m.s, s.side, input)
         if (!result.ok) fail(400, result.error)
         await appendLog(m, { tick: m.s.tick, side: s.side, role: auth.role, input })
         if (m.s.ended) { for (const player of m.players) diffEvents(m, player); await finish(m) }
-        const why = text(body.why, 120), change = changes(before, m.s.gambits[s.side]), doctrine = 'gambits' in input || 'toggle' in input
+        const why = text(body.why, 120), change = 'breed' in input ? `breed ${beforeBreed} → ${m.s.breed[s.side]}` : changes(before, m.s.gambits[s.side]), doctrine = 'gambits' in input || 'toggle' in input || 'breed' in input
         if (doctrine) p.edits = [...(p.edits || []), { t: Math.floor(m.s.tick / TPS), who: auth.role === 'agent' ? 'agent' : 'you', why, change }].slice(-10) // matches started before edits existed have none
-        if (auth.role === 'human') emit(m, p, `HUMAN ${doctrine ? ('toggle' in input ? `switched ${change}` : `rewrote gambits: ${change}`) : JSON.stringify(input)}`)
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${auth.role === 'agent' && doctrine ? change : Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
+        if (auth.role === 'human') emit(m, p, `HUMAN ${doctrine ? ('breed' in input ? `switched breed to ${input.breed}` : 'toggle' in input ? `switched ${change}` : `rewrote gambits: ${change}`) : JSON.stringify(input)}`)
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${doctrine ? change : Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
         return result
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {

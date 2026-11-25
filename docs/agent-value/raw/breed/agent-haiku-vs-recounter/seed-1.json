@@ -1,0 +1,289 @@
+{
+ "seed": 1,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 299.5,
+ "planets": {
+  "you": 9,
+  "enemy": 0
+ },
+ "units": [
+  781,
+  0
+ ],
+ "edits": 10,
+ "calls": {
+  "wait": 95,
+  "state": 0,
+  "set": 7,
+  "toggle": 0,
+  "breed": 3,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 458,
+ "wall": 467,
+ "cost": 0.8270262700000001,
+ "turns": 108,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 22,
+   "why": "Doctrine: defend threatened planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 92,
+   "why": "Enemy army is mostly grunts (199); tanks beat grunts, so breed tanks.",
+   "breed": "tank"
+  },
+  {
+   "at": 97,
+   "why": "Battalion 2 is fighting the enemy main army; send idle battalions to flank it instead of chasing far planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 141,
+   "why": "Tiny fragments should merge into nearest friend instead of dying alone; main army keeps flanking.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 60,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 218,
+   "why": "Enemy reinforcements are now mostly runners; grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 246,
+   "why": "Enemy runners are scattered; send idle grunt groups to grab free planets (11, 13, 14) before the small-merge rule.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 275,
+   "why": "Enemy army is ground down (268 vs our 493); idle grunts should press enemy planets now, starting with planet 8 near the fight.",
+   "gambits": [
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 278,
+   "why": "Enemy weakened; press enemy planets with idle grunts.",
+   "gambits": [
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 282,
+   "why": "Enemy now fields almost only tanks; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 335,
+   "why": "Last 100s: capture planets 12 and 14 and retake 8 before chasing fights.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

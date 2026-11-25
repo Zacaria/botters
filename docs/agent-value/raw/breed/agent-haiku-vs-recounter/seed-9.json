@@ -1,0 +1,187 @@
+{
+ "seed": 9,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 200.5,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1074
+ ],
+ "edits": 7,
+ "calls": {
+  "wait": 87,
+  "state": 0,
+  "set": 4,
+  "toggle": 0,
+  "breed": 3,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 295,
+ "wall": 300,
+ "cost": 0.6699539899999999,
+ "turns": 97,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 33,
+   "why": "Defend threatened planets, flank bigger enemies, hit weaker ones, grab free planets, then push enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 97,
+   "why": "Enemy 421-unit battalion engaged our main force; add ally_fighting→flank so reserves swing in instead of wandering off.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 106,
+   "why": "We're bleeding units across three fronts; small stragglers merge into nearest friend to rebuild a fighting mass.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 119,
+   "why": "Enemy army is mostly tanks, which beat our grunts; runners counter tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 143,
+   "why": "Small-merge rule scatters runners across the map; drop it so reinforcements rally to planets and fight together.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 170,
+   "why": "Enemy now fields mostly grunts, which beat runners; tanks counter grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 249,
+   "why": "Enemy just sent a 181-runner battalion; grunts beat runners.",
+   "breed": "grunt"
+  }
+ ]
+}

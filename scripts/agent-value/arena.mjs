@@ -3,20 +3,26 @@
 // seeing exactly what an agent sees (sim.view, fogged). Scripts are looked up by name in strategies.mjs so workers can load them.
 import { Worker, isMainThread, parentPort } from 'node:worker_threads'
 import { availableParallelism } from 'node:os'
-import { createMatch, applyInput, step, view, count, owned, TPS, checkGambits } from '../../sim.js'
+import { createMatch, applyInput, step, view, count, owned, TPS, checkGambits, TUNE } from '../../sim.js'
 import { SCRIPTS } from './strategies.mjs'
 
-export function playMatch({ seed, minutes = 5, planets = 17, sides }) {
+export function playMatch({ seed, minutes = 5, planets = 17, sides, tune }) {
+  if (tune) Object.assign(TUNE, tune)
   const s = createMatch(seed, { minutes, planets }), edits = [0, 0], memo = [{}, {}]
-  sides.forEach((side, k) => { const r = applyInput(s, k, { gambits: side.gambits }); if (!r.ok) throw new Error(`side ${k}: ${r.error}`) })
+  sides.forEach((side, k) => {
+    const r = applyInput(s, k, { gambits: side.gambits }); if (!r.ok) throw new Error(`side ${k}: ${r.error}`)
+    const breed = side.breed // a breed name, or 'seeded': runner/grunt/tank from the seed (a house that varies per match)
+    if (breed) applyInput(s, k, { breed: breed === 'seeded' ? ['runner', 'grunt', 'tank'][seed % 3] : breed })
+  })
   const scripts = sides.map(side => side.script ? SCRIPTS[side.script] : null)
   let lead = null, leadChanges = 0
   while (!s.ended) {
     step(s)
     if (s.tick % TPS) continue
-    for (let k = 0; k < 2; k++) if (scripts[k]) {
+    for (let k = 0; k < 2; k++) if (scripts[k] && !s.ended) {
       const next = scripts[k](view(s, k), memo[k], sides[k].arg)
-      if (next) { const e = checkGambits(next); if (e) throw new Error(`${sides[k].script}: ${e}`); applyInput(s, k, { gambits: next }); edits[k]++ }
+      if (next?.breed) { if (!applyInput(s, k, { breed: next.breed }).ok) throw new Error(`${sides[k].script}: bad breed`); edits[k]++ }
+      else if (next) { const e = checkGambits(next); if (e) throw new Error(`${sides[k].script}: ${e}`); applyInput(s, k, { gambits: next }); edits[k]++ }
     }
     const pl = owned(s), now = pl[0] > pl[1] ? 0 : pl[1] > pl[0] ? 1 : lead
     if (now !== lead && lead !== null) leadChanges++

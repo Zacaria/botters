@@ -1,0 +1,100 @@
+{
+ "seed": 2,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 163,
+ "planets": {
+  "you": 14,
+  "enemy": 0
+ },
+ "units": [
+  720,
+  0
+ ],
+ "edits": 3,
+ "calls": {
+  "wait": 67,
+  "state": 0,
+  "set": 2,
+  "toggle": 0,
+  "breed": 1,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 219,
+ "wall": 225,
+ "cost": 0.43627743,
+ "turns": 72,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 16,
+   "why": "Doctrine: defend threatened planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 73,
+   "why": "Enemy battalion is tank-heavy (165 tanks); runners beat tanks, and my grunts lose to tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 143,
+   "why": "Flank battalions are stalled at one spot; runners beat the enemy's tank-heavy battalions, so send them straight in.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

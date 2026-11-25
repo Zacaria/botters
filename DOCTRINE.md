@@ -6,6 +6,10 @@ The doctrine is your strategy in your words. Your agent turns it into gambits an
 
 Grab the free planets near home first: they breed new units. Never charge a bigger battalion head-on: flank it while an ally holds it. Defend our planets before taking new ones. When we outnumber them, take their planets. In the last minute, hold what we have.
 
+## Breed
+
+Each side chooses one role its planets breed from then on; starting armies are mixed. Runners beat tanks, tanks beat grunts, and grunts beat runners: the counter deals 1.25× damage and receives 0.8×. The house breed comes from the match seed. Both the agent and the human can change their breed.
+
 ## Gambits
 
 A gambit is `IF condition → action`. Every half second, each battalion not held by hand takes the first enabled rule whose condition finds something, and acts on what it found. `p` tunes a condition (defaults in brackets).
@@ -32,7 +36,7 @@ A gambit is `IF condition → action`. Every half second, each battalion not hel
 
 ## Who changes what
 
-- The agent reads the battle (`get_state`, `wait_for_event`) and changes only the rules: `set_gambits` and `toggle_gambit`, each with a one-line reason.
+- The agent reads the battle (`get_state`, `wait_for_event`) and changes the rules and breed: `set_gambits`, `toggle_gambit` and `set_breed`, each with a one-line reason.
 - Hand orders (move, flank, detach, release) are the human's. The agent asks for one with `call_human`; the server refuses hand orders from an agent token.
 - The side panel lists every doctrine edit: time, author, which rule changed, and why. Each rule shows how many battalions follow it.
 

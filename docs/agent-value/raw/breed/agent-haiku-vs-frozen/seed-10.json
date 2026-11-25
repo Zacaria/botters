@@ -1,0 +1,114 @@
+{
+ "seed": 10,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 231,
+ "planets": {
+  "you": 0,
+  "enemy": 14
+ },
+ "units": [
+  0,
+  1067
+ ],
+ "edits": 5,
+ "calls": {
+  "wait": 112,
+  "state": 0,
+  "set": 2,
+  "toggle": 0,
+  "breed": 3,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 268,
+ "wall": 274,
+ "cost": 1.0623257899999998,
+ "turns": 120,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Doctrine: flank bigger enemies, defend planets, attack weaker enemies, grab free planets early.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 58,
+   "why": "Enemy main army is grunt-heavy (230 grunts); tanks counter grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 65,
+   "why": "Enemy is converging with three big battalions; concentrate our forces onto fights instead of trickling in.",
+   "gambits": [
+    {
+     "if": "ally_fighting",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 69,
+   "why": "Enemy front is now tank-heavy (~255 tanks); runners counter tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 75,
+   "why": "Enemy now has ~160 grunts in fresh battalions and few runners; tanks counter grunts.",
+   "breed": "tank"
+  }
+ ]
+}
