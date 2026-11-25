@@ -89,7 +89,7 @@ Changes to §4's format (`sim.js` `ROUNDS`, `checkBot`, `roleTally`; `scripts/ag
 | pincer+tank | 0.00 | **0.88** | – | 0.56 | 0.00 |
 | pincer+runner | – | 0.00 | **1.00** | 0.52 | 0.00 |
 
-Hill-climbing against one known bot (`counter.mjs … round`, `raw/rounds2/counter-vs-*.jsonl`) finds its parade by changing the breed: against `pincer+tank` the first accepted change is to runner (1.00 on the 8 confirmation maps); against `pincer+grunt` two rule tweaks within grunt came first (0.56 and 0.75), then tank (1.00).
+Hill-climbing against one known bot (`counter.mjs … round`, `raw/rounds2/counter-vs-*.jsonl`) finds its parade by changing the breed: against `pincer+tank` the first accepted change is to runner (1.00 on the 8 confirmation maps); against `pincer+grunt` two rule tweaks within grunt came first (0.56 and 0.75), then tank (1.00). Final champions on the round-robin maps: runner 16/16 against `pincer+tank`, tank 14/16 against `pincer+grunt`.
 
 **Agents and controls, seeds 1–20, against the changing house.** The agent is side 0.
 
