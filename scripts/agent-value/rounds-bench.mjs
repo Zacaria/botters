@@ -8,7 +8,7 @@ import { pipeline } from 'node:stream/promises'
 import { ROUNDS } from '../../sim.js'
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d }
-const seeds = arg('seeds', '1').split(',').map(Number), out = resolve(arg('out', 'rounds-run')), model = arg('model', 'haiku'), house = arg('house', 'blobflank'), parallel = Number(arg('parallel', 4))
+const seeds = arg('seeds', '1').split(',').map(Number), out = resolve(arg('out', 'rounds-run')), model = arg('model', 'haiku'), house = arg('house', 'variable'), parallel = Number(arg('parallel', 4))
 const root = fileURLToPath(new URL('../../', import.meta.url)), scratch = process.env.TMPDIR || '/tmp'
 if (!seeds.length || seeds.some(s => !Number.isInteger(s)) || new Set(seeds).size !== seeds.length || !Number.isInteger(parallel) || parallel < 1) throw new Error('invalid seeds or parallel')
 mkdirSync(out, { recursive: true })
@@ -37,7 +37,7 @@ async function one(seed) {
   const { createReadStream } = await import('node:fs')
   await pipeline(createReadStream(plain), createGzip(), createWriteStream(`${plain}.gz`)); unlinkSync(plain); unlinkSync(cfg)
   let match = null; try { match = JSON.parse(readFileSync(log, 'utf8')) } catch {}
-  const pauses = match?.pauses ?? [], row = { seed, model, house, winner: match?.finishedAt ? (match.winner === 0 ? 'agent' : match.winner === 1 ? 'house' : 'draw') : 'no result', score: match?.score ?? null, roundResults: pauses.filter(p => p.result).map(p => p.result.winner === null ? 'draw' : p.result.winner === 0 ? 'won' : 'lost'), versionsPerPause: pauses.map(p => p.versions.length), late: pauses.reduce((n, p) => n + p.late.length, 0), invalid: pauses.reduce((n, p) => n + p.invalid.length, 0), pausesWithoutVersion: pauses.filter(p => !p.versions.length).length, cost: result?.total_cost_usd ?? null, turns: result?.num_turns ?? null, wall: Math.round((Date.now() - start) / 1000), stop: spawnError || (timedOut ? 'timeout' : result?.subtype ?? 'no result'), calls }
+  const pauses = match?.pauses ?? [], row = { seed, model, house, winner: match?.finishedAt ? (match.winner === 0 ? 'agent' : match.winner === 1 ? 'house' : 'draw') : 'no result', score: match?.score ?? null, roundResults: pauses.filter(p => p.result).map(p => p.result.winner === null ? 'draw' : p.result.winner === 0 ? 'won' : 'lost'), breeds: pauses.filter(p => p.result).map(p => `${p.locked.breed}-${p.houseBot.breed}`), versionsPerPause: pauses.map(p => p.versions.length), late: pauses.reduce((n, p) => n + p.late.length, 0), invalid: pauses.reduce((n, p) => n + p.invalid.length, 0), pausesWithoutVersion: pauses.filter(p => !p.versions.length).length, cost: result?.total_cost_usd ?? null, turns: result?.num_turns ?? null, wall: Math.round((Date.now() - start) / 1000), stop: spawnError || (timedOut ? 'timeout' : result?.subtype ?? 'no result'), calls }
   writeFileSync(join(out, `${tag}.json`), JSON.stringify(row, null, 2)); return row
 }
 const queue = seeds.slice(), rows = []

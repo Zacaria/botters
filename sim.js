@@ -50,15 +50,17 @@ export const DOCTRINES = { // 16 maps × both sides (docs/agent-value/RESULTS.md
 const rnd = s => (s.rng = (Math.imul(s.rng, 1664525) + 1013904223) >>> 0) / 4294967296
 const d2 = (ax, ay, bx, by) => (ax - bx) ** 2 + (ay - by) ** 2
 
+// options.army (rounds only): [breed|null, breed|null]; a side with a breed starts with ROUNDS.army[breed] units of that one role
+// and breeds it. options.counter overrides TUNE.counter for this match. Neither is part of opts, so live matches never see them.
 export function createMatch(seed = 1, options = {}) {
-  const opts = matchOptions(options), perSide = 1200, minutes = opts.minutes
+  const opts = matchOptions(options), perSide = 1200, minutes = opts.minutes, army = options.army || [null, null]
   const N = 2 * MAXPER, s = {
     seed, N, tick: 0, rng: seed >>> 0 || 1, endTick: minutes * 60 * TPS, ended: null,
     x: new Float32Array(N), y: new Float32Array(N), vx: new Float32Array(N), vy: new Float32Array(N), hp: new Float32Array(N),
     side: new Uint8Array(N), role: new Uint8Array(N), bat: new Uint16Array(N), alive: new Uint8Array(N),
     dmg: new Float32Array(N), head: new Int32Array(GW * GH), next: new Int32Array(N),
     bats: [], planets: [], opts, gambits: [structuredClone(DEFAULT_GAMBITS), structuredClone(DEFAULT_GAMBITS)],
-    breed: [DEFAULT_BREED, DEFAULT_BREED], ctr: counterMatrix(TUNE.counter),
+    breed: army.map(b => b || DEFAULT_BREED), ctr: counterMatrix(options.counter ?? TUNE.counter),
   }
   for (let i = 0; i < N; i++) s.side[i] = i < MAXPER ? 0 : 1
   // planets: two homes, a big centre prize, 7 random pairs mirrored through the centre so the map is fair
@@ -71,9 +73,10 @@ export function createMatch(seed = 1, options = {}) {
   }
   for (let side = 0; side < 2; side++) {
     const home = s.planets[side]
+    const role = army[side] ? BREEDS.indexOf(army[side]) : -1, n = army[side] ? ROUNDS.army[army[side]] : perSide
     for (let b = 0; b < 3; b++) {
       const o = newBat(s, side); o.tx = o.cx = home.x + (side ? -60 : 60); o.ty = o.cy = home.y + (b - 1) * 110
-      for (let k = 0; k < perSide / 3; k++) spawn(s, side, o.cx + (rnd(s) - 0.5) * 70, o.cy + (rnd(s) - 0.5) * 80, o.id)
+      for (let k = 0; k < n / 3; k++) spawn(s, side, o.cx + (rnd(s) - 0.5) * 70, o.cy + (rnd(s) - 0.5) * 80, o.id, role)
     }
   }
   think(s)
@@ -384,17 +387,29 @@ export function changes(before, after) {
 }
 
 // ---------- rounds (prototype; docs/agent-value/RESULTS.md §4) ----------
-export const ROUNDS = { count: 5, seconds: 75, pause: 30, slots: 3 }
+// A rounds bot is { gambits, breed }: the breed is the one role of its whole army (army size per breed below) and of what its
+// planets breed. A plain gambit array keeps the mixed army (the §4 prototype).
+export const ROUNDS = { count: 5, seconds: 75, pause: 30, slots: 3, counter: 2, army: { runner: 1200, grunt: 1200, tank: 1200 } }
 export const nextSlots = (slots, winner) => slots.map((k, side) => Math.min(MAX_GAMBITS, k + 1 + (winner !== null && winner !== undefined && winner !== side ? 1 : 0)))
-export function playRound(seed, gambits, { seconds = ROUNDS.seconds, planets = 17, every = 15 } = {}) {
-  if (!Array.isArray(gambits) || gambits.length !== 2) throw new Error('send gambits for both sides')
-  const s = createMatch(seed, { minutes: 5, planets }), timeline = [], ruleUse = gambits.map(g => Array.isArray(g) ? g.map(() => 0) : [])
+export function checkBot(bot) {
+  if (Array.isArray(bot)) return checkGambits(bot)
+  if (!bot || typeof bot !== 'object') return 'send { gambits, breed }'
+  if (!BREEDS.includes(bot.breed)) return `breed must be one of ${BREEDS.join(', ')}`
+  return checkGambits(bot.gambits)
+}
+const roleTally = (s, side) => { const t = { runner: 0, grunt: 0, tank: 0 }; for (let i = side * MAXPER; i < (side + 1) * MAXPER; i++) if (s.alive[i]) t[ROLES[s.role[i]].name]++; return t }
+export function playRound(seed, bots, { seconds = ROUNDS.seconds, planets = 17, every = 15, counter = ROUNDS.counter } = {}) {
+  if (!Array.isArray(bots) || bots.length !== 2) throw new Error('send bots for both sides')
+  bots.forEach(b => { const e = checkBot(b); if (e) throw new Error(e) })
+  const gambits = bots.map(b => Array.isArray(b) ? b : b.gambits), army = bots.map(b => Array.isArray(b) ? null : b.breed)
+  const s = createMatch(seed, { minutes: 5, planets, army, counter }), timeline = [], ruleUse = gambits.map(g => g.map(() => 0))
   s.endTick = seconds * TPS
   gambits.forEach((g, side) => { const r = applyInput(s, side, { gambits: g }); if (!r.ok) throw new Error(r.error) })
+  const start = [0, 1].map(side => roleTally(s, side))
   while (!s.ended) {
     step(s)
     if (s.tick % THINK === 0) for (const o of s.bats) if (o.n && !o.manual && o.rule >= 0) ruleUse[o.side][o.rule]++
     if (every > 0 && s.tick % (every * TPS) === 0) timeline.push({ t: s.tick / TPS, planets: owned(s), units: count(s) })
   }
-  return { winner: s.ended.winner, reason: s.ended.reason, t: s.tick / TPS, planets: owned(s), units: count(s), timeline, ruleUse }
+  return { winner: s.ended.winner, reason: s.ended.reason, t: s.tick / TPS, planets: owned(s), units: count(s), timeline, ruleUse, roles: { start, end: [0, 1].map(side => roleTally(s, side)) } }
 }

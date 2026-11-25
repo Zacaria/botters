@@ -4,7 +4,7 @@ import { writeFileSync } from 'node:fs'
 import { POLICIES, playRoundsMatch } from './rounds.mjs'
 
 if (!isMainThread) parentPort.on('message', ({ i, seed, policy }) => {
-  try { parentPort.postMessage({ i, result: playRoundsMatch({ seed, policies: POLICIES[policy] }) }) }
+  try { parentPort.postMessage({ i, result: playRoundsMatch({ seed, policy: POLICIES[policy] }) }) }
   catch (e) { parentPort.postMessage({ i, error: String(e.stack || e) }) }
 })
 else {
@@ -24,6 +24,6 @@ else {
   if (out) writeFileSync(out, JSON.stringify(results, null, 2))
   for (const policy of policies) {
     const rows = results.filter(r => r.policy === policy), roundsWon = rows.reduce((n, r) => n + r.score[0], 0)
-    console.log(JSON.stringify({ policy, house: 'blobflank', matchWins: rows.filter(r => r.winner === 0).length, draws: rows.filter(r => r.winner === null).length, losses: rows.filter(r => r.winner === 1).length, roundsWon, roundsPlayed: rows.reduce((n, r) => n + r.rounds.length, 0), perSeed: rows.map(r => r.winner === 0 ? 'W' : r.winner === 1 ? 'L' : '=').join('') }))
+    console.log(JSON.stringify({ policy, house: 'variable (rounds.mjs house)', matchWins: rows.filter(r => r.winner === 0).length, draws: rows.filter(r => r.winner === null).length, losses: rows.filter(r => r.winner === 1).length, roundsWon, roundsPlayed: rows.reduce((n, r) => n + r.rounds.length, 0), perSeed: rows.map(r => r.winner === 0 ? 'W' : r.winner === 1 ? 'L' : '=').join('') }))
   }
 }

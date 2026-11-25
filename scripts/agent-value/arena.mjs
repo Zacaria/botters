@@ -3,11 +3,17 @@
 // seeing exactly what an agent sees (sim.view, fogged). Scripts are looked up by name in strategies.mjs so workers can load them.
 import { Worker, isMainThread, parentPort } from 'node:worker_threads'
 import { availableParallelism } from 'node:os'
-import { createMatch, applyInput, step, view, count, owned, TPS, checkGambits, TUNE } from '../../sim.js'
+import { createMatch, applyInput, step, view, count, owned, TPS, checkGambits, TUNE, ROUNDS, playRound } from '../../sim.js'
 import { SCRIPTS } from './strategies.mjs'
 
-export function playMatch({ seed, minutes = 5, planets = 17, sides, tune }) {
+// job.round: play one rounds-mode round instead (75 s, each side's breed is its whole army; sim.js ROUNDS). job.rounds tunes ROUNDS.
+export function playMatch({ seed, minutes = 5, planets = 17, sides, tune, round, rounds }) {
   if (tune) Object.assign(TUNE, tune)
+  if (rounds) { const { army, ...rest } = rounds; Object.assign(ROUNDS, rest); if (army) Object.assign(ROUNDS.army, army) }
+  if (round) {
+    const r = playRound(seed, sides.map(side => side.breed ? { gambits: side.gambits, breed: side.breed } : side.gambits), { planets, every: 0 })
+    return { seed, winner: r.winner, reason: r.reason, t: r.t, units: r.units, planets: r.planets, edits: [0, 0], leadChanges: 0 }
+  }
   const s = createMatch(seed, { minutes, planets }), edits = [0, 0], memo = [{}, {}]
   sides.forEach((side, k) => {
     const r = applyInput(s, k, { gambits: side.gambits }); if (!r.ok) throw new Error(`side ${k}: ${r.error}`)

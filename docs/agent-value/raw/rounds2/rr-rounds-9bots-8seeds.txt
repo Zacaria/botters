@@ -1,0 +1,12 @@
+8 seeds × 2 sides, one rounds-mode round each, 17 planets, 576 games in 1946 s
+               pincer+runner  pincer+grunt   pincer+tank   blob+runner    blob+grunt     blob+tank   rush+runner    rush+grunt     rush+tank          mean         worst
+  pincer+grunt          1.00             -          0.13          1.00          0.56          0.13          1.00          0.88          0.44          0.64          0.13
+    blob+grunt          1.00          0.44          0.00          1.00             -          0.00          1.00          0.81          0.44          0.59          0.00
+   pincer+tank          0.00          0.88             -          0.00          1.00          0.69          0.00          1.00          0.94          0.56          0.00
+ pincer+runner             -          0.00          1.00          0.50          0.00          1.00          0.69          0.00          1.00          0.52          0.00
+     blob+tank          0.00          0.88          0.31          0.00          1.00             -          0.00          1.00          0.94          0.52          0.00
+   blob+runner          0.50          0.00          1.00             -          0.00          1.00          0.56          0.00          1.00          0.51          0.00
+   rush+runner          0.31          0.00          1.00          0.44          0.00          1.00             -          0.00          1.00          0.47          0.00
+    rush+grunt          1.00          0.13          0.00          1.00          0.19          0.00          1.00             -          0.00          0.41          0.00
+     rush+tank          0.00          0.56          0.06          0.00          0.56          0.06          0.00          1.00             -          0.28          0.00
+wipes 122/576, median end 75 s, lead changes median 0
