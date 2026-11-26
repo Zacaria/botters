@@ -324,3 +324,54 @@ test('invite respects saved solo/opening preferences without disclosing host rul
     expect(frame.view.gambits).toEqual(opening)
   } finally { await other.close() }
 })
+
+
+test('new lobby offers connectors and a queued player can switch to the bot', async ({ page, context }) => {
+  await enterAccount(page, 'Queue fallback')
+  await expect(page.locator('#connectAgent')).toBeVisible()
+  await expect(page.locator('#revokeAgent')).toBeHidden()
+  await expect(page.locator('#addClaude')).toHaveAttribute('href', /claude\.ai\/customize\/connectors/)
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await context.route('https://chatgpt.com/**', route => route.fulfill({ status: 200, body: 'intercepted' }))
+  await page.locator('#addChatGPT').click()
+  await expect(page.locator('#connectStatus')).toContainText('Address copied.')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(new URL('/mcp', page.url()).href)
+  await page.locator('#vs [data-v="hard"]').click()
+  let age = false
+  await page.route('**/lobby?**', async route => {
+    const lobby = await (await route.fetch()).json()
+    if (age && lobby.queued) lobby.queuedAt = Date.now() - 16000
+    await route.fulfill({ json: lobby })
+  })
+  await page.locator('#quick').click()
+  await expect(page.locator('#cancel')).toBeVisible()
+  await expect(page.locator('#queueFallback')).toBeHidden()
+  age = true
+  await expect(page.locator('#playBotInstead')).toBeVisible()
+  const requests = []
+  page.on('request', r => { if (r.method() === 'POST') requests.push({ path: new URL(r.url()).pathname, body: r.postDataJSON() }) })
+  await page.locator('#playBotInstead').click()
+  await expect(page.locator('#hud')).toContainText('battalions')
+  expect(requests.findIndex(r => r.path === '/cancel')).toBeLessThan(requests.findIndex(r => r.path === '/play'))
+  expect(requests.find(r => r.path === '/play').body.vs).toBe('hard')
+})
+
+test('practice result clears guidance and stays below the HUD on touch', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ media: 'screen' })
+  await page.addInitScript(() => {
+    const native = window.matchMedia
+    window.matchMedia = query => query === '(pointer: coarse)' ? { matches: true, media: query, addEventListener() {}, removeEventListener() {} } : native(query)
+  })
+  await page.goto('/')
+  await expect(page.locator('#practice')).toBeVisible()
+  await page.locator('#practice').click()
+  await expect(page.locator('#guidePanel')).toBeVisible()
+  await expect(page.locator('#selectedBat')).toContainText('Tap a pink ring')
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#surrender').click()
+  await expect(page.locator('#again')).toBeVisible()
+  await expect(page.locator('#guidePanel')).toBeHidden()
+  const hud = await page.locator('#hud').boundingBox(), big = await page.locator('#big').boundingBox()
+  expect(big.y).toBeGreaterThanOrEqual(hud.y + hud.height)
+})
