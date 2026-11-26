@@ -251,7 +251,7 @@ export class OnlineGame {
         if (!s.accountId || auth.expires <= now || !auth.expires) fail(401, 'Access expired. Sign in or pair your agent again.')
         if (auth.role === 'human' && (!this.identity || this.identity.id !== s.accountId || auth.accountId !== s.accountId)) fail(401, 'Sign in to your own account.')
         if (auth.role === 'agent' && auth.version !== s.agentVersion) fail(401, 'Agent access was revoked.')
-        if (auth.role === 'agent' && !(method === 'GET' && ['/next', '/events', '/state'].includes(path) || method === 'POST' && ['/input', '/call'].includes(path))) fail(401, 'Agent access cannot perform human actions.')
+        if (auth.role === 'agent' && !(method === 'GET' && ['/next', '/events', '/state'].includes(path) || method === 'POST' && ['/input', '/call', '/play'].includes(path))) fail(401, 'Agent access cannot perform human actions.')
       }
       if (!auth.touched || now - auth.touched >= 60000) auth.touched = now
       if (!s.touched || now - s.touched >= 60000) {
@@ -399,10 +399,11 @@ export class OnlineGame {
       if (method === 'POST' && path === '/play') {
         if (active(m)) fail(409, 'already in a match')
         if (s.room) fail(409, 'Leave your room before starting another match.')
-        const req = parsePlay(body), idx = await index()
+        if (auth.role === 'agent' && !Object.keys(HOUSE).includes(body.vs)) fail(403, 'Your agent can only start a house match.')
+        const req = parsePlay(auth.role === 'agent' ? { ...body, withAgent: true } : body), idx = await index()
         idx.queue = idx.queue.filter(e => e.id !== s.id)
         s.notice = null
-        if (req.vs !== 'player') { await start([{ s, req }, null], req, null, auth.role === 'human' && body.withAgent === true); return { ok: true } }
+        if (req.vs !== 'player') { await start([{ s, req }, null], req, null, auth.role === 'agent' || body.withAgent === true); return { ok: true } }
         const entry = idx.queue.find(e => (e.req.anyMinutes || req.anyMinutes || e.req.minutes === req.minutes) && (e.req.anyPlanets || req.anyPlanets || e.req.planets === req.planets))
         if (entry) {
           const other = await loadSession(entry.id)

@@ -59,7 +59,8 @@ async function session() {
 }
 
 mcp.registerTool('join_match', {
-  description: `Play Botters with your human: a real-time duel. Each particle is a unit in a battalion; runners, grunts and tanks fight for planets. Owned planets breed units. Gambits are ordered IF condition → action rules; the first match controls each battalion unless held by hand. Battalions follow your side’s gambits; only the human moves battalions by hand. Ask them with call_human. Call join_match, write gambits from your human's doctrine, then wait for events and adapt.`,
+  title: 'Join a match started on the site',
+  description: `Join a match the human starts on the Botters site, for agents running their own loop like Claude Code or Codex. When your human asks you in a chat to play, launch or start a match, call start_match instead. Play Botters with your human: a real-time duel. Each particle is a unit in a battalion; runners, grunts and tanks fight for planets. Owned planets breed units. Gambits are ordered IF condition → action rules; the first match controls each battalion unless held by hand. Battalions follow your side’s gambits; only the human moves battalions by hand. Ask them with call_human. Call join_match, write gambits from your human's doctrine, then wait for events and adapt.`,
   inputSchema: {
     vs: z.enum(['easy', 'normal', 'hard', 'player']).optional().describe('start a match now instead of waiting for the human: a house level or another player'),
     minutes: z.number().optional().describe('with vs: 3, 5 or 8'),
@@ -78,12 +79,16 @@ mcp.registerTool('join_match', {
     if (!pair.approved) return text({ waiting: true, tell_the_human: `Sign in and explicitly connect this agent: ${s.approvalUrl}`, next: 'Call join_match again after approval. Never request the human’s password or browser token.' })
     s.pairing = false; s.lobby = SERVER
   }
-  if (vs && s.online) return text('Your signed-in human starts online matches in the lobby. Do not use the headless vs option online; call join_match without vs.')
+  if (vs && s.online) return text('To start a house match from this conversation, call start_match.')
   if (vs) {
     const r = await api('POST', `/play?token=${s.agentToken}`, { vs, minutes, planets, planning })
     if (!r.ok && r.error !== 'already in a match') return text(r.error)
     if (changed()) return changed()
   }
+  return join(s, changed)
+})
+
+async function join(s, changed, start = false) {
   // ponytail: joins sharing a session wait for its long poll; separate sessions proceed independently.
   const previous = joins.get(s) || Promise.resolve()
   let release
@@ -95,7 +100,7 @@ mcp.registerTool('join_match', {
     const r = await api('GET', `/next?token=${s.agentToken}&timeout=45`)
     if (r.error) return text(r.error)
     if (changed()) return changed()
-    if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick an opponent and press Play).`, next: 'Call join_match again to keep waiting.' })
+    if (!r.match) return text({ waiting: true, tell_the_human: `Your Botters lobby: ${s.lobby} (pick an opponent and press Play).`, next: 'Call join_match again to keep waiting, or call start_match to start a house match now.' })
     const rules = await api('GET', '/rules'), m = r.match
     if (changed()) return changed()
     // ponytail: legacy loopback servers cannot fence stale actions; upgrade the server for match identity protection.
@@ -103,14 +108,40 @@ mcp.registerTool('join_match', {
     committedJoin++
     if (!r.match.id || r.match.id !== S.matchId) S.since = 0
     S.inMatch = true; S.matchId = r.match.id || null
-    return text({
+    const result = {
       matchId: m.id, opponent: m.opponent, settings: m.options, doctrine: m.doctrine,
       opening: m.openingBy === 'human' ? 'Your human wrote the opening gambits. Keep them unless the situation demands a change.' : 'Write the opening gambits from the doctrine now.',
       rules: { conditions: rules.conditions, actions: rules.actions, maxGambits: rules.maxGambits, map: rules.map },
       state: brief(m.state, m.startsIn),
-      next: 'Call show_match once so your human sees the live map in this conversation. Then set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, battalions they took): follow them.',
-    })
+      next: start ? 'The live map is open in this conversation for your human. Write the opening gambits from the doctrine now with set_gambits (planning lasts 30 s). Then answer in one or two lines and end your turn: your human watches the map and will message you. Each time they write, call get_state, adapt with set_gambits or toggle_gambit, and reply briefly. Only your human gives hand orders.' : 'Call show_match once so your human sees the live map in this conversation. Then set_gambits if needed, then call wait_for_event in a loop until the match is over. Events starting with HUMAN come from your human (messages, doctrine changes, gambit edits, battalions they took): follow them.',
+    }
+    if (!start) return text(result)
+    const current = await api('GET', `/state?token=${s.agentToken}`)
+    if (changed()) return changed()
+    return { ...text(result), structuredContent: current.view ? frame(current) : { message: current.error || 'Waiting for a match…' } }
   } finally { release(); if (joins.get(s) === turn) joins.delete(s) }
+}
+
+mcp.registerTool('start_match', {
+  title: 'Play Botters',
+  description: 'The default when your human asks in chat to play, lance une partie, or start a Botters match. Starts a house match with you as their agent, joins it and opens the live map. Defaults to normal level and 3 minutes.',
+  inputSchema: { level: z.enum(['easy', 'normal', 'hard']).default('normal'), minutes: z.union([z.literal(3), z.literal(5), z.literal(8)]).default(3) },
+  _meta: { ui: { resourceUri: MATCH_VIEW_URI }, 'openai/outputTemplate': MATCH_VIEW_URI, 'openai/widgetAccessible': true, 'openai/toolInvocation/invoking': 'Starting your match…', 'openai/toolInvocation/invoked': 'Match on' },
+}, async ({ level = 'normal', minutes = 3 }) => {
+  const s = await session()
+  const changed = () => S.session !== s && text('Agent connection changed. Call join_match again.')
+  if (changed()) return changed()
+  if (s.pairing) {
+    const pair = await api('GET', `/agent/poll?token=${s.agentToken}&timeout=20`)
+    if (pair.error) return text(pair.error)
+    if (changed()) return changed()
+    if (!pair.approved) return text({ waiting: true, tell_the_human: `Sign in and explicitly connect this agent: ${s.approvalUrl}`, next: 'Call join_match again after approval. Never request the human’s password or browser token.' })
+    s.pairing = false; s.lobby = SERVER
+  }
+  const r = await api('POST', `/play?token=${s.agentToken}`, { vs: level, minutes, planning: 30, withAgent: true })
+  if (!r.ok && r.error !== 'already in a match') return text(r.error)
+  if (changed()) return changed()
+  return join(s, changed, true)
 })
 
 mcp.registerTool('wait_for_event', {
@@ -147,6 +178,22 @@ mcp.registerResource('match-map', MATCH_VIEW_URI, { title: 'Botters live match m
   contents: [{ uri: MATCH_VIEW_URI, mimeType: MATCH_VIEW_MIME, text: matchViewHtml({ W, H }), _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] }, prefersBorder: false } } }],
 }))
 const round = o => ({ ...o, x: Math.round(o.x), y: Math.round(o.y) })
+const frame = (r, known) => {
+  const v = r.view
+  return { matchId: r.matchId, opponent: r.opponent?.name, startsIn: r.startsIn, view: { secondsLeft: v.secondsLeft, ended: v.ended, totals: v.totals,
+    battalions: v.battalions.map(b => round({ id: b.id, x: b.x, y: b.y, n: b.n, fighting: b.fighting, manual: b.manual })),
+    enemies: v.enemies.map(e => round({ id: e.id, x: e.x, y: e.y, n: e.n, fighting: e.fighting })),
+    planets: v.planets.map(p => ({ id: p.id, ...(known === r.matchId ? {} : { x: p.x, y: p.y, r: p.r }), owner: p.owner, capture: Math.round(p.capture) })) } }
+}
+mcp.registerTool('match_frame', {
+  inputSchema: { known: z.string().optional() },
+  annotations: { readOnlyHint: true },
+  _meta: { ui: { resourceUri: MATCH_VIEW_URI, visibility: ['app'] } },
+}, async ({ known }) => {
+  if (!S.session) return { ...text(''), structuredContent: { message: 'Waiting for the agent to join a match…' } }
+  const r = await api('GET', `/state?token=${S.session.agentToken}`)
+  return { ...text(''), structuredContent: r.view ? frame(r, known) : { message: r.error ? `No match yet: ${r.error}` : 'Waiting for a match…' } }
+})
 mcp.registerTool('show_match', {
   title: 'Show the live match map',
   description: 'Show your human a live, read-only map of the current match inside this conversation (planets, your battalions, enemies in sight). Call it once after join_match; it keeps updating by itself. Hosts without UI get a one-line summary.',
@@ -158,11 +205,7 @@ mcp.registerTool('show_match', {
   const r = await api('GET', `/state?token=${S.session.agentToken}`)
   if (!r.view) return { ...text(r.error || 'No match running.'), structuredContent: { message: r.error ? `No match yet: ${r.error}` : 'Waiting for a match…' } }
   const v = r.view
-  const frame = { matchId: r.matchId, opponent: r.opponent?.name, startsIn: r.startsIn, view: { secondsLeft: v.secondsLeft, ended: v.ended, totals: v.totals,
-    battalions: v.battalions.map(b => round({ id: b.id, x: b.x, y: b.y, n: b.n, fighting: b.fighting, manual: b.manual })),
-    enemies: v.enemies.map(e => round({ id: e.id, x: e.x, y: e.y, n: e.n, fighting: e.fighting })),
-    planets: v.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner, capture: Math.round(p.capture) })) } }
-  return { ...text(v.ended ? `Match over: you ${v.ended.result}.` : `Live map shown to your human. ${Math.ceil(v.secondsLeft)}s left, units ${v.totals.you}–${v.totals.enemy}, planets ${v.totals.planets.you}–${v.totals.planets.enemy}. Keep playing with wait_for_event.`), structuredContent: frame }
+  return { ...text(v.ended ? `Match over: you ${v.ended.result}.` : `Live map shown to your human. ${Math.ceil(v.secondsLeft)}s left, units ${v.totals.you}–${v.totals.enemy}, planets ${v.totals.planets.you}–${v.totals.planets.enemy}. Keep playing with wait_for_event.`), structuredContent: frame(r) }
 })
 
 mcp.registerTool('call_human', {
