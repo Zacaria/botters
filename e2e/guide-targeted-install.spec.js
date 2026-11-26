@@ -196,7 +196,7 @@ test('global setup, manual fallbacks and truthful connection paths remain usable
   await page.keyboard.press('Enter')
   for (const [link, section, text] of [
     ['ChatGPT or Claude', '#web-client', 'https://play.botters.havesomecode.io/mcp'],
-    ['Phone', '#phone', 'have not been tested'],
+    ['Phone', '#phone', 'Add the connector from a computer'],
   ]) {
     await tabTo(page, page.getByRole('link', { name: link, exact: true }))
     await page.keyboard.press('Enter')

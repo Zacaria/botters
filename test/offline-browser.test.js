@@ -43,7 +43,8 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   assert.deepEqual(map(await read()), map(first))
   await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(first.view.tick)
   assert.ok(requests.filter(p => p === '/stream').length >= 2)
-  assert.ok(!requests.includes('/live-client.js'))
+  assert.ok(requests.includes('/live-client.js'))
+  assert.ok(!requests.includes('/browser-live.js'))
   assert.deepEqual(errors, [])
 })
 
