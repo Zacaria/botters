@@ -41,8 +41,13 @@ test('pairing requires explicit verified approval, rejects expiry, and grants re
   assert.equal((await request(null, 'GET', '/agent/poll', pair.agentToken)).approved, true)
   await request(null, 'GET', '/next', pair.agentToken)
   for (const path of ['/lobby', '/profile', '/rooms', '/agent/revoke', '/agent/approve']) await denied(request(null, 'POST', path, pair.agentToken, {}))
+  const second = await request(null, 'POST', '/agent/pair', '', { setup: 'chatgpt' })
+  await request(alice, 'POST', '/agent/approve', a.humanToken, { id: second.id })
+  await request(null, 'GET', '/next', pair.agentToken) // approving ChatGPT keeps Claude connected
+  await request(null, 'GET', '/next', second.agentToken)
   await request(alice, 'POST', '/agent/revoke', a.humanToken)
   await denied(request(null, 'GET', '/next', pair.agentToken))
+  await denied(request(null, 'GET', '/next', second.agentToken))
   const expired = await request(null, 'POST', '/agent/pair')
   advance(600001)
   await denied(request(alice, 'POST', '/agent/approve', a.humanToken, { id: expired.id }), 410)

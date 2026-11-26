@@ -24,10 +24,17 @@ test('show_match renders the live map as an MCP App and follows the match', { ti
   t.after(() => client.close())
   await client.connect(transport)
 
-  const tool = (await client.listTools()).tools.find(x => x.name === 'show_match')
+  const tools = (await client.listTools()).tools
+  assert.match(tools.find(x => x.name === 'join_match').description, /start_match/)
+  assert.equal(tools.find(x => x.name === 'join_match').title, 'Join a match started on the site')
+  assert.equal(tools.find(x => x.name === 'start_match')._meta.ui.resourceUri, 'ui://botters/match')
+  assert.deepEqual(tools.find(x => x.name === 'match_frame')._meta.ui.visibility, ['app'])
+  const tool = tools.find(x => x.name === 'show_match')
   assert.equal(tool._meta.ui.resourceUri, 'ui://botters/match')
   assert.equal(tool.annotations.readOnlyHint, true)
   const [content] = (await client.readResource({ uri: 'ui://botters/match' })).contents
+  assert.match(content.text, /match_frame/)
+  assert.match(content.text, /color-scheme:\s*dark/)
   assert.equal(content.mimeType, 'text/html;profile=mcp-app')
   assert.deepEqual(content._meta.ui.csp, { connectDomains: [], resourceDomains: [] }, 'the view needs no network: it refreshes through the host bridge')
   const script = content.text.match(/<script>([\s\S]*)<\/script>/)[1]
@@ -36,12 +43,18 @@ test('show_match renders the live map as an MCP App and follows the match', { ti
 
   const idle = await client.callTool({ name: 'show_match', arguments: {} })
   assert.ok(idle.structuredContent.message, 'before a match the view shows a waiting message')
-  assert.deepEqual(await post(`/play?token=${session.humanToken}`, { vs: 'easy', planning: 10, withAgent: true }), { ok: true })
-  const joined = JSON.parse((await client.callTool({ name: 'join_match', arguments: {} })).content[0].text)
-  assert.match(joined.next, /show_match/)
+  const started = await client.callTool({ name: 'start_match', arguments: { level: 'easy' } })
+  const opening = JSON.parse(started.content[0].text)
+  assert.match(opening.next, /set_gambits/); assert.match(opening.next, /end your turn/)
+  assert.equal(started.structuredContent.view.battalions.length, 3)
+  assert.ok(started.structuredContent.view.planets.every(p => 'x' in p && 'y' in p && 'r' in p))
+  const compact = await client.callTool({ name: 'match_frame', arguments: { known: opening.matchId } })
+  assert.ok(compact.structuredContent.view.planets.every(p => !('x' in p) && !('y' in p) && !('r' in p)))
+  const full = await client.callTool({ name: 'match_frame', arguments: {} })
+  assert.ok(full.structuredContent.view.planets.every(p => 'x' in p && 'y' in p && 'r' in p))
   const shown = await client.callTool({ name: 'show_match', arguments: {} })
   const frame = shown.structuredContent
-  assert.equal(frame.matchId, joined.matchId)
+  assert.equal(frame.matchId, opening.matchId)
   assert.equal(frame.view.battalions.length, 3)
   assert.ok(frame.view.planets.length > 5 && frame.view.planets.every(p => [null, 'you', 'enemy'].includes(p.owner)))
   assert.ok(frame.view.enemies.every(e => !('roles' in e)), 'only fogged enemy summaries reach the view')

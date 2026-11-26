@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
 
-test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, refresh reuse', { timeout: 60000 }, async t => {
+test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, refresh reuse grace', { timeout: 60000 }, async t => {
   const { mf, mail, db } = await runtime(); t.after(() => mf.dispose())
   const human = client(mf), browser = client(mf)
   await human.signUp('McpOwner')
@@ -43,9 +43,11 @@ test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, re
   let sid = init.headers.get('mcp-session-id'); assert.ok(sid)
   const listed = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }, { 'mcp-session-id': sid })
   assert.ok(listed.body.result.tools.some(t => t.name === 'join_match'))
+  assert.deepEqual(listed.body.result.tools.find(t => t.name === 'match_frame')._meta.ui.visibility, ['app'])
   assert.equal((await browser.call('POST', '/mcp', { jsonrpc:'2.0', id:0, method:'tools/list' })).status, 401)
-  await human.call('POST', `/play?token=${session.humanToken}`, { vs: 'easy', withAgent: true, planning: 10, minutes: 3, planets: 16 })
-  const joined = await rpc({ jsonrpc:'2.0', id:3, method:'tools/call', params:{name:'join_match',arguments:{}} }, { 'mcp-session-id': sid })
+  const joined = await rpc({ jsonrpc:'2.0', id:3, method:'tools/call', params:{name:'start_match',arguments:{level:'easy'}} }, { 'mcp-session-id': sid })
+  assert.ok(joined.body.result.structuredContent.view)
+  assert.match(JSON.parse(joined.body.result.content[0].text).next, /end your turn/)
   const joinedState = JSON.parse(joined.body.result.content[0].text).state
   assert.ok(joinedState.battalions.length)
   assert.ok(joinedState.enemies.every(enemy => !('particles' in enemy)), 'Agent sees fogged enemies, not raw particles')
@@ -53,7 +55,13 @@ test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, re
   // Gateway instances can be evicted while the match is in its planning phase.
   const afterPlanning = await rpc({ jsonrpc:'2.0', id:30, method:'initialize', params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'after-planning',version:'1'}} })
   sid = afterPlanning.headers.get('mcp-session-id'); assert.ok(sid)
-  const set = await rpc({jsonrpc:'2.0',id:31,method:'tools/call',params:{name:'set_gambits',arguments:{gambits:[{if:'always',then:'hold'}],why:'advance'}}},{'mcp-session-id':sid})
+  let set
+  for (let attempt=0; attempt<15; attempt++) {
+    set = await rpc({jsonrpc:'2.0',id:31,method:'tools/call',params:{name:'set_gambits',arguments:{gambits:[{if:'always',then:'hold'}],why:'advance'}}},{'mcp-session-id':sid})
+    if (JSON.parse(set.body.result.content[0].text).ok) break
+    assert.match(JSON.parse(set.body.result.content[0].text).error, /catching up/)
+    await new Promise(r => setTimeout(r, 200))
+  }
   assert.equal(JSON.parse(set.body.result.content[0].text).ok, true)
   const toggle = await rpc({jsonrpc:'2.0',id:33,method:'tools/call',params:{name:'toggle_gambit',arguments:{index:0,why:'pause'}}},{'mcp-session-id':sid})
   assert.equal(JSON.parse(toggle.body.result.content[0].text).ok, true)
@@ -78,6 +86,15 @@ test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, re
   const observed=await rpc({jsonrpc:'2.0',id:51,method:'tools/call',params:{name:'wait_for_event',arguments:{timeout_s:1}}},{'mcp-session-id':sid})
   const originalEvents=JSON.parse(observed.body.result.content[0].text).events
   assert.ok(originalEvents.length)
+  let pollDone = false
+  const longPoll = rpc({jsonrpc:'2.0',id:56,method:'tools/call',params:{name:'wait_for_event',arguments:{timeout_s:8}}},{'mcp-session-id':sid}).then(r => { pollDone = true; return r })
+  await new Promise(r => setTimeout(r, 300))
+  const beforeFrame = Date.now()
+  const fastFrame = await rpc({jsonrpc:'2.0',id:57,method:'tools/call',params:{name:'match_frame',arguments:{}}},{'mcp-session-id':sid})
+  assert.ok(fastFrame.body.result.structuredContent.view)
+  assert.ok(Date.now() - beforeFrame < 4000)
+  assert.equal(pollDone, false)
+  await longPoll
   const access=await db.prepare('SELECT value FROM game_records WHERE key=?').bind('oauth:token:'+createHash('sha256').update(tokens.access_token).digest('hex')).first()
   const grantId=JSON.parse(access.value).grantId
   await mf.unsafeEvictDurableObject('botters-local','AgentGateway',{name:grantId})
@@ -92,6 +109,9 @@ test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, re
   assert.equal(refreshed.status,200)
   const spent=await db.prepare('SELECT value,expires FROM game_records WHERE key=?').bind('oauth:token:'+createHash('sha256').update(tokens.refresh_token).digest('hex')).first()
   assert.ok(spent.expires>=JSON.parse(spent.value).expires,'Refresh reuse tombstone must survive the whole grant lifetime')
-  assert.equal((await browser.call('POST','/token',{grant_type:'refresh_token',client_id:id,refresh_token:tokens.refresh_token,resource:ORIGIN+'/mcp'})).status,400)
+  const reuse = () => browser.call('POST','/token',{grant_type:'refresh_token',client_id:id,refresh_token:tokens.refresh_token,resource:ORIGIN+'/mcp'})
+  assert.equal((await reuse()).status,200,'a concurrent refresh within 30 s keeps the grant')
+  await db.prepare("UPDATE game_records SET value=json_set(value,'$.spentAt',?) WHERE key=?").bind(Date.now()-31000,'oauth:token:'+createHash('sha256').update(tokens.refresh_token).digest('hex')).run()
+  assert.equal((await reuse()).status,400)
   assert.equal((await browser.call('POST','/mcp',{jsonrpc:'2.0',id:6,method:'tools/list'},{...headers,authorization:`Bearer ${refreshed.body.access_token}`,'mcp-session-id':sid})).status,401)
 })
