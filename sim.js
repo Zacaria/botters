@@ -265,7 +265,8 @@ export const hash = s => { let h = 2166136261 >>> 0; for (let i = 0; i < s.N; i+
 
 export const MAX_GAMBITS = 10
 export const DEFAULT_GAMBITS = DOCTRINES.flanker
-export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'blob', hard: 'pincer' }
+// normal = the players' own starting gambits: Claude won 2/9 against blob in the live league (docs/agent-value/league-2026-11-26.md)
+export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'flanker', hard: 'pincer' }
 export const HOUSE = Object.fromEntries(Object.entries(HOUSE_DOCTRINE).map(([k, v]) => [k, DOCTRINES[v]]))
 export const OPTIONS = { minutes: [3, 5, 8], planets: [9, 17, 25] }
 export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes) ? o.minutes : 5, planets: OPTIONS.planets.includes(o?.planets) ? o.planets : 17 })

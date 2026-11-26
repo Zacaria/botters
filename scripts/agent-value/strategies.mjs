@@ -16,6 +16,8 @@ export const SETS = {
 // i.e. they know only what a real agent knows. They stand for the best an editing agent could do with that trigger.
 const elapsed = v => v.tick / 20
 export const SCRIPTS = {
+  // replay a recorded agent: a = [{ t: game seconds, gambits }], each set applied once the clock reaches t
+  timeline: (v, m, a) => { let next = null; m.i ??= 0; while (m.i < a.length && a[m.i].t <= elapsed(v)) next = a[m.i++].gambits; return next },
   // open with one set, switch to another at a fixed time
   phase: (v, m, a) => { if (!m.done && elapsed(v) >= a.at) { m.done = true; return SETS[a.then] } return null },
   // when the planet count says we lead / trail, switch set; switch back when even
