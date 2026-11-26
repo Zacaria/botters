@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createMatch, applyInput, step, visible, HOUSE } from '../sim.js'
+import { createMatch, applyInput, step, visible, HOUSE, DOCTRINES } from '../sim.js'
 import { createMirror, encodeFrame, decodeFrame, board } from '../wire.js'
 
-const house = (seed, minutes = 3) => { const s = createMatch(seed, { minutes, planets: 17 }); applyInput(s, 0, { gambits: HOUSE.hard }); applyInput(s, 1, { gambits: HOUSE.normal }); return s }
+const house = (seed, minutes = 3) => { const s = createMatch(seed, { minutes, planets: 17 }); applyInput(s, 0, { gambits: HOUSE.hard }); applyInput(s, 1, { gambits: DOCTRINES.blob }); return s } // blob holds out the full 3 minutes against pincer
 
 // The client sees exactly its own units and the enemies sim.visible allows, each within 0.5 px.
 function check(s, side, client) {

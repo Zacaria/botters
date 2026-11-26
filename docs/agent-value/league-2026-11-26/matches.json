@@ -1,0 +1,502 @@
+[
+ {
+  "id": "m01",
+  "level": "normal",
+  "style": "aggressive",
+  "matchId": "364HeV_OG9Y9vy5iN88bgB6kR0y_Rput",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   1163,
+   34
+  ],
+  "planets": [
+   9,
+   5
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 53,
+  "edits": 2,
+  "turns": 53,
+  "costUsd": 0.99,
+  "void": null,
+  "decisive": "I won on time against the normal house bot: 1163 troops to 34, and 9 planets to 5.\nDecisive moment: around 0:55–1:50 the house army broke on my three starting battalions plus a steady stream of reinforcements at the center. I took the center planet at 1:10, and from there the enemy's second wave kept dying piecemeal.\nWhat I'd change: I only edited the gambits twice, because they can't target a specific planet and my reinforcements trickled in as small groups. I'd rally them at the center planet first and push the enemy planets earlier. The enemy home planet was never taken."
+ },
+ {
+  "id": "m02",
+  "level": "easy",
+  "style": "aggressive",
+  "matchId": "cnA9L-qOxIwYZUX3usFs0YQeyPSgAw94",
+  "result": "lost",
+  "reason": "surrender",
+  "units": [
+   606,
+   470
+  ],
+  "planets": [
+   7,
+   7
+  ],
+  "gameSeconds": 63,
+  "leadForGoodFrom": null,
+  "edits": 2,
+  "turns": 21,
+  "costUsd": 0.29,
+  "void": "surrender by another worker",
+  "decisive": "I lost the match by surrender at 62s. I was ahead when it ended, 606 troops to 470 and 7 planets to 7.\n\nI didn't give that order. The result reads \"surrender\" and I never asked for one, so I can't say what triggered it.\n\nThe decisive moment came at about 35–50s. I sent all three of my 400-troop battalions into the center, and they fought the enemy's three main battalions head-on. That cost me battalion 1. The enemy took planet 4 at 58s, just before the match ended.\n\nNext time I'd change two things:\n- **Use rally or merge rules:** my rules made battalions attack in separate waves, and the many small reinforcement battalions trickled in one at a time.\n- **Take enemy planets sooner:** I only prioritized enemy planets at about 58s, after the center fight had already cost me troops.\n\nI haven't joined another match, since you only asked for this one."
+ },
+ {
+  "id": "m03",
+  "level": "easy",
+  "style": "defensive",
+  "matchId": "Akabk-Ji4yy6bxVdlA1WfxCl3tG8mt-f",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   860,
+   310
+  ],
+  "planets": [
+   12,
+   4
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 30,
+  "edits": 9,
+  "turns": 68,
+  "costUsd": 1.33,
+  "void": null,
+  "decisive": "**Result:** I won on time against the easy house bot: 12 planets to 4, and 860 units to 310.\n**Decisive moment:** The enemy's main force broke up in the central brawl around 60–100s. At 140s we took the center planet, and in the last 40s we took planets 16, 6 and 10 because I put free and enemy planets ahead of chasing units in the gambits.\n**What I'd change:** I would have switched off the \"attack weaker enemy\" rule from the start. It pulled one battalion into an even fight at the center and cost us it (439 against 426)."
+ },
+ {
+  "id": "m04",
+  "level": "normal",
+  "style": "defensive",
+  "matchId": "bpF-0_QziqET_yros4OXNzMh77XB1EgS",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   68,
+   1120
+  ],
+  "planets": [
+   3,
+   14
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 94,
+  "edits": 6,
+  "turns": 72,
+  "costUsd": 1.25,
+  "void": null,
+  "decisive": "**Result:** I lost on time to the house (normal), 68 troops and 3 planets against 1,120 troops and 14.\n**Decisive moment:** Around 35–60s my battalions, set to grab free planets, all marched at the center and fought the house's blob there. The trade started even, but the enemy pulled ahead of me later in the match. By 100s I was behind 465 to 656 and never recovered.\n**What I'd change:** I'd stop expansion at about 6–7 planets, keep the army massed near my own planets, and only fight outnumbered-free. The \"planet attacked → go\" rule also pulled squads piecemeal across the map into larger groups."
+ },
+ {
+  "id": "m05",
+  "level": "normal",
+  "style": "economic",
+  "matchId": null,
+  "result": null,
+  "reason": null,
+  "units": null,
+  "planets": null,
+  "gameSeconds": 180,
+  "leadForGoodFrom": null,
+  "edits": 0,
+  "turns": 3,
+  "costUsd": 0.05,
+  "void": "no live match",
+  "decisive": "I couldn't start the match. The permission prompt for `mcp__botters-a__start_match` wasn't granted, so the call was blocked and no match is running.\n\nA second server, `botters-b`, offers the same tools. I haven't used it, because that would sidestep the permission block you may have set on purpose.\n\nTo go ahead, either allow `mcp__botters-a__start_match` (and the other botters-a tools), or tell me to use botters-b. I'll then play the full 3-minute economic game at normal level."
+ },
+ {
+  "id": "m06",
+  "level": "hard",
+  "style": "aggressive",
+  "matchId": "UuDFDQD4bT0y7vvD5pgv1wGD2q6Y5q9K",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   776,
+   84
+  ],
+  "planets": [
+   10,
+   6
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 97,
+  "edits": 2,
+  "turns": 59,
+  "costUsd": 1.19,
+  "void": null,
+  "decisive": "**Result:** I won on time against the hard house, with 776 units to 84 and 10 planets to 6.\n**Decisive moment:** About 2 minutes in, the center brawl turned my way once my reinforcements arrived together. I took the center planet 2 at 136s, then planet 10 at 171s, while the house's army ran out of units.\n**Notes:** I was behind early (around 12–35s), when my three starting battalions fought the house's three separately and lost most of their units. I then reordered the gambits to kill weak enemies and join fights first, which turned the match around."
+ },
+ {
+  "id": "m07",
+  "level": "hard",
+  "style": "defensive",
+  "matchId": "Y4C1863aXG4omOI8LNTjFv4XEWQO-SCG",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   0,
+   1231
+  ],
+  "planets": [
+   1,
+   13
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 96,
+  "edits": 8,
+  "turns": 63,
+  "costUsd": 1.01,
+  "void": null,
+  "decisive": "I lost the match against the hard house bot. It ended on time at 1 planet to 13, with 0 troops to 1,231.\nThe decisive moment came around 50–65s. My three starting stacks (about 430 each) streamed into the center planet one after another and were ground down by the enemy's combined force. Troops went from level at about 1,400 each to 310 against 750, and I never recovered.\nI held 7–8 planets until about 2:00. Then three enemy stacks of 110–190 troops rolled up my scattered groups, and I switched to pure holding too late.\nWhat I'd change: keep the three starting stacks together as one army, and don't send them to the contested center planet."
+ },
+ {
+  "id": "m08",
+  "level": "easy",
+  "style": "economic",
+  "matchId": "FyQxxsDE31m7CJMCVPD_QxPCUdWOLmBf",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   239,
+   552
+  ],
+  "planets": [
+   8,
+   7
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": null,
+  "edits": 5,
+  "turns": 65,
+  "costUsd": 1.3,
+  "void": null,
+  "decisive": "I won on time with 8 planets to the enemy's 7. I never started the push on enemy planets, and my troops fell from about 1,200 to 239, against the enemy's 552.\n**Opening:** The free-planet-first gambits took 6 planets by about 24s and 8 by 50s, level with the house. I then added a priority for flanking into fights.\n**Decisive moment:** The enemy sent a big force into the center and chipped my troop count down. I swapped the gambits twice, first to hunt the raiders, then to defend the attacked planet. My center planet fell to 8% capture but never flipped, and that held the 8–7 lead until the clock ran out.\n**What I'd change:** I let my troops scatter and trade badly instead of keeping one big stack, so the win was narrow. Next time I'd keep the stack together after the first planets are taken and defend planets 2 and 5 as a group."
+ },
+ {
+  "id": "m09",
+  "level": "normal",
+  "style": "aggressive",
+  "matchId": "6wyKpeRhE8hrS7ac3rHl47ArEe52_I2J",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   880,
+   42
+  ],
+  "planets": [
+   14,
+   2
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 50,
+  "edits": 3,
+  "turns": 63,
+  "costUsd": 1.0,
+  "void": null,
+  "decisive": "**Result:** I won on time, 880 troops to 42 and 14 planets to 2, against the house at normal.\n**Decisive moment:** About 40–45s in, the house's 455-strong battalion reached the centre and cost me most of my early army. My reinforcements then ground it down by about 60s, and the house never recovered. Around 130s I put free and enemy planets ahead of chasing stragglers in the gambits, and I captured 6 planets in the last 50 seconds.\n**What I'd change:** I'd keep my armies together instead of letting them trickle into the fight, and I'd take planets before chasing small enemies. I only learned the gambit vocabulary by trial and error, so I'd write those rules properly from the first second next time."
+ },
+ {
+  "id": "m10",
+  "level": "normal",
+  "style": "economic",
+  "matchId": "XPgljcmwEvgw3JQ-isxCm5MbkPnH9jxT",
+  "result": "lost",
+  "reason": "wipe",
+  "units": [
+   0,
+   683
+  ],
+  "planets": [
+   0,
+   14
+  ],
+  "gameSeconds": 158,
+  "leadForGoodFrom": 34,
+  "edits": 4,
+  "turns": 65,
+  "costUsd": 0.92,
+  "void": null,
+  "decisive": "**Result:** I lost to the house (normal) by wipe at 158s. I had 0 troops against their 683, and 0 planets against their 14.\n**Decisive moment:** At about 33–45s I fed all my battalions into a fight at the center planet while we were tied 7–7 on planets. The house massed three battalions plus reinforcements there. I lost the troop lead in that fight (1,521 each at 31s, 784 to 852 at 43s) and never got it back.\n**What I'd change:** The expansion matched the house planet for planet but never got ahead of it. Next time I'd skip the contested center, keep my battalions together instead of trickling them in, and fight near my own planets."
+ },
+ {
+  "id": "m11",
+  "level": "easy",
+  "style": "aggressive",
+  "matchId": "8hg_smAhPN3IDRDkqYvatQVAm5eG3Fom",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   970,
+   118
+  ],
+  "planets": [
+   12,
+   2
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 36,
+  "edits": 8,
+  "turns": 52,
+  "costUsd": 0.88,
+  "void": null,
+  "decisive": "**Result:** I won on time. Final troops were 970 to 118, and I held 12 planets to the enemy's 2.\n**Decisive moment:** At about 100s, the enemy's main army pushed into the centre around planet 2. My scattered battalions pulled together there, using the \"planet_attacked → go\" rule, and broke it. After that I switched the rule off and counter-attacked the enemy planets.\n**Cost and fix:** I lost the first southern battalions piecemeal in the early fight (about 55s). Several times, \"free_planet → go\" also marched the whole army to the far corner planet 13. Next time I'd mass up before engaging and put \"enemy_planet\" ahead of \"free_planet\"."
+ },
+ {
+  "id": "m12",
+  "level": "hard",
+  "style": "economic",
+  "matchId": "KTSPcIWDbYKjffGh90AQ7-w520CJV_Oh",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   1101,
+   149
+  ],
+  "planets": [
+   11,
+   4
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 51,
+  "edits": 7,
+  "turns": 60,
+  "costUsd": 1.09,
+  "void": null,
+  "decisive": "I won the match on time: 1101 troops to 149 and 11 planets to 4, on hard level.\nThe decisive moment was around 0:35–0:50. My first big battalion died in a lopsided center clash against three enemy battalions, and the rest of my army then fed in piecemeal. The armies cancelled each other out, and I switched back to economy. I out-bred the house from there and took the center planet at about 1:50. The enemy never rebuilt a large army.\nWhat I'd change: send the opening wave to the center together instead of one battalion first, and keep the \"chase weaker enemies\" rule below the planet-capture rules from the start."
+ },
+ {
+  "id": "m13",
+  "level": "normal",
+  "style": "defensive",
+  "matchId": "zdP0vi3Dan28EsqDo_1K0mJ_FYizxt5P",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   0,
+   1548
+  ],
+  "planets": [
+   1,
+   15
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 40,
+  "edits": 3,
+  "turns": 66,
+  "costUsd": 1.19,
+  "void": null,
+  "decisive": "I lost the match on time. At the end I had 0 troops and 1 planet against the house's 1548 troops and 15 planets.\n**Decisive moment:** around 35–45s, both sides were even on 8 planets with about 1,380 troops each. My `planet_attacked → go` rule then sent every battalion piecemeal into the fights at planets 9 and 11, and they were destroyed there. The house's concentrated stacks wore them down, and its force passed 1000 troops while mine fell to about 100.\n**What I'd change:** my first set, `weaker_enemy_near` at p=3 plus `planet_attacked → go`, charged equal-sized battalions and trickled units into the fights, which isn't the defensive play you asked for. Next time I'd keep my forces massed near home and my planets and not reinforce losing fights."
+ },
+ {
+  "id": "m14",
+  "level": "normal",
+  "style": "aggressive",
+  "matchId": "Rj5W8SmovG2sCQX3rAKeVPk6a-F-V7aN",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   293,
+   339
+  ],
+  "planets": [
+   7,
+   8
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 30,
+  "edits": 4,
+  "turns": 54,
+  "costUsd": 0.92,
+  "void": null,
+  "decisive": "I lost on time, 293 troops to 339 and 7 planets to 8.\nThe decisive moment was at 30–40s, when my northern battalion of about 440 ran into two enemy battalions of 400 and 446 and was wiped out. I stayed behind from then on, and the enemy took the center planet at 65s.\nWhat I'd change: stop sending reinforcements one battalion at a time, which fed the center fight piecemeal, and start capturing the free planets 13 and 14 earlier. Planet 13 reached 79% capture, and I was one planet short at the end."
+ },
+ {
+  "id": "m15",
+  "level": "hard",
+  "style": "economic",
+  "matchId": "4r6L5sLI7H-nXEYEjA912rAlNLapM4RB",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   379,
+   532
+  ],
+  "planets": [
+   8,
+   9
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 33,
+  "edits": 5,
+  "turns": 63,
+  "costUsd": 1.08,
+  "void": null,
+  "decisive": "**Result:** I lost to the house (hard) on time, 379 units to 532 and 8 planets to 9.\n**Decisive moment:** Around 30–60s, the free planets ran out at 8 to 7 in my favor. I sent my battalions into the center in a trickle, and the house's concentrated force beat them piecemeal and took planet 2. That cost me my lead in units and planets, and I never got it back.\n**What I'd change:** I'd gather the army at a staging point before contesting the center, and I'd take the center planet early, while it was still unowned."
+ },
+ {
+  "id": "m16",
+  "level": "easy",
+  "style": "defensive",
+  "matchId": "rlMHu5_YskU4nQ4_svJUnCXPNCX3pGva",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   989,
+   655
+  ],
+  "planets": [
+   9,
+   7
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 49,
+  "edits": 5,
+  "turns": 63,
+  "costUsd": 1.21,
+  "void": null,
+  "decisive": "**Result:** I won the easy 3-minute match on time, 989 troops to 655 and 9 planets to 7.\n**Decisive moment:** At about 104s I captured the contested center planet (2) after an even brawl there, then switched off the chase and free-planet rules so everyone held. The enemy kept throwing small stacks at it and lost them.\n**What I'd change:** The early chase rule sent my battalions piecemeal into the center fight, so I'd turn it off sooner. I'd also keep the home reserves (about 390 and 150 troops) closer to the center."
+ },
+ {
+  "id": "m17",
+  "level": "normal",
+  "style": "defensive",
+  "matchId": "bIy85Fuz5d5xXtVdE5GQypcFSEjUYqjU",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   71,
+   836
+  ],
+  "planets": [
+   4,
+   12
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 59,
+  "edits": 10,
+  "turns": 75,
+  "costUsd": 1.22,
+  "void": null,
+  "decisive": "I lost on time: 71 troops and 4 planets for me, 836 troops and 12 planets for the house.\nThe decisive moment was around 0:30–1:50. My three 400-strong battalions went chasing the enemy's small groups deep into their territory, and the house blob walked in and wore down my southern planets. By the time I recalled the army, the house had pulled ahead, and it kept the lead from then on.\nNext time I'd keep one big stack at home from the start instead of letting the \"chase weaker enemies\" rule pull it away. I'd also use \"retreat\" earlier, and I'd stop feeding small reserves piecemeal into planet 9."
+ },
+ {
+  "id": "m18",
+  "level": "normal",
+  "style": "economic",
+  "matchId": "ZSbwMUFOGuBCvwL8At5d7sSN4Cix-AQh",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   79,
+   917
+  ],
+  "planets": [
+   6,
+   10
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 64,
+  "edits": 4,
+  "turns": 68,
+  "costUsd": 1.36,
+  "void": null,
+  "decisive": "I lost on time: 79 troops and 6 planets for me, 917 troops and 10 planets for the house.\nDecisive moment: around 40–60s the house sent its whole army to the center planet, and my battalions arrived one at a time and were wiped out piecemeal. The house took the center at ~93s and my army never recovered.\nWhat I'd change: after the planet grab ended in an 8–8 tie, I should have massed everything at my own line before engaging, instead of letting every battalion rush the center separately."
+ },
+ {
+  "id": "m19",
+  "level": "easy",
+  "style": "economic",
+  "matchId": "wCGzH1TkdZmLWC_2SK-Q2EaDOXD3fqbF",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   686,
+   657
+  ],
+  "planets": [
+   9,
+   7
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 138,
+  "edits": 4,
+  "turns": 62,
+  "costUsd": 1.19,
+  "void": null,
+  "decisive": "**Result:** I won on time against the easy house, with 9 planets to 7 and 686 troops to 657.\n**Decisive moment:** Around 130s I turned off the flank rule, which had been feeding my battalions into the enemy blob in small groups. Everything massed on the center planet instead, and I took it at 165s. Planet 11 had flipped at 156s, which put me ahead 9–7.\n**What I'd change:** The economic opening got me to 7 planets each by about 25s, but only equal, and the center fight stayed a near-tie for 100 seconds. I should have turned off flanking from the start and massed one big group before contesting the center."
+ },
+ {
+  "id": "m20",
+  "level": "hard",
+  "style": "aggressive",
+  "matchId": "KWz4hL7_hx7CZlSdXojQMAISkJ82Tw-Y",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   64,
+   741
+  ],
+  "planets": [
+   6,
+   9
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 70,
+  "edits": 3,
+  "turns": 70,
+  "costUsd": 1.38,
+  "void": null,
+  "decisive": "**Result:** I lost on time against the hard house. The final count was 64 troops to 741 and 6 planets to 9.\n\n**Decisive moment:** Around 67–90s my reinforcements arrived at the center one battalion at a time and were wiped out as they came. The house held a concentrated mass there. After the center flipped to the enemy at 155s, they rolled west and I never got a battalion group back together.\n\n**What I'd change:** I'd gather the battalions at one point before engaging, and I'd stop sending every reinforcement to the center. I'd also take the far free planets early, not just the nearest ones."
+ },
+ {
+  "id": "m21",
+  "level": "easy",
+  "style": "aggressive",
+  "matchId": "vbiq_1Dq2HPfJKLvcbUiZnfpYO84Qvse",
+  "result": "won",
+  "reason": "time",
+  "units": [
+   752,
+   585
+  ],
+  "planets": [
+   11,
+   5
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 88,
+  "edits": 5,
+  "turns": 71,
+  "costUsd": 1.46,
+  "void": null,
+  "decisive": "The match is over and I won on time. The final strength was 752 to 585 and I held 11 planets to the house's 5.\nThe decisive moment came at about 145–168s. I flipped planet 6, then planet 10, to push from 9 planets to 11 and take the planet lead. Before that, I reordered the gambits so planet rules came ahead of fighting rules. Earlier, around 70s, I switched off the \"planet_attacked\" rule that kept pulling my troops back to the center.\nNext time I would send the troops forward as a mass earlier. They arrived in small groups and lost a lot of strength between 60s and 110s."
+ },
+ {
+  "id": "m22",
+  "level": "normal",
+  "style": "economic",
+  "matchId": "4iHMw6yE4SixLaysPA_fkeIoRvep6xU8",
+  "result": "lost",
+  "reason": "time",
+  "units": [
+   1,
+   879
+  ],
+  "planets": [
+   1,
+   14
+  ],
+  "gameSeconds": 180,
+  "leadForGoodFrom": 58,
+  "edits": 4,
+  "turns": 71,
+  "costUsd": 1.1,
+  "void": null,
+  "decisive": "I lost the match: I had no battalions left and the house held 14 planets to my 1 when time ran out.\nDecisive moment: around 30–60s the house's battalions hit my three expansion stacks while they sat on neutral planets. I lost a stack up north and then trickled reinforcements in piecemeal, so the economic lead never turned into a real army.\nThe expansion itself worked, with 8 planets each by about 30s, but the gambit language gave me no way to retreat or merge stacks. Two attempts at a retreat rule were rejected as unknown conditions."
+ }
+]
