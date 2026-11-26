@@ -273,7 +273,8 @@ export class OnlineGame {
         if (pair.used) fail(409, 'Pairing already approved.')
         if (method === 'GET' && path === '/agent/request') return { setup: pair.setup }
         if (method === 'POST' && path === '/agent/approve') {
-          s.agentVersion++; s.agentGranted = true; s.setup = pair.setup; s.agentSeen = now; pair.used = true
+          // Several agents (Claude, ChatGPT, a local client) stay connected together; Disconnect agent revokes them all.
+          s.agentGranted = true; s.setup = pair.setup; s.agentSeen = now; pair.used = true
           await tx.set(`token:${pair.secretHash}`, { id: s.id, role: 'agent', version: s.agentVersion, expires: now + SESSION_TTL * 1000 }, SESSION_TTL)
           return { ok: true }
         }

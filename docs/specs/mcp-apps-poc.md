@@ -50,6 +50,12 @@ The `agent` role may now call `POST /play`, limited to house levels and always w
 
 The view polls `match_frame` about once per second instead of `show_match`. It is app-only (`_meta.ui.visibility: ["app"]`): hosts list it to the view, not to the model, so the refresh never enters the conversation. Given the `matchId` it already holds, it omits planet geometry (position, radius) and returns only owner and capture. The remote gateway answers these calls outside its request queue, so an agent long poll (`wait_for_event`) never stalls the map. A host that refuses app-only tools falls back to `show_match`.
 
+### Access held for the whole match (second real Claude test, 26/11)
+
+Production records showed the cause of « Agent access ended »: a ChatGPT connector authorization was approved on the same account four minutes after Claude's, and each approval replaced the previous agent, so Claude's token stopped working mid-wait. Approval now adds an agent instead of replacing it; Disconnect agent still revokes them all. ChatGPT's own grant had been ended by a concurrent refresh-token reuse; a reuse within 30 seconds now gets fresh tokens instead.
+
+`show_match`, `match_frame`, `get_state`, `set_gambits`, `toggle_gambit`, `call_human` and `wait_for_event` now adopt the account's running match when the agent has not joined one, so a match started from the lobby shows on the card and accepts gambits without `join_match`.
+
 ### Limit: the agent acts only when the human writes
 
 A chat model runs only during its turn. Between two messages from the human nobody rewrites the gambits: the battalions keep following the last ones written, and the house keeps playing. Events (enemy spotted, planet lost) wait in the event log until the next turn.

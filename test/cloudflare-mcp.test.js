@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
 
-test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, refresh reuse', { timeout: 60000 }, async t => {
+test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, refresh reuse grace', { timeout: 60000 }, async t => {
   const { mf, mail, db } = await runtime(); t.after(() => mf.dispose())
   const human = client(mf), browser = client(mf)
   await human.signUp('McpOwner')
@@ -109,6 +109,9 @@ test('workerd OAuth/MCP: browser consent, S256, single-use code, grant state, re
   assert.equal(refreshed.status,200)
   const spent=await db.prepare('SELECT value,expires FROM game_records WHERE key=?').bind('oauth:token:'+createHash('sha256').update(tokens.refresh_token).digest('hex')).first()
   assert.ok(spent.expires>=JSON.parse(spent.value).expires,'Refresh reuse tombstone must survive the whole grant lifetime')
-  assert.equal((await browser.call('POST','/token',{grant_type:'refresh_token',client_id:id,refresh_token:tokens.refresh_token,resource:ORIGIN+'/mcp'})).status,400)
+  const reuse = () => browser.call('POST','/token',{grant_type:'refresh_token',client_id:id,refresh_token:tokens.refresh_token,resource:ORIGIN+'/mcp'})
+  assert.equal((await reuse()).status,200,'a concurrent refresh within 30 s keeps the grant')
+  await db.prepare("UPDATE game_records SET value=json_set(value,'$.spentAt',?) WHERE key=?").bind(Date.now()-31000,'oauth:token:'+createHash('sha256').update(tokens.refresh_token).digest('hex')).run()
+  assert.equal((await reuse()).status,400)
   assert.equal((await browser.call('POST','/mcp',{jsonrpc:'2.0',id:6,method:'tools/list'},{...headers,authorization:`Bearer ${refreshed.body.access_token}`,'mcp-session-id':sid})).status,401)
 })
