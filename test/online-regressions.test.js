@@ -118,3 +118,17 @@ test('gambit conditions and actions must be plain strings', async () => {
   await f.call(b, 'POST', '/surrender')
   await assert.rejects(f.call(b, 'POST', '/play', { vs: 'easy', withAgent: false, opening: [{ if: wrapped('always', 2), then: 'hold' }] }), { status: 400 })
 })
+
+test('a session can start a bounded number of matches per ten minutes', async () => {
+  const f = fixture(), a = await f.session('a')
+  for (let i = 0; i < 12; i++) {
+    await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false })
+    await f.call(a, 'POST', '/surrender')
+    f.advance(1000)
+  }
+  await assert.rejects(f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false }), { status: 429 })
+  await assert.rejects(f.call(a, 'POST', '/play', { vs: 'easy', withAgent: true }), { status: 429 })
+  await assert.rejects(f.call(a, 'POST', '/rooms'), { status: 429 })
+  f.advance(600000)
+  assert.equal((await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false })).ok, true)
+})

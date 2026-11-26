@@ -11,6 +11,8 @@ const text = (s, max, fallback = '') => typeof s === 'string' ? s.trim().slice(0
 const connected = (s, now) => !!s.agentSeen && now - s.agentSeen < 90000
 const active = m => !!m && !m.cancelled && !m.s.ended
 const PLANNING = [10, 20, 30], SESSION_TTL = 7 * 86400
+// Every started match stores a checkpoint for a day: bound how many one session can start.
+const START_LIMIT = 12, START_WINDOW = 600000
 const DEFAULT_DOCTRINE = 'Take free planets early, defend threatened planets, and attack weaker enemies. Never retreat from a larger battalion: flank it.'
 const canonicalRules = list => {
   const error = checkGambits(list); if (error) fail(400, error)
@@ -191,7 +193,7 @@ export class OnlineGame {
           m.players.push(p)
           const opening = e ? e.req.opening : HOUSE[req.vs]
           if (opening) { const input = { gambits: canonicalRules(opening) }, before = structuredClone(m.s.gambits[side]); applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); p.edits.push({ t: 0, who: e ? 'you' : 'house', why: 'opening gambits', change: changes(before, m.s.gambits[side]) }) }
-          if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
+          if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null; e.s.starts = [...(e.s.starts || []).filter(t => now - t < START_WINDOW), now] }
           emit(m, p, `${waitingForAgent ? 'waiting for your agent' : `match starts in ${req.planning}s`}. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}). You start with three battalions.`)
         }
         await tx.set(`match:${m.id}`, m)
@@ -285,6 +287,7 @@ export class OnlineGame {
       const m = await loadMatch(s.match), p = m?.players[s.side]
       if (p && now - p.seen >= 5000) p.seen = now
       const requireMatch = () => { if (!m) fail(409, 'Not in a match.') }
+      const mayStart = () => { if ((s.starts || []).filter(t => now - t < START_WINDOW).length >= START_LIMIT) fail(429, 'Too many matches started. Retry in a few minutes.') }
       const roomInfo = async idx => {
         const room = idx.rooms[s.room]
         if (!room || !room.members.includes(s.id)) { s.room = null; return null }
@@ -324,6 +327,7 @@ export class OnlineGame {
           return { ok: true }
         }
         if (active(m) || s.queued) fail(409, 'Finish your match or cancel the queue first.')
+        mayStart()
         if (path === '/rooms/rematch') {
           if (!m || body.matchId !== undefined && body.matchId !== m.id) fail(409, 'This match is no longer available for a rematch.')
           if (!s.room) {
@@ -402,6 +406,7 @@ export class OnlineGame {
         if (active(m)) fail(409, 'already in a match')
         if (s.room) fail(409, 'Leave your room before starting another match.')
         if (auth.role === 'agent' && !Object.keys(HOUSE).includes(body.vs)) fail(403, 'Your agent can only start a house match.')
+        mayStart()
         const req = parsePlay(auth.role === 'agent' ? { ...body, withAgent: true } : body), idx = await index()
         idx.queue = idx.queue.filter(e => e.id !== s.id)
         s.notice = null
