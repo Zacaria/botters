@@ -33,7 +33,13 @@ export class MatchRoom extends DurableObject {
       server.addEventListener('close', drop); server.addEventListener('error', drop)
       // Independent watchdog still fires when D1 or the game queue is stalled.
       entry.watchdog = setInterval(() => { if (!this.sockets.has(server)) return clearInterval(entry.watchdog); if (Date.now() >= entry.until) { server.close(4401, 'Access ended'); drop(); clearInterval(entry.watchdog) } }, 100)
-      server.addEventListener('message', event => { try { if (JSON.parse(event.data).t === 'resync') void this.serial(() => { entry.mirror.reset = true; return this.sendFrame(server, entry) }) } catch {} })
+      // One full frame at a time per connection, at most one a second: repeats while it is pending are dropped.
+      server.addEventListener('message', event => {
+        if (entry.resync || Date.now() - (entry.resyncAt || 0) < 1000 || typeof event.data !== 'string' || event.data.length > 64) return
+        try { if (JSON.parse(event.data).t !== 'resync') return } catch { return }
+        entry.resync = true; entry.resyncAt = Date.now()
+        void this.serial(() => { entry.mirror.reset = true; return this.sendFrame(server, entry) }).catch(() => {}).finally(() => { entry.resync = false })
+      })
       await this.serial(() => this.sendFrame(server, entry))
       this.schedule()
       return new Response(null, { status: 101, webSocket: pair[0] })
