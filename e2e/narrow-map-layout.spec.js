@@ -47,9 +47,9 @@ for (const width of [390, 1440]) for (const [name, raw, opening] of [
     expect(box.x).toBeGreaterThanOrEqual(0); expect(box.y).toBeGreaterThanOrEqual(0)
     expect(box.x + box.width).toBeLessThanOrEqual(width + 0.1)
     expect(box.y + box.height).toBeLessThanOrEqual(width === 390 ? 844 : 900)
-    expect(box.x + box.width <= aside.x + 0.1 || box.y + box.height <= aside.y + 0.1).toBe(true)
+    expect(box.x >= aside.x + aside.width - 0.1 || box.x + box.width <= aside.x + 0.1 || box.y + box.height <= aside.y + 0.1).toBe(true)
     expect(await page.locator('#c').evaluate(c => { const r = c.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === c })).toBe(true)
-    if (width === 1440) { expect(aside.x).toBe(1040); expect(aside.width).toBe(400); expect(box.width).toBe(1040) }
+    if (width === 1440) { expect(aside.x).toBe(0); expect(aside.width).toBe(400); expect(box.width).toBe(1040) }
     return box
   }
   async function pointerOrder() {
@@ -66,6 +66,7 @@ for (const width of [390, 1440]) for (const [name, raw, opening] of [
   }
   await visibleMap('before-order')
   await pointerOrder()
+  if (!await page.locator('#gambitsBox').evaluate(el => el.open)) await page.locator('#gambitsBox > summary').click()
   await page.locator('#editG').click()
   await expect(page.locator('#gEditor .ed')).toHaveCount(opening.length)
   await page.locator('#cancelG').click()

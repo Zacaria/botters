@@ -26,6 +26,7 @@ for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) 
     await expect.poll(async () => (await page.locator('#battalions [data-bat]').evaluateAll(els => els.map(el => el.dataset.bat))).some(id => !before.includes(id))).toBe(true)
     await page.locator('#release').click()
     await expect(page.locator(`#battalions [data-bat="${selected}"]`)).not.toContainText('hand order')
+    await page.locator('#gambitsBox > summary').click()
     const rule = page.locator('#gambits [data-g]').first()
     await rule.click(); await expect(rule).toHaveClass(/off/)
     const shots = `${process.env.TMPDIR}/pw-shots`

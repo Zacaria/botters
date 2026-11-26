@@ -34,7 +34,7 @@ A gambit is `IF condition → action`. Every half second, each battalion not hel
 
 - The agent reads the battle (`get_state`, `wait_for_event`) and changes only the rules: `set_gambits` and `toggle_gambit`, each with a one-line reason.
 - Hand orders (move, flank, detach, release) are the human's. The agent asks for one with `call_human`; the server refuses hand orders from an agent token.
-- The side panel lists every doctrine edit: time, author, which rule changed, and why. Each rule shows how many battalions follow it.
+- The match journal, at the bottom of the panel on your camp's side, lists every doctrine edit (✎): time, author, which rule changed, and why. The Gambits section shows how many battalions follow each rule.
 
 ## House doctrines
 

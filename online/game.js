@@ -465,7 +465,8 @@ export class OnlineGame {
         const why = text(body.why, 120), change = changes(before, m.s.gambits[s.side]), doctrine = 'gambits' in input || 'toggle' in input
         if (doctrine) p.edits = [...(p.edits || []), { t: Math.floor(m.s.tick / TPS), who: auth.role === 'agent' ? 'agent' : 'you', why, change }].slice(-10) // matches started before edits existed have none
         if (auth.role === 'human') emit(m, p, `HUMAN ${doctrine ? ('toggle' in input ? `switched ${change}` : `rewrote gambits: ${change}`) : JSON.stringify(input)}`)
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${auth.role === 'agent' && doctrine ? change : Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
+        const action = input.gambits ? 'gambits' : input.toggle !== undefined ? 'toggle' : input.order ? `ordered battalion ${input.order.bat}` : input.detach ? `detached battalion ${input.detach.bat}` : input.flank !== undefined ? `flanked battalion ${input.flank}` : input.release !== undefined ? `released battalion ${input.release}` : Object.keys(input)[0]
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${auth.role === 'agent' && doctrine ? change : action}${why ? `: ${why}` : ''}`)
         return result
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {
