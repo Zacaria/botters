@@ -1,8 +1,9 @@
 import { betterAuth } from 'better-auth'
+import { createAuthMiddleware } from 'better-auth/api'
 import { authOptions } from '../online/auth-options.js'
 import { removeGameAccount } from './account-cleanup.js'
 import { D1Store } from './d1-store.js'
-import { hash } from './authority.js'
+import { hash, nonce } from './authority.js'
 import { transaction } from '../online/store.js'
 
 export async function deliver(env, message) {
@@ -36,6 +37,15 @@ export async function deliverLimited(env, message, store = new D1Store(env.DB), 
 export function createAuth(env) {
   const options = authOptions(env, m => deliverLimited(env, m))
   return betterAuth({ ...options, database: env.DB, user: { deleteUser: { enabled: true } },
+    // A second sign-up for an unverified address with another password leaves no sign-up password valid:
+    // whoever verifies the mailbox sets one through password reset.
+    hooks: { before: createAuthMiddleware(async ctx => {
+      if (ctx.path !== '/sign-up/email' || typeof ctx.body?.email !== 'string' || typeof ctx.body?.password !== 'string') return
+      const found = await ctx.context.internalAdapter.findUserByEmail(ctx.body.email.toLowerCase(), { includeAccounts: true })
+      const credential = found?.accounts?.find(a => a.providerId === 'credential')
+      if (!found || found.user.emailVerified || !credential?.password) return
+      if (!await ctx.context.password.verify({ hash: credential.password, password: ctx.body.password })) await ctx.context.internalAdapter.updatePassword(found.user.id, await ctx.context.password.hash(nonce() + nonce()))
+    }) },
     databaseHooks: { user: { delete: { after: user => removeGameAccount(env.DB, user.id) } } },
     emailAndPassword: { ...options.emailAndPassword,
       onPasswordReset: async ({ user }) => {
