@@ -82,7 +82,7 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
     assert.deepEqual(resumed.rules, initial.rules)
     assert.equal(resumed.doctrine, initial.doctrine)
     const acted = await client.callTool({ name: 'set_gambits', arguments: { gambits: [{ if: 'always', then: 'hold' }], why: 'explicitly reapproved' } })
-    assert.equal(JSON.parse(acted.content[0].text).ok, true)
+    assert.equal(JSON.parse(acted.content[0].text).ok, true, acted.content[0].text)
   }
   const after = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
   assert.equal(after.matchId, before.matchId, 'reapproval must not create another match')
