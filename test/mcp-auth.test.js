@@ -82,7 +82,7 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
     assert.deepEqual(resumed.rules, initial.rules)
     assert.equal(resumed.doctrine, initial.doctrine)
     const acted = await client.callTool({ name: 'set_gambits', arguments: { gambits: [{ if: 'always', then: 'hold' }], why: 'explicitly reapproved' } })
-    assert.equal(JSON.parse(acted.content[0].text).ok, true)
+    assert.equal(JSON.parse(acted.content[0].text).ok, true, acted.content[0].text)
   }
   const after = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
   assert.equal(after.matchId, before.matchId, 'reapproval must not create another match')
@@ -142,6 +142,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
     assert.ok(S.since > 0)
   }
   return { S, call, join, approve, requests,
+    request: (method, path, body) => request(identity, method, path, human.humanToken, body),
     read: path => request(null, 'GET', path, S.session.agentToken),
     revoke: () => request(identity, 'POST', '/agent/revoke', human.humanToken),
     advance: ms => { now += ms }, fault: fn => { fault = fn },
@@ -330,4 +331,13 @@ for (const path of ['/events', '/input', '/call', '/next', '/agent/poll']) test(
   const sent = f.requests.length
   for (const [tool, input] of gameplay) assert.match(await f.call(tool, input), /join_match/)
   assert.equal(f.requests.length, sent)
+})
+
+test('a match the human started on the site is adopted without join_match', async () => {
+  const f = await callbackFixture({ supplied: true, bound: true })
+  assert.equal(f.S.inMatch, false)
+  await f.request('POST', '/play', { vs: 'easy', minutes: 3 })
+  assert.ok(JSON.parse(await f.call('get_state')).state, 'get_state finds the running match')
+  assert.equal(f.S.inMatch, true)
+  assert.equal(JSON.parse(await f.call('set_gambits', gameplay[1][1])).ok, true)
 })

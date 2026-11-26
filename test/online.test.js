@@ -13,6 +13,19 @@ function fixture() {
   return { game, store, call, session, advance: ms => { now += ms } }
 }
 
+test('agent starts only house matches and cannot give hand orders', async () => {
+  const f = fixture(), a = await f.session('a', 'agent')
+  await assert.rejects(f.call(a, 'POST', '/play', { vs: 'player' }, 'agent'), { status: 403, message: 'Your agent can only start a house match.' })
+  await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false, planning: 30 }, 'agent')
+  const waiting = await f.call(a, 'GET', '/state')
+  assert.equal(waiting.waitingForAgent, true)
+  assert.equal(waiting.me.withAgent, true)
+  await assert.rejects(f.call(a, 'POST', '/play', { vs: 'easy' }, 'agent'), { status: 409, message: 'already in a match' })
+  await assert.rejects(f.call(a, 'POST', '/input', { order: { bat: 0, x: 1, y: 1 } }, 'agent'), { status: 403, message: 'Hand orders are for your human. Ask with call_human.' })
+  assert.equal((await f.call(a, 'GET', '/next', {}, 'agent')).match.startsIn, 30)
+  assert.equal((await f.call(a, 'GET', '/state')).waitingForAgent, false)
+})
+
 test('house match waits for agent, then gives the full planning window', async () => {
   const f = fixture(), a = await f.session('a', 'agent')
   await f.call(a, 'POST', '/play', { vs: 'normal', withAgent: true, planning: 20 })

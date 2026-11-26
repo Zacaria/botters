@@ -7,6 +7,13 @@ import { gameTransport } from './game-transport.js'
 export class AgentGateway extends DurableObject {
   constructor(ctx,env) { super(ctx,env); this.sessions=new Map(); this.state=null; this.tail=Promise.resolve() }
   async fetch(request) {
+    const sid=request.headers.get('mcp-session-id')
+    if (request.method==='POST' && sid && this.sessions.has(sid)) {
+      try {
+        const call=await request.clone().json()
+        if (call?.method==='tools/call' && call.params?.name==='match_frame') return this.handle(request)
+      } catch { /* Invalid bodies follow the normal queued path. */ }
+    }
     const work=this.tail.then(()=>this.handle(request),()=>this.handle(request)); this.tail=work.catch(()=>{}); return work
   }
   async handle(request) {

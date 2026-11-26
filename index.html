@@ -160,7 +160,7 @@
 <!-- lobby: one choice and one button up front; everything else folds away -->
 <div id="lobby" class="screen" hidden>
   <div class="row" id="accountControls" hidden><span id="accountName"></span> <button id="signout">Sign out</button> <button id="revokeAgent">Disconnect agent</button></div>
-  <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. The agent can read your match view and rewrite your gambits. Only you move battalions by hand. It cannot manage your account or command an opponent's battalions. Connecting replaces any currently authorized agent.</p><p>Access lasts up to seven days, including while you are signed out. Use Disconnect agent in the lobby to revoke access.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
+  <section id="pairApproval" class="card" hidden><h2>Connect this agent?</h2><p id="pairDescription"></p><p>Approve only a request you started. The agent can read your match view and rewrite your gambits. Only you move battalions by hand. It cannot manage your account or command an opponent's battalions. Agents you already connected stay connected.</p><p>Access lasts up to seven days, including while you are signed out. Use Disconnect agent in the lobby to revoke every agent.</p><button class="main" id="approveAgent">Connect agent</button> <button id="declineAgent">Decline</button><p id="pairMessage" role="status"></p></section>
   <main class="hero">
     <h1><b>BOT</b><i>TERS</i></h1>
     <p class="tag">Capture planets. Grow your army.<br>Most units at the end wins.</p>
@@ -369,7 +369,7 @@ async function refreshAgent(granted) {
 $('revokeAgent').onclick = async () => {
   const r = await api('POST', '/agent/revoke', {})
   if (!r.error) await refreshAgent(false)
-  $('lobbyMsg').textContent = r.error || 'Agent disconnected. Its token no longer works.'
+  $('lobbyMsg').textContent = r.error || 'Agents disconnected. Their tokens no longer work.'
 }
 $('approveAgent').onclick = async () => {
   $('approveAgent').disabled = true
