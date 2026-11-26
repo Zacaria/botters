@@ -43,7 +43,7 @@
   aside summary.changed { animation: flash 1.2s 3 }
   #journal { flex: 1 0 160px; min-height: 160px; overflow-y: auto; background: #050507; padding: 8px; font-size: 12px; overflow-wrap: anywhere }
   #journal div { margin-bottom: 2px } #journal b { font-weight: bold } #journal .own { color: #ff75b4 } #journal .agent-line { color: #ffb5d4 } #journal .enemy { color: #5b8cff } #journal .system { color: #8b8b99 }
-  #say { margin-top: 6px }
+  #say { margin-top: 6px; display: flex; gap: 4px } #say[hidden] { display: none } #say input { flex: 1; min-width: 0 } #sayTo { max-width: 100px }
   #big { position: fixed; left: 0; right: 400px; top: 30%; text-align: center; font-size: 38px; color: #fff; text-shadow: 0 0 12px #000; pointer-events: none }
   #big .box { display: inline-block; pointer-events: auto; background: #08080bee; border: 1px solid #333; padding: 18px 28px; font-size: 15px; line-height: 1.9; margin-top: 12px; text-align: left }
   #big:has(#copyResult) { z-index: 1; bottom: 12px; overflow: auto }
@@ -270,7 +270,7 @@
     <details id="doctrineBox" hidden><summary>Doctrine</summary><textarea id="doctrine2" aria-label="Doctrine during match" maxlength="500"></textarea><button id="sendDoctrine">send to agent</button><div id="doctrineStatus2" role="status"></div></details>
     <details id="helpBox"><summary>Help</summary><button id="guideLaunch" aria-keyshortcuts="F1" hidden>Learn while playing (F1)</button><p class="dim">Click a pink ring to select a battalion, then click the map to move. Right-click or X to flank. D detaches half; R detaches runners; Q returns it to gambits. Tab or 1–9 selects a battalion.<br><span id="pingHelp">Deselect and click to ping your agent.</span></p></details>
     <div id="journal" role="log" aria-live="polite"></div>
-    <form id="say" hidden><input class="wide" id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form>
+    <form id="say" hidden><select id="sayTo" aria-label="Message recipient" hidden><option value="opponent">opponent</option><option value="agent">agent</option></select><input class="wide" id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form><button id="muteChat" type="button" aria-pressed="false" hidden>Mute opponent</button>
   </aside>
 </div>
 
@@ -619,7 +619,12 @@ const bg = $('bg'), bgx = bg.getContext('2d'), bgimg = bgx.createImageData(W, H)
 bg.width = W; bg.height = H; cv.width = W; cv.height = H
 let F = null, liveView = null, practice = null, es = null, streamRetry = null, sel = null, editing = null, gEd = null, matchGeneration = 0, actionQueue = Promise.resolve()
 let guidance = null, guidePending = false, lastPanel = 0, lastRules = ''
-let journal = [], journalKeys = new Set(), planetOwners = null
+let journal = [], journalKeys = new Set(), planetOwners = null, chatMuted = false
+try { chatMuted = localStorage.getItem('botters.chatMuted') === 'true' } catch {}
+const chatTarget = () => F?.opponent?.human && (!$('sayTo').hidden ? $('sayTo').value === 'opponent' : true) ? 'opponent' : 'agent'
+function chatControls() { $('msg').placeholder = `message your ${chatTarget()} (Enter)`; $('muteChat').textContent = chatMuted ? 'Unmute opponent' : 'Mute opponent'; $('muteChat').setAttribute('aria-pressed', String(chatMuted)) }
+$('sayTo').onchange = chatControls
+$('muteChat').onclick = () => { chatMuted = !chatMuted; try { localStorage.setItem('botters.chatMuted', String(chatMuted)) } catch {} chatControls() }
 for (const id of ['gambitsBox', 'doctrineBox', 'helpBox']) {
   const box = $(id), key = `botters.${id}Open`
   try { box.open = localStorage.getItem(key) === 'true' } catch {}
@@ -632,7 +637,7 @@ function journalAdd({ t = 0, kind, who = 'system', camp, text, raw = text }) { /
   const el = $('journal'), atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40
   const name = who === 'you' ? F?.me?.name || 'you' : who === 'agent' ? 'agent' : who === 'house' || who === 'opponent' ? F?.opponent?.name || 'opponent' : 'system'
   const cls = camp === 'enemy' || who === 'house' || who === 'opponent' ? 'enemy' : camp === 'own' ? 'own' : camp === 'system' || who === 'system' ? 'system' : who === 'agent' ? 'agent-line' : 'own'
-  const marker = { doctrine: '✎', action: '›', request: '?', message: '·', planet: '◆' }[kind] || '·'
+  const marker = { doctrine: '✎', action: '›', request: '?', message: '·', chat: '»', planet: '◆' }[kind] || '·'
   const line = document.createElement('div'); line.className = cls
   line.innerHTML = `<span class="dim">[${esc(clock(Math.floor(t)))}]</span> ${who === 'system' ? '' : `<b>${esc(name)}</b>: `}${marker} ${esc(text)}`; el.insertBefore(line, el.children[position] || null)
   if (atBottom) el.scrollTop = el.scrollHeight
@@ -669,13 +674,13 @@ function match() {
   practice?.close(); practice = null
   ++matchGeneration; actionQueue = Promise.resolve(); clearTimeout(lobbyTimer); clearTimeout(streamRetry); es?.close()
   F = null; sel = null; guidance = null; guidePending = $('guidedHouse').checked; lastRules = ''; lastFrame = Date.now()
-  resetJournal(); $('game').classList.remove('camp-right'); $('big').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
+  resetJournal(); $('sayTo').value = 'opponent'; $('game').classList.remove('camp-right'); $('big').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
   show('game'); fit(); stopEditing(); connectStream()
 }
 function startPractice() {
   practice?.close(); es?.close(); clearTimeout(lobbyTimer); clearTimeout(streamRetry)
   ++matchGeneration; actionQueue = Promise.resolve(); F = null; sel = null; guidance = null; guidePending = true; lastRules = ''; lastFrame = Date.now()
-  resetJournal(); $('game').classList.remove('camp-right'); $('big').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
+  resetJournal(); $('sayTo').value = 'opponent'; $('game').classList.remove('camp-right'); $('big').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
   liveView = createLiveView(); practice = createPractice({ seed: (Math.random() * 2 ** 32) >>> 0 })
   show('game'); fit(); stopEditing(); practice.start(receive)
 }
@@ -770,7 +775,8 @@ function panel() {
   $('selectedBat').textContent = selected ? (() => { const [r, g, t] = selected.roles, rule = F.gambits[selected.rule]; return `Battalion ${own.indexOf(selected) + 1} · ${selected.n} units · R${r} G${g} T${t} · ${selected.manual ? 'hand order' : rule ? `rule ${selected.rule + 1}: ${label(rule)}` : 'no matching rule'}` })() : matchMedia('(pointer: coarse)').matches ? 'Tap a pink ring to select a battalion.' : 'Click a pink ring or press Tab to select a battalion.'
   for (const id of ['flank', 'detach', 'runners', 'release']) $(id).disabled = !selected || !!s.ended
   $('surrender').hidden = !!s.ended || !!F.report || !!F.waitingForAgent
-  $('doctrineBox').hidden = $('say').hidden = !F.me?.withAgent; $('pingHelp').hidden = !F.me?.withAgent
+  $('doctrineBox').hidden = $('pingHelp').hidden = !F.me?.withAgent
+  $('say').hidden = !F.me?.withAgent && !F.opponent?.human; $('sayTo').hidden = !(F.me?.withAgent && F.opponent?.human); $('muteChat').hidden = !F.opponent?.human; chatControls()
   const rules = F.gambits, ruleKey = JSON.stringify(rules)
   if (ruleKey !== lastRules) { const changed = !!lastRules; lastRules = ruleKey; $('gambitsSummary').textContent = `Gambits · ${rules.length} rules`; if (changed) { const summary = $('gambitsSummary'); summary.classList.remove('changed'); void summary.offsetWidth; summary.classList.add('changed') } $('gambits').innerHTML = rules.map((r, i) => `<div class="g${r.on === false ? ' off' : ''}" data-g="${i}" role="button" tabindex="0">${esc(label(r))} <i></i></div>`).join('') }
   document.querySelectorAll('[data-g]').forEach(el => { const c = own.filter(b => !b.manual && b.rule === Number(el.dataset.g)).length; el.classList.toggle('hot', c > 0); el.querySelector('i').textContent = c ? `${c} battalion${c === 1 ? '' : 's'}` : '' })
@@ -779,6 +785,10 @@ function panel() {
   for (const f of F.feed || []) {
     if (/^(gambits|toggle|rewrote the gambits|switched gambit \d+)(:|$)/.test(f.text) || f.who === 'agent' && edits.some(e => e.t === f.t && e.who === f.who && f.text.startsWith(e.change))) continue
     journalAdd({ t: f.t, kind: f.text.startsWith('asks you:') ? 'request' : /^(ordered|detached|flanked|released) battalion/.test(f.text) ? 'action' : 'message', who: f.who, raw: f.text, text: f.text.replace(/^(ordered|detached|flanked|released) battalion (\d+)/, (m, verb, id) => { const i = own.findIndex(b => b.id === +id); return i < 0 ? m : `${verb} battalion ${i + 1}` }) })
+  }
+  for (const c of F.chat || []) {
+    if (chatMuted && c.who === 'opponent') journalKeys.add(JSON.stringify(['chat', c.t, c.who, `chat:${c.n}`]))
+    else journalAdd({ t: c.t, kind: 'chat', who: c.who, raw: `chat:${c.n}`, text: c.text })
   }
   if (planetOwners) for (const p of s.planets) if (planetOwners.has(p.id) && planetOwners.get(p.id) !== p.owner) { const owner = p.owner < 0 ? planetOwners.get(p.id) : p.owner, ours = owner === side; journalAdd({ t: Math.floor(liveView.tick / TPS), kind: 'planet', who: 'system', camp: owner < 0 ? 'system' : ours ? 'own' : 'enemy', text: `Planet #${p.id} ${p.owner < 0 ? 'lost by' : 'captured by'} ${ours ? F.me?.name || 'you' : F.opponent?.name || 'opponent'}` }) }
   planetOwners = new Map(s.planets.map(p => [p.id, p.owner]))
@@ -820,7 +830,7 @@ $('gambits').onclick = e => { const row = e.target.closest('[data-g]'); if (row)
 $('gambits').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.click() } }
 $('calls').onclick = e => { const i = e.target.dataset.do ?? e.target.dataset.no, call = F?.calls?.[i]; if (!call) return; if (e.target.dataset.do !== undefined) act({ order: { bat: call.bat, x: call.x, y: call.y } }, 'Move ordered'); api('POST', '/dismiss', { index: +i, matchId: F.matchId }) }
 $('doctrine2').oninput = () => editDoctrine($('doctrine2')); $('sendDoctrine').onclick = () => saveDoctrine(true)
-$('say').onsubmit = e => { e.preventDefault(); const input = $('msg'); if (input.value) { api('POST', '/say', { text: input.value, matchId: F?.matchId }); toast('Sent to your agent') } input.value = '' }
+$('say').onsubmit = async e => { e.preventDefault(); const input = $('msg'), message = input.value, target = chatTarget(); if (!message) return; input.value = ''; const r = await api('POST', target === 'opponent' ? '/chat' : '/say', { text: message, matchId: F?.matchId }); toast(r.ok ? `Sent to your ${target}` : r.error, r.ok) }
 const guideSteps = [['Select a battalion', 'Choose one of your pink rings or use the battalion list.'], ['Move to a planet', 'Choose a planet and send the battalion. It stays under your control.'], ['Return to gambits', 'Release the same battalion so it follows your rules again.'], ['Complete', 'Capture planets, adjust your gambits, and keep playing.']]
 function startGuide() { if (!liveView?.ready || F?.board?.ended || F?.report) return; guidance = { step: 0, bat: null }; renderGuide() }
 function observeGuide() { if (!guidance || !liveView?.ready) return; const b = mine().find(b => b.id === sel); if (guidance.step === 0 && b) { guidance.step = 1; guidance.bat = b.id } else if (guidance.step === 1 && b?.id === guidance.bat && b.manual) guidance.step = 2; else if (guidance.step === 2) { const target = mine().find(q => q.id === guidance.bat); if (target && !target.manual) guidance.step = 3 } }

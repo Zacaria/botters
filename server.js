@@ -47,7 +47,7 @@ function play(s, req, human = false) {
 }
 
 // ---------- matches ----------
-const foe = (m, side) => ({ name: m.players[1 - side].name, setup: m.players[1 - side].setup })
+const foe = (m, side) => ({ name: m.players[1 - side].name, setup: m.players[1 - side].setup, human: !!m.players[1 - side].session })
 function startMatch(entries, req, waitingForAgent = false) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
   const delay = FORCED_DELAY ?? req.planning * 1000
   const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
@@ -83,7 +83,7 @@ function cancelMatch(m, notice) {
 
 const frame = (m, side) => {
   const p = m.players[side]
-  return { matchId: m.id, side, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
+  return { matchId: m.id, side, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits, chat: (m.chat || []).map(c => ({ n: c.n, t: c.t, who: c.side === side ? 'you' : 'opponent', text: c.text })), waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
     me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: foe(m, side), options: m.s.opts }
 }
 const write = (st, data) => st.res.write(`data: ${JSON.stringify(data)}\n\n`)
@@ -203,7 +203,8 @@ const routes = {
   'GET /rules': (req, res) => json(res, 200, { map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }),
   'GET /state': (req, res, q) => {
     const a = auth(q); if (!a?.s.match) return json(res, a ? 409 : 401, { error: a ? 'not in a match' : 'bad token' })
-    json(res, 200, frame(a.s.match, a.s.side))
+    const result = frame(a.s.match, a.s.side); if (a.role === 'agent') delete result.chat
+    json(res, 200, result)
   },
   'GET /events': (req, res, q) => { // agent: long-poll for events after `since`
     const a = auth(q, 'agent'); if (!a) return json(res, 401, { error: 'bad token' })
@@ -269,6 +270,19 @@ const routes = {
     if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
     const p = m.players[a.s.side]
     p.calls = p.calls.filter((c, i) => i !== b.index)
+    json(res, 200, { ok: true })
+  },
+  'POST /chat': async (req, res, q) => {
+    const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'bad token' })
+    const m = a.s.match; if (!m) return json(res, 409, { error: 'not in a match' })
+    const b = await body(req), side = a.s.side, now = Date.now()
+    if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
+    if (!m.players[1 - side].session) return json(res, 409, { error: 'Your opponent is the house.' })
+    const text = typeof b.text === 'string' ? b.text.trim().slice(0, 140) : ''
+    if (!text) return json(res, 400, { error: 'Message is empty.' })
+    const p = m.players[side]; p.chatSent = (p.chatSent || []).filter(t => now - t < 5000)
+    if (p.chatSent.length >= 3) return json(res, 429, { error: 'max 3 messages per 5 seconds' })
+    p.chatSent.push(now); m.chat = [...(m.chat || []), { n: (m.chatCount = (m.chatCount || 0) + 1), t: Math.floor(m.s.tick / TPS), side, text }].slice(-30)
     json(res, 200, { ok: true })
   },
   'POST /say': async (req, res, q) => { // human message or ping to their agent
