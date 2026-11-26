@@ -291,6 +291,7 @@ const routes = {
   'GET /sim.js': page('sim.js'),
   'GET /wire.js': page('wire.js'),
   'GET /browser-live.js': page('browser-live.js'),
+  'GET /live-client.js': page('browser-live.js'),
   'GET /guide': page('guide.html'),
   'GET /privacy': page('privacy.html'),
   'GET /privacy.html': page('privacy.html'),

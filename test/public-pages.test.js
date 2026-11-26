@@ -12,6 +12,8 @@ test('homepage introduces Botters and exposes policy links before JavaScript run
   const html = await source('index.html')
   assert.match(html, /space strategy game/)
   assert.match(html, /<div id="start" class="screen">/)
+  assert.match(html, /<section id="practiceEntry">/)
+  assert.match(html, /<section id="authPanel" aria-labelledby="authTitle">/)
   for (const route of policies) assert.match(html, new RegExp(`href="/${route}"`))
   assert.match(await source('guide.html'), /href="\/privacy"/)
   assert.match(await source('guide.html'), /href="\/terms"/)
@@ -28,7 +30,9 @@ test('guide adds Botters to Claude in one click and the lobby leads there', asyn
   assert.match(guide, /id="chatgpt-link"/)
   assert.match(guide, /https:\/\/chatgpt\.com\/plugins/)
   assert.match(guide, /<pre id="mcp-address">https:\/\/play\.botters\.havesomecode\.io\/mcp<\/pre>/)
-  assert.match(await source('index.html'), /href="\/guide#web-client"[^>]*>No Botters connector/)
+  const lobby = await source('index.html')
+  assert.match(lobby, /href="\/guide#web-client"[^>]*>Connector not added yet\? Add it/)
+  assert.ok(lobby.includes(`id="addClaude" href="${href.replaceAll('&', '&amp;')}"`))
 })
 
 test('public policy documents have real content, navigation and no JavaScript dependency', async () => {
