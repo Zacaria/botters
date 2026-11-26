@@ -103,3 +103,18 @@ test('order and detach journal canonical inputs and replay the checkpoint', asyn
   const saved = JSON.parse(await f.store.get(`state:${frame.matchId}`))
   assert.deepEqual(snapshot(replay(saved.seed, log, { ...saved.opts, tick: saved.tick })), saved)
 })
+
+test('gambit conditions and actions must be plain strings', async () => {
+  const f = fixture(), a = await f.session('a'), b = await f.session('b')
+  await f.call(a, 'POST', '/play', { vs: 'player', withAgent: false, planning: 10, minutes: 3 })
+  await f.call(b, 'POST', '/play', { vs: 'player', withAgent: false, planning: 10, minutes: 3 })
+  const wrapped = (value, depth) => { for (let i = 0; i < depth; i++) value = [value]; return value }
+  for (const depth of [1, 3, 3000]) {
+    await assert.rejects(f.call(a, 'POST', '/input', { gambits: [{ if: wrapped('always', depth), then: 'hold' }] }), { status: 400 })
+    await assert.rejects(f.call(a, 'POST', '/input', { gambits: [{ if: 'always', then: wrapped('hold', depth) }] }), { status: 400 })
+  }
+  await assert.rejects(f.call(a, 'POST', '/input', { gambits: ['always'] }), { status: 400 })
+  assert.ok((await f.call(b, 'GET', '/state')).view)
+  await f.call(b, 'POST', '/surrender')
+  await assert.rejects(f.call(b, 'POST', '/play', { vs: 'easy', withAgent: false, opening: [{ if: wrapped('always', 2), then: 'hold' }] }), { status: 400 })
+})

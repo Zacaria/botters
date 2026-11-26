@@ -274,8 +274,8 @@ export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes
 export function checkGambits(list) {
   if (!Array.isArray(list) || !list.length || list.length > MAX_GAMBITS) return `send 1 to ${MAX_GAMBITS} gambits`
   for (const r of list) {
-    if (!r || !Object.hasOwn(CONDITIONS, r.if)) return 'unknown condition'
-    if (!Object.hasOwn(ACTIONS, r.then)) return 'unknown action'
+    if (!r || typeof r !== 'object' || typeof r.if !== 'string' || !Object.hasOwn(CONDITIONS, r.if)) return 'unknown condition'
+    if (typeof r.then !== 'string' || !Object.hasOwn(ACTIONS, r.then)) return 'unknown action'
     if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) return 'invalid p'
     if (r.on !== undefined && typeof r.on !== 'boolean') return 'invalid on'
   }
