@@ -9,7 +9,7 @@
   canvas { position: fixed; cursor: crosshair }
   a { color: #9fe8c0 }
   #hud { position: fixed; left: 14px; top: 10px; pointer-events: none; white-space: pre; line-height: 1.55; text-shadow: 0 0 4px #000; background: #050507b8 }
-  aside { position: fixed; right: 0; top: 0; bottom: 0; width: 400px; padding: 10px 14px; box-sizing: border-box; background: #08080b; border-left: 1px solid #1c1c24; overflow: auto; line-height: 1.5 }
+  aside { display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; width: 400px; padding: 10px 14px; box-sizing: border-box; background: #08080b; border-right: 1px solid #1c1c24; overflow: auto; line-height: 1.5 }
   h1 { color: #fff; font-size: 30px; letter-spacing: 6px; margin: 0 0 4px } h1 b { color: #ff2e88 } h1 i { color: #5b8cff; font-style: normal }
   h3 { margin: 12px 0 4px; color: #fff; font-size: 13px }
   .g { padding: 3px 6px; border-left: 2px solid #333; cursor: pointer; margin-bottom: 2px; background: #0e0e13 }
@@ -26,7 +26,24 @@
   input, textarea, select { font: inherit; box-sizing: border-box; padding: 5px; background: #000; color: #ddd; border: 1px solid #333 }
   textarea { width: 100%; height: 92px; resize: vertical } input.wide { width: 100% }
   .you { color: #ff2e88 } .foe { color: #5b8cff } .agent { color: #9fe8c0 } .dim { color: #6a6a7a } .warn { color: #ffd400 }
-  #feed div { margin-bottom: 2px }
+  #game.camp-right aside { left: auto; right: 0; border-right: 0; border-left: 1px solid #1c1c24 }
+  #game #hud, #game #connection { left: 414px }
+  #game.camp-right #hud, #game.camp-right #connection { left: 14px }
+  #game #big { left: 400px; right: 0 }
+  #game.camp-right #big { left: 0; right: 400px }
+  aside > * { flex-shrink: 0 }
+  #battalions { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 }
+  #battalions button { margin: 0; padding: 5px 7px }
+  #selectedBat { min-height: 1.5em; color: #ddd; overflow-wrap: anywhere }
+  #actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px }
+  #actions button { margin: 0; min-height: 46px; text-align: left; display: flex; justify-content: space-between; align-items: center }
+  #actions kbd { color: #ff96cd }
+  aside details { border-top: 1px solid #1c1c24; padding: 6px 0 }
+  aside summary { cursor: pointer; color: #ddd }
+  aside summary.changed { animation: flash 1.2s 3 }
+  #journal { flex: 1 0 160px; min-height: 160px; overflow-y: auto; background: #050507; padding: 8px; font-size: 12px; overflow-wrap: anywhere }
+  #journal div { margin-bottom: 2px } #journal b { font-weight: bold } #journal .own { color: #ff75b4 } #journal .agent-line { color: #ffb5d4 } #journal .enemy { color: #5b8cff } #journal .system { color: #8b8b99 }
+  #say { margin-top: 6px }
   #big { position: fixed; left: 0; right: 400px; top: 30%; text-align: center; font-size: 38px; color: #fff; text-shadow: 0 0 12px #000; pointer-events: none }
   #big .box { display: inline-block; pointer-events: auto; background: #08080bee; border: 1px solid #333; padding: 18px 28px; font-size: 15px; line-height: 1.9; margin-top: 12px; text-align: left }
   #big:has(#copyResult) { z-index: 1; bottom: 12px; overflow: auto }
@@ -82,7 +99,10 @@
   #guidePanel :focus-visible, #guideLaunch:focus-visible { outline: 2px solid #9fe8c0; outline-offset: 2px }
   @media (max-width: 740px) {
     .wrap { grid-template-columns: 1fr; margin: 20px auto }
-    aside { top: 50vh; width: 100%; border-left: 0; border-top: 1px solid #1c1c24 }
+    #game aside, #game.camp-right aside { left: 0; right: 0; top: 50vh; width: 100%; border-left: 0; border-right: 0; border-top: 1px solid #1c1c24 }
+    #game #hud, #game.camp-right #hud, #game #connection, #game.camp-right #connection { left: 14px }
+    #game #big, #game.camp-right #big { left: 0; right: 0; top: 80px }
+    #game #big:has(#copyResult), #game.camp-right #big:has(#copyResult) { top: 12px }
     #big { right: 0; top: 12px }
   }
 </style>
@@ -228,30 +248,25 @@
   <div id="hud"></div>
   <div id="big"></div>
   <aside>
-    <button id="guideLaunch" aria-keyshortcuts="F1" hidden>Learn while playing (F1)</button>
+    <div><button id="leave" title="Return to the menu; the match keeps running">← menu</button><button id="surrender" hidden>Surrender</button></div>
     <section id="guidePanel" aria-labelledby="guideTitle" hidden>
       <h3 id="guideTitle">Learn in this match</h3><p id="guideStep" role="status"></p><p id="guideInstruction"></p>
       <label>Battalion <select id="guideSwarm"></select></label><label>Planet <select id="guidePlanet"></select></label>
       <button id="guideSend">Send battalion</button><button id="guideRelease">Return to gambits</button>
       <button id="guideReplay">Restart guidance</button><button id="guideDismiss">Dismiss</button>
     </section>
-    <div id="battalions"></div><div class="row"><button id="flank">Flank (X)</button><button id="detach">Detach half (D)</button><button id="runners">Detach runners (R)</button><button id="release">Release (Q)</button></div>
     <div id="calls"></div>
-    <h3>gambits <span class="dim">· click a rule to toggle</span></h3>
-    <div id="byline" class="by"></div>
-    <div id="gambits"></div><h3>doctrine edits</h3><div id="edits"></div>
-    <div id="gEditor" hidden></div>
-    <div class="row"><button id="editG">edit gambits</button><button id="applyG" hidden>apply</button><button id="cancelG" hidden>cancel</button></div>
-    <div id="agentBox">
-      <h3>agent feed</h3>
-      <div id="feed"></div>
-      <form id="say"><input class="wide" id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form>
-      <details style="margin-top:6px"><summary class="dim" style="cursor:pointer">doctrine</summary><textarea id="doctrine2" aria-label="Doctrine during match" maxlength="500"></textarea><button id="sendDoctrine">send to agent</button><div id="doctrineStatus2" role="status"></div></details>
-    </div>
+    <div id="battalions"></div><div id="selectedBat"></div>
+    <div id="actions"><button id="flank">Flank <kbd>X</kbd></button><button id="detach">Detach half <kbd>D</kbd></button><button id="runners">Detach runners <kbd>R</kbd></button><button id="release">Return to gambits <kbd>Q</kbd></button></div>
     <div id="toast"></div>
-    <p class="dim">Click a pink ring to select a battalion, then click the map to move. Right-click or X to flank. D detaches half; R detaches runners; Q returns it to gambits. Tab or 1–9 selects a battalion.<br><span id="pingHelp">Deselect and click to ping your agent.<br></span>
-      <button id="leave" title="Return to the menu; the match keeps running">← menu</button><button id="surrender" hidden>Surrender</button>
-    </p>
+    <details id="gambitsBox"><summary id="gambitsSummary">Gambits</summary>
+      <div id="gambits"></div><div id="gEditor" hidden></div>
+      <div class="row"><button id="editG">edit gambits</button><button id="applyG" hidden>apply</button><button id="cancelG" hidden>cancel</button></div>
+    </details>
+    <details id="doctrineBox" hidden><summary>Doctrine</summary><textarea id="doctrine2" aria-label="Doctrine during match" maxlength="500"></textarea><button id="sendDoctrine">send to agent</button><div id="doctrineStatus2" role="status"></div></details>
+    <details id="helpBox"><summary>Help</summary><button id="guideLaunch" aria-keyshortcuts="F1" hidden>Learn while playing (F1)</button><p class="dim">Click a pink ring to select a battalion, then click the map to move. Right-click or X to flank. D detaches half; R detaches runners; Q returns it to gambits. Tab or 1–9 selects a battalion.<br><span id="pingHelp">Deselect and click to ping your agent.</span></p></details>
+    <div id="journal" role="log" aria-live="polite"></div>
+    <form id="say" hidden><input class="wide" id="msg" placeholder="message your agent (Enter)" maxlength="140" autocomplete="off"></form>
   </aside>
 </div>
 
@@ -574,6 +589,24 @@ const bg = $('bg'), bgx = bg.getContext('2d'), bgimg = bgx.createImageData(W, H)
 bg.width = W; bg.height = H; cv.width = W; cv.height = H
 let F = null, liveView = null, practice = null, es = null, streamRetry = null, sel = null, editing = null, gEd = null, matchGeneration = 0, actionQueue = Promise.resolve()
 let guidance = null, guidePending = false, lastPanel = 0, lastRules = ''
+let journal = [], journalKeys = new Set(), planetOwners = null
+for (const id of ['gambitsBox', 'doctrineBox', 'helpBox']) {
+  const box = $(id), key = `botters.${id}Open`
+  try { box.open = localStorage.getItem(key) === 'true' } catch {}
+  box.addEventListener('toggle', () => { try { localStorage.setItem(key, String(box.open)) } catch {} })
+}
+function resetJournal() { journal = []; journalKeys = new Set(); planetOwners = null; $('journal').innerHTML = '' }
+function journalAdd({ t = 0, kind, who = 'system', camp, text, raw = text }) { // raw: the server text, so a later relabel never duplicates a line
+  const key = JSON.stringify([kind, t, who, raw]); if (journalKeys.has(key)) return
+  journalKeys.add(key); const index = journal.findIndex(entry => entry.t > t), position = index < 0 ? journal.length : index; journal.splice(position, 0, { t, kind, who, camp, text })
+  const el = $('journal'), atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+  const name = who === 'you' ? F?.me?.name || 'you' : who === 'agent' ? 'agent' : who === 'house' || who === 'opponent' ? F?.opponent?.name || 'opponent' : 'system'
+  const cls = camp === 'enemy' || who === 'house' || who === 'opponent' ? 'enemy' : camp === 'own' ? 'own' : camp === 'system' || who === 'system' ? 'system' : who === 'agent' ? 'agent-line' : 'own'
+  const marker = { doctrine: '✎', action: '›', request: '?', message: '·', planet: '◆' }[kind] || '·'
+  const line = document.createElement('div'); line.className = cls
+  line.innerHTML = `<span class="dim">[${esc(clock(Math.floor(t)))}]</span> ${who === 'system' ? '' : `<b>${esc(name)}</b>: `}${marker} ${esc(text)}`; el.insertBefore(line, el.children[position] || null)
+  if (atBottom) el.scrollTop = el.scrollHeight
+}
 const colours = [['#ff96cd', '#ff5096', '#ffc8e1'], ['#82c8ff', '#3c8cff', '#c8e6ff']]
 const camps = ['#ff5096', '#3c8cff']
 const mine = () => (liveView?.battalions || []).map(b => ({ manual: false, rule: -1, tx: b.cx, ty: b.cy, via: [], fighting: false, ...b, ...F?.board?.bats.find(o => o.id === b.id) }))
@@ -585,14 +618,14 @@ function fit() {
   // Narrow screens stack HUD (three lines), map, then panel, so the score never covers the map.
   const hud = narrow ? Math.ceil(10 + 3 * (parseFloat(getComputedStyle($('hud')).lineHeight) || 20) + 6) : 0
   aside.style.top = narrow ? `${hud + Math.min(innerHeight / 2, innerWidth * H / W)}px` : ''
-  const panel = aside.getBoundingClientRect(), vw = panel.top > 0 ? innerWidth : panel.left, vh = (panel.top > 0 ? panel.top : innerHeight) - hud
+  const panel = aside.getBoundingClientRect(), vw = narrow ? innerWidth : innerWidth - panel.width, vh = (narrow ? panel.top : innerHeight) - hud, x = narrow || $('game').classList.contains('camp-right') ? 0 : panel.width
   const scale = Math.min(vw / W, vh / H)
-  cv.style.width = `${W * scale}px`; cv.style.height = `${H * scale}px`; cv.style.left = `${(vw - W * scale) / 2}px`; cv.style.top = `${hud + (vh - H * scale) / 2}px`
+  cv.style.width = `${W * scale}px`; cv.style.height = `${H * scale}px`; cv.style.left = `${x + (vw - W * scale) / 2}px`; cv.style.top = `${hud + (vh - H * scale) / 2}px`
 }
 addEventListener('resize', fit)
 const at = e => { const r = cv.getBoundingClientRect(); return { x: Math.round((e.clientX - r.left) * W / r.width), y: Math.round((e.clientY - r.top) * H / r.height) } }
 function act(body, message) {
-  if (practice) { const r = practice.input(body); toast(r.ok ? message : r.error, r.ok); return r }
+  if (practice) { const r = practice.input(body); toast(r.ok ? message : r.error, r.ok); if (r.ok) journalAdd({ t: Math.floor((liveView?.tick || 0) / TPS), kind: 'action', who: 'you', text: message }); return r }
   const generation = matchGeneration, session = token, matchId = F?.matchId, path = body.surrender ? '/surrender' : '/input'
   const live = () => generation === matchGeneration && session === token && matchId && !$('game').hidden && !F?.board?.ended && !F?.report
   // 503 means the room is catching up or the connection dropped: retry for a few seconds instead of dropping the order.
@@ -606,13 +639,13 @@ function match() {
   practice?.close(); practice = null
   ++matchGeneration; actionQueue = Promise.resolve(); clearTimeout(lobbyTimer); clearTimeout(streamRetry); es?.close()
   F = null; sel = null; guidance = null; guidePending = $('guidedHouse').checked; lastRules = ''; lastFrame = Date.now()
-  $('big').innerHTML = ''; $('feed').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
+  resetJournal(); $('game').classList.remove('camp-right'); $('big').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
   show('game'); fit(); stopEditing(); connectStream()
 }
 function startPractice() {
   practice?.close(); es?.close(); clearTimeout(lobbyTimer); clearTimeout(streamRetry)
   ++matchGeneration; actionQueue = Promise.resolve(); F = null; sel = null; guidance = null; guidePending = true; lastRules = ''; lastFrame = Date.now()
-  $('big').innerHTML = ''; $('feed').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
+  resetJournal(); $('game').classList.remove('camp-right'); $('big').innerHTML = ''; $('calls').innerHTML = ''; $('toast').textContent = ''; $('connection').hidden = true
   liveView = createLiveView(); practice = createPractice({ seed: (Math.random() * 2 ** 32) >>> 0 })
   show('game'); fit(); stopEditing(); practice.start(receive)
 }
@@ -692,18 +725,34 @@ requestAnimationFrame(draw)
 function panel() {
   const side = liveView?.side, s = F?.board
   if (!liveView?.ready || !s) return
+  const right = side === 1; if ($('game').classList.contains('camp-right') !== right) { $('game').classList.toggle('camp-right', right); fit() }
   const own = mine(), selected = own.find(b => b.id === sel), total = a => a.reduce((sum, b) => sum + b.n, 0), left = Math.max(0, Math.floor((s.endTick - liveView.tick) / TPS))
   $('hud').innerHTML = `<b class="you">${esc(F.me?.name || 'you')} ${n(total(own))}</b> · ${own.length} battalions · ${s.planets.filter(p => p.owner === side).length} planets<br><b class="foe">${esc(F.opponent?.name || 'opponent')} ${n(s.totals.enemy)}</b> · ${s.planets.filter(p => p.owner === 1 - side).length} planets<br>${clock(left)} left`
-  $('battalions').innerHTML = `<h3>Your battalions</h3>` + own.map((b, i) => { const [r, g, t] = b.roles, order = b.manual ? 'hand order' : b.rule >= 0 && F.gambits[b.rule] ? `rule ${b.rule + 1}` : 'no matching rule', detail = !b.manual && b.rule >= 0 && F.gambits[b.rule] ? label(F.gambits[b.rule]) : order; return `<button data-bat="${b.id}" class="${b.id === sel ? 'on' : ''}" title="${esc(`Battalion ${i + 1}: ${r} runners, ${g} grunts, ${t} tanks. ${detail}`)}">${i + 1} · ${b.n} · R${r} G${g} T${t} · ${esc(order)}</button>` }).join('')
+  const batHTML = own.map((b, i) => { const [r, g, t] = b.roles, order = b.manual ? 'hand order' : b.rule >= 0 && F.gambits[b.rule] ? `rule ${b.rule + 1}` : 'no matching rule', detail = !b.manual && b.rule >= 0 && F.gambits[b.rule] ? label(F.gambits[b.rule]) : order; return `<button data-bat="${b.id}" class="${b.id === sel ? 'on' : ''}" title="${esc(`Battalion ${i + 1}: ${r} runners, ${g} grunts, ${t} tanks. ${detail}`)}">${i + 1} · ${b.n} · ${esc(order)}</button>` }).join('')
+  const template = document.createElement('template'); template.innerHTML = batHTML
+  const list = $('battalions'), existing = new Map([...list.children].map(el => [el.dataset.bat, el]))
+  for (const next of template.content.children) {
+    const old = existing.get(next.dataset.bat)
+    if (old) { old.className = next.className; old.title = next.title; old.textContent = next.textContent; existing.delete(next.dataset.bat) }
+    else list.appendChild(next.cloneNode(true))
+  }
+  for (const old of existing.values()) old.remove()
+  $('selectedBat').textContent = selected ? (() => { const [r, g, t] = selected.roles, rule = F.gambits[selected.rule]; return `Battalion ${own.indexOf(selected) + 1} · ${selected.n} units · R${r} G${g} T${t} · ${selected.manual ? 'hand order' : rule ? `rule ${selected.rule + 1}: ${label(rule)}` : 'no matching rule'}` })() : 'Click a pink ring or press Tab to select a battalion.'
   for (const id of ['flank', 'detach', 'runners', 'release']) $(id).disabled = !selected || !!s.ended
   $('surrender').hidden = !!s.ended || !!F.report || !!F.waitingForAgent
-  $('agentBox').hidden = !F.me?.withAgent; $('pingHelp').hidden = !F.me?.withAgent
+  $('doctrineBox').hidden = $('say').hidden = !F.me?.withAgent; $('pingHelp').hidden = !F.me?.withAgent
   const rules = F.gambits, ruleKey = JSON.stringify(rules)
-  if (ruleKey !== lastRules) { lastRules = ruleKey; $('gambits').innerHTML = rules.map((r, i) => `<div class="g${r.on === false ? ' off' : ''}" data-g="${i}" role="button" tabindex="0">${esc(label(r))} <i></i></div>`).join('') }
+  if (ruleKey !== lastRules) { const changed = !!lastRules; lastRules = ruleKey; $('gambitsSummary').textContent = `Gambits · ${rules.length} rules`; if (changed) { const summary = $('gambitsSummary'); summary.classList.remove('changed'); void summary.offsetWidth; summary.classList.add('changed') } $('gambits').innerHTML = rules.map((r, i) => `<div class="g${r.on === false ? ' off' : ''}" data-g="${i}" role="button" tabindex="0">${esc(label(r))} <i></i></div>`).join('') }
   document.querySelectorAll('[data-g]').forEach(el => { const c = own.filter(b => !b.manual && b.rule === Number(el.dataset.g)).length; el.classList.toggle('hot', c > 0); el.querySelector('i').textContent = c ? `${c} battalion${c === 1 ? '' : 's'}` : '' })
-  const edits = F.edits || [], by = edits.at(-1); $('byline').textContent = by ? `${by.who} · ${clock(by.t)}${by.why ? ` · ${by.why}` : ''}` : ''; $('edits').innerHTML = [...edits].reverse().map(e => `<div>${esc(clock(e.t))} · ${esc(e.who)} · ${esc(e.change)} <span class="dim">${esc(e.why)}</span></div>`).join('')
+  const edits = F.edits || []
+  for (const e of edits) if (e.change !== 'no change') journalAdd({ t: e.t, kind: 'doctrine', who: e.who, text: `${e.change}${e.why ? ` — ${e.why}` : ''}` })
+  for (const f of F.feed || []) {
+    if (/^(gambits|toggle|rewrote the gambits|switched gambit \d+)(:|$)/.test(f.text) || f.who === 'agent' && edits.some(e => e.t === f.t && e.who === f.who && f.text.startsWith(e.change))) continue
+    journalAdd({ t: f.t, kind: f.text.startsWith('asks you:') ? 'request' : /^(ordered|detached|flanked|released) battalion/.test(f.text) ? 'action' : 'message', who: f.who, raw: f.text, text: f.text.replace(/^(ordered|detached|flanked|released) battalion (\d+)/, (m, verb, id) => { const i = own.findIndex(b => b.id === +id); return i < 0 ? m : `${verb} battalion ${i + 1}` }) })
+  }
+  if (planetOwners) for (const p of s.planets) if (planetOwners.has(p.id) && planetOwners.get(p.id) !== p.owner) { const owner = p.owner < 0 ? planetOwners.get(p.id) : p.owner, ours = owner === side; journalAdd({ t: Math.floor(liveView.tick / TPS), kind: 'planet', who: 'system', camp: owner < 0 ? 'system' : ours ? 'own' : 'enemy', text: `Planet #${p.id} ${p.owner < 0 ? 'lost by' : 'captured by'} ${ours ? F.me?.name || 'you' : F.opponent?.name || 'opponent'}` }) }
+  planetOwners = new Map(s.planets.map(p => [p.id, p.owner]))
   const calls = F.calls || []; $('calls').innerHTML = calls.map((c, i) => `<div class="call">${esc(c.message)}${c.bat != null ? ` · battalion #${c.bat}` : ''} ${c.bat != null && c.x != null ? `<button data-do="${i}">do it</button>` : ''}<button data-no="${i}">dismiss</button></div>`).join('')
-  $('feed').innerHTML = (F.feed || []).slice().reverse().map(f => `<div><span class="dim">${clock(f.t || 0)}</span> ${esc(f.who)} ${esc(f.text)}</div>`).join('')
   renderGuide()
   if (s.ended || F.report) {
     if (F.report && !$('again')) {
@@ -731,7 +780,7 @@ $('runners').onclick = () => sel !== null && act({ detach: { bat: sel, role: 'ru
 $('release').onclick = () => sel !== null && act({ release: sel }, 'Returned to gambits')
 cv.onclick = e => { if (!liveView?.ready || F?.board?.ended) return; const p = at(e), hit = mine().find(b => Math.hypot(b.cx - p.x, b.cy - p.y) < ringR(b)); if (hit) select(hit.id); else if (sel !== null) act({ order: { bat: sel, ...p } }, 'Move ordered'); else if (F?.me?.withAgent) { api('POST', '/say', { text: 'look here', ...p, matchId: F.matchId }); toast('Ping sent') } }
 cv.oncontextmenu = e => { e.preventDefault(); $('flank').click() }
-addEventListener('keydown', e => { if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || $('game').hidden || !liveView?.ready || F?.board?.ended || editing) return; const key = e.key.toLowerCase(), own = mine(); if (key === 'tab' && (e.target === document.body || e.target === cv)) { e.preventDefault(); if (own.length) select(own[(own.findIndex(b => b.id === sel) + (e.shiftKey ? own.length - 1 : 1)) % own.length].id) } else if (/^[1-9]$/.test(key)) { if (own[+key - 1]) select(own[+key - 1].id) } else if (key === 'escape') select(null); else if (key === 'x') $('flank').click(); else if (key === 'd') $('detach').click(); else if (key === 'r') $('runners').click(); else if (key === 'q') $('release').click(); else if (key === 'f1') { e.preventDefault(); startGuide() } })
+addEventListener('keydown', e => { if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || $('game').hidden || !liveView?.ready || F?.board?.ended || F?.report || editing) return; const key = e.key.toLowerCase(), own = mine(); if (key === 'tab' && (e.target === document.body || e.target === cv)) { e.preventDefault(); if (own.length) select(own[(own.findIndex(b => b.id === sel) + (e.shiftKey ? own.length - 1 : 1)) % own.length].id) } else if (/^[1-9]$/.test(key)) { if (own[+key - 1]) select(own[+key - 1].id) } else if (key === 'escape') select(null); else if (key === 'x') $('flank').click(); else if (key === 'd') $('detach').click(); else if (key === 'r') $('runners').click(); else if (key === 'q') $('release').click(); else if (key === 'f1') { e.preventDefault(); startGuide() } })
 function stopEditing() { editing = null; $('gEditor').hidden = true; $('gambits').hidden = false; $('editG').hidden = false; $('applyG').hidden = $('cancelG').hidden = true }
 $('editG').onclick = () => { if (!liveView?.ready || !F?.board) return; editing = true; gEd = editor($('gEditor'), F.gambits); $('gEditor').hidden = false; $('gambits').hidden = true; $('editG').hidden = true; $('applyG').hidden = $('cancelG').hidden = false }
 $('cancelG').onclick = stopEditing

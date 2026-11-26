@@ -99,6 +99,7 @@ test('delayed input is rejected after a same-session rematch without blocking ne
   try {
     await enter(page, 'Delayed input'); await page.locator('#play').click()
     await expect(page.locator('#hud')).toContainText('battalions')
+    await page.locator('#gambitsBox > summary').click()
     await page.locator('#gambits [data-g]').nth(0).click(); await blocked; await page.locator('#gambits [data-g]').nth(1).click()
     const old = await state(page), token = await page.evaluate(() => localStorage.getItem('botters.session'))
     expect((await page.request.post('/surrender?token=' + token, { data: { matchId: old.matchId } })).status()).toBe(200)
@@ -187,6 +188,10 @@ test('local two-player hand order survives reconnect and opponent plays', async 
     await expect.poll(async () => (await state(page)).startsIn).toBe(0)
     const first = await state(page), second = await state(b)
     expect(first.matchId).toBe(second.matchId)
+    const geometry = p => p.evaluate(() => ({ side: document.querySelector('#game').classList.contains('camp-right'), canvas: document.querySelector('#c').getBoundingClientRect().toJSON(), panel: document.querySelector('aside').getBoundingClientRect().toJSON() }))
+    const layouts = await Promise.all([geometry(page), geometry(b)])
+    expect(layouts.map(l => l.side).sort()).toEqual([false, true])
+    for (const l of layouts) expect(l.side ? l.canvas.right <= l.panel.left + 0.1 : l.canvas.left >= l.panel.right - 0.1).toBe(true)
     const order = async p => {
       const row = p.locator('#battalions [data-bat]').first(), id = await row.getAttribute('data-bat')
       await row.click()
