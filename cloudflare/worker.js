@@ -78,6 +78,9 @@ export default {
     return new Response(response.body,{status:response.status,headers})
   },
   async scheduled(_event,env) {
-    await env.DB.prepare('DELETE FROM game_records WHERE key IN (SELECT key FROM game_records WHERE expires>0 AND expires<? LIMIT 500)').bind(Date.now()).run()
+    for (let pass = 0; pass < 40; pass++) {
+      const done = await env.DB.prepare('DELETE FROM game_records WHERE key IN (SELECT key FROM game_records WHERE expires>0 AND expires<? LIMIT 500)').bind(Date.now()).run()
+      if (!(done.meta?.changes >= 500)) break
+    }
   },
 }
