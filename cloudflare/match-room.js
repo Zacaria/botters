@@ -23,7 +23,8 @@ export class MatchRoom extends DurableObject {
       if (!admitted.session.match || !this.ctx.id.equals(this.env.MATCHES.idFromName(admitted.session.match))) return json({ error: 'Match changed. Reconnect.' }, 409)
       await this.wake(admitted.session.match)
       if (admitted.token.role !== 'human') return json({ error: 'Human connection required.' }, 403)
-      if (this.sockets.size >= 8) return json({ error: 'Too many connections. Close another game tab.' }, 429)
+      // Counted per side: one player's tabs never take the other player's place.
+      if ([...this.sockets.values()].filter(e => e.side === admitted.session.side).length >= 4) return json({ error: 'Too many connections. Close another game tab.' }, 429)
       const pair = new WebSocketPair(), server = pair[1]
       server.accept()
       const entry = { key: `token:${hash(new URL(request.url).searchParams.get('token') || '')}`, cookieHash: admitted.token.liveCookieHash, side: admitted.session.side, until: Math.min(Date.now() + 1000, admitted.expires), checked: Date.now(), matchId: admitted.session.match, mirror: createMirror() }
