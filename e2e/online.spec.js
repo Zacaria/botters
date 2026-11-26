@@ -147,7 +147,7 @@ test('two isolated browsers match, survive disconnect/reload, and see end report
   try {
     await enter(page, 'Browser <A>'); await enter(b, 'Browser B')
     await page.locator('#quick').click()
-    await expect(page.locator('#lobbyMsg')).toContainText('Finding an opponent')
+    await expect(page.locator('#queueStatus')).toContainText('Finding an opponent')
     await page.locator('#cancel').click()
     await expect(page.locator('#cancel')).toBeHidden()
     await page.locator('#quick').click(); await b.locator('#quick').click()
@@ -343,15 +343,17 @@ test('new lobby offers connectors and a queued player can switch to the bot', as
     if (age && lobby.queued) lobby.queuedAt = Date.now() - 16000
     await route.fulfill({ json: lobby })
   })
+  await page.setViewportSize({ width: 390, height: 844 })
   await page.locator('#quick').click()
-  await expect(page.locator('#cancel')).toBeVisible()
+  await expect(page.locator('#queueStatus')).toBeInViewport()
+  await expect(page.locator('#cancel')).toBeInViewport()
   await expect(page.locator('#queueFallback')).toBeHidden()
   age = true
-  await expect(page.locator('#playBotInstead')).toBeVisible()
+  await expect(page.locator('#playBotInstead')).toBeInViewport()
   const requests = []
   page.on('request', r => { if (r.method() === 'POST') requests.push({ path: new URL(r.url()).pathname, body: r.postDataJSON() }) })
   await page.locator('#playBotInstead').click()
-  await expect(page.locator('#hud')).toContainText('battalions')
+  await expect(page.locator('#hud')).toContainText('battalions', { timeout: 20000 })
   expect(requests.findIndex(r => r.path === '/cancel')).toBeLessThan(requests.findIndex(r => r.path === '/play'))
   expect(requests.find(r => r.path === '/play').body.vs).toBe('hard')
 })

@@ -99,6 +99,7 @@
   #guidePanel :focus-visible, #guideLaunch:focus-visible { outline: 2px solid #9fe8c0; outline-offset: 2px }
   @media (pointer: coarse) { kbd { display: none } }
   #viewReport { margin-bottom: 12px }
+  #queueBox { margin: 0 0 14px } #queueBox p { margin: 6px 0 } #queueStatus { color: #9fe8c0 }
   @media (max-width: 740px) {
     .wrap { grid-template-columns: 1fr; margin: 20px auto }
     #game aside, #game.camp-right aside { left: 0; right: 0; top: 50vh; width: 100%; border-left: 0; border-right: 0; border-top: 1px solid #1c1c24 }
@@ -188,6 +189,7 @@
     <p class="tag">Capture planets. Grow your army.<br>Most units at the end wins.</p>
     <div id="online" hidden>
       <button class="main" id="quick">PLAY ONLINE</button>
+      <div id="queueBox" hidden><p id="queueStatus" role="status"></p><button id="cancel">Cancel</button><div id="queueFallback" hidden><p>Nobody else is looking right now.</p><button id="playBotInstead">Play the bot instead</button></div></div>
       <p id="presence" class="help"></p>
       <div class="row"><button id="createRoom">Create room</button><input id="joinCode" aria-label="Room code" placeholder="room code" maxlength="6" autocomplete="off"><button id="joinRoom">Join</button></div>
       <label class="help"><input type="checkbox" id="anySettings"> Match any length and map</label>
@@ -199,9 +201,8 @@
     <span id="agentPlay" hidden></span>
     <section id="connectAgent" hidden><p class="help">Play with your AI: add Botters to Claude or ChatGPT.</p><a id="addClaude" href="https://claude.ai/customize/connectors?modal=add-custom-connector&amp;connectorName=Botters&amp;connectorUrl=https%3A%2F%2Fplay.botters.havesomecode.io%2Fmcp" target="_blank" rel="noopener">Add to Claude</a> <button id="addChatGPT" type="button">Copy address and open ChatGPT</button><p id="connectStatus" role="status"></p><a href="/guide#web-client">Step-by-step guide</a></section>
     <label id="guidedHouseOption" hidden><input type="checkbox" id="guidedHouse"> Teach me while I play</label>
-    <div><button id="viewReport" hidden>View last report</button> <button id="cancel" hidden>cancel</button></div>
+    <div><button id="viewReport" hidden>View last report</button></div>
     <p id="lobbyMsg" class="warn" role="status"></p>
-    <div id="queueFallback" hidden><p>Nobody else is looking right now.</p><button id="playBotInstead">Play the bot instead</button></div>
       <div id="roomPanel" class="card" hidden>
         <h3>Your room · <span id="roomCode"></span></h3>
         <p><a id="roomLink"></a> <button id="copyRoom">Copy link</button></p>
@@ -535,7 +536,8 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   $('agentState').innerHTML = L.agent ? `<span class="agent">● ${esc(L.agent)} connected</span>` : agentOk ? '<span class="agent">○ authorized · opens when you play</span>' : `<span class="dim">none connected · <a href="/guide#web-client" target="_blank">connect one</a></span>`
   $('history').innerHTML = L.history.length ? '<table>' + L.history.map(h => `<tr><td class="${h.result === 'won' ? 'you' : 'dim'}">${h.result.toUpperCase()}</td><td>vs ${esc(h.vs)}</td><td>${n(h.you)}–${n(h.enemy)}</td></tr>`).join('') + '</table>' : 'none yet'
   $('board').innerHTML = L.leaderboard.length ? '<table>' + L.leaderboard.map((b, i) => `<tr><td>${i + 1}.</td><td>${esc(b.name)} <span class="dim">${esc(b.setup || '')}</span></td><td>${b.rating}</td></tr>`).join('') + '</table>' : 'empty'
-  $('cancel').hidden = !L.queued; $('lobbyMsg').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : lobbyError || L.notice || ''
+  $('queueBox').hidden = !L.queued; $('queueStatus').textContent = L.queued ? `Finding an opponent · ${clock(Math.max(0, Math.floor((Date.now() - (L.queuedAt || Date.now())) / 1000)))}` : ''
+  $('lobbyMsg').textContent = L.queued ? '' : lobbyError || L.notice || ''
   $('queueFallback').hidden = !L.queued || !L.queuedAt || Date.now() - L.queuedAt < 15000
   $('viewReport').hidden = !L.inMatch || L.live
   lobbyChoices()
