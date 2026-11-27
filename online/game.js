@@ -412,6 +412,7 @@ export class OnlineGame {
         if (auth.role === 'agent' && !Object.keys(HOUSE).includes(body.vs)) fail(403, 'Your agent can only start a house match.')
         mayStart()
         const req = parsePlay(auth.role === 'agent' ? { ...body, withAgent: true } : body), idx = await index()
+        if (auth.role === 'agent' && idx.queue.some(e => e.id === s.id)) fail(409, 'Your human is waiting for a player.')
         idx.queue = idx.queue.filter(e => e.id !== s.id)
         s.notice = null
         if (req.vs !== 'player') { await start([{ s, req }, null], req, null, auth.role === 'agent' || body.withAgent === true); return { ok: true } }
