@@ -153,7 +153,7 @@ Owner played the `feat/particles` spike and approved replacing production with i
 
 **Gambits.** Conditions `bigger_enemy_near, planet_attacked, ally_fighting, weaker_enemy_near, small, big, free_planet, enemy_planet, always`; actions `go, flank, retreat, split, hold`. House bots are fixed gambit sets: `pincer` (hard: blob that flanks a bigger battalion), `wary` (normal: `flanker` that falls back from a battalion 1.5× its size), `cautious` (easy); `flanker` is the default for players; `blob` never retreats or splits. Wire name stays `gambits`; the lobby "doctrine" is still the human's free text for the agent.
 
-**Hand orders** (human or agent, agents still capped at 5 inputs/s): `order {bat, x, y}` (move), `flank bat` (swing round the nearest enemy), `detach {bat, role?}` (half, or only one role), `release bat` (back to the gambits). API: `docs/specs/particle-sim.md`.
+**Hand orders** (human or agent, agents still capped at 5 inputs/s): `order {bat, x, y}` (move), `flank bat` (swing round the nearest enemy in sight), `detach {bat, role?}` (half, or only one role), `release bat` (back to the gambits). API: `docs/specs/particle-sim.md`.
 
 **Fog transport (2026-11-22, replaces the lockstep replica).** Owner rejected the lockstep replica on 21/11: every browser held the whole match, so fog was display only. Now only the server runs the match. Each browser receives its own units and the enemy units its side can see (`sim.visible`), nothing else. One module, `wire.js`, holds the encoder, the decoder and the per-client mirror; the local SSE stream and the online WebSocket use it alike.
 

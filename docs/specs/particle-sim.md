@@ -20,7 +20,7 @@ Unit `i` belongs to side `i < MAXPER ? 0 : 1`. Determinism uses only `+ - * / Ma
 | `HOUSE = {easy: cautious, normal: wary, hard: pincer}`, `HOUSE_DOCTRINE = {easy: 'cautious', normal: 'wary', hard: 'pincer'}` | house bots |
 | `OPTIONS = {minutes: [3, 5, 8], planets: [9, 17, 25]}`, `matchOptions(o)` | defaults 5 min, 17 planets |
 | `createMatch(seed, options)` | both sides start with `DEFAULT_GAMBITS`, 3 battalions of 400 |
-| `applyInput(s, side, input) → {ok, error?, bat?}` | exactly one key: `gambits`, `toggle` (rule index), `order {bat, x, y}`, `flank` (bat), `detach {bat, role?}` (returns new `bat`), `release` (bat), `surrender: true`. Rejects foreign/dead battalions with an error listing the side's live battalions. |
+| `applyInput(s, side, input) → {ok, error?, bat?}` | exactly one key: `gambits`, `toggle` (rule index), `order {bat, x, y}`, `flank` (bat: swings round the nearest enemy battalion in sight, refused when none is), `detach {bat, role?}` (returns new `bat`), `release` (bat), `surrender: true`. Rejects foreign/dead battalions with an error listing the side's live battalions. |
 | `step(s)`, `advanceTo(s, tick)` | |
 | `replay(seed, log, opts)` | log entries `{tick, side, input}`, applied at `s.tick === tick` before stepping |
 | `hash(s)` | FNV over alive, x, y (psim) plus tick and planet owners |
