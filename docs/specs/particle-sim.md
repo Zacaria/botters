@@ -16,8 +16,8 @@ Unit `i` belongs to side `i < MAXPER ? 0 : 1`. Determinism uses only `+ - * / Ma
 |---|---|
 | `W, H, TPS, ROLES, MAXPER, MAXBATS, THINK, MAX_GAMBITS (10)` | constants |
 | `CONDITIONS, ACTIONS, checkGambits(list)` | rule catalogue (`{doc, p}`), returns an error string or null |
-| `DOCTRINES = {pincer, flanker, blob, cautious}`, `DEFAULT_GAMBITS = DOCTRINES.flanker` | |
-| `HOUSE = {easy: cautious, normal: flanker, hard: pincer}`, `HOUSE_DOCTRINE = {easy: 'cautious', normal: 'flanker', hard: 'pincer'}` | house bots |
+| `DOCTRINES = {pincer, flanker, wary, blob, cautious}`, `DEFAULT_GAMBITS = DOCTRINES.flanker` | |
+| `HOUSE = {easy: cautious, normal: wary, hard: pincer}`, `HOUSE_DOCTRINE = {easy: 'cautious', normal: 'wary', hard: 'pincer'}` | house bots |
 | `OPTIONS = {minutes: [3, 5, 8], planets: [9, 17, 25]}`, `matchOptions(o)` | defaults 5 min, 17 planets |
 | `createMatch(seed, options)` | both sides start with `DEFAULT_GAMBITS`, 3 battalions of 400 |
 | `applyInput(s, side, input) → {ok, error?, bat?}` | exactly one key: `gambits`, `toggle` (rule index), `order {bat, x, y}`, `flank` (bat), `detach {bat, role?}` (returns new `bat`), `release` (bat), `surrender: true`. Rejects foreign/dead battalions with an error listing the side's live battalions. |

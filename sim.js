@@ -37,6 +37,7 @@ const rule = (cond, then, p) => ({ if: cond, then, on: true, ...(p !== undefined
 export const DOCTRINES = { // 16 maps × both sides (docs/agent-value/RESULTS.md): pincer beats blob 0.63, flanker 0.72; blob beats flanker 0.69; everything beats cautious
   pincer: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('bigger_enemy_near', 'flank', 1), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // blob that flanks an equal or bigger enemy
   flanker: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('ally_fighting', 'flank'), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')],
+  wary: [rule('planet_attacked', 'go'), rule('bigger_enemy_near', 'retreat', 1.5), rule('weaker_enemy_near', 'go', 3), rule('ally_fighting', 'flank'), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // flanker that falls back from a battalion 1.5× its size
   blob: [rule('planet_attacked', 'go'), rule('weaker_enemy_near', 'go', 3), rule('free_planet', 'go'), rule('enemy_planet', 'go'), rule('always', 'hold')], // never retreats, never splits
   cautious: [rule('bigger_enemy_near', 'retreat'), rule('planet_attacked', 'go'), rule('ally_fighting', 'flank'), rule('weaker_enemy_near', 'go'), rule('small', 'go'), rule('big', 'split'), rule('free_planet', 'go'), rule('enemy_planet', 'go')],
 }
@@ -265,8 +266,8 @@ export const hash = s => { let h = 2166136261 >>> 0; for (let i = 0; i < s.N; i+
 
 export const MAX_GAMBITS = 10
 export const DEFAULT_GAMBITS = DOCTRINES.flanker
-// normal = the players' own starting gambits: Claude won 2/9 against blob in the live league (docs/agent-value/league-2026-11-26.md)
-export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'flanker', hard: 'pincer' }
+// live league (docs/agent-value/league-2026-11-26.md): Claude won 2/9 against blob and 1/5 against flanker as normal
+export const HOUSE_DOCTRINE = { easy: 'cautious', normal: 'wary', hard: 'pincer' }
 export const HOUSE = Object.fromEntries(Object.entries(HOUSE_DOCTRINE).map(([k, v]) => [k, DOCTRINES[v]]))
 export const OPTIONS = { minutes: [3, 5, 8], planets: [9, 17, 25] }
 export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes) ? o.minutes : 5, planets: OPTIONS.planets.includes(o?.planets) ? o.planets : 17 })

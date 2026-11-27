@@ -38,4 +38,4 @@ A gambit is `IF condition → action`. Every half second, each battalion not hel
 
 ## House doctrines
 
-`sim.js` `DOCTRINES`: `cautious` (easy), `flanker` (normal, and every side's starting gambits), `pincer` (hard: blob that flanks an equal or bigger battalion), `blob` (never retreats, never splits; no longer a house level). Measured strength: pincer > blob > flanker > cautious (`docs/agent-value/RESULTS.md`). Retreating from bigger battalions loses: no measured set that retreats beats one that does not.
+`sim.js` `DOCTRINES`: `cautious` (easy), `wary` (normal: `flanker` that falls back from a battalion 1.5× its size), `pincer` (hard: blob that flanks an equal or bigger battalion), `flanker` (every side's starting gambits), `blob` (never retreats, never splits). Normal was `blob`, then `flanker`; Claude won about 1 in 5 against both in the live league (`docs/agent-value/league-2026-11-26.md`). Measured strength: pincer > blob > flanker > cautious (`docs/agent-value/RESULTS.md`). Retreating from bigger battalions loses: no measured set that retreats beats one that does not.
