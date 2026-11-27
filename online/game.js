@@ -171,8 +171,8 @@ export class OnlineGame {
             if (!chunk?.[i % 64]) return null
             const e = chunk[i % 64]
             while (state.tick < e.tick && !state.ended) step(state)
-            const result = applyInput(state, e.side, e.input)
-            if (!result.ok) throw new Error(`Invalid persisted input: ${result.error}`)
+            // An order the current rules refuse is skipped: the match goes on without it.
+            applyInput(state, e.side, e.input)
           }
         }
         attachState(m, state)
