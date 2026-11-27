@@ -51,6 +51,7 @@ function diffEvents(m, p) {
 function matchFrame(m, side, now) {
   const p = m.players[side], foe = opponent(m, side)
   return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits,
+    chat: (m.chat || []).map(c => ({ n: c.n, t: c.t, who: c.side === side ? 'you' : 'opponent', text: c.text })),
     startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - now) / 1000)), waitingForAgent: !!m.waitingForAgent, me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
     opponent: { name: foe.name, setup: foe.setup, human: !!foe.session, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
 }
@@ -427,7 +428,7 @@ export class OnlineGame {
         return { match: { id: m.id, side: s.side, opponent: `${opponent(m, s.side).name} (${opponent(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
           startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), state: view(m.s, s.side) } }
       }
-      if (frameRead) { requireMatch(); if (this.requireAccount && auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.'); return matchFrame(m, s.side, now) }
+      if (frameRead) { requireMatch(); if (this.requireAccount && auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.'); const frame = matchFrame(m, s.side, now); if (auth.role === 'agent') delete frame.chat; return frame }
       if (method === 'GET' && path === '/events') {
         agent()
         if (!m || !p.agentJoined) return { events: [], state: null, next: m && !p.withAgent ? 'solo' : 'join' }
@@ -470,6 +471,18 @@ export class OnlineGame {
         const action = input.gambits ? 'gambits' : input.toggle !== undefined ? 'toggle' : input.order ? `ordered battalion ${input.order.bat}` : input.detach ? `detached battalion ${input.detach.bat}` : input.flank !== undefined ? `flanked battalion ${input.flank}` : input.release !== undefined ? `released battalion ${input.release}` : Object.keys(input)[0]
         feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${auth.role === 'agent' && doctrine ? change : action}${why ? `: ${why}` : ''}`)
         return result
+      }
+      if (method === 'POST' && path === '/chat') {
+        human(); requireMatch()
+        if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
+        if (!active(m)) fail(409, 'Match is over.')
+        if (!opponent(m, s.side).session) fail(409, 'Your opponent is the house.')
+        const message = text(body.text, 140); if (!message) fail(400, 'Message is empty.')
+        p.chatSent = (p.chatSent || []).filter(t => now - t < 5000)
+        if (p.chatSent.length >= 3) fail(429, 'max 3 messages per 5 seconds')
+        p.chatSent.push(now)
+        m.chat = [...(m.chat || []), { n: (m.chatCount = (m.chatCount || 0) + 1), t: Math.floor(m.s.tick / TPS), side: s.side, text: message }].slice(-30)
+        return { ok: true }
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {
         requireMatch()

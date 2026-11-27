@@ -13,6 +13,26 @@ function fixture() {
   return { game, store, call, session, advance: ms => { now += ms } }
 }
 
+test('human opponent chat is private, bounded and rate limited', async () => {
+  const f = fixture(), a = await f.session('a', 'agent'), b = await f.session('b', 'agent')
+  await f.call(a, 'POST', '/play', { vs: 'player' }); await f.call(b, 'POST', '/play', { vs: 'player' })
+  const id = (await f.call(a, 'GET', '/state')).matchId
+  await assert.rejects(f.call(a, 'POST', '/chat', { text: 'stale', matchId: 'old' }), { status: 409, message: 'Match is no longer active.' })
+  await assert.rejects(f.call(a, 'POST', '/chat', { text: ' ' }), { status: 400 })
+  await assert.rejects(f.call(a, 'POST', '/chat', { text: 'agent' }, 'agent'), { status: 401 })
+  await f.call(a, 'POST', '/chat', { text: 'x'.repeat(141), matchId: id })
+  assert.equal((await f.call(a, 'GET', '/state')).chat[0].who, 'you')
+  assert.deepEqual((await f.call(b, 'GET', '/state')).chat[0], { n: 1, t: 0, who: 'opponent', text: 'x'.repeat(140) })
+  assert.equal('chat' in await f.call(a, 'GET', '/state', {}, 'agent'), false)
+  await f.call(a, 'POST', '/chat', { text: 'two' }); await f.call(a, 'POST', '/chat', { text: 'three' })
+  await assert.rejects(f.call(a, 'POST', '/chat', { text: 'four' }), { status: 429, message: 'max 3 messages per 5 seconds' })
+  f.advance(5000); await f.call(a, 'POST', '/chat', { text: 'four' })
+  await f.call(a, 'POST', '/surrender')
+  await assert.rejects(f.call(a, 'POST', '/chat', { text: 'ended' }), { status: 409 })
+  await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false })
+  await assert.rejects(f.call(a, 'POST', '/chat', { text: 'house' }), { status: 409, message: 'Your opponent is the house.' })
+})
+
 test('agent starts only house matches and cannot give hand orders', async () => {
   const f = fixture(), a = await f.session('a', 'agent')
   await assert.rejects(f.call(a, 'POST', '/play', { vs: 'player' }, 'agent'), { status: 403, message: 'Your agent can only start a house match.' })

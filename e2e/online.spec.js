@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises'
 import { test, expect, enterAccount, ageAgentPresence } from './fixtures.js'
 import { state } from './preview.js'
 
@@ -175,6 +176,26 @@ test('local server progresses on real time', async ({ page, request, baseURL }) 
   await page.locator('#play').click()
   await expect(page.locator('#hud')).toBeVisible()
   await expect.poll(async () => (await state(page)).view?.tick, { timeout: 20000 }).toBeGreaterThan(0)
+})
+
+test('two humans chat in the match journal', async ({ page, browser }) => {
+  test.skip(remote, 'Local isolated backend only')
+  test.setTimeout(120000)
+  const other = await browser.newContext({ viewport: { width: 1280, height: 800 } }), b = await other.newPage()
+  try {
+    await enter(page, 'Chat A'); await enter(b, 'Chat B')
+    await page.locator('#quick').click(); await b.locator('#quick').click()
+    await expect(page.locator('#msg')).toBeVisible(); await expect(b.locator('#muteChat')).toBeVisible()
+    await page.locator('#msg').fill('<b>hi</b>'); await page.locator('#msg').press('Enter')
+    await expect(b.locator('#journal')).toContainText('<b>hi</b>', { timeout: 25000 }); await expect(b.locator('#journal div').filter({ hasText: '<b>hi</b>' })).toContainText('Chat A')
+    if (process.env.BOTTERS_CHAT_EVIDENCE) { await mkdir(process.env.BOTTERS_CHAT_EVIDENCE, { recursive: true }); await b.screenshot({ path: `${process.env.BOTTERS_CHAT_EVIDENCE}/chat-1280.png` }) }
+    await b.setViewportSize({ width: 390, height: 800 })
+    for (const selector of ['#msg', '#muteChat']) { const box = await b.locator(selector).boundingBox(); expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390) }
+    await b.locator('#muteChat').click(); await expect(b.locator('#muteChat')).toHaveAttribute('aria-pressed', 'true')
+    await page.locator('#msg').fill('muted secret'); await page.locator('#msg').press('Enter')
+    await expect(page.locator('#journal')).toContainText('muted secret')
+    await expect(b.locator('#journal')).not.toContainText('muted secret')
+  } finally { await other.close() }
 })
 
 test('local two-player hand order survives reconnect and opponent plays', async ({ page, browser }) => {
