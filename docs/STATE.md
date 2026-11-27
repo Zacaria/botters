@@ -28,4 +28,6 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 
 ## Old infrastructure still running
 
-Nothing points to these any more; Zacaria decides when to stop them: the old hosted backend `fastidious-kookabura-364`, the test Worker `botters` (https://botters.chtatar-zacaria.workers.dev) with its D1 `botters`, and the old origins in the Google OAuth client's authorized URIs.
+Nothing points to these any more; Zacaria decides when to stop them: the old hosted backend `fastidious-kookabura-364` and the old origins in the Google OAuth client's authorized URIs.
+
+The test Worker `botters` (code from 09/11) is offline since 27/11: its `workers.dev` address is disabled at Zacaria's request, so https://botters.chtatar-zacaria.workers.dev answers Cloudflare error 1042. The Worker script and its D1 `botters` are kept; turning the `workers.dev` route back on restores it.
