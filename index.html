@@ -648,7 +648,7 @@ $('addChatGPT').onclick = () => {
 const roundPrompt = 'Use the Botters connector: call wait_for_pause, then set_bot with a breed and rules before the gong. Repeat until the match is over, then sum it up in two lines.'
 $('roundPrompt').textContent = roundPrompt; $('roundConnector').textContent = connectorAddress
 $('roundCopy').onclick = async () => { try { await navigator.clipboard.writeText(roundPrompt); $('roundCopy').textContent = 'Copied' } catch { $('roundCopy').textContent = 'Copy the prompt above' } }
-let roundMatchData = null, roundLobbyMatch = null, roundBreed = 'runner', roundBot = null, roundDirty = false, roundVersion = '', roundPollTimer = null, roundReplay = null, roundReplayId = '', roundFrame = 0, roundLast = 0, roundCredit = 0, roundFinished = 0, roundDebriefShowing = false, roundBusy = false
+let roundMatchData = null, roundLobbyMatch = null, roundBreed = 'runner', roundBot = null, roundDirty = false, roundVersion = '', roundPollTimer = null, roundReplay = null, roundReplayId = '', roundFrame = 0, roundReplayRound = 0, roundReplayEnd = 0, roundLast = 0, roundCredit = 0, roundFinished = 0, roundDebriefShowing = false, roundBusy = false
 const breedText = { runner: 'beats tanks', grunt: 'beats runners', tank: 'beats grunts' }
 function breedPicker(el, selected, choose) {
   el.innerHTML = sim.BREEDS.map(b => `<button type="button" data-breed="${b}" class="${b === selected ? 'on' : ''}" aria-pressed="${b === selected}">${b} <small>· ${breedText[b]}</small></button>`).join('')
@@ -700,7 +700,8 @@ function debriefHTML(d) {
 }
 function showRoundDebrief(d) { if (!d) return; roundFinished = Math.max(roundFinished, d.round); roundDebriefShowing = true; $('roundDebriefBody').innerHTML = debriefHTML(d); renderRounds() }
 $('roundContinue').onclick = () => { roundDebriefShowing = false; renderRounds() }
-$('roundSkip').onclick = () => { cancelAnimationFrame(roundFrame); roundReplay = null; roundFinished = Math.max(roundFinished, roundMatchData.fight?.round || roundMatchData.round); const d = roundMatchData.rounds.find(x => x.round === roundFinished); if (d) showRoundDebrief(d); else { roundDebriefShowing = false; renderRounds() } }
+function endRoundReplay() { cancelAnimationFrame(roundFrame); const r = roundReplayRound; roundReplay = null; roundFinished = Math.max(roundFinished, r); const d = roundMatchData.rounds.find(x => x.round === r); if (d) showRoundDebrief(d); else { roundDebriefShowing = false; renderRounds() } }
+$('roundSkip').onclick = endRoundReplay
 $('roundAgain').onclick = async () => { const r = await api('POST', '/rounds/start', { breed: roundBot?.breed || roundBreed }); if (r.error) { $('roundError').textContent = r.error; return } roundFinished = 0; roundReplayId = ''; roundBot = null; roundDebriefShowing = false; await pollRounds(false) }
 $('roundBack').onclick = () => { clearTimeout(roundPollTimer); cancelAnimationFrame(roundFrame); roundReplay = null; lobby(false) }
 function renderRounds() {
@@ -719,10 +720,11 @@ function paintRound() {
 }
 function playRoundFrame(now) {
   if (!roundReplay || $('rounds').hidden) return
+  // Step at 5× and end with the server's fight window, so a slow device never eats into the next pause.
   if (roundLast) roundCredit += Math.min(100, now - roundLast) / 10; roundLast = now
-  const until = performance.now() + 8; while (roundCredit >= 1 && !roundReplay.state.ended && performance.now() < until) { roundReplay.advance(); roundCredit-- }
+  const until = performance.now() + 12; while (roundCredit >= 1 && !roundReplay.state.ended && performance.now() < until) { roundReplay.advance(); roundCredit-- }
   roundCredit = Math.min(roundCredit, 10); paintRound()
-  if (roundReplay.state.ended) { const r = roundMatchData.fight?.round || roundMatchData.round; roundReplay = null; roundFinished = Math.max(roundFinished, r); const d = roundMatchData.rounds.find(x => x.round === r); if (d) showRoundDebrief(d); else renderRounds(); return }
+  if (roundReplay.state.ended || now >= roundReplayEnd) return endRoundReplay()
   roundFrame = requestAnimationFrame(playRoundFrame)
 }
 async function pollRounds(schedule = true) {
@@ -732,7 +734,7 @@ async function pollRounds(schedule = true) {
     const m = r.match; roundMatchData = m
     const pending = (m.rounds || []).find(d => d.round > roundFinished)
     if (!roundReplay && !roundDebriefShowing && m.fight && m.fight.round > roundFinished && roundReplayId !== `${m.id}:${m.fight.round}`) {
-      try { roundReplayId = `${m.id}:${m.fight.round}`; roundReplay = createRoundReplay({ seed: m.seed, ...m.fight }); roundLast = 0; roundCredit = 0; $('roundLegend').textContent = `You: ${m.fight.bots[0].breed} · House: ${m.fight.bots[1].breed}`; roundFrame = requestAnimationFrame(playRoundFrame) } catch (e) { $('roundError').textContent = `Replay unavailable: ${e.message}` }
+      try { roundReplayId = `${m.id}:${m.fight.round}`; roundReplay = createRoundReplay({ seed: m.seed, ...m.fight }); roundReplayRound = m.fight.round; roundReplayEnd = performance.now() + m.fight.msLeft; roundLast = 0; roundCredit = 0; $('roundLegend').textContent = `You: ${m.fight.bots[0].breed} · House: ${m.fight.bots[1].breed}`; roundFrame = requestAnimationFrame(playRoundFrame) } catch (e) { $('roundError').textContent = `Replay unavailable: ${e.message}` }
     } else if (!roundReplay && !roundDebriefShowing && pending) showRoundDebrief(pending)
     renderRounds()
   }
