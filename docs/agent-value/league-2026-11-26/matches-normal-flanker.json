@@ -1,0 +1,122 @@
+[
+ {
+  "costUsd": 1.11,
+  "decisive": "I lost on time: 309 troops to the house's 332, with planets tied 7–7.\nThe decisive moment was around 30–65s, when the first clash at the centre went even and my battalions then arrived one by one. The enemy killed them piecemeal, and I never recovered the troop lead or captured the neutral centre planet, which stayed at 30%.\nNext time I'd mass the battalions before engaging and send the army to take the centre planet early. I never changed the gambits after the opening, which was a mistake.",
+  "edits": 1,
+  "gameSeconds": 180,
+  "id": "m23",
+  "leadForGoodFrom": 48,
+  "level": "normal",
+  "matchId": "4LUsPmavCtF63HwL_V_fg0F5AvuVXwft",
+  "planets": [
+   7,
+   7
+  ],
+  "reason": "time",
+  "result": "lost",
+  "style": "aggressive",
+  "turns": 59,
+  "units": [
+   309,
+   332
+  ],
+  "void": null,
+  "house": "flanker"
+ },
+ {
+  "costUsd": 1.13,
+  "decisive": "**Result:** I lost the normal-level match on time, ending at 0 troops and 2 planets against the house's 1357 troops and 15 planets.\n**Decisive moment:** Around 28–37s, my three armies reached the middle of the map, which is where the house's roaming armies met them. Two house armies (448 and 417 troops) caught battalion 2 (420) alone in the south. Once it died, the house kept picking off my scattered battalions and went from even to far ahead.\n**What I'd change:** The free-planet rule sent my armies across the map, split up. Next time I'd hold the planets near my home and keep the armies together. I'd attack only when I clearly outnumber the enemy.",
+  "edits": 5,
+  "gameSeconds": 180,
+  "id": "m24",
+  "leadForGoodFrom": 43,
+  "level": "normal",
+  "matchId": "_b0cdyQqz9DdI42wfgz4ilRV7wd4wqdm",
+  "planets": [
+   2,
+   15
+  ],
+  "reason": "time",
+  "result": "lost",
+  "style": "defensive",
+  "turns": 68,
+  "units": [
+   0,
+   1357
+  ],
+  "void": null,
+  "house": "flanker"
+ },
+ {
+  "costUsd": 1.29,
+  "decisive": "I lost on time: 7 planets and 61 troops against the house's 10 planets and 807 troops.\nDecisive moment: around 40s, battalion 0 was sent alone into the centre and lost to two enemy groups. After that I never had the numbers to take the middle, and the house's reinforcements, including planet 2, kept coming.\nWhat I'd change: keep the three starting battalions together and take planets as one army. I also didn't find the gambit words for retreat or outnumbered checks, so small groups kept trickling into fights.",
+  "edits": 7,
+  "gameSeconds": 180,
+  "id": "m25",
+  "leadForGoodFrom": 36,
+  "level": "normal",
+  "matchId": "CqCaGNHuz88etVEAD80jmrB-y_-d9D4L",
+  "planets": [
+   7,
+   10
+  ],
+  "reason": "time",
+  "result": "lost",
+  "style": "economic",
+  "turns": 70,
+  "units": [
+   61,
+   807
+  ],
+  "void": null,
+  "house": "flanker"
+ },
+ {
+  "costUsd": 1.33,
+  "decisive": "I lost on time: 111 troops to 592, and 8 planets to 9.\nDecisive moment, around 36–60s: my three 400-troop battalions hit the enemy's center force as it arrived, and the fighting went badly for me from there. My reinforcements trickled in battalion by battalion and were destroyed piecemeal, which left the house's flanker free to pressure my south planet.\nWhat I'd change: gather the battalions before engaging, and take the center planet early. The house captured it at 150s, which gave them the planet lead for the final 30 seconds.",
+  "edits": 2,
+  "gameSeconds": 180,
+  "id": "m26",
+  "leadForGoodFrom": 46,
+  "level": "normal",
+  "matchId": "SeruJ_d0dMKgHFv9lobrSWd27kuu2Fab",
+  "planets": [
+   8,
+   9
+  ],
+  "reason": "time",
+  "result": "lost",
+  "style": "aggressive",
+  "turns": 67,
+  "units": [
+   111,
+   592
+  ],
+  "void": null,
+  "house": "flanker"
+ },
+ {
+  "costUsd": 1.07,
+  "decisive": "**Result:** I won by wipe at 169s of 180. The house (normal, flanker) had 0 troops and 0 planets left, and I had 769 troops and 14 planets.\n\n**Decisive moment:** About 51–56s, the middle fight cost me three battalions (0, 1 and 13), and my lead was 462 to 365. At about 62s I turned off `free_planet` and `weaker_enemy_near`, which stopped my reinforcements trickling in piecemeal. At about 70s, with the enemy split into small groups (412 to 277), I turned both back on. I took the center planet at about 100s and then wiped out the enemy's remaining forces.\n\n**What I'd change:** I would turn `weaker_enemy_near` off from the start. It pulled my first two battalions into the center fight before the others arrived.",
+  "edits": 4,
+  "gameSeconds": 169,
+  "id": "m27",
+  "leadForGoodFrom": 30,
+  "level": "normal",
+  "matchId": "zW7D78Hb_JfQR6xNBvtNwMhJWCTNb1fQ",
+  "planets": [
+   14,
+   0
+  ],
+  "reason": "wipe",
+  "result": "won",
+  "style": "defensive",
+  "turns": 57,
+  "units": [
+   769,
+   0
+  ],
+  "void": null,
+  "house": "flanker"
+ }
+]
