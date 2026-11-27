@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { transaction } from '../online/store.js'
 import { D1Store } from './d1-store.js'
-import { hash, nonce, authorize, denied } from './authority.js'
+import { hash, nonce, authorize, denied, clientAddress } from './authority.js'
 import { json, body, runGame } from './http.js'
 const scope = 'botters:play', DAY = 86400
 const error = (message = 'Invalid authorization request.', status = 400) => Object.assign(new Error(message), { status })
@@ -41,7 +41,7 @@ export async function oauthHTTP(env, request) {
     // Registration writes a record for anyone who asks, so it has its own smaller allowance.
     const registering = p === '/register'
     await transaction(store, async tx => {
-      const counter = await tx.get(`oauth:limit:${registering ? 'register:' : ''}${hash(request.headers.get('cf-connecting-ip') || 'local')}:${Math.floor(Date.now()/600000)}`, { n:0 },600)
+      const counter = await tx.get(`oauth:limit:${registering ? 'register:' : ''}${hash(clientAddress(request))}:${Math.floor(Date.now()/600000)}`, { n:0 },600)
       if (counter.n++ >= (registering ? 30 : 200)) throw error('Too many authorization requests.',429)
     })
   }

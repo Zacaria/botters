@@ -38,3 +38,11 @@ export async function exchange(env, store, ticket, identity) {
   })
   return `${cookieName(env)}=${live}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${env.SITE_URL.startsWith('https:') ? '; Secure' : ''}`
 }
+// The address an allowance is counted against. One IPv6 customer holds a whole /64, so count the network, not the host.
+export function clientAddress(request) {
+  const ip = (request.headers.get('cf-connecting-ip') || 'local').toLowerCase()
+  if (!ip.includes(':') || ip.includes('.')) return ip
+  const [head, tail = ''] = ip.split('::'), left = head ? head.split(':') : [], right = tail ? tail.split(':') : []
+  const groups = ip.includes('::') ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right] : left
+  return groups.slice(0, 4).map(g => g.replace(/^0+(?=.)/, '')).join(':') + '::/64'
+}

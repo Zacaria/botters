@@ -1,6 +1,6 @@
 import { OnlineGame } from '../online/game.js'
 import { D1Store } from './d1-store.js'
-import { authorize, hash, proof, exchange, denied } from './authority.js'
+import { authorize, hash, proof, exchange, denied, clientAddress } from './authority.js'
 import { createAuth, identity } from './auth.js'
 import { transaction } from '../online/store.js'
 export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers: { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', ...headers } })
@@ -31,7 +31,7 @@ export async function gameHTTP(env, request, stateCache = null) {
   const data = request.method === 'POST' ? await body(request) : {}
   if (path === '/exchange' && request.method === 'POST') return json({ ok: true }, 200, { 'set-cookie': await exchange(env, store, data.ticket, user) })
   if (path === '/session' && request.method === 'POST' || path === '/agent/pair' && request.method === 'POST') {
-    const ip = request.headers.get('cf-connecting-ip') || 'local'
+    const ip = clientAddress(request)
     await transaction(store, async tx => {
       const counter = await tx.get(`limit:${hash(ip)}:${path}:${Math.floor(Date.now() / 600000)}`, { n: 0 }, 600)
       if (counter.n++ >= (path === '/session' ? 20 : 200)) throw Object.assign(new Error('Too many requests. Retry in ten minutes.'), { status: 429 })
