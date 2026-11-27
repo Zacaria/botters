@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
 
 test('a burst of requests from one player does not hold up the other player', { timeout: 120000 }, async t => {
@@ -35,6 +36,13 @@ test('a burst of requests from one player does not hold up the other player', { 
   await new Promise(done => setTimeout(done, 1500))
   assert.ok(frames > 0, 'the other player still receives frames')
   assert.equal((await one.c.call('GET', `/state?token=${one.s.humanToken}`)).status, 200, 'the burst player is served again afterwards')
+})
+
+test('credentials this service never issued share the sender address allowance', { timeout: 240000 }, async t => {
+  const { mf } = await runtime({ burst: { limit: 20, period: 60 } }); t.after(() => mf.dispose())
+  const left = 60000 - Date.now() % 60000; if (left < 20000) await new Promise(done => setTimeout(done, left + 500))
+  const codes = await Promise.all(Array.from({ length: 30 }, () => mf.dispatchFetch(ORIGIN + '/mcp', { method:'POST', headers:{ 'cf-connecting-ip':'198.51.100.7', authorization:`Bearer ${crypto.randomBytes(24).toString('base64url')}`, 'content-type':'application/json' }, body:'{}' }).then(r => r.status)))
+  assert.deepEqual([codes.filter(s => s === 401).length, codes.filter(s => s === 429).length], [20, 10])
 })
 
 test('an address sending more than its share is refused before any other work, others are not', { timeout: 120000 }, async t => {

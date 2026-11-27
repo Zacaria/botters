@@ -6,6 +6,7 @@ import { oauthRoute, oauthHTTP, authenticate } from './oauth.js'
 export { MatchRoom } from './match-room.js'
 export { AgentGateway } from './agent-gateway.js'
 
+const accepted = new Map()
 const gamePaths = new Set(['/account','/session','/exchange','/rules','/leaderboard','/agent/pair','/agent/poll','/agent/request','/agent/approve','/agent/revoke','/lobby','/profile','/room','/rooms','/rooms/leave','/rooms/join','/rooms/player','/rooms/settings','/rooms/start','/rooms/rematch','/cancel','/start-without-agent','/play','/next','/state','/events','/surrender','/input','/say','/chat','/call','/dismiss','/socket'])
 const publicProtocol = path => path === '/mcp' || oauthRoute(path) && !path.startsWith('/consent')
 const cors = { 'access-control-allow-origin':'*', 'access-control-allow-methods':'GET, POST, DELETE, OPTIONS', 'access-control-allow-headers':'authorization, content-type, mcp-session-id, mcp-protocol-version, last-event-id', 'access-control-expose-headers':'mcp-session-id, www-authenticate' }
@@ -13,10 +14,10 @@ async function dispatch(request,env) {
   const url = new URL(request.url)
   if (!env.SITE_URL || new URL(env.SITE_URL).origin !== env.SITE_URL) throw new Error('Site origin not configured')
   if (!publicProtocol(url.pathname) && request.headers.has('origin') && request.headers.get('origin') !== env.SITE_URL) return json({ error:'Use Botters from its own site.' },403)
-  // Refused before any database work, so one address or agent flooding requests cannot slow everyone's matches.
+  const bearer = url.pathname === '/mcp' && /^Bearer ([A-Za-z0-9_-]{32})$/.exec(request.headers.get('authorization') || '')?.[1], id = bearer && hash(bearer)
+  // Refuse excess requests before database work, using accepted agent credentials or the sender address.
   if (env.BURST && (gamePaths.has(url.pathname) || url.pathname === '/mcp')) {
-    const bearer = url.pathname === '/mcp' && /^Bearer ([A-Za-z0-9_-]{32})$/.exec(request.headers.get('authorization') || '')?.[1]
-    if (!(await env.BURST.limit({ key: bearer ? `agent:${hash(bearer)}` : clientAddress(request) })).success) return json({ error:'Too many requests. Slow down and retry.' },429,{ 'retry-after':'10' })
+    if (!(await env.BURST.limit({ key: accepted.get(id) > Date.now() ? `agent:${id}` : clientAddress(request) })).success) return json({ error:'Too many requests. Slow down and retry.' },429,{ 'retry-after':'10' })
   }
   if (url.pathname.startsWith('/api/auth/')) {
     const headers = new Headers(request.headers)
@@ -26,6 +27,8 @@ async function dispatch(request,env) {
   if (oauthRoute(url.pathname)) return oauthHTTP(env,request)
   if (url.pathname === '/mcp') {
     const grant = await authenticate(env,request)
+    if (accepted.size >= 5000) accepted.clear()
+    accepted.set(id,Date.now() + 600000)
     return env.AGENTS.getByName(grant.grantId).fetch(request)
   }
   if (gamePaths.has(url.pathname)) return gameTransport(env,request)
