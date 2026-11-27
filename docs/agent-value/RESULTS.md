@@ -122,5 +122,7 @@ node scripts/agent-value/agent-bench.mjs --set blobflank --seeds 1,2,...,20 --ou
 node scripts/agent-value/roundrobin.mjs 8 pincer+runner,pincer+grunt,pincer+tank,blob+runner,blob+grunt,blob+tank,rush+runner,rush+grunt,rush+tank round   # §5 offline
 node scripts/agent-value/counter.mjs 6 <out.jsonl> pincer+tank pincer+tank 3 round 8                     # §5 parade search
 node scripts/agent-value/rounds-control.mjs 1 20 noEdit,mirror,switcher,counterLast,reader <out.json>    # §5 controls
-node scripts/agent-value/rounds-bench.mjs --seeds 1,2,...,20 --out <new dir> --model haiku --parallel 5   # §5, ~$0.005/match (sonnet ~$0.05)
+node scripts/agent-value/rounds-bench.mjs --sides haiku,house --seeds 1,2,...,20 --out <new dir> --parallel 5   # §5 (agent-facing text now says opponent, not house)
+node scripts/agent-value/rounds-bench.mjs --sides sonnet,haiku --seeds 1,2,...,20 --swap --out <new dir> --parallel 5   # paid agent vs agent
+node scripts/agent-value/rounds-analyze.mjs <dir> [<dir>...] --json <analysis.json>
 ```
