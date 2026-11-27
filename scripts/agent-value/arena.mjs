@@ -6,12 +6,12 @@ import { availableParallelism } from 'node:os'
 import { createMatch, applyInput, step, view, count, owned, TPS, checkGambits, TUNE, ROUNDS, playRound } from '../../sim.js'
 import { SCRIPTS } from './strategies.mjs'
 
-// job.round: play one rounds-mode round instead (75 s, each side's breed is its whole army; sim.js ROUNDS). job.rounds tunes ROUNDS.
+// job.round: play one rounds-mode round instead (75 s, each side provides its squad army; sim.js ROUNDS). job.rounds tunes ROUNDS.
 export function playMatch({ seed, minutes = 5, planets = 17, sides, tune, round, rounds }) {
   if (tune) Object.assign(TUNE, tune)
-  if (rounds) { const { army, ...rest } = rounds; Object.assign(ROUNDS, rest); if (army) Object.assign(ROUNDS.army, army) }
+  if (rounds) Object.assign(ROUNDS, rounds)
   if (round) {
-    const r = playRound(seed, sides.map(side => side.breed ? { gambits: side.gambits, breed: side.breed } : side.gambits), { planets, every: 0 })
+    const r = playRound(seed, sides.map(side => ({ gambits: side.gambits, army: side.army })), { planets, every: 0 })
     return { seed, winner: r.winner, reason: r.reason, t: r.t, units: r.units, planets: r.planets, edits: [0, 0], leadChanges: 0 }
   }
   const s = createMatch(seed, { minutes, planets }), edits = [0, 0], memo = [{}, {}]

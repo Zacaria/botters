@@ -1,6 +1,6 @@
 // node scripts/agent-value/roundrobin.mjs <seeds> <name,name,...> [minutes|round] [planets] [out.json]
 // Every pair, both sides, each seed, all in one parallel batch. Prints the score matrix (row's score vs column) and each set's mean.
-// `round` plays one rounds-mode round per game (sim.js ROUNDS); names then carry a breed, `pincer+tank` (rounds.mjs `bot`).
+// `round` plays one rounds-mode round per game (sim.js ROUNDS); names can carry an army, `pincer+6-3-3` (rounds.mjs `bot`).
 import { writeFileSync } from 'node:fs'
 import { run } from './arena.mjs'
 import { SETS } from './strategies.mjs'
@@ -9,10 +9,11 @@ const seeds = Array.from({ length: +process.argv[2] || 8 }, (_, i) => 1000 + i)
 const names = (process.argv[3] || Object.keys(SETS).join(',')).split(',')
 const round = process.argv[4] === 'round', minutes = round ? 5 : +process.argv[4] || 5, planets = +process.argv[5] || 17, out = process.argv[6]
 const side = name => round ? bot(name) : { gambits: SETS[name] }
+const rounds = JSON.parse(process.env.ROUNDS_TUNE || '{}')
 const jobs = [], meta = []
 for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) for (const seed of seeds) for (const flip of [0, 1]) {
   const a = side(names[i]), b = side(names[j])
-  jobs.push({ seed, minutes, planets, round, sides: flip ? [b, a] : [a, b] }); meta.push({ i, j, flip })
+  jobs.push({ seed, minutes, planets, round, rounds, sides: flip ? [b, a] : [a, b] }); meta.push({ i, j, flip })
 }
 const t0 = Date.now(), res = await run(jobs)
 const M = names.map(() => names.map(() => [0, 0])) // [points, games]

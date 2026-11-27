@@ -2,7 +2,13 @@
 import { DOCTRINES } from '../../sim.js'
 const r = (cond, then, p) => ({ if: cond, then, ...(p !== undefined && { p }) })
 
+export function RICH(k) {
+  const prey = { ...r('enemy_near', 'go', 400), vs: 'prey' }, predator = { ...r('enemy_near', 'retreat', 150), vs: 'predator' }
+  return [...(k >= 4 ? [r('planet_attacked', 'go')] : []), prey, ...(k >= 5 ? [predator] : []), ...(k >= 6 ? [r('weaker_enemy_near', 'go', 3)] : []), r('free_planet', 'go'), r('enemy_planet', 'go'), ...(k >= 7 ? [r('always', 'hold')] : [])]
+}
+
 export const SETS = {
+  ...Object.fromEntries([3, 4, 5, 6, 7].map(k => [`rich${k}`, RICH(k)])), // race-targeting rules sized for k slots (rounds mode)
   ...DOCTRINES,
   // hand-written variants that isolate one DOCTRINE.md claim each
   rush: [r('weaker_enemy_near', 'go', 10), r('enemy_planet', 'go'), r('always', 'hold')], // attack everything, ignore free planets

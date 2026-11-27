@@ -1,10 +1,11 @@
 import { Worker, isMainThread, parentPort } from 'node:worker_threads'
 import { availableParallelism } from 'node:os'
 import { writeFileSync } from 'node:fs'
+import { ROUNDS } from '../../sim.js'
 import { POLICIES, playRoundsMatch } from './rounds.mjs'
 
 if (!isMainThread) parentPort.on('message', ({ i, seed, policy }) => {
-  try { parentPort.postMessage({ i, result: playRoundsMatch({ seed, policy: POLICIES[policy] }) }) }
+  try { if (process.env.ROUNDS_TUNE) Object.assign(ROUNDS, JSON.parse(process.env.ROUNDS_TUNE)); parentPort.postMessage({ i, result: playRoundsMatch({ seed, policy: POLICIES[policy] }) }) }
   catch (e) { parentPort.postMessage({ i, error: String(e.stack || e) }) }
 })
 else {

@@ -114,6 +114,8 @@ Per seed in `raw/rounds2/<model>-vs-house/` (same files as §4, plus `breeds` = 
 
 ## Reproduce
 
+Results in §§4–5 describe historical single-breed prototypes. Current rounds use 12 mixed squads and race-targeting rules; running these commands now does not reproduce those historical results.
+
 ```
 node scripts/agent-value/roundrobin.mjs 16 pincer,blob,flanker,rush,greedy        # §2 (pincer = blobflank in strategies.mjs)
 node scripts/agent-value/control.mjs blobflank 1 20 flanker,blob,blobflank,rush    # §3 controls
