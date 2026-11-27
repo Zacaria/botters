@@ -92,9 +92,9 @@ export const fighting = (s, o) => s.tick - o.hit < THINK * 2
 // ---------- orders: the player's hand. An ordered battalion ignores doctrine until released ----------
 export function order(s, b, tx, ty) { const o = s.bats[b]; if (!o?.n) return false; o.tx = tx; o.ty = ty; o.via = []; o.manual = true; return true }
 export function release(s, b) { const o = s.bats[b]; if (!o?.n) return false; o.manual = false; o.key = ''; o.rule = -1; return true }
-export function flank(s, b) { // hand-ordered flank on the nearest enemy battalion, fighting ones count as 2× nearer
+export function flank(s, b) { // hand-ordered flank on the nearest enemy battalion in sight, fighting ones count as 2× nearer
   const o = s.bats[b]; if (!o?.n) return false
-  const foes = live(s, 1 - o.side); if (!foes.length) return false
+  const foes = live(s, 1 - o.side).filter(q => visible(s, o.side, q.cx, q.cy)); if (!foes.length) return false
   const score = q => d2(q.cx, q.cy, o.cx, o.cy) * (fighting(s, q) ? 0.25 : 1)
   flankAt(s, o, foes.reduce((m, q) => (score(q) < score(m) ? q : m))); o.manual = true
   return true
@@ -297,7 +297,7 @@ export function applyInput(s, side, input) {
     if (!Number.isFinite(arg.x) || !Number.isFinite(arg.y) || arg.x < 0 || arg.x > W || arg.y < 0 || arg.y > H) return fail('x and y must be inside the map')
     order(s, id, arg.x, arg.y)
   } else if (key === 'release') release(s, id)
-  else if (key === 'flank') { if (!flank(s, id)) return fail('no enemy battalion') }
+  else if (key === 'flank') { if (!flank(s, id)) return fail('no enemy battalion in sight') }
   else {
     if (arg.role !== undefined && !ROLES.some(r => r.name === arg.role)) return fail('unknown role')
     if (arg.role && !s.role.some((r, i) => s.alive[i] && s.bat[i] === id && ROLES[r].name === arg.role)) return fail('no units of that role')
