@@ -31,10 +31,10 @@ export async function gameHTTP(env, request, stateCache = null) {
   const data = request.method === 'POST' ? await body(request) : {}
   if (path === '/exchange' && request.method === 'POST') return json({ ok: true }, 200, { 'set-cookie': await exchange(env, store, data.ticket, user) })
   if (path === '/session' && request.method === 'POST' || path === '/agent/pair' && request.method === 'POST') {
-    const ip = clientAddress(request)
+    const account = path === '/session' && user, key = account ? `account:${user.id}` : clientAddress(request)
     await transaction(store, async tx => {
-      const counter = await tx.get(`limit:${hash(ip)}:${path}:${Math.floor(Date.now() / 600000)}`, { n: 0 }, 600)
-      if (counter.n++ >= (path === '/session' ? 20 : 200)) throw Object.assign(new Error('Too many requests. Retry in ten minutes.'), { status: 429 })
+      const counter = await tx.get(`limit:${hash(key)}:${path}:${Math.floor(Date.now() / 600000)}`, { n: 0 }, 600)
+      if (counter.n++ >= (path === '/session' ? account ? 30 : 20 : 200)) throw Object.assign(new Error('Too many requests. Retry in ten minutes.'), { status: 429 })
     })
   } else if (path === '/agent/poll') {
     if (await store.get(`token:${hash(url.searchParams.get('token') || '')}`)) await admission(env, request)
