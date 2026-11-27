@@ -1,11 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { W, H } from './sim.js'
+import { W, H, ROUNDS, BREEDS, BREED_DOC, CONDITIONS, ACTIONS, MAX_GAMBITS, describe } from './sim.js'
 import { MATCH_VIEW_URI, MATCH_VIEW_MIME, matchViewHtml } from './match-view.js'
 
 export async function createBottersTools({ server: SERVER, agentToken, requireAgentToken = false, setup = 'agent', name = 'you', open: openUrl = () => {}, bypassSecret, log = () => {}, fetchImpl = fetch, state = null }) {
 const serverURL = new URL(SERVER)
-let liveServer = SERVER, liveAccounts = true, advertisedLive = false
+let liveServer = SERVER, liveAccounts = true, advertisedLive = false, roundsEnabled = false
 const reconnectOAuth = 'Agent access ended. Reconnect Botters in your assistant to authorize it again.'
 const withDeadline = async (ms, work) => {
   const controller = new AbortController()
@@ -14,6 +14,7 @@ const withDeadline = async (ms, work) => {
 }
 try {
   const config = await withDeadline(5000, signal => fetchImpl(`${SERVER}/live-config.json`, { headers: serverURL.hostname.endsWith('.vercel.app') && bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : {}, signal }).then(r => r.ok ? r.json() : {}))
+  roundsEnabled = config.rounds === true
   if (config.url && ['https:', 'http:'].includes(new URL(config.url).protocol)) { liveServer = new URL(config.url).origin; liveAccounts = config.accountRequired !== false; advertisedLive = true }
 } catch { /* Offline servers do not advertise a live endpoint. */ }
 const api = async (method, path, body) => {
@@ -220,6 +221,35 @@ mcp.registerTool('call_human', {
   description: 'Ask your human for a hand: a yellow card appears in their browser. Use it when a precise move matters more than the gambits can handle (a bait, a flank, a rescue). Give the battalion id and target if you have them, and say why in one short sentence. Your human has faster hands than your tool calls.',
   inputSchema: { matchId: MATCH_ID, message: z.string().max(140), bat: z.number().optional(), x: z.number().optional(), y: z.number().optional() },
 }, async args => await need() || text(await api('POST', `/call?token=${S.session.agentToken}`, { ...args, matchId: args.matchId ?? S.matchId ?? undefined })))
+
+if (roundsEnabled) {
+  const k=ROUNDS.counter
+  const reference=`Breeds (your whole army is one role, and your planets breed it): ${BREEDS.map(b => `${b}: ${BREED_DOC[b]}`).join('; ')}. A unit deals ${k}× damage to the role it beats and ${+(1/k).toFixed(2)}× to the role that beats it. Conditions (default p): ${Object.entries(CONDITIONS).map(([c,v]) => `${c}(${v.p}): ${v.doc}`).join('; ')}. Actions: ${Object.entries(ACTIONS).map(([a,v]) => `${a}: ${v}`).join('; ')}`
+  const instructions=`Play ${ROUNDS.count} fresh rounds on the same map, ${ROUNDS.seconds}s of simulated combat each. A bot is a breed plus a list of rules. Both sides plan for 60s before each round. At the gong the last valid bot is locked; otherwise your previous bot plays. Start with ${ROUNDS.slots} rule slots, gain one after each round and an extra on a loss (maximum ${MAX_GAMBITS}). First matching rule controls each battalion. You never act during combat. The house also rebuilds its bot between rounds; its rules are hidden, but each debrief shows its army. ${reference}`
+  const errorText = message => ({...text(message),isError:true})
+  const outcome = result => result==='Draw' ? 'draw' : result==='You win' ? 'won' : 'lost'
+  mcp.registerTool('wait_for_pause', {description:`Wait for the next planning pause or match end. ${instructions}`,inputSchema:{}}, async () => {
+    const s=await session(), until=Date.now()+50000
+    do {
+      if (S.session!==s) return errorText('Agent connection changed.')
+      const res=await api('GET',`/rounds?token=${encodeURIComponent(s.agentToken)}`)
+      if (res.error) return errorText(res.error)
+      const m=res.match
+      if (!m) return text('Your human must press Start rounds on the site.')
+      if (m.phase==='over') return text({matchOver:true,result:outcome(m.result),score:m.score,rounds:m.rounds.map(r=>outcome(r.result)),next:'The match is over. Stop.'})
+      if (m.phase==='pause' && (S.roundsSeen?.id!==m.id || S.roundsSeen.round<m.round)) {
+        S.roundsSeen={id:m.id,round:m.round}
+        return text({round:m.round,of:m.of,secondsLeft:m.secondsLeft,yourSlots:m.slots.you,score:m.score,yourBot:{breed:m.bot.breed,rules:m.bot.gambits.map(describe),gambits:m.bot.gambits},lastRound:m.rounds.at(-1) || null,next:`call set_bot({round, breed, gambits, why}) with at most ${m.slots.you} rules before the gong, then wait_for_pause again`})
+      }
+      await new Promise(resolve=>setTimeout(resolve,1000))
+    } while (Date.now()<until)
+    return text('Round still playing; call wait_for_pause again.')
+  })
+  mcp.registerTool('set_bot', {description:`Replace your bot during the current pause: a breed and at most yourSlots rules. Omit breed to keep your current one. The last valid submission before the gong plays; a refused or late one does not replace it, and a refusal says what to fix so you can resend. ${reference}`,inputSchema:{round:z.number().int(),breed:z.string().optional(),gambits:z.array(GAMBIT),why:z.string().max(300)}}, async args => {
+    const s=await session(), res=await api('POST',`/rounds/bot?token=${encodeURIComponent(s.agentToken)}`,args)
+    return res.error ? errorText(res.error) : text({ok:true,round:res.match.round,version:res.match.versions.length,bot:{breed:res.match.bot.breed,rules:res.match.bot.gambits.map(describe)},secondsLeft:res.match.secondsLeft})
+  })
+}
 
 return mcp
 }

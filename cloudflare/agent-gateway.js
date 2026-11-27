@@ -4,6 +4,7 @@ import { createBottersTools } from '../tools.js'
 import { authenticate } from './oauth.js'
 import { json, failure, body } from './http.js'
 import { gameTransport } from './game-transport.js'
+import { roundsHTTP } from './rounds-http.js'
 export class AgentGateway extends DurableObject {
   constructor(ctx,env) { super(ctx,env); this.sessions=new Map(); this.state=null; this.tail=Promise.resolve() }
   async fetch(request) {
@@ -35,9 +36,9 @@ export class AgentGateway extends DurableObject {
         const internalFetch=async(url,options={})=>{
           const u=new URL(url)
           if(u.origin!==this.env.SITE_URL) throw new Error('Unexpected game target')
-          if(u.pathname==='/live-config.json') return json({url:this.env.SITE_URL,accountRequired:true})
+          if(u.pathname==='/live-config.json') return json({url:this.env.SITE_URL,accountRequired:true,rounds:this.env.ROUNDS_ENABLED==='1'})
           const req=new Request(u,{...options})
-          try { return await gameTransport(this.env,req) }
+          try { return u.pathname.startsWith('/rounds') ? await roundsHTTP(this.env,req) : await gameTransport(this.env,req) }
           catch(e) {return failure(e)}
         }
         const server=await createBottersTools({server:this.env.SITE_URL,agentToken:grant.agentToken,requireAgentToken:true,state:this.state,fetchImpl:internalFetch})

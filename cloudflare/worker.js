@@ -1,6 +1,8 @@
 import { createAuth } from './auth.js'
 import { json, failure } from './http.js'
 import { gameTransport } from './game-transport.js'
+import { roundsHTTP } from './rounds-http.js'
+export { RoundsRoom } from './rounds-room.js'
 import { oauthRoute, oauthHTTP, authenticate } from './oauth.js'
 export { MatchRoom } from './match-room.js'
 export { AgentGateway } from './agent-gateway.js'
@@ -22,8 +24,9 @@ async function dispatch(request,env) {
     const grant = await authenticate(env,request)
     return env.AGENTS.getByName(grant.grantId).fetch(request)
   }
+  if (url.pathname.startsWith('/rounds')) return roundsHTTP(env,request)
   if (gamePaths.has(url.pathname)) return gameTransport(env,request)
-  if (url.pathname === '/live-config.json') return json({url:env.SITE_URL,accountRequired:true})
+  if (url.pathname === '/live-config.json') return json({url:env.SITE_URL,accountRequired:true,rounds:env.ROUNDS_ENABLED === '1'})
   if (url.pathname === '/media/public-demo.webm' && request.method === 'GET' && request.headers.has('range') && env.ASSETS) {
     const response = await env.ASSETS.fetch(request)
     if (response.status !== 200) return response

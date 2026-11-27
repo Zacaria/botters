@@ -1,28 +1,11 @@
-import { ROUNDS, BREEDS, CONDITIONS, ACTIONS, nextSlots, playRound, checkBot } from '../../sim.js'
-import { r, SETS } from './strategies.mjs'
+import { ROUNDS, BREEDS, nextSlots, playRound, checkBot } from '../../sim.js'
+import { SETS } from './strategies.mjs'
+import { START, PREDATOR, house, fit } from '../../rounds.js'
+export { START, CORE, PREDATOR, fit, house, refusal } from '../../rounds.js'
 
-export const CORE = [r('weaker_enemy_near', 'go', 3), r('free_planet', 'go'), r('enemy_planet', 'go')]
-export const START = { gambits: CORE, breed: 'grunt' } // the bot that plays when nothing valid was sent
-export const PREDATOR = { runner: 'grunt', grunt: 'tank', tank: 'runner' } // the breed that beats this one (sim.js counter triangle)
-export function fit(list, k) {
-  const priority = r => ['weaker_enemy_near', 'free_planet', 'enemy_planet'].includes(r.if) ? 0 : r.if === 'always' ? 2 : 1
-  const picked = list.map((rule, i) => ({ i, priority: priority(rule) })).sort((a, b) => a.priority - b.priority || a.i - b.i).slice(0, k)
-  const indices = new Set(picked.map(x => x.i))
-  return list.filter((_, i) => indices.has(i))
-}
 // `pincer+tank` → { gambits, breed }; a bare set name plays grunts
 export const bot = name => { const [set, breed = 'grunt'] = name.split('+'); if (!SETS[set] || !BREEDS.includes(breed)) throw new Error(`unknown bot ${name}`); return { gambits: SETS[set], breed } }
 const sized = (b, slots) => ({ gambits: fit(b.gambits, slots), breed: b.breed })
-
-// The house changes between rounds like a plain human player: it opens with pincer and a breed drawn from the seed,
-// keeps a bot that won or drew, and after a lost round switches to the breed that beats the one that just beat it.
-// It never sees the agent's next bot. Policy signature: (round, slots, history, seed) → bot; history rows are
-// { round, bots: [side0, side1], result }, i.e. what both debriefs show (each side's breed and the result).
-export function house(_round, slots, history, seed) {
-  const last = history.at(-1)
-  if (!last) return sized(bot(`blobflank+${BREEDS[seed % 3]}`), slots)
-  return sized({ gambits: SETS.blobflank, breed: last.result.winner === 0 ? PREDATOR[last.bots[0].breed] : last.bots[1].breed }, slots)
-}
 
 // Side-0 controls. Each sees only the debriefs (house breed and result), never the house's next bot.
 export const POLICIES = {
@@ -53,19 +36,4 @@ export function playRoundsMatch({ seed, policy, opponent = house, count = ROUNDS
     slots = nextSlots(slots, result.winner)
   }
   return { seed, rounds, score, winner: score[0] === score[1] ? null : score[0] > score[1] ? 0 : 1 }
-}
-// Every problem in one readable sentence, so the agent can fix the bot and resend within the same pause.
-export function refusal(gambits, breed, max) {
-  const problems = []
-  if (!BREEDS.includes(breed)) problems.push(`breed "${breed}" is not one of ${BREEDS.join(', ')}`)
-  if (!gambits.length) problems.push('send at least one rule')
-  if (gambits.length > max) problems.push(`you sent ${gambits.length} rules but you have ${max} slots this round: keep your ${max} most important rules`)
-  gambits.forEach((r, i) => {
-    const inline = /^(\w+)\(([\d.]+)\)$/.exec(r.if) // `planet_attacked(350)`: the debrief's notation, not the input format
-    if (inline && Object.hasOwn(CONDITIONS, inline[1])) problems.push(`rule ${i + 1}: write the number in p, as {"if":"${inline[1]}","then":"${r.then}","p":${inline[2]}}`)
-    else if (!Object.hasOwn(CONDITIONS, r.if)) problems.push(`rule ${i + 1}: unknown condition "${r.if}" (use one of ${Object.keys(CONDITIONS).join(', ')})`)
-    if (!Object.hasOwn(ACTIONS, r.then)) problems.push(`rule ${i + 1}: unknown action "${r.then}" (use one of ${Object.keys(ACTIONS).join(', ')})`)
-    if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) problems.push(`rule ${i + 1}: p must be a number above 0 and at most 100000`)
-  })
-  return problems.length ? `Refused, your previous bot still plays: ${problems.join('; ')}. Fix it and call set_bot again now` : null
 }

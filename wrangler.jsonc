@@ -73,6 +73,21 @@
   "observability": {
     "enabled": false
   },
+  "env": {
+    "preview": {
+      "name": "botters-play-preview",
+      "workers_dev": true,
+      "routes": [],
+      "vars": { "SITE_URL": "https://botters-play-preview.chtatar-zacaria.workers.dev", "AUTH_EMAIL_FROM": "botters@mail.havesomecode.io", "ROUNDS_ENABLED": "1" },
+      "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["botters@mail.havesomecode.io"] }],
+      "d1_databases": [{ "binding": "DB", "database_name": "botters-play-preview", "database_id": "cb05a131-a392-4a6a-9503-db98724ae889", "migrations_dir": "cloudflare/migrations" }],
+      "durable_objects": { "bindings": [{ "name": "MATCHES", "class_name": "MatchRoom" }, { "name": "AGENTS", "class_name": "AgentGateway" }, { "name": "ROUNDS", "class_name": "RoundsRoom" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MatchRoom", "AgentGateway"] }, { "tag": "v2", "new_sqlite_classes": ["RoundsRoom"] }],
+      "triggers": { "crons": ["*/10 * * * *"] },
+      "limits": { "cpu_ms": 300000 },
+      "observability": { "enabled": false }
+    }
+  },
   "workers_dev": false,
   "routes": [
     {
