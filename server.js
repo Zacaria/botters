@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { randomBytes, randomInt } from 'node:crypto'
 import { createMirror, encodeFrame, board, boardKey } from './wire.js'
 import { servePublicMedia } from './public-media.js'
-import { createMatch, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, BREEDS, TPS, W, H, MAX_GAMBITS } from './sim.js'
+import { createMatch, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS } from './sim.js'
 
 const PORT = Number(process.env.PORT || 8787)
 const ORIGIN = process.env.BOTTERS_ORIGIN || `http://localhost:${PORT}`
@@ -14,7 +14,6 @@ const PLANNING = [10, 20, 30] // seconds before the match starts: time for the a
 const FORCED_DELAY = process.env.BOTTERS_START_DELAY && Number(process.env.BOTTERS_START_DELAY) // ms, tests only
 const SEED = process.env.BOTTERS_SEED ? Number(process.env.BOTTERS_SEED) : undefined // fixed map, tests only
 const HOUSE_GAMBITS = process.env.BOTTERS_HOUSE_GAMBITS ? JSON.parse(process.env.BOTTERS_HOUSE_GAMBITS) : null // house rules for every level, benches only
-const HOUSE_SCRIPT = process.env.BOTTERS_HOUSE_SCRIPT ? (await import('./scripts/agent-value/strategies.mjs')).SCRIPTS[process.env.BOTTERS_HOUSE_SCRIPT] : null // house re-breeds from what it sees, benches only
 const DEFAULT_DOCTRINE = 'Take free planets early, defend threatened planets, and attack weaker enemies. Never retreat from a larger battalion: flank it.'
 const LEVELS = Object.keys(HOUSE)
 const tokens = new Map(), elo = new Map()
@@ -48,18 +47,17 @@ function play(s, req, human = false) {
 }
 
 // ---------- matches ----------
-const foe = (m, side) => ({ name: m.players[1 - side].name, setup: m.players[1 - side].setup })
+const foe = (m, side) => ({ name: m.players[1 - side].name, setup: m.players[1 - side].setup, human: !!m.players[1 - side].session })
 function startMatch(entries, req, waitingForAgent = false) { // entries[1] === null: the house plays side 1 with fixed gambits and no agent
   const delay = FORCED_DELAY ?? req.planning * 1000
   const m = { id: id(), s: createMatch(SEED ?? randomInt(2 ** 31), req), level: req.vs, players: [], log: [], streams: new Set(), waitingForAgent, createdAt: Date.now(), delay, startsAt: Date.now() + delay }
   entries.forEach((e, side) => {
     const p = { side, session: e?.s || null, name: e ? e.s.name : HOUSE_GAMBITS ? 'house' : `house (${req.vs} · ${HOUSE_DOCTRINE[req.vs]})`, setup: e ? (e.req.withAgent ? e.s.setup : 'no agent') : 'fixed gambits',
       withAgent: !!e?.req.withAgent, agentJoined: false, openingBy: e?.req.opening ? 'human' : 'agent', doctrine: e?.s.doctrine || '',
-      events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null, spotted: new Set(), edits: [] }
+      events: [], seq: 0, waiters: [], sent: [], calls: [], feed: [], prev: null, edits: [] }
     m.players[side] = p
     const opening = e ? e.req.opening : HOUSE_GAMBITS ?? HOUSE[req.vs]
     if (opening) { const before = structuredClone(m.s.gambits[side]); applyInput(m.s, side, { gambits: opening }); m.log.push({ tick: 0, side, role: e ? 'human' : 'house', input: { gambits: opening } }); p.edits.push({ t: 0, who: e ? 'you' : 'house', why: 'opening gambits', change: changes(before, m.s.gambits[side]) }) }
-    if (!e) { const breed = process.env.BOTTERS_HOUSE_BREED || BREEDS[m.s.seed % 3], before = m.s.breed[side], input = { breed }; const result = applyInput(m.s, side, input); if (!result.ok) throw new Error(result.error); m.log.push({ tick: 0, side, role: 'house', input }); p.edits.push({ t: 0, who: 'house', why: 'opening breed', change: `breed ${before} → ${breed}` }) }
     if (e) { e.s.match = m; e.s.side = side }
   })
   for (const p of m.players) emit(m, p.side, `match starts in ${Math.round(delay / 1000)}s. Your home planet is at (${Math.round(m.s.planets[p.side].x)},${Math.round(m.s.planets[p.side].y)}). You start with three battalions of 400 units. ${p.openingBy === 'human' ? 'Your human wrote the opening gambits.' : 'Write your opening gambits from the doctrine now.'}`)
@@ -70,21 +68,11 @@ function startMatch(entries, req, waitingForAgent = false) { // entries[1] === n
     if (Date.now() < m.startsAt) { if (++waitingFrame % FRAME_EVERY === 0) for (const st of m.streams) send(st, m); return }
     step(m.s)
     if (m.s.ended) return finish(m)
-    if (HOUSE_SCRIPT && m.s.tick % TPS === 0) for (const p of m.players) if (!p.session) houseScript(m, p)
     if (m.s.tick % TPS === 0) for (const p of m.players) diffEvents(m, p)
     if (m.s.tick % FRAME_EVERY === 0) for (const st of m.streams) send(st, m)
   }, 1000 / TPS)
   for (const e of entries) e?.s.nextWaiters.splice(0).forEach(fn => fn()) // wake agents only once the match is complete
   return m
-}
-
-function houseScript(m, p) {
-  p.memo ??= {}
-  const next = HOUSE_SCRIPT(view(m.s, p.side), p.memo)
-  if (!next?.breed) return
-  const before = m.s.breed[p.side], input = { breed: next.breed }
-  if (!applyInput(m.s, p.side, input).ok) return
-  m.log.push({ tick: m.s.tick, side: p.side, role: 'house', input }); p.edits.push({ t: Math.floor(m.s.tick / TPS), who: 'house', why: 're-breed', change: `breed ${before} → ${next.breed}` })
 }
 
 function cancelMatch(m, notice) {
@@ -95,7 +83,7 @@ function cancelMatch(m, notice) {
 
 const frame = (m, side) => {
   const p = m.players[side]
-  return { matchId: m.id, side, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits, waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
+  return { matchId: m.id, side, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits, chat: (m.chat || []).map(c => ({ n: c.n, t: c.t, who: c.side === side ? 'you' : 'opponent', text: c.text })), waitingForAgent: !!m.waitingForAgent, startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - Date.now()) / 1000)),
     me: { name: p.name, withAgent: p.withAgent, agentJoined: p.agentJoined, setup: p.setup }, opponent: foe(m, side), options: m.s.opts }
 }
 const write = (st, data) => st.res.write(`data: ${JSON.stringify(data)}\n\n`)
@@ -136,7 +124,6 @@ function diffEvents(m, p) { // once per second: turn state changes into things a
   const v = view(m.s, p.side), was = p.prev
   p.prev = v
   if (v.ended) return emit(m, p.side, `match over: you ${v.ended.result} (${v.ended.reason}). Particles ${v.totals.you} vs ${v.totals.enemy}.`)
-  for (const e of v.enemies) if (!p.spotted.has(e.id)) { p.spotted.add(e.id); emit(m, p.side, `enemy battalion ${e.id} spotted at (${Math.round(e.x)},${Math.round(e.y)}): ${e.n} units (${e.roles.runner} runners, ${e.roles.grunt} grunts, ${e.roles.tank} tanks)`) }
   if (!was) return
   for (const pl of v.planets) {
     const before = was.planets[pl.id].owner
@@ -216,7 +203,8 @@ const routes = {
   'GET /rules': (req, res) => json(res, 200, { map: { W, H }, maxGambits: MAX_GAMBITS, ...rules() }),
   'GET /state': (req, res, q) => {
     const a = auth(q); if (!a?.s.match) return json(res, a ? 409 : 401, { error: a ? 'not in a match' : 'bad token' })
-    json(res, 200, frame(a.s.match, a.s.side))
+    const result = frame(a.s.match, a.s.side); if (a.role === 'agent') delete result.chat
+    json(res, 200, result)
   },
   'GET /events': (req, res, q) => { // agent: long-poll for events after `since`
     const a = auth(q, 'agent'); if (!a) return json(res, 401, { error: 'bad token' })
@@ -253,16 +241,16 @@ const routes = {
       if (p.sent.length >= RATE) return json(res, 429, { error: `max ${RATE} inputs per second` })
       p.sent.push(now)
     }
-    const input = Object.fromEntries(['gambits', 'toggle', 'breed', 'order', 'flank', 'detach', 'release'].filter(k => Object.hasOwn(b, k)).map(k => [k, b[k]]))
-    if ((m.waitingForAgent || now < m.startsAt) && Object.keys(input).some(k => k !== 'gambits' && k !== 'toggle' && k !== 'breed')) return json(res, 409, { error: 'match not started: only gambits, toggle and breed can change now' })
-    const beforeBreed = m.s.breed[side], before = structuredClone(m.s.gambits[side]), r = applyInput(m.s, side, input)
+    const input = Object.fromEntries(['gambits', 'toggle', 'order', 'flank', 'detach', 'release'].filter(k => Object.hasOwn(b, k)).map(k => [k, b[k]]))
+    if ((m.waitingForAgent || now < m.startsAt) && Object.keys(input).some(k => k !== 'gambits' && k !== 'toggle')) return json(res, 409, { error: 'match not started: only gambits and toggle can change now' })
+    const before = structuredClone(m.s.gambits[side]), r = applyInput(m.s, side, input)
     if (r.ok) {
       m.log.push({ tick: m.s.tick, side, role: a.role, input })
-      const why = typeof b.why === 'string' ? b.why.trim().slice(0, 120) : '', t = Math.floor(m.s.tick / TPS), change = 'breed' in input ? `breed ${beforeBreed} → ${m.s.breed[side]}` : changes(before, m.s.gambits[side]), doctrine = Object.hasOwn(input, 'gambits') || Object.hasOwn(input, 'toggle') || Object.hasOwn(input, 'breed')
+      const why = typeof b.why === 'string' ? b.why.trim().slice(0, 120) : '', t = Math.floor(m.s.tick / TPS), change = changes(before, m.s.gambits[side]), doctrine = Object.hasOwn(input, 'gambits') || Object.hasOwn(input, 'toggle')
       if (doctrine) { p.edits.push({ t, who: a.role === 'agent' ? 'agent' : 'you', why, change }); p.edits = p.edits.slice(-10) }
-      const action = 'breed' in input ? `switched breed to ${input.breed}` : b.gambits ? 'rewrote the gambits' : b.toggle !== undefined ? `switched gambit ${b.toggle + 1}` : b.order ? `ordered battalion ${b.order.bat}` : b.detach ? `detached battalion ${b.detach.bat}` : b.flank !== undefined ? `flanked battalion ${b.flank}` : `released battalion ${b.release}`
+      const action = b.gambits ? 'rewrote the gambits' : b.toggle !== undefined ? `switched gambit ${b.toggle + 1}` : b.order ? `ordered battalion ${b.order.bat}` : b.detach ? `detached battalion ${b.detach.bat}` : b.flank !== undefined ? `flanked battalion ${b.flank}` : `released battalion ${b.release}`
       feed(m, side, a.role === 'agent' ? 'agent' : 'you', `${a.role === 'agent' && doctrine ? change : action}${why ? `: ${why}` : ''}`)
-      if (a.role === 'human') { if (b.order) p.calls = p.calls.filter(c => c.bat !== b.order.bat); emit(m, side, `HUMAN ${doctrine ? ('breed' in input ? action : b.toggle !== undefined ? `switched ${change}` : `rewrote gambits: ${change}`) : action}`) }
+      if (a.role === 'human') { if (b.order) p.calls = p.calls.filter(c => c.bat !== b.order.bat); emit(m, side, `HUMAN ${doctrine ? (b.toggle !== undefined ? `switched ${change}` : `rewrote gambits: ${change}`) : action}`) }
     }
     json(res, r.ok ? 200 : 400, r)
   },
@@ -282,6 +270,19 @@ const routes = {
     if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
     const p = m.players[a.s.side]
     p.calls = p.calls.filter((c, i) => i !== b.index)
+    json(res, 200, { ok: true })
+  },
+  'POST /chat': async (req, res, q) => {
+    const a = auth(q, 'human'); if (!a) return json(res, 401, { error: 'bad token' })
+    const m = a.s.match; if (!m) return json(res, 409, { error: 'not in a match' })
+    const b = await body(req), side = a.s.side, now = Date.now()
+    if (a.s.match !== m || b.matchId !== undefined && b.matchId !== m.id || m.s.ended) return json(res, 409, { error: 'match is no longer active' })
+    if (!m.players[1 - side].session) return json(res, 409, { error: 'Your opponent is the house.' })
+    const text = typeof b.text === 'string' ? b.text.trim().slice(0, 140) : ''
+    if (!text) return json(res, 400, { error: 'Message is empty.' })
+    const p = m.players[side]; p.chatSent = (p.chatSent || []).filter(t => now - t < 5000)
+    if (p.chatSent.length >= 3) return json(res, 429, { error: 'max 3 messages per 5 seconds' })
+    p.chatSent.push(now); m.chat = [...(m.chat || []), { n: (m.chatCount = (m.chatCount || 0) + 1), t: Math.floor(m.s.tick / TPS), side, text }].slice(-30)
     json(res, 200, { ok: true })
   },
   'POST /say': async (req, res, q) => { // human message or ping to their agent
@@ -304,6 +305,7 @@ const routes = {
   'GET /sim.js': page('sim.js'),
   'GET /wire.js': page('wire.js'),
   'GET /browser-live.js': page('browser-live.js'),
+  'GET /live-client.js': page('browser-live.js'),
   'GET /guide': page('guide.html'),
   'GET /privacy': page('privacy.html'),
   'GET /privacy.html': page('privacy.html'),

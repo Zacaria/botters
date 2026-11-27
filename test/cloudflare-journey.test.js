@@ -35,7 +35,7 @@ test('workerd: verified accounts, unique live ticket, consent, two-player room a
   assert.equal((await alice.call('GET', `/agent/poll?token=${pair.agentToken}`)).body.approved, false)
   assert.equal((await alice.call('POST', `/agent/approve?token=${a.humanToken}`, { id: pair.id })).status, 200)
   assert.equal((await alice.call('GET', `/agent/poll?token=${pair.agentToken}`)).body.approved, true)
-  assert.equal((await alice.call('POST', `/play?token=${pair.agentToken}`, {})).status, 401)
+  assert.equal((await alice.call('POST', `/play?token=${pair.agentToken}`, {})).status, 403, 'an agent starts house matches only')
   const room = await alice.call('POST', `/rooms?token=${a.humanToken}`, { minutes: 3, planets: 16, planning: 10, withAgent: true })
   assert.equal(room.status, 200, JSON.stringify(room.body))
   assert.equal((await bob.call('POST', `/rooms/join?token=${b.humanToken}`, { code: room.body.code })).status, 200)

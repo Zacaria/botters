@@ -1,0 +1,122 @@
+[
+ {
+  "costUsd": 1.31,
+  "decisive": "I won by time, 853 troops to 1 and 12 planets to 2, against the normal house AI.\nDecisive moment: around 41–60s the centre fights bled both sides to about 450 vs 320 troops. At ~63s I disabled the planet_attacked rule, which had been pulling every battalion across the map piecemeal. The enemy then wore itself down, and from ~119s I took the centre planet and the southern ones.\nNext time I'd turn that rule off from the start, and mass the three starting battalions before the first push instead of letting them spread.",
+  "edits": 3,
+  "gameSeconds": 180,
+  "id": "m28",
+  "leadForGoodFrom": 32,
+  "level": "normal",
+  "matchId": "hda_-7Rknkwklz2308yJl-wvgBJVI-H4",
+  "planets": [
+   12,
+   2
+  ],
+  "reason": "time",
+  "result": "won",
+  "style": "aggressive",
+  "turns": 63,
+  "units": [
+   853,
+   1
+  ],
+  "void": null,
+  "house": "wary"
+ },
+ {
+  "costUsd": 1.22,
+  "decisive": "I lost on time. The final count was 7 planets to 9 and 392 troops to 905.\nThe decisive moment was around 0:55–1:20. The enemy took the centre planet and then planets 9 and 16. Rallying the \"planet attacked\" rule sent my units in piecemeal, so the enemy picked them off. Retaking planet 9 around 1:50 only briefly evened the count, and it was lost again at 2:50.\nNext time I'd keep my force in one stack instead of letting small battalions trickle toward fights, and I'd contest the centre early.",
+  "edits": 7,
+  "gameSeconds": 180,
+  "id": "m29",
+  "leadForGoodFrom": 91,
+  "level": "normal",
+  "matchId": "7UGeWuHLnEjMckFhZtiAUPdNSllLBF50",
+  "planets": [
+   7,
+   9
+  ],
+  "reason": "time",
+  "result": "lost",
+  "style": "defensive",
+  "turns": 67,
+  "units": [
+   392,
+   905
+  ],
+  "void": null,
+  "house": "wary"
+ },
+ {
+  "costUsd": 1.26,
+  "decisive": "The match is over and I lost on time: 64 troops to 837, and 7 planets to 9.\n\n- **Result:** The expansion worked at first. I held 8 planets against their 6 by about 0:30, and the troop totals were level. Their 9 planets and large troop lead decided the final count.\n- **Decisive moment:** At about 0:35 to 0:45 I sent reinforcements into the center one small battalion at a time. The enemy beat them in pieces, and I lost battalion 1 and then most of the rest. After that I couldn't recover.\n- **What I'd change:** I'd keep the army in one stack and not let the \"free planet\" rule send small groups toward contested planets. I'd also turn on the \"flank\" rule much earlier.",
+  "edits": 6,
+  "gameSeconds": 180,
+  "id": "m30",
+  "leadForGoodFrom": 28,
+  "level": "normal",
+  "matchId": "YwsYwDnckH0fd1Ed7sRQsDL3nx2FtYhM",
+  "planets": [
+   7,
+   9
+  ],
+  "reason": "time",
+  "result": "lost",
+  "style": "economic",
+  "turns": 66,
+  "units": [
+   64,
+   837
+  ],
+  "void": null,
+  "house": "wary"
+ },
+ {
+  "costUsd": 1.25,
+  "decisive": "I won on time, 923 troops to 192 and 11 planets to 6.\n\nThe decisive moment came at about 60–100s. I held the center planet and let the enemy's attack waves break against my reinforcements. That swung the troop count from roughly even to 3 to 1.\n\nIn the last 30 seconds I put `enemy_planet` and then `free_planet` ahead of the fight rules. That flipped two enemy planets, 4 and 8, and took me from 9 planets to 11.\n\nNext time I'd stop sending battalions into the center one at a time. I lost about 100 troops early that way before I switched to flanking allies.",
+  "edits": 7,
+  "gameSeconds": 180,
+  "id": "m31",
+  "leadForGoodFrom": 10,
+  "level": "normal",
+  "matchId": "ubZCY1CyhS1RlsmaagRYQKoS-aZT7njT",
+  "planets": [
+   11,
+   6
+  ],
+  "reason": "time",
+  "result": "won",
+  "style": "economic",
+  "turns": 64,
+  "units": [
+   923,
+   192
+  ],
+  "void": null,
+  "house": "wary"
+ },
+ {
+  "costUsd": 1.13,
+  "decisive": "I won on time against the normal house bot: 1112 troops to 0, and 11 planets to 3.\nThe decisive moment was around 60–80s. Outnumbered fights near the centre cost me several battalions. I switched to hold-and-defend gambits, and the enemy's stacks wore themselves down against my holders. My big home stacks then counter-attacked once I clearly outnumbered what was left, and the enemy collapsed from about 600 troops to 0.\nOne thing I'd change: the default \"planet_attacked → go\" and \"ally_fighting → flank\" gambits fed small groups piecemeal into bigger enemy stacks, so I'd drop them from the opening gambits.",
+  "edits": 9,
+  "gameSeconds": 180,
+  "id": "m32",
+  "leadForGoodFrom": 33,
+  "level": "normal",
+  "matchId": "Xc9nsJ8UHzeB6jOMRKyTog3SxYdWQdE2",
+  "planets": [
+   11,
+   3
+  ],
+  "reason": "time",
+  "result": "won",
+  "style": "defensive",
+  "turns": 65,
+  "units": [
+   1112,
+   0
+  ],
+  "void": null,
+  "house": "wary"
+ }
+]

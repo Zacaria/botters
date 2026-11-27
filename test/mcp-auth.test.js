@@ -9,6 +9,8 @@ import { runtime } from './helpers/cloudflare.js'
 import { z } from 'zod'
 import { OnlineGame } from '../online/game.js'
 import { MemoryStore } from '../online/store.js'
+import { W, H } from '../sim.js'
+import { MATCH_VIEW_URI, MATCH_VIEW_MIME, matchViewHtml } from '../match-view.js'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
@@ -80,7 +82,7 @@ test('two actual MCP processes explicitly reapprove revoked agents and resume th
     assert.deepEqual(resumed.rules, initial.rules)
     assert.equal(resumed.doctrine, initial.doctrine)
     const acted = await client.callTool({ name: 'set_gambits', arguments: { gambits: [{ if: 'always', then: 'hold' }], why: 'explicitly reapproved' } })
-    assert.equal(JSON.parse(acted.content[0].text).ok, true)
+    assert.equal(JSON.parse(acted.content[0].text).ok, true, acted.content[0].text)
   }
   const after = await fetch(`${liveOrigin}/state?token=${humans[0].humanToken}`, { headers: { cookie: humans[0].cookie } }).then(r => r.json())
   assert.equal(after.matchId, before.matchId, 'reapproval must not create another match')
@@ -115,8 +117,8 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
   const source = await readFile(new URL('../tools.js', import.meta.url), 'utf8')
   const context = vm.createContext({
     SERVER: origin, serverURL: new URL(origin), agentToken: initial?.agentToken, requireAgentToken: bound, setup: 'agent', name: 'you', bypassSecret: undefined, URL, AbortController, setTimeout, clearTimeout, z,
-    openUrl: () => {}, log: () => {}, state: null,
-    McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } },
+    openUrl: () => {}, log: () => {}, state: null, W, H, MATCH_VIEW_URI, MATCH_VIEW_MIME, matchViewHtml,
+    McpServer: class { registerTool(name, _schema, callback) { tools.set(name, callback) } registerResource() {} },
     fetch: async (target, options = {}) => {
       const url = new URL(target), path = url.pathname, method = options.method || 'GET', token = url.searchParams.get('token') || ''
       requests.push({ path, token })
@@ -140,6 +142,7 @@ async function callbackFixture({ supplied = false, bound = false } = {}) {
     assert.ok(S.since > 0)
   }
   return { S, call, join, approve, requests,
+    request: (method, path, body) => request(identity, method, path, human.humanToken, body),
     read: path => request(null, 'GET', path, S.session.agentToken),
     revoke: () => request(identity, 'POST', '/agent/revoke', human.humanToken),
     advance: ms => { now += ms }, fault: fn => { fault = fn },
@@ -328,4 +331,13 @@ for (const path of ['/events', '/input', '/call', '/next', '/agent/poll']) test(
   const sent = f.requests.length
   for (const [tool, input] of gameplay) assert.match(await f.call(tool, input), /join_match/)
   assert.equal(f.requests.length, sent)
+})
+
+test('a match the human started on the site is adopted without join_match', async () => {
+  const f = await callbackFixture({ supplied: true, bound: true })
+  assert.equal(f.S.inMatch, false)
+  await f.request('POST', '/play', { vs: 'easy', minutes: 3 })
+  assert.ok(JSON.parse(await f.call('get_state')).state, 'get_state finds the running match')
+  assert.equal(f.S.inMatch, true)
+  assert.equal(JSON.parse(await f.call('set_gambits', gameplay[1][1])).ok, true)
 })

@@ -68,9 +68,9 @@ test('input log rolls into bounded chunks and stays out of hot state transaction
   await f.call(a, 'POST', '/play', { vs: 'normal', minutes: 3 })
   for (let i = 0; i < 70; i++) { await f.call(a, 'POST', '/input', { toggle: 0 }); f.advance(200) }
   const frame = await f.call(a, 'GET', '/state'), m = JSON.parse(await f.store.get(`match:${frame.matchId}`))
-  assert.equal(m.logCount, 72); assert.equal(m.log, undefined) // house opening gambits and breed plus 70 toggles
+  assert.equal(m.logCount, 71); assert.equal(m.log, undefined)
   assert.equal(JSON.parse(await f.store.get(`log:${m.id}:0`)).length, 64)
-  assert.equal(JSON.parse(await f.store.get(`log:${m.id}:1`)).length, 8)
+  assert.equal(JSON.parse(await f.store.get(`log:${m.id}:1`)).length, 7)
   const original = f.store.get.bind(f.store)
   f.store.get = async key => { assert.ok(!key.startsWith('log:')); return original(key) }
   await f.call(a, 'GET', '/state')

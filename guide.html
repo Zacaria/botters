@@ -22,6 +22,9 @@
     tr { display: block; margin-bottom: 12px } td { display: block; padding: 3px 0 }
   }
   .dim { color: #6a6a7a }
+  .connect { display: flex; flex-wrap: wrap; gap: 8px }
+  .cta { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; font: inherit; font-weight: bold; color: #050507; background: #9fe8c0; border: 0; cursor: pointer; text-decoration: none }
+  #chatgpt-link { background: #1a1a22; color: #ddd; border: 1px solid #444 }
 </style>
 <main>
 <h1><b>BOT</b><i>TERS</i></h1>
@@ -40,7 +43,11 @@
 <h2 id="web-title">ChatGPT or Claude: add Botters as a connector</h2>
 <ol>
 <li>Sign in at <a href="https://play.botters.havesomecode.io">play.botters.havesomecode.io</a>.</li>
-<li>Add a custom connector named <b>Botters</b> with this address. In Claude it is under Settings → Connectors; in ChatGPT it may sit under Plugins or Apps and may require Developer mode.<pre>https://play.botters.havesomecode.io/mcp</pre></li>
+<li>Add Botters to your assistant.
+<p class="connect"><a id="claude-link" class="cta" href="https://claude.ai/customize/connectors?modal=add-custom-connector&amp;connectorName=Botters&amp;connectorUrl=https%3A%2F%2Fplay.botters.havesomecode.io%2Fmcp" target="_blank" rel="noopener">Add to Claude</a> <button id="chatgpt-link" class="cta" type="button">Copy address and open ChatGPT</button></p>
+<p>Claude opens <b>Add custom connector</b> with Botters filled in: press <b>Add</b>. ChatGPT has no prefilled link: paste the address as a new connector under Plugins; it may require Developer mode.</p>
+<pre id="mcp-address">https://play.botters.havesomecode.io/mcp</pre>
+<p id="connect-status" aria-live="polite"></p></li>
 <li>Approve <b>Connect agent</b> on the Botters page that opens. ChatGPT gets agent access only, never your account.</li>
 <li>On the game page press <b>Play with Claude</b> or <b>Play with ChatGPT</b>; it opens a new chat with the prompt written. Send it; the match starts when your agent joins.</li>
 </ol>
@@ -49,7 +56,7 @@
 
 <section id="phone" aria-labelledby="phone-title" tabindex="-1">
 <h2 id="phone-title">Phone: read the guide, set up on a computer</h2>
-<p>This guide is readable on a phone, but connecting and playing on a phone have not been tested.</p>
+<p>Add the connector from a computer.</p>
 <p>Continue on a computer: <a href="#web-client">Set up ChatGPT or Claude</a> or <a href="#local-client">Go to local client setup</a>.</p>
 </section>
 
@@ -114,7 +121,7 @@ default_tools_approval_mode = "approve"</pre>
 <h2>3. Play</h2>
 <p>Tell your agent:</p>
 <pre>Let's play Botters. Call join_match and follow what it says. Keep playing match after match until I tell you to stop.</pre>
-<p>For online play, your agent first opens an approval link. Sign in, check the setup label and choose <b>Connect agent</b>. Approval replaces any previous agent connection. The agent gets only permission to read your side and rewrite its gambits; it never needs your password, sign-in cookie or human token. In the lobby you write your <b>doctrine</b>, pick the opponent, length and map, and press <b>Play</b>. Use <b>Disconnect agent</b> to revoke its token. Approval expires after ten minutes; an approved connection expires after seven days.</p>
+<p>For online play, your agent first opens an approval link. Sign in, check the setup label and choose <b>Connect agent</b>. Several agents can stay connected at once (say Claude and ChatGPT). The agent gets only permission to read your side and rewrite its gambits; it never needs your password, sign-in cookie or human token. In the lobby you write your <b>doctrine</b>, pick the opponent, length and map, and press <b>Play</b>. Use <b>Disconnect agent</b> to revoke every agent token. Approval expires after ten minutes; an approved connection expires after seven days.</p>
 <p><b>Play online</b> finds an opponent with matching length and map settings; tick “Match any length and map” for the first available game. Cancel the queue at any time. <b>Create room</b> gives you a code and a link to share. Your friend joins by code or link; the host chooses the settings and starts. After a match, both players choose <b>Rematch</b> to play again in the same room.</p>
 <p>If your connection drops, the match continues. Signing in on another device returns to the same account, room, rating and recent match history. Share room links, not access tokens. Ratings use your account rather than your chosen name; old name-only ratings are not claimed or merged. Ratings remain casual: sign-in does not prove a real-world identity or one account per person. Signing out revokes your browser session but leaves an explicitly approved agent connected until you disconnect it or its grant expires.</p>
 
@@ -134,11 +141,11 @@ default_tools_approval_mode = "approve"</pre>
 <tr><td><code>get_state</code></td><td>reads the battle: your battalions (size, roles, fighting, the rule each one follows), the planets (owner, capture progress), the enemy battalions your fog lets you see, and how many battalions follow each rule</td></tr>
 <tr><td><code>set_gambits</code></td><td>rewrites your side's rules, with a one-line reason</td></tr>
 <tr><td><code>toggle_gambit</code></td><td>switches one rule off or on, with a one-line reason</td></tr>
-<tr><td><code>set_breed</code></td><td>chooses the role planets breed, with a one-line reason</td></tr>
 <tr><td><code>wait_for_event</code></td><td>sleeps until something happens: a fight, a capture, a lost battalion, or a message or edit from you</td></tr>
 <tr><td><code>call_human</code></td><td>asks you for a hand: a yellow card with a "do it" button</td></tr>
+<tr><td><code>show_match</code></td><td>shows you a live map of the match right inside the conversation, in apps that display MCP Apps (Claude, ChatGPT); you watch there, hand orders stay on this site</td></tr>
 </table>
-<p>Your agent never moves a battalion itself: hand orders are yours. The <b>doctrine edits</b> list in the side panel shows every change to your rules, newest first: when, who (you or your agent), which rule changed and why. Each rule also shows how many battalions follow it right now.</p>
+<p>Your agent never moves a battalion itself: hand orders are yours. The <b>journal</b> at the bottom of the match panel shows every change to your rules as a ✎ line: when, who (you or your agent), which rule changed and why. The Gambits section shows how many battalions follow each rule right now.</p>
 <h3>Gambits</h3>
 <p>A gambit is <code>IF condition → action</code>. Every half second each battalion you are not holding by hand takes the first enabled rule whose condition finds something, and acts on what it found. Add <code>p</code> to tune a condition.</p>
 <table>
@@ -171,9 +178,8 @@ GET  /next?token=AGENT                                  → waits until the matc
 GET  /events?token=AGENT&amp;since=0&amp;timeout=10           → new events + your view
 POST /input?token=AGENT  {"gambits":[{"if":"free_planet","then":"go"}],"why":"expand"}
 POST /input?token=AGENT  {"toggle":2,"why":"stop flanking, they hold the centre"}
-POST /input?token=AGENT  {"breed":"tank","why":"they breed grunts"}
 GET  /rules                                             → every condition and action</pre>
-<p>Call <code>https://play.botters.havesomecode.io</code> for online play. Open the returned approval URL yourself and approve the script while signed in; start matches from your lobby. Keep the agent token private and out of source control. It cannot change your profile, start matches or join rooms. For offline house games, start <code>npx -y github:Zacaria/botters</code> and call <code>http://localhost:8787</code>; the local <code>POST /session</code> and headless <code>/play</code> flow remains login-free. Limit: 5 inputs per second. Hand orders (<code>order</code>, <code>flank</code>, <code>detach</code>, <code>release</code>) answer 403 to an agent token.</p>
+<p>Call <code>https://play.botters.havesomecode.io</code> for online play. Open the returned approval URL yourself and approve the script while signed in; start matches from your lobby. Keep the agent token private and out of source control. It cannot change your profile, start matches against players or join rooms; it can start a house match with itself as agent. For offline house games, start <code>npx -y github:Zacaria/botters</code> and call <code>http://localhost:8787</code>; the local <code>POST /session</code> and headless <code>/play</code> flow remains login-free. Limit: 5 inputs per second. Hand orders (<code>order</code>, <code>flank</code>, <code>detach</code>, <code>release</code>) answer 403 to an agent token.</p>
 
 <h2>Settings</h2>
 <table>
@@ -185,6 +191,18 @@ GET  /rules                                             → every condition and 
 <footer><nav aria-label="Policies"><a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a> · <a href="mailto:z@havesomecode.io">Contact</a></nav></footer>
 </main>
 <script>
+const mcpAddress = document.getElementById('mcp-address').firstChild.textContent
+function copyNow(text) {
+  const area = document.createElement('textarea'); area.value = text; area.setAttribute('readonly', ''); area.style.cssText = 'position:fixed;top:0;left:0;opacity:0'
+  document.body.append(area); area.select()
+  let ok = false
+  try { ok = document.execCommand('copy') } catch {}
+  area.remove(); return ok
+}
+document.getElementById('chatgpt-link').onclick = () => {
+  document.getElementById('connect-status').textContent = copyNow(mcpAddress) ? 'Address copied. Paste it in ChatGPT.' : 'Copy the address below, then paste it in ChatGPT.'
+  window.open('https://chatgpt.com/plugins', '_blank', 'noopener')
+}
 
 for (const pre of document.querySelectorAll('pre')) {
   const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'copy'

@@ -6,6 +6,8 @@ A real-time space strategy game you play with your own AI agent: you set the doc
 
 ## What works today
 
+- **Lobby:** players can add an AI connector from the lobby, or switch from the online queue to a house match after 15 seconds.
+
 - **Site and game:** https://play.botters.havesomecode.io, served by one Cloudflare Worker `botters-play`: static client, Better Auth on D1 `botters-play`, match Durable Objects over WebSocket, native email, remote MCP + OAuth at `/mcp`. Operations: `docs/cloudflare.md`.
 - **Old address:** https://botters.havesomecode.io (Vercel project `botters`) redirects every path to the play origin.
 - **Accounts:** email sign-up open to everyone (mail from `botters@mail.havesomecode.io`) and Google sign-in (callback `https://play.botters.havesomecode.io/api/auth/callback/google`). The database started empty on 19/11: no accounts or Elo were imported.

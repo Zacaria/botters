@@ -43,7 +43,8 @@ test('offline browser renders and reconnects using local SSE without the Colyseu
   assert.deepEqual(map(await read()), map(first))
   await expect.poll(async () => (await read()).view.tick).toBeGreaterThan(first.view.tick)
   assert.ok(requests.filter(p => p === '/stream').length >= 2)
-  assert.ok(!requests.includes('/live-client.js'))
+  assert.ok(requests.includes('/live-client.js'))
+  assert.ok(!requests.includes('/browser-live.js'))
   assert.deepEqual(errors, [])
 })
 
@@ -59,6 +60,7 @@ test('queued actions from an old match do not reach the next match', { timeout: 
     await route.continue()
   })
   await page.goto(origin); await page.locator('#startSolo').click(); await page.locator('#play').click()
+  if (!await page.locator('#gambitsBox').evaluate(el => el.open)) await page.locator('#gambitsBox > summary').click()
   await page.locator('#gambits [data-g]').first().waitFor()
   await page.locator('#gambits [data-g]').nth(0).click(); await held; t.diagnostic('held old input')
   await page.locator('#gambits [data-g]').nth(1).click(); t.diagnostic('queued second input')
@@ -66,6 +68,7 @@ test('queued actions from an old match do not reach the next match', { timeout: 
   const old = await page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
   assert.equal((await page.request.post(origin + '/surrender?token=' + token, { data: { matchId: old.matchId } })).status(), 200)
   t.diagnostic('surrendered old match'); await expect(page.locator('#again')).toBeVisible(); await page.locator('#again').click()
+  if (!await page.locator('#gambitsBox').evaluate(el => el.open)) await page.locator('#gambitsBox > summary').click()
   await page.locator('#gambits [data-g]').first().waitFor()
   const current = await page.evaluate(() => fetch('/state?token=' + localStorage.getItem('botters.session')).then(r => r.json()))
   assert.notEqual(current.matchId, old.matchId); t.diagnostic('new match ready')
@@ -108,6 +111,7 @@ test('offline surrender confirms, recovers from refusal, shows the real result a
   // A room that is catching up answers 503: the order is retried, not dropped. The route answers once, then lets the retry through.
   let catchingUp = 0
   await page.route('**/input?*', route => { catchingUp++; return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Match is catching up. Retry shortly."}' }) }, { times: 1 })
+  if (!await page.locator('#gambitsBox').evaluate(el => el.open)) await page.locator('#gambitsBox > summary').click()
   const rule = page.locator('#gambits [data-g]').first(), wasOff = /off/.test(await rule.getAttribute('class') || '')
   const accepted = page.waitForResponse(r => r.url().includes('/input?') && r.status() === 200)
   await rule.click()
@@ -129,6 +133,22 @@ test('offline surrender confirms, recovers from refusal, shows the real result a
   assert.equal((await read()).view.ended, null)
   assert.equal(posts.length, 2)
   assert.deepEqual(errors, [])
+})
+
+test('match journal records doctrine and hand orders beside the left panel', { timeout: 30000 }, async t => {
+  const { browser, origin } = await fixture(t)
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+  await page.goto(origin); await page.locator('#startName').fill('Journal player'); await page.locator('#startSolo').click(); await page.locator('#play').click()
+  await expect(page.locator('#hud')).toContainText('battalions')
+  await page.waitForTimeout(1200)
+  await page.locator('#gambitsBox > summary').click()
+  await page.locator('#gambits [data-g]').first().click()
+  await page.locator('#battalions [data-bat]').first().click()
+  await page.locator('#c').click({ position: { x: 600, y: 300 } })
+  await expect(page.locator('#journal')).toContainText(/Journal player:.*✎/)
+  await expect(page.locator('#journal')).toContainText(/Journal player:.*ordered battalion/)
+  const aside = await page.locator('aside').boundingBox(), canvas = await page.locator('#c').boundingBox()
+  assert.equal(aside.x, 0); assert.equal(aside.width, 400); assert.ok(canvas.x >= aside.x + aside.width - 0.1)
 })
 
 test('map orders use the selected battalion and reach the live view', { timeout: 30000 }, async t => {
@@ -202,7 +222,7 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
         await page.getByRole('button', { name: 'Play with ChatGPT' }).click(); await started
         await context.request.get(`${origin}/next?token=${agentToken}&timeout=0.001`)
         await expect(page.locator('#hud')).toContainText('battalions')
-        await page.locator('#agentBox summary').click()
+        await page.locator('#doctrineBox > summary').click()
         await expect(page.locator('#doctrine2')).toBeVisible()
         await expect.poll(async () => (await state()).view.tick).toBeGreaterThan(0)
         first = await state(); assert.ok(first.view.tick > 0)
@@ -242,7 +262,7 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
       if (inMatch) { await expect(retry).toBeFocused(); await page.keyboard.press('Enter') }
       await expect.poll(() => attempts).toBe(1)
       if (inMatch) {
-        await page.locator('#agentBox summary').click()
+        await page.locator('#doctrineBox > summary').click()
         await page.locator('#leave').click()
       }
       await poll() // actual scheduled lobby refresh, not a direct helper call
@@ -253,7 +273,7 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
       assert.equal(attempts, 1, 'polls must not retry writes')
       if (inMatch) {
         await page.locator('#play').click()
-        await page.locator('#agentBox summary').click()
+        await page.locator('#doctrineBox > summary').click()
       }
       await expect(field).toHaveValue(draft)
       await expect(status).toContainText('not saved')
@@ -291,14 +311,14 @@ test('doctrine save recovery preserves refused drafts and acknowledges only subm
         releaseB()
       }
       if (inMatch) {
-        await page.locator('#agentBox summary').click()
+        await page.locator('#doctrineBox > summary').click()
         await page.locator('#leave').click()
         await poll()
         await expect(page.locator('#doctrine')).toHaveValue('Synthetic revision B')
         assert.equal((await readLobby()).doctrine, 'Synthetic revision A')
         await expect(page.locator('#saved')).not.toContainText('doctrine saved')
         await page.locator('#play').click()
-        await page.locator('#agentBox summary').click()
+        await page.locator('#doctrineBox > summary').click()
         await expect(field).toHaveValue('Synthetic revision B')
         await expect(status).toContainText('not saved')
         await field.click(); await page.keyboard.press('Tab'); await expect(retry).toBeFocused(); await page.keyboard.press('Enter')

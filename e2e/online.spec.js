@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises'
 import { test, expect, enterAccount, ageAgentPresence } from './fixtures.js'
 import { state } from './preview.js'
 
@@ -99,6 +100,7 @@ test('delayed input is rejected after a same-session rematch without blocking ne
   try {
     await enter(page, 'Delayed input'); await page.locator('#play').click()
     await expect(page.locator('#hud')).toContainText('battalions')
+    await page.locator('#gambitsBox > summary').click()
     await page.locator('#gambits [data-g]').nth(0).click(); await blocked; await page.locator('#gambits [data-g]').nth(1).click()
     const old = await state(page), token = await page.evaluate(() => localStorage.getItem('botters.session'))
     expect((await page.request.post('/surrender?token=' + token, { data: { matchId: old.matchId } })).status()).toBe(200)
@@ -146,7 +148,7 @@ test('two isolated browsers match, survive disconnect/reload, and see end report
   try {
     await enter(page, 'Browser <A>'); await enter(b, 'Browser B')
     await page.locator('#quick').click()
-    await expect(page.locator('#lobbyMsg')).toContainText('Finding an opponent')
+    await expect(page.locator('#queueStatus')).toContainText('Finding an opponent')
     await page.locator('#cancel').click()
     await expect(page.locator('#cancel')).toBeHidden()
     await page.locator('#quick').click(); await b.locator('#quick').click()
@@ -176,6 +178,26 @@ test('local server progresses on real time', async ({ page, request, baseURL }) 
   await expect.poll(async () => (await state(page)).view?.tick, { timeout: 20000 }).toBeGreaterThan(0)
 })
 
+test('two humans chat in the match journal', async ({ page, browser }) => {
+  test.skip(remote, 'Local isolated backend only')
+  test.setTimeout(120000)
+  const other = await browser.newContext({ viewport: { width: 1280, height: 800 } }), b = await other.newPage()
+  try {
+    await enter(page, 'Chat A'); await enter(b, 'Chat B')
+    await page.locator('#quick').click(); await b.locator('#quick').click()
+    await expect(page.locator('#msg')).toBeVisible(); await expect(b.locator('#muteChat')).toBeVisible()
+    await page.locator('#msg').fill('<b>hi</b>'); await page.locator('#msg').press('Enter')
+    await expect(b.locator('#journal')).toContainText('<b>hi</b>', { timeout: 25000 }); await expect(b.locator('#journal div').filter({ hasText: '<b>hi</b>' })).toContainText('Chat A')
+    if (process.env.BOTTERS_CHAT_EVIDENCE) { await mkdir(process.env.BOTTERS_CHAT_EVIDENCE, { recursive: true }); await b.screenshot({ path: `${process.env.BOTTERS_CHAT_EVIDENCE}/chat-1280.png` }) }
+    await b.setViewportSize({ width: 390, height: 800 })
+    for (const selector of ['#msg', '#muteChat']) { const box = await b.locator(selector).boundingBox(); expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390) }
+    await b.locator('#muteChat').click(); await expect(b.locator('#muteChat')).toHaveAttribute('aria-pressed', 'true')
+    await page.locator('#msg').fill('muted secret'); await page.locator('#msg').press('Enter')
+    await expect(page.locator('#journal')).toContainText('muted secret')
+    await expect(b.locator('#journal')).not.toContainText('muted secret')
+  } finally { await other.close() }
+})
+
 test('local two-player hand order survives reconnect and opponent plays', async ({ page, browser }) => {
   test.skip(remote, 'Local isolated backend only')
   const other = await browser.newContext(), b = await other.newPage()
@@ -187,6 +209,10 @@ test('local two-player hand order survives reconnect and opponent plays', async 
     await expect.poll(async () => (await state(page)).startsIn).toBe(0)
     const first = await state(page), second = await state(b)
     expect(first.matchId).toBe(second.matchId)
+    const geometry = p => p.evaluate(() => ({ side: document.querySelector('#game').classList.contains('camp-right'), canvas: document.querySelector('#c').getBoundingClientRect().toJSON(), panel: document.querySelector('aside').getBoundingClientRect().toJSON() }))
+    const layouts = await Promise.all([geometry(page), geometry(b)])
+    expect(layouts.map(l => l.side).sort()).toEqual([false, true])
+    for (const l of layouts) expect(l.side ? l.canvas.right <= l.panel.left + 0.1 : l.canvas.left >= l.panel.right - 0.1).toBe(true)
     const order = async p => {
       const row = p.locator('#battalions [data-bat]').first(), id = await row.getAttribute('data-bat')
       await row.click()
@@ -318,4 +344,57 @@ test('invite respects saved solo/opening preferences without disclosing host rul
     expect(frame.me.withAgent).toBe(false)
     expect(frame.view.gambits).toEqual(opening)
   } finally { await other.close() }
+})
+
+
+test('new lobby offers connectors and a queued player can switch to the bot', async ({ page, context }) => {
+  await enterAccount(page, 'Queue fallback')
+  await expect(page.locator('#connectAgent')).toBeVisible()
+  await expect(page.locator('#revokeAgent')).toBeHidden()
+  await expect(page.locator('#addClaude')).toHaveAttribute('href', /claude\.ai\/customize\/connectors/)
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await context.route('https://chatgpt.com/**', route => route.fulfill({ status: 200, body: 'intercepted' }))
+  await page.locator('#addChatGPT').click()
+  await expect(page.locator('#connectStatus')).toContainText('Address copied.')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(new URL('/mcp', page.url()).href)
+  await page.locator('#vs [data-v="hard"]').click()
+  let age = false
+  await page.route('**/lobby?**', async route => {
+    const lobby = await (await route.fetch()).json()
+    if (age && lobby.queued) lobby.queuedAt = Date.now() - 16000
+    await route.fulfill({ json: lobby })
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.locator('#quick').click()
+  await expect(page.locator('#queueStatus')).toBeInViewport()
+  await expect(page.locator('#cancel')).toBeInViewport()
+  await expect(page.locator('#queueFallback')).toBeHidden()
+  age = true
+  await expect(page.locator('#playBotInstead')).toBeInViewport()
+  const requests = []
+  page.on('request', r => { if (r.method() === 'POST') requests.push({ path: new URL(r.url()).pathname, body: r.postDataJSON() }) })
+  await page.locator('#playBotInstead').click()
+  await expect(page.locator('#hud')).toContainText('battalions', { timeout: 20000 })
+  expect(requests.findIndex(r => r.path === '/cancel')).toBeLessThan(requests.findIndex(r => r.path === '/play'))
+  expect(requests.find(r => r.path === '/play').body.vs).toBe('hard')
+})
+
+test('practice result clears guidance and stays below the HUD on touch', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ media: 'screen' })
+  await page.addInitScript(() => {
+    const native = window.matchMedia
+    window.matchMedia = query => query === '(pointer: coarse)' ? { matches: true, media: query, addEventListener() {}, removeEventListener() {} } : native(query)
+  })
+  await page.goto('/')
+  await expect(page.locator('#practice')).toBeVisible()
+  await page.locator('#practice').click()
+  await expect(page.locator('#guidePanel')).toBeVisible()
+  await expect(page.locator('#selectedBat')).toContainText('Tap a pink ring')
+  page.once('dialog', dialog => dialog.accept())
+  await page.locator('#surrender').click()
+  await expect(page.locator('#again')).toBeVisible()
+  await expect(page.locator('#guidePanel')).toBeHidden()
+  const hud = await page.locator('#hud').boundingBox(), big = await page.locator('#big').boundingBox()
+  expect(big.y).toBeGreaterThanOrEqual(hud.y + hud.height)
 })

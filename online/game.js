@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, createHash } from 'node:crypto'
-import { createMatch, restore, snapshot, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, BREEDS, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
+import { createMatch, restore, snapshot, applyInput, step, view, rules, describe, changes, matchOptions, OPTIONS, HOUSE, HOUSE_DOCTRINE, TPS, W, H, MAX_GAMBITS, checkGambits } from '../sim.js'
 import { board as fogBoard } from '../wire.js'
 import { transaction } from './store.js'
 import { rankPairs } from './ratings.js'
@@ -18,7 +18,7 @@ const canonicalRules = list => {
 }
 const cleanInput = b => {
   if (['route', 'split', 'surrender'].some(k => b[k] !== undefined)) fail(400, 'Unknown action.')
-  const keys = ['gambits', 'toggle', 'breed', 'order', 'flank', 'detach', 'release'].filter(k => b[k] !== undefined)
+  const keys = ['gambits', 'toggle', 'order', 'flank', 'detach', 'release'].filter(k => b[k] !== undefined)
   if (keys.length !== 1) fail(400, 'Send exactly one input.')
   const k = keys[0], arg = b[k]
   if (k === 'gambits') return { gambits: canonicalRules(arg) }
@@ -42,10 +42,8 @@ function diffEvents(m, p) {
   const v = view(m.s, p.side), was = p.prev
   p.prev = v
   if (v.ended) return emit(m, p, `match over: you ${v.ended.result} (${v.ended.reason}).`)
-  const spotted = new Set(p.spotted || [])
-  for (const e of v.enemies) if (!spotted.has(e.id)) { spotted.add(e.id); emit(m, p, `enemy battalion ${e.id} spotted at (${Math.round(e.x)},${Math.round(e.y)}): ${e.n} units (${e.roles.runner} runners, ${e.roles.grunt} grunts, ${e.roles.tank} tanks)`) }
-  p.spotted = [...spotted]
   if (!was) return
+  for (const e of v.enemies) if (!was.enemies.some(o => o.id === e.id)) emit(m, p, `enemy battalion ${e.id} spotted at (${Math.round(e.x)},${Math.round(e.y)})`)
   for (const pl of v.planets) if (pl.owner !== was.planets[pl.id]?.owner) emit(m, p, `${pl.owner || 'neutral'} controls planet ${pl.id}`)
   for (const bat of was.battalions) if (!v.battalions.some(o => o.id === bat.id)) emit(m, p, `battalion ${bat.id} lost`)
 }
@@ -53,6 +51,7 @@ function diffEvents(m, p) {
 function matchFrame(m, side, now) {
   const p = m.players[side], foe = opponent(m, side)
   return { matchId: m.id, roomCode: m.roomCode, view: view(m.s, side), report: m.report?.[side], calls: p.calls, feed: p.feed, edits: p.edits,
+    chat: (m.chat || []).map(c => ({ n: c.n, t: c.t, who: c.side === side ? 'you' : 'opponent', text: c.text })),
     startsIn: m.waitingForAgent ? null : Math.max(0, Math.ceil((m.startsAt - now) / 1000)), waitingForAgent: !!m.waitingForAgent, me: { name: p.name, setup: p.setup, withAgent: p.withAgent, agentJoined: p.agentJoined },
     opponent: { name: foe.name, setup: foe.setup, human: !!foe.session, connected: !foe.session || now - foe.seen < 15000 }, options: m.s.opts }
 }
@@ -192,7 +191,6 @@ export class OnlineGame {
           m.players.push(p)
           const opening = e ? e.req.opening : HOUSE[req.vs]
           if (opening) { const input = { gambits: canonicalRules(opening) }, before = structuredClone(m.s.gambits[side]); applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: e ? 'human' : 'house', input }); p.edits.push({ t: 0, who: e ? 'you' : 'house', why: 'opening gambits', change: changes(before, m.s.gambits[side]) }) }
-          if (!e) { const breed = BREEDS[m.s.seed % 3], before = m.s.breed[side], input = { breed }; applyInput(m.s, side, input); await appendLog(m, { tick: 0, side, role: 'house', input }); p.edits.push({ t: 0, who: 'house', why: 'opening breed', change: `breed ${before} → ${breed}` }) }
           if (e) { e.s.match = m.id; e.s.side = side; e.s.queued = null }
           emit(m, p, `${waitingForAgent ? 'waiting for your agent' : `match starts in ${req.planning}s`}. Your home planet is at (${Math.round(m.s.planets[side].x)},${Math.round(m.s.planets[side].y)}). You start with three battalions.`)
         }
@@ -254,7 +252,7 @@ export class OnlineGame {
         if (!s.accountId || auth.expires <= now || !auth.expires) fail(401, 'Access expired. Sign in or pair your agent again.')
         if (auth.role === 'human' && (!this.identity || this.identity.id !== s.accountId || auth.accountId !== s.accountId)) fail(401, 'Sign in to your own account.')
         if (auth.role === 'agent' && auth.version !== s.agentVersion) fail(401, 'Agent access was revoked.')
-        if (auth.role === 'agent' && !(method === 'GET' && ['/next', '/events', '/state'].includes(path) || method === 'POST' && ['/input', '/call'].includes(path))) fail(401, 'Agent access cannot perform human actions.')
+        if (auth.role === 'agent' && !(method === 'GET' && ['/next', '/events', '/state'].includes(path) || method === 'POST' && ['/input', '/call', '/play'].includes(path))) fail(401, 'Agent access cannot perform human actions.')
       }
       if (!auth.touched || now - auth.touched >= 60000) auth.touched = now
       if (!s.touched || now - s.touched >= 60000) {
@@ -276,7 +274,8 @@ export class OnlineGame {
         if (pair.used) fail(409, 'Pairing already approved.')
         if (method === 'GET' && path === '/agent/request') return { setup: pair.setup }
         if (method === 'POST' && path === '/agent/approve') {
-          s.agentVersion++; s.agentGranted = true; s.setup = pair.setup; s.agentSeen = now; pair.used = true
+          // Several agents (Claude, ChatGPT, a local client) stay connected together; Disconnect agent revokes them all.
+          s.agentGranted = true; s.setup = pair.setup; s.agentSeen = now; pair.used = true
           await tx.set(`token:${pair.secretHash}`, { id: s.id, role: 'agent', version: s.agentVersion, expires: now + SESSION_TTL * 1000 }, SESSION_TTL)
           return { ok: true }
         }
@@ -402,10 +401,11 @@ export class OnlineGame {
       if (method === 'POST' && path === '/play') {
         if (active(m)) fail(409, 'already in a match')
         if (s.room) fail(409, 'Leave your room before starting another match.')
-        const req = parsePlay(body), idx = await index()
+        if (auth.role === 'agent' && !Object.keys(HOUSE).includes(body.vs)) fail(403, 'Your agent can only start a house match.')
+        const req = parsePlay(auth.role === 'agent' ? { ...body, withAgent: true } : body), idx = await index()
         idx.queue = idx.queue.filter(e => e.id !== s.id)
         s.notice = null
-        if (req.vs !== 'player') { await start([{ s, req }, null], req, null, auth.role === 'human' && body.withAgent === true); return { ok: true } }
+        if (req.vs !== 'player') { await start([{ s, req }, null], req, null, auth.role === 'agent' || body.withAgent === true); return { ok: true } }
         const entry = idx.queue.find(e => (e.req.anyMinutes || req.anyMinutes || e.req.minutes === req.minutes) && (e.req.anyPlanets || req.anyPlanets || e.req.planets === req.planets))
         if (entry) {
           const other = await loadSession(entry.id)
@@ -428,7 +428,7 @@ export class OnlineGame {
         return { match: { id: m.id, side: s.side, opponent: `${opponent(m, s.side).name} (${opponent(m, s.side).setup})`, options: m.s.opts, doctrine: s.doctrine, openingBy: p.openingBy,
           startsIn: Math.max(0, Math.ceil((m.startsAt - now) / 1000)), state: view(m.s, s.side) } }
       }
-      if (frameRead) { requireMatch(); if (this.requireAccount && auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.'); return matchFrame(m, s.side, now) }
+      if (frameRead) { requireMatch(); if (this.requireAccount && auth.role === 'agent' && !p.withAgent) fail(403, 'Your human is playing this match alone.'); const frame = matchFrame(m, s.side, now); if (auth.role === 'agent') delete frame.chat; return frame }
       if (method === 'GET' && path === '/events') {
         agent()
         if (!m || !p.agentJoined) return { events: [], state: null, next: m && !p.withAgent ? 'solo' : 'join' }
@@ -459,17 +459,30 @@ export class OnlineGame {
         p[sentKey] = p[sentKey].filter(t => now - t < 1000)
         if (p[sentKey].length >= limit) fail(429, `max ${limit} inputs per second`)
         p[sentKey].push(now)
-        const input = cleanInput(body), beforeBreed = m.s.breed[s.side], before = structuredClone(m.s.gambits[s.side])
-        if ((m.waitingForAgent || now < m.startsAt) && !('gambits' in input || 'toggle' in input || 'breed' in input)) fail(409, 'Match not started: only gambits, toggle and breed can change now.')
+        const input = cleanInput(body), before = structuredClone(m.s.gambits[s.side])
+        if ((m.waitingForAgent || now < m.startsAt) && !('gambits' in input || 'toggle' in input)) fail(409, 'Match not started: only gambits can change now.')
         const result = applyInput(m.s, s.side, input)
         if (!result.ok) fail(400, result.error)
         await appendLog(m, { tick: m.s.tick, side: s.side, role: auth.role, input })
         if (m.s.ended) { for (const player of m.players) diffEvents(m, player); await finish(m) }
-        const why = text(body.why, 120), change = 'breed' in input ? `breed ${beforeBreed} → ${m.s.breed[s.side]}` : changes(before, m.s.gambits[s.side]), doctrine = 'gambits' in input || 'toggle' in input || 'breed' in input
+        const why = text(body.why, 120), change = changes(before, m.s.gambits[s.side]), doctrine = 'gambits' in input || 'toggle' in input
         if (doctrine) p.edits = [...(p.edits || []), { t: Math.floor(m.s.tick / TPS), who: auth.role === 'agent' ? 'agent' : 'you', why, change }].slice(-10) // matches started before edits existed have none
-        if (auth.role === 'human') emit(m, p, `HUMAN ${doctrine ? ('breed' in input ? `switched breed to ${input.breed}` : 'toggle' in input ? `switched ${change}` : `rewrote gambits: ${change}`) : JSON.stringify(input)}`)
-        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${doctrine ? change : Object.keys(input)[0]}${why ? `: ${why}` : ''}`)
+        if (auth.role === 'human') emit(m, p, `HUMAN ${doctrine ? ('toggle' in input ? `switched ${change}` : `rewrote gambits: ${change}`) : JSON.stringify(input)}`)
+        const action = input.gambits ? 'gambits' : input.toggle !== undefined ? 'toggle' : input.order ? `ordered battalion ${input.order.bat}` : input.detach ? `detached battalion ${input.detach.bat}` : input.flank !== undefined ? `flanked battalion ${input.flank}` : input.release !== undefined ? `released battalion ${input.release}` : Object.keys(input)[0]
+        feed(m, p, auth.role === 'human' ? 'you' : 'agent', `${auth.role === 'agent' && doctrine ? change : action}${why ? `: ${why}` : ''}`)
         return result
+      }
+      if (method === 'POST' && path === '/chat') {
+        human(); requireMatch()
+        if (body.matchId !== undefined && body.matchId !== m.id) fail(409, 'Match is no longer active.')
+        if (!active(m)) fail(409, 'Match is over.')
+        if (!opponent(m, s.side).session) fail(409, 'Your opponent is the house.')
+        const message = text(body.text, 140); if (!message) fail(400, 'Message is empty.')
+        p.chatSent = (p.chatSent || []).filter(t => now - t < 5000)
+        if (p.chatSent.length >= 3) fail(429, 'max 3 messages per 5 seconds')
+        p.chatSent.push(now)
+        m.chat = [...(m.chat || []), { n: (m.chatCount = (m.chatCount || 0) + 1), t: Math.floor(m.s.tick / TPS), side: s.side, text: message }].slice(-30)
+        return { ok: true }
       }
       if (method === 'POST' && ['/say', '/call', '/dismiss'].includes(path)) {
         requireMatch()
