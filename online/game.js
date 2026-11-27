@@ -8,7 +8,9 @@ const token = () => randomBytes(24).toString('base64url')
 const hash = s => createHash('sha256').update(s).digest('hex')
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }) }
 // Control characters and direction overrides are dropped: a name or message must read as it was typed.
-const text = (s, max, fallback = '') => typeof s === 'string' ? s.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, max) || fallback : fallback
+// Text with nothing to read (only joiners, marks or blank fillers) counts as empty.
+const readable = t => /[^\p{Cf}\p{Z}\p{M}\u115f\u1160\u2800\u3164\uffa0]/u.test(t) ? t : ''
+const text = (s, max, fallback = '') => typeof s === 'string' ? readable(s.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, max)) || fallback : fallback
 const connected = (s, now) => !!s.agentSeen && now - s.agentSeen < 90000
 const active = m => !!m && !m.cancelled && !m.s.ended
 const PLANNING = [10, 20, 30], SESSION_TTL = 7 * 86400
