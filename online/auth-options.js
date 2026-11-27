@@ -20,6 +20,8 @@ export function authOptions(env, sendEmail) {
     account: { accountLinking: { enabled: false }, storeAccountCookie: false, encryptOAuthTokens: true },
     session: { expiresIn: 604800, updateAge: 86400, cookieCache: { enabled: false } },
     rateLimit: { enabled: true, storage: 'database', window: 600, max: 100, customRules: { '/get-session': false, '/sign-in/email': { window: 60, max: 5 }, '/sign-up/email': { window: 600, max: 5 }, '/request-password-reset': { window: 600, max: 3 }, '/send-verification-email': { window: 600, max: 3 } } },
-    advanced: { useSecureCookies: baseURL.startsWith('https:'), defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure: baseURL.startsWith('https:') }, ipAddress: { ipAddressHeaders: ['x-botters-client-ip'] } },
+    advanced: { useSecureCookies: baseURL.startsWith('https:'), defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure: baseURL.startsWith('https:') }, ipAddress: { ipAddressHeaders: ['x-botters-client-ip'] },
+      // The tables come from cloudflare/migrations; inspecting them again on every request only costs database reads.
+      database: { validateSchema: false } },
   }
 }

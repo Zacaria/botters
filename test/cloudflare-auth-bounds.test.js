@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
+import { createAuth } from '../cloudflare/auth.js'
 
 test('authentication requests count against the sender allowance before database work', { timeout: 60000 }, async t => {
   const rt = await runtime({ burst: { limit: 5, period: 10 } }); t.after(() => rt.mf.dispose())
@@ -18,4 +19,12 @@ test('an oversized authentication request is refused and stores nothing', { time
   assert.equal(big.status, 413)
   assert.equal(await rt.db.prepare('SELECT count(*) n FROM user').first('n'), 0)
   assert.equal((await c.signUp('Alice')).status, 200)
+})
+
+test('a request that needs no account data sends no database statement', async () => {
+  const statements = [], refuse = name => (...args) => { statements.push(`${name} ${String(args[0]).slice(0, 80)}`); throw new Error('no database in this test') }
+  const env = { DB: { prepare: refuse('prepare'), batch: refuse('batch'), exec: refuse('exec') }, SITE_URL: ORIGIN, BETTER_AUTH_SECRET: 'local-workerd-test-only-secret-1234567890' }
+  const r = await createAuth(env).handler(new Request(`${ORIGIN}/api/auth/get-session`))
+  assert.equal(r.status, 200); assert.equal(await r.json(), null)
+  assert.deepEqual(statements, [])
 })
