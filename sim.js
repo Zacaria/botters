@@ -61,7 +61,7 @@ export function createMatch(seed = 1, options = {}) {
     side: new Uint8Array(N), role: new Uint8Array(N), bat: new Uint16Array(N), alive: new Uint8Array(N),
     dmg: new Float32Array(N), head: new Int32Array(GW * GH), next: new Int32Array(N),
     bats: [], planets: [], opts, gambits: [structuredClone(DEFAULT_GAMBITS), structuredClone(DEFAULT_GAMBITS)],
-    breed: army.map(b => b || DEFAULT_BREED), ctr: counterMatrix(options.counter ?? TUNE.counter),
+    breed: army.slice(), ctr: counterMatrix(options.counter ?? (army.some(Boolean) ? TUNE.counter : 1)),
   }
   for (let i = 0; i < N; i++) s.side[i] = i < MAXPER ? 0 : 1
   // planets: two homes, a big centre prize, 7 random pairs mirrored through the centre so the map is fair
@@ -298,9 +298,8 @@ export function applyInput(s, side, input) {
   if (s.ended) return fail('match ended')
   if ((side !== 0 && side !== 1) || !input || typeof input !== 'object' || Array.isArray(input)) return fail('invalid input or side')
   const keys = Object.keys(input)
-  if (keys.length !== 1 || !['gambits', 'toggle', 'breed', 'order', 'flank', 'detach', 'release', 'surrender'].includes(keys[0])) return fail('send exactly one input')
+  if (keys.length !== 1 || !['gambits', 'toggle', 'order', 'flank', 'detach', 'release', 'surrender'].includes(keys[0])) return fail('send exactly one input')
   const key = keys[0], arg = input[key]
-  if (key === 'breed') { if (!BREEDS.includes(arg)) return fail(`breed one of ${BREEDS.join(', ')}`); s.breed[side] = arg; return { ok: true } }
   if (key === 'surrender') { if (arg !== true) return fail('invalid surrender'); s.ended = { winner: 1 - side, reason: 'surrender' }; return { ok: true } }
   if (key === 'gambits') { const error = checkGambits(arg); if (error) return fail(error); setDoctrine(s, side, arg); return { ok: true } }
   if (key === 'toggle') { if (!Number.isInteger(arg) || !s.gambits[side][arg]) return fail('no such gambit'); const r = s.gambits[side][arg]; r.on = r.on === false; for (const b of live(s, side)) b.key = ''; return { ok: true } }
@@ -351,7 +350,6 @@ export function restore(data) {
   if (data.breed) s.breed = data.breed.slice()
   return s
 }
-const roleCount = (s, id) => { const roles = { runner: 0, grunt: 0, tank: 0 }; for (let i = 0; i < s.N; i++) if (s.alive[i] && s.bat[i] === id) roles[ROLES[s.role[i]].name]++; return roles }
 export const visible = (s, side, x, y) => live(s, side).some(b => d2(b.cx, b.cy, x, y) <= 150 ** 2) || s.planets.some(p => p.owner === side && d2(p.x, p.y, x, y) <= 80 ** 2)
 export function view(s, side) {
   const units = count(s), planets = owned(s), battalions = live(s, side).map(b => {
@@ -361,13 +359,11 @@ export function view(s, side) {
   })
   return { tick: s.tick, secondsLeft: Math.max(0, (s.endTick - s.tick) / TPS), ended: s.ended ? { reason: s.ended.reason, result: s.ended.winner === null ? 'draw' : s.ended.winner === side ? 'won' : 'lost' } : null,
     totals: { you: units[side], enemy: units[1-side], planets: { you: planets[side], enemy: planets[1-side] } }, battalions,
-    breed: s.breed[side],
-    enemies: live(s, 1-side).filter(b => visible(s, side, b.cx, b.cy)).map(b => ({ id: b.id, x: b.cx, y: b.cy, n: b.n, roles: roleCount(s, b.id), fighting: fighting(s, b) })),
+    enemies: live(s, 1-side).filter(b => visible(s, side, b.cx, b.cy)).map(b => ({ id: b.id, x: b.cx, y: b.cy, n: b.n, fighting: fighting(s, b) })),
     planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', capture: p.prog })), gambits: structuredClone(s.gambits[side]), perRule: s.gambits[side].map((_, i) => battalions.filter(b => !b.manual && b.rule === i).length) }
 }
 export const BREED_DOC = { runner: 'beats tanks, loses to grunts', grunt: 'beats runners, loses to tanks', tank: 'beats grunts, loses to runners' }
-export const rules = () => ({ conditions: structuredClone(CONDITIONS), actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, doc]) => [k, { doc }])),
-  breeds: { doc: `your planets breed only this role, from the moment you set it; starting armies are mixed. A unit deals ${TUNE.counter}× damage to the role it beats and ${+(1 / TUNE.counter).toFixed(2)}× to the role that beats it`, ...BREED_DOC } })
+export const rules = () => ({ conditions: structuredClone(CONDITIONS), actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, doc]) => [k, { doc }])) })
 export const describe = r => `${r.on === false ? '(off) ' : ''}IF ${r.if}${r.p !== undefined ? `(${r.p})` : ''} → ${r.then}`
 
 export function changes(before, after) {

@@ -108,6 +108,20 @@
     #game #big:has(#copyResult), #game.camp-right #big:has(#copyResult) { top: 100px }
     #big { right: 0; top: 12px }
   }
+  #rounds { background: #050507ed; line-height: 1.5 }
+  .round-wrap { max-width: 900px; margin: 25px auto; padding: 0 16px 50px }
+  .round-head { display:flex; gap:12px; flex-wrap:wrap; align-items:baseline; justify-content:space-between }
+  .round-head h2, #rounds h3 { color:#fff } .round-head h2 { font-size:24px; margin:8px 0 }
+  #rounds .card, #roundsCard { border-radius:10px; margin:12px 0; text-align:left }
+  #roundsCard h3 { color:#fff } #roundsCard p { line-height:1.5 }
+  .breed-picks { display:flex; flex-wrap:wrap; gap:6px } .breed-picks button.on { border-color:#ff2e88; color:#fff; background:#601b40 }
+  .round-rule { display:grid; grid-template-columns:minmax(0,2fr) minmax(0, .65fr) minmax(0,1fr) auto; gap:5px; margin:6px 0 }
+  .round-rule select,.round-rule input { box-sizing:border-box; width:100%; min-width:0 } .round-rule button { margin:0 }
+  #roundCanvas { position:static; display:block; width:100%; height:auto; background:#090911; cursor:default; border:1px solid #292934; box-sizing:border-box }
+  .round-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px } .round-grid > * { min-width:0 }
+  .round-url { overflow-wrap:anywhere } .round-bar { height:5px; background:#ff2e88; border-radius:5px }
+  #roundError { color:#ff9898 } #roundVersions { overflow-wrap:anywhere } #rounds button { min-height:34px }
+  @media(max-width:600px) { .round-grid { grid-template-columns:1fr } .round-rule { grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto } .round-rule input { grid-column:2 } .round-rule select[data-key="then"] { grid-column:1 / 3 } }
 </style>
 
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -200,6 +214,7 @@
     <button class="main" id="play">PLAY</button>
     <span id="agentPlay" hidden></span>
     <section id="connectAgent" hidden><p class="help">Play with your AI: add Botters to Claude or ChatGPT.</p><a id="addClaude" href="https://claude.ai/customize/connectors?modal=add-custom-connector&amp;connectorName=Botters&amp;connectorUrl=https%3A%2F%2Fplay.botters.havesomecode.io%2Fmcp" target="_blank" rel="noopener">Add to Claude</a> <button id="addChatGPT" type="button">Copy address and open ChatGPT</button><p id="connectStatus" role="status"></p><a href="/guide#web-client">Step-by-step guide</a></section>
+    <section id="roundsCard" class="card" hidden><h3>Rounds vs the house</h3><p>5 rounds on one map. Between rounds, you or your agent rebuild your bot: one breed and a few rules.</p><div id="roundStartBreeds" class="breed-picks"></div><button id="roundStart" class="main">Start rounds</button><p id="roundLobbyError" role="status"></p></section>
     <label id="guidedHouseOption" hidden><input type="checkbox" id="guidedHouse"> Teach me while I play</label>
     <div><button id="viewReport" hidden>View last report</button></div>
     <p id="lobbyMsg" class="warn" role="status"></p>
@@ -246,6 +261,17 @@
   <nav class="policy-links" aria-label="Policies"><a href="/privacy">Privacy policy</a><a href="/terms">Terms of service</a></nav>
 </div>
 
+<div id="rounds" class="screen" hidden><main class="round-wrap">
+  <div class="round-head"><h2 id="roundTitle">Round 1/5</h2><strong id="roundScore"></strong><span id="roundTimer"></span></div>
+  <p id="roundError" role="alert"></p>
+  <section id="roundPause" hidden><div class="round-grid"><div class="card"><h3>Your bot</h3><div id="roundBreeds" class="breed-picks"></div><h3>Rules</h3><div id="roundRules"></div><button id="roundAdd">Add rule</button> <span id="roundSlots"></span><p><label>Why <input id="roundWhy" maxlength="300" placeholder="edited by hand"></label></p><button id="roundSave">Save bot</button> <button id="roundFight" class="main">Fight</button><p id="roundProposal" hidden>Your agent sent a new bot · <button id="roundLoad">Load it</button></p></div>
+  <div><section class="card"><h3>Versions this pause</h3><div id="roundVersions"></div></section><section class="card"><h3>Play with your agent</h3><p>Give your agent this prompt:</p><p id="roundPrompt"></p><button id="roundCopy">Copy prompt</button><p class="round-url" id="roundConnector"></p></section></div></div></section>
+  <section id="roundFightView" hidden><div class="card"><p id="roundLegend"></p><canvas id="roundCanvas" width="1200" height="700"></canvas><p id="roundCounts"></p><button id="roundSkip">Skip</button></div></section>
+  <section id="roundDebrief" hidden><div class="card" id="roundDebriefBody"></div><button id="roundContinue" class="main">Continue</button></section>
+  <section id="roundOver" hidden><div class="card"><h2 id="roundFinal"></h2><button id="roundAgain" class="main">Play again</button> <button id="roundBack">Back to lobby</button></div></section>
+  <section class="card" id="roundPast" hidden><h3>Past rounds</h3><div id="roundPastList"></div></section>
+</main></div>
+
 <!-- match -->
 <div id="game" hidden>
   <div id="connection" role="status" hidden></div>
@@ -277,13 +303,13 @@
 
 <script type="module">
 import * as sim from '/sim.js'
-const { createLiveView, connectLive, createPractice } = await import('/live-client.js').catch(() => import('/browser-live.js'))
+const { createLiveView, connectLive, createPractice, createRoundReplay } = await import('/live-client.js').catch(() => import('/browser-live.js'))
 const { CONDITIONS, ACTIONS, DEFAULT_GAMBITS, MAX_GAMBITS, HOUSE, checkGambits, createMatch, applyInput, step, W, H, TPS } = sim
 const $ = id => document.getElementById(id)
 const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
 const n = c => Math.round(c).toLocaleString('en')
 const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-const show = id => { for (const s of ['start', 'lobby', 'game']) $(s).hidden = s !== id; $('bg').hidden = id === 'game' }
+const show = id => { for (const s of ['start', 'lobby', 'game', 'rounds']) $(s).hidden = s !== id; $('bg').hidden = id === 'game' }
 const authQuery = new URLSearchParams(location.search)
 let resetToken = authQuery.get('token')
 let pendingPair = authQuery.get('pair') || sessionStorage.getItem('botters.pair')
@@ -292,8 +318,10 @@ let accountRequired = false, authMode = resetToken ? 'reset' : 'signin'
 let token = authQuery.get('s') || localStorage.getItem('botters.session')
 const inviteCode = /^\/r\/([A-Z2-9]{6})$/i.exec(location.pathname)?.[1]?.toUpperCase()
 if (token || resetToken || pendingPair) history.replaceState(null, '', location.pathname) // capabilities never remain in referrers or copied room links
-let liveOrigin = ''
-try { liveOrigin = (await fetch('/live-config.json').then(r => r.ok ? r.json() : {})).url || '' } catch {}
+let liveOrigin = '', roundsEnabled = false
+try { const config = await fetch('/live-config.json').then(r => r.ok ? r.json() : {}); liveOrigin = config.url || ''; roundsEnabled = config.rounds === true } catch {}
+const connectorAddress = `${liveOrigin || location.origin}/mcp`
+$('addClaude').href = 'https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Botters&connectorUrl=' + encodeURIComponent(connectorAddress)
 const api = (method, path, body) => fetch(`${accountRequired && (path === '/session' || path.startsWith('/agent/')) ? '' : liveOrigin}${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token || '')}`, { method, credentials: 'include', headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) })).catch(() => ({ status: 503, error: 'Connection lost. Retry when you are online.' }))
 const toast = (t, ok = true) => { $('toast').textContent = t; $('toast').style.color = ok ? '#8f8' : '#f88' }
 
@@ -544,6 +572,7 @@ async function lobby(auto = true) { // auto: jump into a live match (page load, 
   $('play').textContent = L.live ? 'RESUME MATCH' : L.online ? 'Play the bot' : 'PLAY'
   if (L.live) $('play').disabled = false
   if (L.live && auto) return match()
+  if (roundsEnabled && accountRequired) refreshRoundsLobby()
   lobbyTimer = setTimeout(() => lobby(auto), L.queued ? 1000 : L.room ? 2000 : 5000)
 }
 function renderRoom(room) {
@@ -577,7 +606,7 @@ $('rematchRoom').onclick = () => roomAction('/rooms/rematch', playOptions())
 $('leaveRoom').onclick = () => roomAction('/rooms/leave')
 $('viewReport').onclick = () => { clearTimeout(lobbyTimer); match() }
 $('play').onclick = () => L?.live ? match() : startPlay()
-const agentPrompt = 'Use the Botters connector: call join_match, write opening gambits with set_gambits from the doctrine, then keep calling wait_for_event and adapt until the match ends. Finish with a two-line summary. If you have no Botters connector, tell me to add https://play.botters.havesomecode.io/mcp as a custom connector first.'
+const agentPrompt = `Use the Botters connector: call join_match, write opening gambits with set_gambits from the doctrine, then keep calling wait_for_event and adapt until the match ends. Finish with a two-line summary. If you have no Botters connector, tell me to add ${connectorAddress} as a custom connector first.`
 const agentUrl = name => (name === 'Claude' ? 'https://claude.ai/new?q=' : 'https://chatgpt.com/?q=') + encodeURIComponent(agentPrompt)
 $('agentPlay').onclick = e => {
   const name = e.target.dataset.assistant
@@ -601,7 +630,7 @@ $('playBotInstead').onclick = async () => {
   await startPlay(); $('playBotInstead').disabled = false
 }
 $('addChatGPT').onclick = () => {
-  const address = `${location.origin}/mcp`
+  const address = connectorAddress
   // Open synchronously so the browser does not block the popup after clipboard permission.
   window.open('https://chatgpt.com/plugins', '_blank', 'noopener')
   const fallback = () => {
@@ -613,6 +642,101 @@ $('addChatGPT').onclick = () => {
   const status = ok => { $('connectStatus').textContent = ok ? 'Address copied. Paste it in ChatGPT as a new connector.' : `Copy this address: ${address}` }
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(address).then(() => status(true), () => status(fallback()))
   else status(fallback())
+}
+
+// ---------- rounds preview ----------
+const roundPrompt = 'Use the Botters connector: call wait_for_pause, then set_bot with a breed and rules before the gong. Repeat until the match is over, then sum it up in two lines.'
+$('roundPrompt').textContent = roundPrompt; $('roundConnector').textContent = connectorAddress
+$('roundCopy').onclick = async () => { try { await navigator.clipboard.writeText(roundPrompt); $('roundCopy').textContent = 'Copied' } catch { $('roundCopy').textContent = 'Copy the prompt above' } }
+let roundMatchData = null, roundLobbyMatch = null, roundBreed = 'runner', roundBot = null, roundDirty = false, roundVersion = '', roundPollTimer = null, roundReplay = null, roundReplayId = '', roundFrame = 0, roundLast = 0, roundCredit = 0, roundFinished = 0, roundDebriefShowing = false, roundBusy = false
+const breedText = { runner: 'beats tanks', grunt: 'beats runners', tank: 'beats grunts' }
+function breedPicker(el, selected, choose) {
+  el.innerHTML = sim.BREEDS.map(b => `<button type="button" data-breed="${b}" class="${b === selected ? 'on' : ''}" aria-pressed="${b === selected}">${b} <small>· ${breedText[b]}</small></button>`).join('')
+  el.onclick = e => { const b = e.target.closest('[data-breed]')?.dataset.breed; if (b) choose(b) }
+}
+function startBreeds() { breedPicker($('roundStartBreeds'), roundBreed, b => { roundBreed = b; startBreeds() }) }
+startBreeds()
+async function refreshRoundsLobby() {
+  const r = await api('GET', '/rounds'); if ($('lobby').hidden || !roundsEnabled || !accountRequired) return
+  $('roundsCard').hidden = false; roundLobbyMatch = r.match || null
+  $('roundStart').textContent = roundLobbyMatch && roundLobbyMatch.phase !== 'over' ? 'Resume rounds' : 'Start rounds'
+}
+$('roundStart').onclick = async () => {
+  if (roundLobbyMatch && roundLobbyMatch.phase !== 'over') return openRounds()
+  const r = await api('POST', '/rounds/start', { breed: roundBreed })
+  if (r.error || r.status >= 400) { $('roundLobbyError').textContent = r.error || 'Could not start rounds.'; return }
+  roundFinished = 0; roundReplayId = ''; openRounds()
+}
+function openRounds() { clearTimeout(lobbyTimer); show('rounds'); roundDirty = false; roundBot = null; roundVersion = ''; roundDebriefShowing = false; pollRounds() }
+function loadRoundBot(m) { roundBot = structuredClone(m.bot); roundVersion = JSON.stringify(m.versions || []); roundDirty = false; $('roundProposal').hidden = true; $('roundWhy').value = ''; drawRoundEditor() }
+function drawRoundEditor() {
+  if (!roundBot || !roundMatchData) return
+  breedPicker($('roundBreeds'), roundBot.breed, b => { roundBot.breed = b; roundDirty = true; drawRoundEditor() })
+  $('roundRules').innerHTML = roundBot.gambits.map((r, i) => `<div class="round-rule" data-index="${i}"><select aria-label="Condition ${i + 1}" data-key="if">${Object.keys(CONDITIONS).map(c => `<option value="${c}" ${r.if === c ? 'selected' : ''}>${esc(c.replaceAll('_', ' '))}</option>`).join('')}</select>${CONDITIONS[r.if]?.p ? `<input aria-label="Number ${i + 1}" type="number" step="any" data-key="p" placeholder="${CONDITIONS[r.if].p}" value="${r.p ?? ''}">` : '<span></span>'}<select aria-label="Action ${i + 1}" data-key="then">${Object.keys(ACTIONS).map(a => `<option value="${a}" ${r.then === a ? 'selected' : ''}>${a}</option>`).join('')}</select><button data-remove aria-label="Remove rule ${i + 1}">×</button></div>`).join('')
+  const slots = roundMatchData.slots.you; $('roundSlots').textContent = `${roundBot.gambits.length}/${slots} slots`; $('roundAdd').disabled = roundBot.gambits.length >= slots
+}
+$('roundRules').oninput = e => {
+  const row = e.target.closest('[data-index]'); if (!row || !e.target.dataset.key) return
+  const rule = roundBot.gambits[+row.dataset.index], key = e.target.dataset.key; roundDirty = true
+  if (key === 'p') { if (e.target.value === '') delete rule.p; else rule.p = Number(e.target.value) }
+  else { rule[key] = e.target.value; if (key === 'if') { delete rule.p; drawRoundEditor() } }
+}
+$('roundRules').onclick = e => { if (e.target.hasAttribute('data-remove')) { roundBot.gambits.splice(+e.target.closest('[data-index]').dataset.index, 1); roundDirty = true; drawRoundEditor() } }
+$('roundAdd').onclick = () => { if (roundBot.gambits.length < roundMatchData.slots.you) { roundBot.gambits.push({ if: 'always', then: 'hold', on: true }); roundDirty = true; drawRoundEditor() } }
+$('roundWhy').oninput = () => { roundDirty = true }
+$('roundLoad').onclick = () => loadRoundBot(roundMatchData)
+async function saveRoundBot() {
+  const r = await api('POST', '/rounds/bot', { round: roundMatchData.round, breed: roundBot.breed, gambits: roundBot.gambits, why: $('roundWhy').value.trim() || 'edited by hand' })
+  $('roundError').textContent = r.error || ''; if (r.status >= 400 || r.error) return false
+  roundDirty = false; await pollRounds(false); return true
+}
+$('roundSave').onclick = async () => { if (roundBusy) return; roundBusy = true; try { await saveRoundBot() } finally { roundBusy = false } }
+$('roundFight').onclick = async () => { if (roundBusy) return; roundBusy = true; try { if (roundDirty && !await saveRoundBot()) return; const r = await api('POST', '/rounds/ready', { round: roundMatchData.round }); $('roundError').textContent = r.error || ''; if (!r.error && r.status < 400) await pollRounds(false) } finally { roundBusy = false } }
+function roundVersionText(v) { let t = Number(v.at); if (!Number.isFinite(t)) t = Date.parse(v.at) || 0; if (t > 1e10) t = Math.floor(t / 1000); return `${clock(Math.floor(t))} · ${v.who} · ${v.breed} · ${v.rules} rules — ${v.why || ''}` }
+function debriefHTML(d) {
+  const army = a => a ? `${esc(a.breed)} · ${['runner','grunt','tank'].map(k => `${k} ${a.atStart?.[k] ?? 0} → ${a.atEnd?.[k] ?? 0}`).join(' · ')}` : ''
+  const stat = x => Array.isArray(x) ? `${x[0]} – ${x[1]}` : `${x?.you ?? 0} – ${x?.house ?? 0}`
+  return `<h3>Round ${esc(d.round)} · ${esc(d.result)}</h3><p>${esc(d.reason || '')}</p><p><b>You:</b> ${army(d.yourArmy)}</p><p><b>House:</b> ${army(d.houseArmy)}</p><p>Planets ${stat(d.planets)} · Units ${stat(d.units)}</p>${(d.timeline || []).map(t => `<div>${clock(t.t)} · planets ${stat(t.planets)} · units ${stat(t.units)}</div>`).join('')}<h3>Your rules</h3>${(d.yourRules || []).map(r => `<div>${esc(typeof r.rule === 'string' ? r.rule : label(r.rule))} · ${Math.round(r.share * 100)}%<div class="round-bar" style="width:${Math.max(0, Math.min(100, r.share * 100))}%"></div></div>`).join('')}`
+}
+function showRoundDebrief(d) { if (!d) return; roundFinished = Math.max(roundFinished, d.round); roundDebriefShowing = true; $('roundDebriefBody').innerHTML = debriefHTML(d); renderRounds() }
+$('roundContinue').onclick = () => { roundDebriefShowing = false; renderRounds() }
+$('roundSkip').onclick = () => { cancelAnimationFrame(roundFrame); roundReplay = null; roundFinished = Math.max(roundFinished, roundMatchData.fight?.round || roundMatchData.round); const d = roundMatchData.rounds.find(x => x.round === roundFinished); if (d) showRoundDebrief(d); else { roundDebriefShowing = false; renderRounds() } }
+$('roundAgain').onclick = async () => { const r = await api('POST', '/rounds/start', { breed: roundBot?.breed || roundBreed }); if (r.error) { $('roundError').textContent = r.error; return } roundFinished = 0; roundReplayId = ''; roundBot = null; roundDebriefShowing = false; await pollRounds(false) }
+$('roundBack').onclick = () => { clearTimeout(roundPollTimer); cancelAnimationFrame(roundFrame); roundReplay = null; lobby(false) }
+function renderRounds() {
+  const m = roundMatchData; if (!m || $('rounds').hidden) return
+  $('roundTitle').textContent = `Round ${m.round}/${m.of}`; $('roundScore').textContent = `You ${m.score.you} – ${m.score.house} House`; $('roundTimer').textContent = `${m.phase === 'pause' ? 'Pause' : m.phase === 'fight' ? 'Fight' : 'Match over'} · ${clock(Math.max(0, Math.ceil(m.secondsLeft || 0)))}`
+  $('roundPause').hidden = roundDebriefShowing || m.phase !== 'pause'; $('roundFightView').hidden = roundDebriefShowing || !roundReplay; $('roundDebrief').hidden = !roundDebriefShowing; $('roundOver').hidden = roundDebriefShowing || !!roundReplay || m.phase !== 'over'
+  $('roundFinal').textContent = `Final result · ${m.result || (m.score.you > m.score.house ? 'You win' : m.score.you < m.score.house ? 'House wins' : 'Draw')}`
+  $('roundPast').hidden = !m.rounds?.length; $('roundPastList').innerHTML = (m.rounds || []).map(d => `<details><summary>Round ${esc(d.round)} · ${esc(d.result)}</summary>${debriefHTML(d)}</details>`).join('')
+  if (m.phase === 'pause') { const ver = JSON.stringify(m.versions || []); if (!roundBot || roundBot._round !== m.round) { loadRoundBot(m); roundBot._round = m.round } else if (ver !== roundVersion) { if (roundDirty) $('roundProposal').hidden = false; else { loadRoundBot(m); roundBot._round = m.round } } $('roundVersions').innerHTML = (m.versions || []).map(v => `<div>${esc(roundVersionText(v))}</div>`).join('') || 'No changes yet'; drawRoundEditor() }
+}
+function paintRound() {
+  const s = roundReplay.state, c = $('roundCanvas'), ctx = c.getContext('2d'); ctx.clearRect(0, 0, W, H)
+  for (const p of s.planets) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = p.owner === 0 ? '#9d285c' : p.owner === 1 ? '#375ca5' : '#343440'; ctx.fill(); ctx.strokeStyle = '#aaaabb'; ctx.stroke() }
+  for (let i = 0; i < s.N; i++) if (s.alive[i]) { ctx.fillStyle = s.side[i] === 0 ? '#ff75b4' : '#6f9bff'; const size = [2, 3, 4][s.role[i]]; ctx.fillRect(s.x[i] - size/2, s.y[i] - size/2, size, size) }
+  const t = roundReplay.totals; $('roundCounts').textContent = `Units ${t.units[0]} – ${t.units[1]} · Planets ${t.planets[0]} – ${t.planets[1]}`
+}
+function playRoundFrame(now) {
+  if (!roundReplay || $('rounds').hidden) return
+  if (roundLast) roundCredit += Math.min(100, now - roundLast) / 10; roundLast = now
+  const until = performance.now() + 8; while (roundCredit >= 1 && !roundReplay.state.ended && performance.now() < until) { roundReplay.advance(); roundCredit-- }
+  roundCredit = Math.min(roundCredit, 10); paintRound()
+  if (roundReplay.state.ended) { const r = roundMatchData.fight?.round || roundMatchData.round; roundReplay = null; roundFinished = Math.max(roundFinished, r); const d = roundMatchData.rounds.find(x => x.round === r); if (d) showRoundDebrief(d); else renderRounds(); return }
+  roundFrame = requestAnimationFrame(playRoundFrame)
+}
+async function pollRounds(schedule = true) {
+  if ($('rounds').hidden) return; if (schedule) clearTimeout(roundPollTimer)
+  const r = await api('GET', '/rounds'); if ($('rounds').hidden) return
+  if (r.error || !r.match) { $('roundError').textContent = r.error || 'No rounds match found.' } else {
+    const m = r.match; roundMatchData = m
+    const pending = (m.rounds || []).find(d => d.round > roundFinished)
+    if (!roundReplay && !roundDebriefShowing && m.fight && m.fight.round > roundFinished && roundReplayId !== `${m.id}:${m.fight.round}`) {
+      try { roundReplayId = `${m.id}:${m.fight.round}`; roundReplay = createRoundReplay({ seed: m.seed, ...m.fight }); roundLast = 0; roundCredit = 0; $('roundLegend').textContent = `You: ${m.fight.bots[0].breed} · House: ${m.fight.bots[1].breed}`; roundFrame = requestAnimationFrame(playRoundFrame) } catch (e) { $('roundError').textContent = `Replay unavailable: ${e.message}` }
+    } else if (!roundReplay && !roundDebriefShowing && pending) showRoundDebrief(pending)
+    renderRounds()
+  }
+  if (schedule) roundPollTimer = setTimeout(pollRounds, 1000)
 }
 
 // ---------- match ----------

@@ -1,3 +1,5 @@
+Live-breed track stopped on 26/11; its scripts stay on branch `botters/t_f6ac0131-changer-une-m-canique-de-botters-pour-qu`.
+
 # Breed: a mechanic where reading the opponent pays (2026-11-23)
 
 **Verdict:** breeds make reading the enemy worth a lot to a script, but not yet to a real agent. Offline, a fog-only script that breeds the counter of what it sees beats the `pincer` house 30 of 32 times on 16 maps × both sides, against 21 of 32 for the best fixed choice. Claude Haiku, playing the same 20 bench maps through the real client, wins 7/20 against a house that re-breeds too (no edit: 7/20) and 14/20 against a house with a fixed breed (no edit: 13/20). No net gain, so Sonnet was not run and the mechanic is not shipped (§ Real agent).

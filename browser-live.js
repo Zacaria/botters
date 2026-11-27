@@ -1,5 +1,5 @@
 import { createMirror, decodeFrame, encodeFrame, board } from './wire.js'
-import { MAXPER, TPS, DEFAULT_GAMBITS, HOUSE, createMatch, applyInput, step, view } from './sim.js'
+import { MAXPER, TPS, DEFAULT_GAMBITS, HOUSE, createMatch, applyInput, step, view, roundMatch, owned, count, W, H } from './sim.js'
 
 export function createPractice({ seed, minutes = 5, planets = 17, vs = 'normal', opening = DEFAULT_GAMBITS, name = 'you' }) {
   const s = createMatch(seed, { minutes, planets }), mirror = createMirror()
@@ -75,4 +75,12 @@ export function connectLive(origin, token, onFrame, onDisconnect) {
     resync() { if (!closed && socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'resync' })) },
     close() { closed = true; clearTimeout(retry); socket?.close() },
   }
+}
+
+// The replay owns its simulation; the caller controls the tick budget per frame.
+export function createRoundReplay({ seed, bots, seconds, counter, planets }) {
+  const state = roundMatch(seed, bots, { seconds, counter, planets })
+  return { state, W, H, advance(ticks = 1) { for (let i = 0; i < ticks && !state.ended; i++) step(state); return state },
+    get result() { return state.ended ? { ...state.ended, planets: owned(state), units: count(state) } : null },
+    get totals() { return { planets: owned(state), units: count(state) } } }
 }
