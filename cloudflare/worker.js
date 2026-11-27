@@ -3,6 +3,7 @@ import { json, failure } from './http.js'
 import { hash, clientAddress } from './authority.js'
 import { gameTransport } from './game-transport.js'
 import { oauthRoute, oauthHTTP, authenticate } from './oauth.js'
+import { rangeResponse } from './media.js'
 export { MatchRoom } from './match-room.js'
 export { AgentGateway } from './agent-gateway.js'
 
@@ -33,33 +34,7 @@ async function dispatch(request,env) {
   }
   if (gamePaths.has(url.pathname)) return gameTransport(env,request)
   if (url.pathname === '/live-config.json') return json({url:env.SITE_URL,accountRequired:true})
-  if (url.pathname === '/media/public-demo.webm' && request.method === 'GET' && request.headers.has('range') && env.ASSETS) {
-    const response = await env.ASSETS.fetch(request)
-    if (response.status !== 200) return response
-    const reader = response.body.getReader(), chunks = []; let length = 0
-    try {
-      for (;;) {
-        const {value,done} = await reader.read()
-        if (done) break
-        length += value.byteLength
-        if (length > 20 * 1024 * 1024) throw new Error('Video asset exceeds limit')
-        chunks.push(value)
-      }
-    } finally { await reader.cancel() }
-    const bytes = new Uint8Array(length); let offset = 0
-    for (const chunk of chunks) { bytes.set(chunk,offset); offset += chunk.byteLength }
-    const match = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range'))
-    const a = match?.[1], b = match?.[2]
-    const start = a ? Number(a) : Math.max(0, length - Number(b)), end = a && b ? Math.min(Number(b), length - 1) : length - 1
-    if (!match || (!a && !b) || (!a && Number(b) === 0) || (a && !Number.isSafeInteger(Number(a))) || (b && !Number.isSafeInteger(Number(b))) || start >= length || start > end) {
-      return new Response(null,{status:416,headers:{'content-range':`bytes */${length}`}})
-    }
-    const headers = new Headers(response.headers)
-    headers.set('content-range',`bytes ${start}-${end}/${length}`)
-    headers.set('content-length',String(end-start+1))
-    headers.set('accept-ranges','bytes')
-    return new Response(bytes.slice(start,end+1),{status:206,headers})
-  }
+  if (url.pathname === '/media/public-demo.webm' && request.method === 'GET' && request.headers.has('range') && env.ASSETS) return rangeResponse(request,() => env.ASSETS.fetch(request.url))
   if (/^\/r\/[A-Z2-9]{6}$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/',request.url),request))
   return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found',{status:404})
 }
