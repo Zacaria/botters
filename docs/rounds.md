@@ -8,8 +8,8 @@ The mode exists only where the Worker variable `ROUNDS_ENABLED` is `"1"` (the `p
 
 - A bot is a **breed** plus **rules** (gambits). The whole starting army is that one role (1200 units in three battalions) and your planets breed it. Runner beats tank, tank beats grunt, grunt beats runner: ×2 damage on the prey, ×0.5 on the predator (`ROUNDS.counter`).
 - Rule slots: 3 for round 1, +1 after each round, +1 more for the loser of the round, at most 10.
-- Pause: 60 s. The last valid bot sent before the gong plays; without one, the previous bot plays (round 1: `START` in `rounds.js`). The human can ring the gong early with **Fight**.
-- A round is 75 s of combat, simulated by the server at the gong and replayed by the browser at 5× (15 s). The next pause opens when the replay ends.
+- Pause: 60 s (`PAUSE_S` in `rounds.js`; the agent benchmarks used 30 s, `ROUNDS.pause`). The last valid bot sent before the gong plays; without one, the previous bot plays (round 1: `START` in `rounds.js`). The human can ring the gong early with **Fight**.
+- A round is 75 s of combat, simulated by the server at the gong and replayed by the browser at 5× (15 s). The 15 s window opens once the server has computed the round; the next pause opens when it closes. A device too slow to replay at 5× cuts to the debrief at the end of the window, so the replay never eats the pause.
 - The house plays `pincer` trimmed to its slots, with a breed drawn from the seed. It keeps a bot that won; after a lost round it switches to the breed that beats the one that beat it. It never sees your next bot.
 - After each round the debrief shows both armies (breed, units per role at start and end), planets and units every 15 s, and how often each of your rules decided.
 
@@ -31,4 +31,6 @@ With rounds enabled, the connector adds `wait_for_pause` (blocks until the next 
 
 ## Preview
 
-`npx wrangler deploy --env preview` deploys Worker `botters-play-preview` with its own D1 `botters-play-preview` (fresh accounts, email sign-in only) at its workers.dev address. It never touches `play.botters.havesomecode.io`.
+Address: https://botters-play-preview.chtatar-zacaria.workers.dev
+
+Deploy: `npm run build && node scripts/build-cloudflare.js`, then `npx wrangler d1 migrations apply botters-play-preview --env preview --remote` and `npx wrangler deploy --env preview`. This deploys Worker `botters-play-preview` with its own D1 `botters-play-preview` (fresh accounts, email sign-in only) at its workers.dev address, with its own `BETTER_AUTH_SECRET` (`wrangler secret put --env preview`) and a 5-minute CPU limit because the Durable Object `RoundsRoom` simulates each round at the gong. It never touches `play.botters.havesomecode.io`.
