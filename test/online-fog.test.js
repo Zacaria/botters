@@ -21,7 +21,7 @@ test('house duel persists particle state and accepts battalion orders', async ()
 })
 
 import { runtime, client, ORIGIN } from './helpers/cloudflare.js'
-import { createMirror, decodeFrame } from '../wire.js'
+import { createMirror, decodeFrame, board } from '../wire.js'
 import * as sim from '../sim.js'
 
 test('cold catch-up returns bounded progress and checkpoints survive repeated eviction', async () => {
@@ -101,4 +101,20 @@ test('workerd two-player fog frames decode and resync', { timeout: 90000 }, asyn
   const rates = players.map(p => p.bytes / seconds / 1024)
   assert.ok(rates.every(rate => rate < 100))
   console.log(JSON.stringify({ proof: 'workerd-fog', kbPerSecond: rates, ticks: players.map(p => p.mirror.tick) }))
+})
+
+test('capture progress of a planet is reported only to a side that can see it', () => {
+  const s = sim.createMatch(4242, { minutes: 5, planets: 17 })
+  const far = s.planets.find(p => p.owner < 0 && !sim.visible(s, 0, p.x, p.y))
+  let moved = 0
+  for (let i = sim.MAXPER; moved < 10; i++) if (s.alive[i]) { s.x[i] = far.x + moved % 5 - 2; s.y[i] = far.y + (moved / 5 | 0) - 1; moved++ }
+  s.tick = sim.THINK - 1; sim.step(s)
+  assert.equal(far.prog > 0 && far.by === 1 && !sim.visible(s, 0, far.x, far.y), true)
+  assert.equal(sim.view(s, 0).planets[far.id].capture, 0)
+  assert.deepEqual((({ prog, by }) => ({ prog, by }))(board(s, 0).planets[far.id]), { prog: 0, by: -1 })
+  assert.equal(sim.view(s, 1).planets[far.id].capture, far.prog)
+  assert.equal(board(s, 1).planets[far.id].prog, far.prog)
+  const b = sim.live(s, 0)[0]; b.cx = far.x; b.cy = far.y
+  assert.equal(sim.view(s, 0).planets[far.id].capture, far.prog)
+  assert.deepEqual((({ prog, by }) => ({ prog, by }))(board(s, 0).planets[far.id]), { prog: far.prog, by: 1 })
 })

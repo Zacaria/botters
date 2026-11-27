@@ -28,6 +28,16 @@
     "SITE_URL": "https://play.botters.havesomecode.io",
     "AUTH_EMAIL_FROM": "botters@mail.havesomecode.io"
   },
+  "ratelimits": [
+    {
+      "name": "BURST",
+      "namespace_id": "8787",
+      "simple": {
+        "limit": 400,
+        "period": 10
+      }
+    }
+  ],
   "send_email": [
     {
       "name": "EMAIL",

@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto'
 import { transaction } from '../online/store.js'
 import { D1Store } from './d1-store.js'
-import { hash, nonce, authorize, denied } from './authority.js'
+import { hash, nonce, authorize, denied, clientAddress } from './authority.js'
 import { json, body, runGame } from './http.js'
 const scope = 'botters:play', DAY = 86400
 const error = (message = 'Invalid authorization request.', status = 400) => Object.assign(new Error(message), { status })
 const escape = v => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c])
 const resource = env => `${env.SITE_URL}/mcp`
-const validRedirect = v => { try { const u = new URL(v); return v.length <= 2048 && !u.username && !u.password && !u.hash && (u.protocol === 'https:' || u.protocol === 'http:' && ['localhost','127.0.0.1','[::1]'].includes(u.hostname)) } catch { return false } }
+const validRedirect = v => { try { const u = new URL(v); return v.length <= 400 && !u.username && !u.password && !u.hash && (u.protocol === 'https:' || u.protocol === 'http:' && ['localhost','127.0.0.1','[::1]'].includes(u.hostname)) } catch { return false } }
 export const oauthRoute = path => ['/register','/authorize','/token','/revoke','/consent','/consent/complete','/consent/cancel','/.well-known/oauth-authorization-server','/.well-known/oauth-protected-resource/mcp'].includes(path)
 const bearerToken = req => /^Bearer ([A-Za-z0-9_-]{32})$/.exec(req.headers.get('authorization') || '')?.[1]
 export async function authenticate(env, request) {
@@ -38,15 +38,18 @@ export async function oauthHTTP(env, request) {
   if (!['GET','POST'].includes(request.method)) return json({error:'Method not allowed.'},405)
   const data = request.method === 'POST' ? await parameters(request) : Object.fromEntries(u.searchParams)
   if (request.method === 'POST' && ['/register','/token','/revoke'].includes(p) || p === '/authorize') {
+    // Registration writes a record for anyone who asks, so it has its own smaller allowance.
+    const registering = p === '/register'
     await transaction(store, async tx => {
-      const counter = await tx.get(`oauth:limit:${hash(request.headers.get('cf-connecting-ip') || 'local')}:${Math.floor(Date.now()/600000)}`, { n:0 },600)
-      if (counter.n++ >= 200) throw error('Too many authorization requests.',429)
+      const counter = await tx.get(`oauth:limit:${registering ? 'register:' : ''}${hash(clientAddress(request))}:${Math.floor(Date.now()/600000)}`, { n:0 },600)
+      if (counter.n++ >= (registering ? 30 : 200)) throw error('Too many authorization requests.',429)
     })
   }
   if (p === '/register' && request.method === 'POST') {
-    if (!Array.isArray(data.redirect_uris) || !data.redirect_uris.length || data.redirect_uris.length > 8 || data.redirect_uris.some(v => typeof v !== 'string' || !validRedirect(v)) || data.token_endpoint_auth_method !== 'none' || data.scope !== undefined && data.scope !== scope || data.grant_types !== undefined && (!Array.isArray(data.grant_types) || data.grant_types.length > 2 || data.grant_types.some(v => !['authorization_code','refresh_token'].includes(v))) || data.response_types !== undefined && (!Array.isArray(data.response_types) || data.response_types.length !== 1 || data.response_types[0] !== 'code') || data.client_name !== undefined && (typeof data.client_name !== 'string' || data.client_name.length > 200)) throw error('Only public PKCE clients with HTTPS or loopback callbacks are supported.')
+    if (!Array.isArray(data.redirect_uris) || !data.redirect_uris.length || data.redirect_uris.length > 4 || data.redirect_uris.some(v => typeof v !== 'string' || !validRedirect(v)) || data.token_endpoint_auth_method !== 'none' || data.scope !== undefined && data.scope !== scope || data.grant_types !== undefined && (!Array.isArray(data.grant_types) || data.grant_types.length > 2 || data.grant_types.some(v => !['authorization_code','refresh_token'].includes(v))) || data.response_types !== undefined && (!Array.isArray(data.response_types) || data.response_types.length !== 1 || data.response_types[0] !== 'code') || data.client_name !== undefined && (typeof data.client_name !== 'string' || data.client_name.length > 80)) throw error('Only public PKCE clients with HTTPS or loopback callbacks are supported.')
     const c = { client_id: nonce(), client_name: data.client_name || 'Unnamed application', redirect_uris:data.redirect_uris, token_endpoint_auth_method:'none', grant_types:['authorization_code','refresh_token'], response_types:['code'], scope, client_id_issued_at:Math.floor(Date.now()/1000) }
-    await transaction(store, tx => tx.set(`oauth:client:${c.client_id}`, c, 30*DAY))
+    // Kept one day until a person approves it, then for thirty days after each use.
+    await transaction(store, tx => tx.set(`oauth:client:${c.client_id}`, c, DAY))
     return json(c,201)
   }
   if (p === '/authorize' && request.method === 'GET') {
@@ -76,6 +79,8 @@ export async function oauthHTTP(env, request) {
         const current = await tx.get(key)
         if (!current || current.browserHash !== pending.browserHash) throw error('Consent already completed.')
         await tx.set(key,null,1)
+        const client = await tx.get(`oauth:client:${pending.client_id}`,null,30*DAY)
+        if (client) client.used = Date.now()
         await tx.set(`oauth:grant:${grantId}`,grant,7*DAY)
         await tx.set(`oauth:code:${hash(code)}`,{grantId,clientId:pending.client_id,redirect:pending.redirect_uri,challenge:pending.code_challenge,expires:Date.now()+60000},60)
       })
@@ -87,7 +92,8 @@ export async function oauthHTTP(env, request) {
   if (p === '/token' && request.method === 'POST') {
     if (data.resource !== resource(env) || data.scope !== undefined && data.scope !== scope) throw error('The exact MCP resource and scope are required.')
     return json(await transaction(store, async tx => {
-      if (!await tx.get(`oauth:client:${data.client_id}`)) throw error('Unknown client.')
+      const client = await tx.get(`oauth:client:${data.client_id}`,null,30*DAY)
+      if (!client) throw Object.assign(error('Unknown client.',401),{code:'invalid_client'})
       const isCode = data.grant_type === 'authorization_code'
       if (!isCode && data.grant_type !== 'refresh_token') throw error('Unsupported grant type.')
       const key = isCode ? `oauth:code:${hash(data.code || '')}` : `oauth:token:${hash(data.refresh_token || '')}`
@@ -103,6 +109,7 @@ export async function oauthHTTP(env, request) {
       await tx.set(`oauth:token:${hash(access_token)}`,{kind:'access',grantId:record.grantId,expires},600)
       await tx.set(`oauth:token:${hash(refresh_token)}`,{kind:'refresh',grantId:record.grantId,expires:grant.expires,spent:false},7*DAY)
       if (isCode) await tx.set(key,null,1); else if (!record.spent) { record.spent=true; record.spentAt=Date.now() }
+      if (!(client.used > Date.now()-DAY*1000)) client.used = Date.now()
       return {access_token,refresh_token,token_type:'Bearer',expires_in:Math.floor((expires-Date.now())/1000),scope}
     }))
   }

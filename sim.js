@@ -286,8 +286,8 @@ export const matchOptions = o => ({ minutes: OPTIONS.minutes.includes(o?.minutes
 export function checkGambits(list) {
   if (!Array.isArray(list) || !list.length || list.length > MAX_GAMBITS) return `send 1 to ${MAX_GAMBITS} gambits`
   for (const r of list) {
-    if (!r || !Object.hasOwn(CONDITIONS, r.if)) return 'unknown condition'
-    if (!Object.hasOwn(ACTIONS, r.then)) return 'unknown action'
+    if (!r || typeof r !== 'object' || typeof r.if !== 'string' || !Object.hasOwn(CONDITIONS, r.if)) return 'unknown condition'
+    if (typeof r.then !== 'string' || !Object.hasOwn(ACTIONS, r.then)) return 'unknown action'
     if (r.p !== undefined && !(Number.isFinite(r.p) && r.p > 0 && r.p <= 100000)) return 'invalid p'
     if (r.on !== undefined && typeof r.on !== 'boolean') return 'invalid on'
   }
@@ -351,6 +351,8 @@ export function restore(data) {
   return s
 }
 export const visible = (s, side, x, y) => live(s, side).some(b => d2(b.cx, b.cy, x, y) <= 150 ** 2) || s.planets.some(p => p.owner === side && d2(p.x, p.y, x, y) <= 80 ** 2)
+// Who holds a planet is public; how far a capture has gone is known only to a side that sees the planet or stands on it.
+export const progress = (s, side, p) => p.pres[side] || visible(s, side, p.x, p.y) ? { prog: p.prog, by: p.by } : { prog: p.owner < 0 ? 0 : 100, by: -1 }
 export function view(s, side) {
   const units = count(s), planets = owned(s), battalions = live(s, side).map(b => {
     const roles = { runner: 0, grunt: 0, tank: 0 }
@@ -360,7 +362,7 @@ export function view(s, side) {
   return { tick: s.tick, secondsLeft: Math.max(0, (s.endTick - s.tick) / TPS), ended: s.ended ? { reason: s.ended.reason, result: s.ended.winner === null ? 'draw' : s.ended.winner === side ? 'won' : 'lost' } : null,
     totals: { you: units[side], enemy: units[1-side], planets: { you: planets[side], enemy: planets[1-side] } }, battalions,
     enemies: live(s, 1-side).filter(b => visible(s, side, b.cx, b.cy)).map(b => ({ id: b.id, x: b.cx, y: b.cy, n: b.n, fighting: fighting(s, b) })),
-    planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', capture: p.prog })), gambits: structuredClone(s.gambits[side]), perRule: s.gambits[side].map((_, i) => battalions.filter(b => !b.manual && b.rule === i).length) }
+    planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner < 0 ? null : p.owner === side ? 'you' : 'enemy', capture: progress(s, side, p).prog })), gambits: structuredClone(s.gambits[side]), perRule: s.gambits[side].map((_, i) => battalions.filter(b => !b.manual && b.rule === i).length) }
 }
 export const BREED_DOC = { runner: 'beats tanks, loses to grunts', grunt: 'beats runners, loses to tanks', tank: 'beats grunts, loses to runners' }
 export const rules = () => ({ conditions: structuredClone(CONDITIONS), actions: Object.fromEntries(Object.entries(ACTIONS).map(([k, doc]) => [k, { doc }])) })

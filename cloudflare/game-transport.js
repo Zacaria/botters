@@ -6,7 +6,11 @@ async function once(env,request) {
   const path=new URL(request.url).pathname
   if(!publicPaths.has(path)) {
     const a=await admission(env,request)
-    if(a.session.match)return env.MATCHES.getByName(a.session.match).fetch(request)
+    if(a.session.match) {
+      // The room counts waiting requests per player; only this Worker can name the side.
+      const headers=new Headers(request.headers); headers.set('x-botters-side',String(a.session.side??''))
+      return env.MATCHES.getByName(a.session.match).fetch(new Request(request,{headers}))
+    }
     if(path==='/socket')return json({error:'Join a match first.'},409)
   }
   return gameHTTP(env,request)

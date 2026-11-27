@@ -103,3 +103,48 @@ test('order and detach journal canonical inputs and replay the checkpoint', asyn
   const saved = JSON.parse(await f.store.get(`state:${frame.matchId}`))
   assert.deepEqual(snapshot(replay(saved.seed, log, { ...saved.opts, tick: saved.tick })), saved)
 })
+
+test('gambit conditions and actions must be plain strings', async () => {
+  const f = fixture(), a = await f.session('a'), b = await f.session('b')
+  await f.call(a, 'POST', '/play', { vs: 'player', withAgent: false, planning: 10, minutes: 3 })
+  await f.call(b, 'POST', '/play', { vs: 'player', withAgent: false, planning: 10, minutes: 3 })
+  const wrapped = (value, depth) => { for (let i = 0; i < depth; i++) value = [value]; return value }
+  for (const depth of [1, 3, 3000]) {
+    await assert.rejects(f.call(a, 'POST', '/input', { gambits: [{ if: wrapped('always', depth), then: 'hold' }] }), { status: 400 })
+    await assert.rejects(f.call(a, 'POST', '/input', { gambits: [{ if: 'always', then: wrapped('hold', depth) }] }), { status: 400 })
+  }
+  await assert.rejects(f.call(a, 'POST', '/input', { gambits: ['always'] }), { status: 400 })
+  assert.ok((await f.call(b, 'GET', '/state')).view)
+  await f.call(b, 'POST', '/surrender')
+  await assert.rejects(f.call(b, 'POST', '/play', { vs: 'easy', withAgent: false, opening: [{ if: wrapped('always', 2), then: 'hold' }] }), { status: 400 })
+})
+
+test('a session can start a bounded number of matches per ten minutes', async () => {
+  const f = fixture(), a = await f.session('a')
+  for (let i = 0; i < 12; i++) {
+    await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false })
+    await f.call(a, 'POST', '/surrender')
+    f.advance(1000)
+  }
+  await assert.rejects(f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false }), { status: 429 })
+  await assert.rejects(f.call(a, 'POST', '/play', { vs: 'easy', withAgent: true }), { status: 429 })
+  await assert.rejects(f.call(a, 'POST', '/rooms'), { status: 429 })
+  f.advance(600000)
+  assert.equal((await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false })).ok, true)
+})
+
+test('a player who comes back after a finished match was forgotten can still play', async () => {
+  let now = 1_800_000_000_000
+  const store = new MemoryStore(() => now), fresh = () => new OnlineGame(store, { now: () => now, seed: () => 3 })
+  const call = (s, method, path, body = {}) => fresh().request(method, path, new URLSearchParams({ token: s.humanToken }), body)
+  const a = await fresh().request('POST', '/session', undefined, { name: 'a' })
+  await call(a, 'POST', '/play', { vs: 'easy', withAgent: false, planning: 10, minutes: 3 })
+  let ended = false
+  for (let i = 0; i < 200 && !ended; i++) { now += 4500; ended = !!(await call(a, 'GET', '/state')).report }
+  assert.ok(ended)
+  now += 23 * 3600000
+  assert.ok((await call(a, 'GET', '/state')).report, 'the result is still shown the next day')
+  now += 2 * 3600000
+  await assert.rejects(call(a, 'GET', '/state'), { message: 'Not in a match.' })
+  assert.deepEqual(await call(a, 'POST', '/play', { vs: 'easy', withAgent: false, planning: 10, minutes: 3 }), { ok: true })
+})
