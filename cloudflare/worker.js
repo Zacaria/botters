@@ -1,5 +1,6 @@
 import { createAuth } from './auth.js'
 import { json, failure } from './http.js'
+import { hash, clientAddress } from './authority.js'
 import { gameTransport } from './game-transport.js'
 import { oauthRoute, oauthHTTP, authenticate } from './oauth.js'
 export { MatchRoom } from './match-room.js'
@@ -12,6 +13,11 @@ async function dispatch(request,env) {
   const url = new URL(request.url)
   if (!env.SITE_URL || new URL(env.SITE_URL).origin !== env.SITE_URL) throw new Error('Site origin not configured')
   if (!publicProtocol(url.pathname) && request.headers.has('origin') && request.headers.get('origin') !== env.SITE_URL) return json({ error:'Use Botters from its own site.' },403)
+  // Refused before any database work, so one address or agent flooding requests cannot slow everyone's matches.
+  if (env.BURST && (gamePaths.has(url.pathname) || url.pathname === '/mcp')) {
+    const bearer = url.pathname === '/mcp' && /^Bearer ([A-Za-z0-9_-]{32})$/.exec(request.headers.get('authorization') || '')?.[1]
+    if (!(await env.BURST.limit({ key: bearer ? `agent:${hash(bearer)}` : clientAddress(request) })).success) return json({ error:'Too many requests. Slow down and retry.' },429,{ 'retry-after':'10' })
+  }
   if (url.pathname.startsWith('/api/auth/')) {
     const headers = new Headers(request.headers)
     headers.set('x-botters-client-ip',request.headers.get('cf-connecting-ip') || 'local')

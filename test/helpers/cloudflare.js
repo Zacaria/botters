@@ -2,13 +2,14 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import { readFile } from 'node:fs/promises'
 export const ORIGIN = 'http://localhost:8787'
 export async function runtime(options = {}) {
-  const { bindings = {}, ...runtimeOptions } = options
+  const { bindings = {}, burst = { limit: 100000, period: 60 }, ...runtimeOptions } = options
   const mail = []
   const optionsV5 = convertV4MiniflareOptions({
     name: 'botters-local',
     modules: [{ type: 'ESModule', path: '.cache/cloudflare/worker.js' }],
     compatibilityDate: '2026-11-08', compatibilityFlags: ['nodejs_compat'],
     bindings: { SITE_URL: ORIGIN, BETTER_AUTH_SECRET: 'local-workerd-test-only-secret-1234567890', AUTH_EMAIL_FROM: 'botters@mail.havesomecode.io', ...bindings },
+    ratelimits: { BURST: { namespace_id: '8787', simple: burst } },
     d1Databases: { DB: 'botters-local' }, durableObjects: { MATCHES: { className: 'MatchRoom', useSQLite: true }, AGENTS: { className: 'AgentGateway', useSQLite: true } },
     ...runtimeOptions,
   })

@@ -8,8 +8,24 @@ const bounded = (work, ms = 750) => {
   return Promise.race([work, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Authority unavailable')), ms) })]).finally(() => clearTimeout(timer))
 }
 export class MatchRoom extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); this.sockets = new Map(); this.stateCache = new Map(); this.tail = Promise.resolve(); this.timer = null; this.matchId = null }
-  serial(fn) { const work = this.tail.then(fn, fn); this.tail = work.catch(() => {}); return work }
+  constructor(ctx, env) { super(ctx, env); this.sockets = new Map(); this.stateCache = new Map(); this.first = []; this.rest = []; this.waiting = new Map(); this.timer = null; this.matchId = null }
+  // One job at a time. Frames and alarms go first, so requests never delay what both players watch.
+  serial(fn, first = false) {
+    return new Promise((resolve, reject) => { (first ? this.first : this.rest).push({ fn, resolve, reject }); void this.drain() })
+  }
+  async drain() {
+    if (this.draining) return
+    this.draining = true
+    for (let job; (job = this.first.shift() || this.rest.shift());) { try { job.resolve(await job.fn()) } catch (e) { job.reject(e) } }
+    this.draining = false
+  }
+  // At most eight requests per player wait here: one player's burst never holds up the other.
+  admit(side, fn) {
+    const waiting = this.waiting.get(side) || 0
+    if (waiting >= 8) throw Object.assign(new Error('Too many requests at once. Retry shortly.'), { status: 429 })
+    this.waiting.set(side, waiting + 1)
+    return this.serial(fn).finally(() => this.waiting.set(side, this.waiting.get(side) - 1))
+  }
   async wake(id) {
     if (!this.ctx.id.equals(this.env.MATCHES.idFromName(id))) throw new Error('Wrong match owner')
     this.matchId = id
@@ -18,7 +34,7 @@ export class MatchRoom extends DurableObject {
   }
   async fetch(request) {
     try {
-      if (request.headers.get('upgrade') !== 'websocket') return await this.serial(() => gameHTTP(this.env, request, this.stateCache))
+      if (request.headers.get('upgrade') !== 'websocket') return await this.admit(request.headers.get('x-botters-side') || '', () => gameHTTP(this.env, request, this.stateCache))
       const admitted = await bounded(admission(this.env, request))
       if (!admitted.session.match || !this.ctx.id.equals(this.env.MATCHES.idFromName(admitted.session.match))) return json({ error: 'Match changed. Reconnect.' }, 409)
       await this.wake(admitted.session.match)
@@ -40,7 +56,7 @@ export class MatchRoom extends DurableObject {
         entry.resync = true; entry.resyncAt = Date.now()
         void this.serial(() => { entry.mirror.reset = true; return this.sendFrame(server, entry) }).catch(() => {}).finally(() => { entry.resync = false })
       })
-      await this.serial(() => this.sendFrame(server, entry))
+      try { await this.admit(String(entry.side), () => this.sendFrame(server, entry)) } catch (e) { clearInterval(entry.watchdog); drop(); throw e }
       this.schedule()
       return new Response(null, { status: 101, webSocket: pair[0] })
     } catch (e) { return failure(e) }
@@ -58,7 +74,7 @@ export class MatchRoom extends DurableObject {
     this.timer = setTimeout(() => {
       this.timer = null
       this.nextFrameAt = Date.now() + 100
-      void this.serial(() => this.frame()).finally(() => this.schedule()).catch(() => {})
+      void this.serial(() => this.frame(), true).finally(() => this.schedule()).catch(() => {})
     }, delay)
   }
   async frame() {
@@ -95,7 +111,7 @@ export class MatchRoom extends DurableObject {
     this.matchId ||= await this.ctx.storage.get('matchId')
     if (!this.matchId) return
     try {
-      const frames = await this.serial(() => runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId }, null, undefined, this.stateCache))
+      const frames = await this.serial(() => runGame(this.env, 'INTERNAL', '/tick', new URLSearchParams(), { id: this.matchId }, null, undefined, this.stateCache), true)
       if (frames?.frames.some(f => !f.result)) await this.ctx.storage.setAlarm(Date.now() + 1000)
     } catch { await this.ctx.storage.setAlarm(Date.now() + 1000) }
   }
