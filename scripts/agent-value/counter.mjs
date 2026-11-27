@@ -10,7 +10,10 @@ import { mutator, text, side } from './evolve.mjs'
 
 const [gens, out, start, opp, threads = 6, mode, finalSeeds = 16] = process.argv.slice(2), round = mode === 'round'
 const rounds = JSON.parse(process.env.ROUNDS_TUNE || '{}')
-const genome = name => round ? structuredClone(bot(name)) : { gambits: structuredClone(SETS[name]) }
+// start/opponent may also be a JSON genome ({"army":…,"gambits":[…]}), e.g. the champion of the previous ladder rung.
+// COUNTER_FREEZE_ARMY=1 keeps the start army (rules-only search); COUNTER_MAX_RULES=k caps the rule count.
+const genome = name => name.startsWith('{') ? JSON.parse(name) : round ? structuredClone(bot(name)) : { gambits: structuredClone(SETS[name]) }
+const freeze = process.env.COUNTER_FREEZE_ARMY === '1', maxRules = +(process.env.COUNTER_MAX_RULES || 10)
 const strip = g => ({ ...g, gambits: g.gambits.map(({ on, ...r }) => r) })
 let champ = strip(genome(start)); const foe = side(genome(opp), round)
 const mutate = mutator(777)
@@ -24,7 +27,8 @@ const vsOpp = async (list, sd) => { // score of each genome vs the opponent, bot
 const log = o => { appendFileSync(out, JSON.stringify(o) + '\n'); console.log(JSON.stringify(o)) }
 log({ start: text(champ), opp, round })
 for (let g = 0; g < +gens; g++) {
-  const cands = Array.from({ length: 6 }, () => mutate(champ)), sd = seeds(4)
+  const allowed = c => c.gambits.length <= maxRules && (!freeze || JSON.stringify(c.army) === JSON.stringify(champ.army))
+  const cands = Array.from({ length: 6 }, () => { let c; do c = mutate(champ); while (!allowed(c)); return c }), sd = seeds(4)
   const [c0, ...scores] = await vsOpp([champ, ...cands], sd)
   const best = scores.indexOf(Math.max(...scores)); let accepted = false, confirm = null
   if (scores[best] > c0) { confirm = await vsOpp([champ, cands[best]], seeds(8)); if (confirm[1] > confirm[0]) { champ = cands[best]; accepted = true } }

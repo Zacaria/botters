@@ -1,0 +1,10 @@
+8 seeds × 2 sides, one rounds-mode round each, 17 planets, 336 games in 756 s
+                 rich3+4-4-4   rich3+3-6-3   rich3+6-4-2   rich3+1-5-6   rich3+1-7-4blobflank+3-6-3blobflank+1-7-4          mean         worst
+   rich3+1-5-6          0.44          1.00          0.63             -          1.00          0.88          1.00          0.82          0.44
+   rich3+1-7-4          0.94          0.88          0.81          0.00             -          0.88          0.69          0.70          0.00
+   rich3+3-6-3          0.81             -          0.94          0.00          0.13          0.69          0.50          0.51          0.00
+blobflank+1-7-4          0.75          0.50          0.75          0.00          0.31          0.56             -          0.48          0.00
+blobflank+3-6-3          0.69          0.31          0.81          0.13          0.13             -          0.44          0.42          0.13
+   rich3+4-4-4             -          0.19          0.38          0.56          0.06          0.31          0.25          0.29          0.06
+   rich3+6-4-2          0.63          0.06             -          0.38          0.19          0.19          0.25          0.28          0.06
+wipes 0/336, median end 75 s, lead changes median 0

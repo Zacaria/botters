@@ -1,0 +1,42 @@
+{
+  "seed": 17,
+  "model": "haiku",
+  "house": "variable",
+  "winner": "agent",
+  "score": [
+    3,
+    2
+  ],
+  "roundResults": [
+    "won",
+    "won",
+    "lost",
+    "lost",
+    "won"
+  ],
+  "armies": [
+    "4-4-4/3-3-6",
+    "6-2-4/4-4-4",
+    "5-3-4/4-6-2",
+    "4-2-6/4-6-2",
+    "2-1-9/4-6-2"
+  ],
+  "versionsPerPause": [
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "late": 0,
+  "invalid": 0,
+  "pausesWithoutVersion": 0,
+  "cost": 0.00496276,
+  "turns": 13,
+  "wall": 384,
+  "stop": "success",
+  "calls": {
+    "wait_for_pause": 6,
+    "set_bot": 6
+  }
+}

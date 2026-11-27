@@ -112,9 +112,68 @@ Limits: the house follows one deterministic rule, so a model that names it wins;
 
 Per seed in `raw/rounds2/<model>-vs-house/` (same files as §4, plus `breeds` = agent-house breed per round in `seed-N.json`). Controls: `raw/rounds2/control-vs-house-seeds1-20.json`. Claude Code `--model haiku` and `--model sonnet`, MCP = `rounds-mcp.mjs` only. Model spend for this card: $1.05 (one Haiku smoke match included). §4's controls ran with the pre-breed `rounds.mjs`; its raw logs stay valid, its commands now play breeds.
 
+## 6. Rounds with mixed armies: rules that pick which race attacks which (2026-11-27)
+
+**Verdict:** race no longer decides a round and finer rules win at equal army offline (three race-aware rules beat six race-blind ones 0.69–0.88; one more role filter adds 0.75), but more rules do not, and Haiku and Sonnet (9/20 each) do no better than a fixed bot that uses those rules (9/20): the bot's rules now matter, the agent's rewriting between rounds does not yet.
+
+Changes to §5's format (`sim.js` `ROUNDS`, `checkArmy`, `test`, `think`; `scripts/agent-value/rounds.mjs`):
+- A bot is an army plus rules. The army is 12 squads of 100 units shared between runner, grunt and tank (`{ runner: 4, grunt: 4, tank: 4 }`); each role starts in its own battalions (one per 4 squads, rounded up), and a planet reinforces a battalion with that battalion's role. The ×2 / ×0.5 triangle from §5 stays.
+- Two optional rule fields: `who` (the rule only drives battalions of that role) and `vs` (only enemy battalions of a role, or `prey` / `predator` relative to the acting battalion). New condition `enemy_near(p)` (any enemy battalion within p, default 400), also available in live matches.
+- The house plays `pincer` rules with an army tilted 6-3-3 toward a role drawn from the seed. It keeps an army that won; after a lost round it plays the army that counters the agent's (each role count moved to its predator).
+- `rich3` = `IF enemy_near(400) vs prey → go · IF free_planet → go · IF enemy_planet → go`, the shortest race-aware bot; `rich4`…`rich7` add `planet_attacked`, a retreat from predators, `weaker_enemy_near` and `always hold` (`strategies.mjs` `RICH`).
+
+**Offline, no AI.** One 75 s round per game, both sides of each map.
+
+| check | result | file |
+|---|---|---|
+| Race-aware vs race-blind rules, same army 4-4-4 | `rich3` beats `pincer` **0.88** (8 maps) | `rr-ladder-444-8seeds.json` |
+| Same, army 3-6-3 / 1-7-4 | **0.69** / **0.69** | `rr-cycle-8seeds.json` |
+| More rules of the same kind, army 4-4-4 | `rich3` beats `rich4`…`rich7` 0.75–0.81 | `rr-ladder-444-8seeds.json` |
+| Rules-only search against `rich3`, army frozen at 4-4-4, up to 5 rules | no 4th or 5th rule kept; a finer 3rd rule, `runner: IF free_planet(2000) → go` (only runners take far free planets), wins **0.75** (8 maps); a 4-rule cap stopped after 2 generations | `ladder-r4-vs-rich3-444.*`, `ladder-r5-vs-rich3-444.*` |
+| Strongest army with `rich3` rules (hill-climb from 4-4-4) | 6-4-2 after one step, then 9 generations without a better one | `search-from-rich3.jsonl` |
+| Answer to that champion, `rich3+6-4-2` | 1-7-4 wins **0.81** | `counter-vs-rich3-642.jsonl`, `rr-cycle-8seeds.json` |
+| Answer to the best army of the 7-army sweep, `rich3+3-6-3` | 1-5-6 with a `who: runner` planet rule wins **0.75** (12 maps) | `counter-vs-rich3-363.jsonl` |
+
+No fixed bot dominates: in the 7-bot round-robin below no row's worst score is above 0.5, and armies form a cycle (4-4-4 beats 1-5-6 0.56, 1-5-6 beats 3-6-3 1.00, 3-6-3 beats 4-4-4 0.81). `rich3+1-5-6` comes closest (mean 0.82, worst 0.44).
+
+| row vs column (8 maps) | 4-4-4 | 3-6-3 | 6-4-2 | 1-5-6 | 1-7-4 | `pincer` 3-6-3 | `pincer` 1-7-4 | mean | worst |
+|---|---|---|---|---|---|---|---|---|---|
+| `rich3` 1-5-6 | 0.44 | 1.00 | 0.63 | – | 1.00 | 0.88 | 1.00 | 0.82 | 0.44 |
+| `rich3` 1-7-4 | 0.94 | 0.88 | 0.81 | 0.00 | – | 0.88 | 0.69 | 0.70 | 0.00 |
+| `rich3` 3-6-3 | 0.81 | – | 0.94 | 0.00 | 0.13 | 0.69 | 0.50 | 0.51 | 0.00 |
+| `pincer` 1-7-4 | 0.75 | 0.50 | 0.75 | 0.00 | 0.31 | 0.56 | – | 0.48 | 0.00 |
+| `pincer` 3-6-3 | 0.69 | 0.31 | 0.81 | 0.13 | 0.13 | – | 0.44 | 0.42 | 0.13 |
+| `rich3` 4-4-4 | – | 0.19 | 0.38 | 0.56 | 0.06 | 0.31 | 0.25 | 0.29 | 0.06 |
+| `rich3` 6-4-2 | 0.63 | 0.06 | – | 0.38 | 0.19 | 0.19 | 0.25 | 0.28 | 0.06 |
+
+Squad sizes were swept before settling on 100 units for every role (`army-sweep-1.json`: tanks 140–180, runners 130, grunts 85); no setting stopped 3-6-3 from leading the 7-army list, so the simplest one stayed.
+
+**Agents and controls, seeds 1–20, against the changing house.** The agent is side 0; same controls as §5 plus two that use race-aware rules.
+
+| side 0 | match wins / 20 | rounds won / 100 | cost |
+|---|---|---|---|
+| Sonnet agent | **9** | 41 | $0.98 total, $0.051 median |
+| Haiku agent | **9** | 38 | $0.11 total, $0.006 median |
+| Fixed race-aware bot (`hunter`): 4-4-4 with `rich3`…`rich7` by slot count | 9 | 44 | – |
+| Scripted switcher (`switcher`: army tilted to the next role after each lost round, `pincer` rules) | 9 | 42 | – |
+| Counter the house's last army (`counterLast`, `pincer` rules) | 7 | 27 | – |
+| Script that knows the house rule, with race-aware rules (`readerHunter`) | 6 | 38 | – |
+| Script that knows the house rule (`reader`, `pincer` rules) | 3 | 28 | – |
+| No edit (`noEdit`: 4-4-4, the 3 starting rules) | 3 | 17 | – |
+| Mirror (`mirror`: house's last bot) | 2 | 21 | – |
+
+- Race stopped deciding rounds: when the agent's main role was the predator of the house's main role, it won 25 of 93 rounds (§5: 99 of 110 with the predator breed). Balanced armies did best: 44 of 78 rounds without a single main role.
+- Rounds where the agent's locked bot had race-aware rules went better: 0 such rules, 19 of 78 rounds won; 1–2, 45 of 104; 3 or more, 15 of 18. Bots grow with slots in later rounds, so this mixes rule quality with round order.
+- Knowing the house rule no longer pays (3/20, §5: 18/20): countering its army is not enough when its rules and the map matter as much.
+- No invalid bot, 1 late version (Haiku); median wall time 361 s (Haiku) and 342 s (Sonnet) per match. All 40 runs played to the end.
+
+Limits: one house, 20 maps, one run per seed; the differences between 9, 7 and 6 wins out of 20 are within noise. Searches ran 2–10 generations on a host shared with other jobs (load 25–60).
+
+Per seed in `raw/rounds3/<model>-vs-house/` (as §5, with `armies` = agent/house army per round in `seed-N.json`); `node scripts/agent-value/rounds3-report.mjs <dir>` gives the two splits above. Controls: `raw/rounds3/control-vs-house-seeds1-20.json` and `control-rich-vs-house-seeds1-20.json`. Claude Code `--model haiku` and `--model sonnet`, MCP = `rounds-mcp.mjs` only. Model spend for this card: $1.09.
+
 ## Reproduce
 
-Results in §§4–5 describe historical single-breed prototypes. Current rounds use 12 mixed squads and race-targeting rules; running these commands now does not reproduce those historical results.
+Results in §§4–5 describe historical single-breed prototypes. Current rounds use 12 mixed squads and race-targeting rules (§6); running the §4–5 commands now does not reproduce those historical results.
 
 ```
 node scripts/agent-value/roundrobin.mjs 16 pincer,blob,flanker,rush,greedy        # §2 (pincer = blobflank in strategies.mjs)
@@ -125,4 +184,10 @@ node scripts/agent-value/roundrobin.mjs 8 pincer+runner,pincer+grunt,pincer+tank
 node scripts/agent-value/counter.mjs 6 <out.jsonl> pincer+tank pincer+tank 3 round 8                     # §5 parade search
 node scripts/agent-value/rounds-control.mjs 1 20 noEdit,mirror,switcher,counterLast,reader <out.json>    # §5 controls
 node scripts/agent-value/rounds-bench.mjs --seeds 1,2,...,20 --out <new dir> --model haiku --parallel 5   # §5, ~$0.005/match (sonnet ~$0.05)
+node scripts/agent-value/roundrobin.mjs 8 blobflank+4-4-4,rich3+4-4-4,rich4+4-4-4,rich5+4-4-4,rich6+4-4-4,rich7+4-4-4 round   # §6 ladder
+node scripts/agent-value/roundrobin.mjs 8 rich3+4-4-4,rich3+3-6-3,rich3+6-4-2,rich3+1-5-6,rich3+1-7-4,blobflank+3-6-3,blobflank+1-7-4 round 17 <out.json>   # §6 cycle
+node scripts/agent-value/counter.mjs 8 <out.jsonl> rich3+4-4-4 rich3+6-4-2 3 round 8                     # §6 answer search
+COUNTER_FREEZE_ARMY=1 COUNTER_MAX_RULES=4 node scripts/agent-value/counter.mjs 10 <out.jsonl> rich3+4-4-4 rich3+4-4-4 3 round 8   # §6 rules-only search
+node scripts/agent-value/rounds-control.mjs 1 20 noEdit,mirror,switcher,counterLast,reader,hunter,readerHunter <out.json>   # §6 controls
+node scripts/agent-value/rounds-bench.mjs --seeds 1,2,...,20 --out <new dir> --model sonnet --parallel 3 && node scripts/agent-value/rounds3-report.mjs <dir>   # §6
 ```

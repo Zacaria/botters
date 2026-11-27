@@ -1,0 +1,1148 @@
+{
+  "seed": 1,
+  "house": "variable",
+  "settings": {
+    "count": 5,
+    "seconds": 75,
+    "pause": 30,
+    "slots": 3,
+    "counter": 2,
+    "budget": 12,
+    "squad": {
+      "runner": 100,
+      "grunt": 100,
+      "tank": 100
+    }
+  },
+  "pauses": [
+    {
+      "round": 1,
+      "slots": [
+        3,
+        3
+      ],
+      "openedAt": "2026-11-27T06:01:44.813Z",
+      "versions": [
+        {
+          "at": 4.403,
+          "bot": {
+            "army": {
+              "runner": 4,
+              "grunt": 4,
+              "tank": 4
+            },
+            "gambits": [
+              {
+                "if": "planet_attacked",
+                "then": "go"
+              },
+              {
+                "if": "free_planet",
+                "then": "go"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go"
+              }
+            ]
+          },
+          "why": "Opening bot: defend our planets first, grab free planets, then engage any enemy battalion in range. Balanced 4/4/4 army so no single breed is exposed."
+        }
+      ],
+      "invalid": [],
+      "late": [],
+      "locked": {
+        "army": {
+          "runner": 4,
+          "grunt": 4,
+          "tank": 4
+        },
+        "gambits": [
+          {
+            "if": "planet_attacked",
+            "then": "go"
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go"
+          }
+        ]
+      },
+      "houseBot": {
+        "gambits": [
+          {
+            "if": "weaker_enemy_near",
+            "then": "go",
+            "p": 3
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ],
+        "army": {
+          "runner": 3,
+          "grunt": 6,
+          "tank": 3
+        }
+      },
+      "result": {
+        "winner": 1,
+        "reason": "time",
+        "t": 75,
+        "planets": [
+          5,
+          10
+        ],
+        "units": [
+          250,
+          706
+        ],
+        "timeline": [
+          {
+            "t": 15,
+            "planets": [
+              3,
+              4
+            ],
+            "units": [
+              1266,
+              1278
+            ]
+          },
+          {
+            "t": 30,
+            "planets": [
+              5,
+              7
+            ],
+            "units": [
+              1397,
+              1452
+            ]
+          },
+          {
+            "t": 45,
+            "planets": [
+              6,
+              8
+            ],
+            "units": [
+              1104,
+              1061
+            ]
+          },
+          {
+            "t": 60,
+            "planets": [
+              6,
+              10
+            ],
+            "units": [
+              715,
+              804
+            ]
+          },
+          {
+            "t": 75,
+            "planets": [
+              5,
+              10
+            ],
+            "units": [
+              250,
+              706
+            ]
+          }
+        ],
+        "ruleUse": [
+          [
+            565,
+            447,
+            0
+          ],
+          [
+            687,
+            865,
+            0
+          ]
+        ],
+        "roles": {
+          "start": [
+            {
+              "runner": 400,
+              "grunt": 400,
+              "tank": 400
+            },
+            {
+              "runner": 300,
+              "grunt": 600,
+              "tank": 300
+            }
+          ],
+          "end": [
+            {
+              "runner": 93,
+              "grunt": 157,
+              "tank": 0
+            },
+            {
+              "runner": 151,
+              "grunt": 555,
+              "tank": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "round": 2,
+      "slots": [
+        5,
+        4
+      ],
+      "openedAt": "2026-11-27T06:03:06.455Z",
+      "versions": [
+        {
+          "at": 6.542,
+          "bot": {
+            "army": {
+              "runner": 2,
+              "grunt": 2,
+              "tank": 8
+            },
+            "gambits": [
+              {
+                "if": "planet_attacked",
+                "then": "go"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "tank",
+                "vs": "grunt"
+              },
+              {
+                "if": "free_planet",
+                "then": "go"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go"
+              },
+              {
+                "if": "enemy_planet",
+                "then": "go"
+              }
+            ]
+          },
+          "why": "Round 1 lost on time: house fielded 6 grunt squads, which beat our runners, and we had only 5 planets to their 10. Shifting to a tank-heavy army (8 tanks) because tanks beat grunts 2x. Tanks hunt grunts specifically, planets are defended first, and free/enemy planets are taken to win the planet count at the 75s mark."
+        }
+      ],
+      "invalid": [],
+      "late": [],
+      "locked": {
+        "army": {
+          "runner": 2,
+          "grunt": 2,
+          "tank": 8
+        },
+        "gambits": [
+          {
+            "if": "planet_attacked",
+            "then": "go"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "tank",
+            "vs": "grunt"
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ]
+      },
+      "houseBot": {
+        "gambits": [
+          {
+            "if": "weaker_enemy_near",
+            "then": "go",
+            "p": 3
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ],
+        "army": {
+          "runner": 3,
+          "grunt": 6,
+          "tank": 3
+        }
+      },
+      "result": {
+        "winner": 1,
+        "reason": "time",
+        "t": 75,
+        "planets": [
+          7,
+          10
+        ],
+        "units": [
+          284,
+          395
+        ],
+        "timeline": [
+          {
+            "t": 15,
+            "planets": [
+              3,
+              4
+            ],
+            "units": [
+              1270,
+              1278
+            ]
+          },
+          {
+            "t": 30,
+            "planets": [
+              6,
+              7
+            ],
+            "units": [
+              1357,
+              1348
+            ]
+          },
+          {
+            "t": 45,
+            "planets": [
+              7,
+              9
+            ],
+            "units": [
+              545,
+              716
+            ]
+          },
+          {
+            "t": 60,
+            "planets": [
+              7,
+              10
+            ],
+            "units": [
+              271,
+              396
+            ]
+          },
+          {
+            "t": 75,
+            "planets": [
+              7,
+              10
+            ],
+            "units": [
+              284,
+              395
+            ]
+          }
+        ],
+        "ruleUse": [
+          [
+            506,
+            222,
+            357,
+            6,
+            0
+          ],
+          [
+            817,
+            588,
+            125
+          ]
+        ],
+        "roles": {
+          "start": [
+            {
+              "runner": 200,
+              "grunt": 200,
+              "tank": 800
+            },
+            {
+              "runner": 300,
+              "grunt": 600,
+              "tank": 300
+            }
+          ],
+          "end": [
+            {
+              "runner": 0,
+              "grunt": 0,
+              "tank": 284
+            },
+            {
+              "runner": 29,
+              "grunt": 366,
+              "tank": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "round": 3,
+      "slots": [
+        7,
+        5
+      ],
+      "openedAt": "2026-11-27T06:04:07.800Z",
+      "versions": [
+        {
+          "at": 8.481,
+          "bot": {
+            "army": {
+              "runner": 2,
+              "grunt": 2,
+              "tank": 8
+            },
+            "gambits": [
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "tank",
+                "vs": "grunt"
+              },
+              {
+                "if": "planet_attacked",
+                "then": "go"
+              },
+              {
+                "if": "small",
+                "then": "go"
+              },
+              {
+                "if": "free_planet",
+                "then": "go"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go"
+              },
+              {
+                "if": "enemy_planet",
+                "then": "go"
+              }
+            ]
+          },
+          "why": "Still losing on planet count (7 vs 10). Tanks are the answer to the house's grunt mass, so they hunt grunts first. Then I added a merge rule (small battalions rejoin the nearest friend) so the army fights as blobs instead of trickling in. Planets are defended, then free planets are taken."
+        }
+      ],
+      "invalid": [],
+      "late": [],
+      "locked": {
+        "army": {
+          "runner": 2,
+          "grunt": 2,
+          "tank": 8
+        },
+        "gambits": [
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "tank",
+            "vs": "grunt"
+          },
+          {
+            "if": "planet_attacked",
+            "then": "go"
+          },
+          {
+            "if": "small",
+            "then": "go"
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ]
+      },
+      "houseBot": {
+        "gambits": [
+          {
+            "if": "weaker_enemy_near",
+            "then": "go",
+            "p": 3
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ],
+        "army": {
+          "runner": 3,
+          "grunt": 6,
+          "tank": 3
+        }
+      },
+      "result": {
+        "winner": 1,
+        "reason": "time",
+        "t": 75,
+        "planets": [
+          7,
+          9
+        ],
+        "units": [
+          247,
+          483
+        ],
+        "timeline": [
+          {
+            "t": 15,
+            "planets": [
+              3,
+              4
+            ],
+            "units": [
+              1270,
+              1278
+            ]
+          },
+          {
+            "t": 30,
+            "planets": [
+              6,
+              7
+            ],
+            "units": [
+              1357,
+              1348
+            ]
+          },
+          {
+            "t": 45,
+            "planets": [
+              7,
+              8
+            ],
+            "units": [
+              635,
+              665
+            ]
+          },
+          {
+            "t": 60,
+            "planets": [
+              7,
+              8
+            ],
+            "units": [
+              254,
+              543
+            ]
+          },
+          {
+            "t": 75,
+            "planets": [
+              7,
+              9
+            ],
+            "units": [
+              247,
+              483
+            ]
+          }
+        ],
+        "ruleUse": [
+          [
+            499,
+            21,
+            152,
+            246,
+            0,
+            0
+          ],
+          [
+            820,
+            706,
+            0
+          ]
+        ],
+        "roles": {
+          "start": [
+            {
+              "runner": 200,
+              "grunt": 200,
+              "tank": 800
+            },
+            {
+              "runner": 300,
+              "grunt": 600,
+              "tank": 300
+            }
+          ],
+          "end": [
+            {
+              "runner": 0,
+              "grunt": 0,
+              "tank": 247
+            },
+            {
+              "runner": 69,
+              "grunt": 414,
+              "tank": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "round": 4,
+      "slots": [
+        9,
+        6
+      ],
+      "openedAt": "2026-11-27T06:05:04.464Z",
+      "versions": [
+        {
+          "at": 8.446,
+          "bot": {
+            "army": {
+              "runner": 3,
+              "grunt": 3,
+              "tank": 6
+            },
+            "gambits": [
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "tank",
+                "vs": "grunt"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "runner",
+                "vs": "tank"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "grunt",
+                "vs": "runner"
+              },
+              {
+                "if": "planet_attacked",
+                "then": "go"
+              },
+              {
+                "if": "small",
+                "then": "go"
+              },
+              {
+                "if": "free_planet",
+                "then": "go"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go"
+              },
+              {
+                "if": "enemy_planet",
+                "then": "go"
+              }
+            ]
+          },
+          "why": "Three losses with 8 tanks: house runners (which beat tanks 2x) were killing most of my tanks while house grunts survived. Switching to a counter-matched army (3 runners, 3 grunts, 6 tanks) where each breed hunts the enemy breed it beats: tanks on grunts, runners on tanks, grunts on runners. Then planet defence, merging, and planet capture as before."
+        }
+      ],
+      "invalid": [],
+      "late": [],
+      "locked": {
+        "army": {
+          "runner": 3,
+          "grunt": 3,
+          "tank": 6
+        },
+        "gambits": [
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "tank",
+            "vs": "grunt"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "runner",
+            "vs": "tank"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "grunt",
+            "vs": "runner"
+          },
+          {
+            "if": "planet_attacked",
+            "then": "go"
+          },
+          {
+            "if": "small",
+            "then": "go"
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ]
+      },
+      "houseBot": {
+        "gambits": [
+          {
+            "if": "weaker_enemy_near",
+            "then": "go",
+            "p": 3
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ],
+        "army": {
+          "runner": 3,
+          "grunt": 6,
+          "tank": 3
+        }
+      },
+      "result": {
+        "winner": 0,
+        "reason": "time",
+        "t": 75,
+        "planets": [
+          9,
+          8
+        ],
+        "units": [
+          478,
+          373
+        ],
+        "timeline": [
+          {
+            "t": 15,
+            "planets": [
+              3,
+              4
+            ],
+            "units": [
+              1275,
+              1278
+            ]
+          },
+          {
+            "t": 30,
+            "planets": [
+              6,
+              6
+            ],
+            "units": [
+              1372,
+              1255
+            ]
+          },
+          {
+            "t": 45,
+            "planets": [
+              8,
+              8
+            ],
+            "units": [
+              805,
+              700
+            ]
+          },
+          {
+            "t": 60,
+            "planets": [
+              8,
+              8
+            ],
+            "units": [
+              547,
+              549
+            ]
+          },
+          {
+            "t": 75,
+            "planets": [
+              9,
+              8
+            ],
+            "units": [
+              478,
+              373
+            ]
+          }
+        ],
+        "ruleUse": [
+          [
+            536,
+            38,
+            57,
+            71,
+            146,
+            217,
+            0,
+            0
+          ],
+          [
+            738,
+            624,
+            65
+          ]
+        ],
+        "roles": {
+          "start": [
+            {
+              "runner": 300,
+              "grunt": 300,
+              "tank": 600
+            },
+            {
+              "runner": 300,
+              "grunt": 600,
+              "tank": 300
+            }
+          ],
+          "end": [
+            {
+              "runner": 140,
+              "grunt": 0,
+              "tank": 338
+            },
+            {
+              "runner": 79,
+              "grunt": 294,
+              "tank": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "round": 5,
+      "slots": [
+        10,
+        8
+      ],
+      "openedAt": "2026-11-27T06:06:18.432Z",
+      "versions": [
+        {
+          "at": 4.405,
+          "bot": {
+            "army": {
+              "runner": 3,
+              "grunt": 3,
+              "tank": 6
+            },
+            "gambits": [
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "tank",
+                "vs": "grunt"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "runner",
+                "vs": "tank"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go",
+                "who": "grunt",
+                "vs": "runner"
+              },
+              {
+                "if": "planet_attacked",
+                "then": "go"
+              },
+              {
+                "if": "small",
+                "then": "go"
+              },
+              {
+                "if": "free_planet",
+                "then": "go"
+              },
+              {
+                "if": "enemy_near",
+                "then": "go"
+              },
+              {
+                "if": "enemy_planet",
+                "then": "go"
+              }
+            ]
+          },
+          "why": "Round 4 was the first win with the counter-matched army, 9 planets to 8, so I'm keeping the same bot for the final round rather than changing a working setup."
+        }
+      ],
+      "invalid": [],
+      "late": [],
+      "locked": {
+        "army": {
+          "runner": 3,
+          "grunt": 3,
+          "tank": 6
+        },
+        "gambits": [
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "tank",
+            "vs": "grunt"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "runner",
+            "vs": "tank"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go",
+            "who": "grunt",
+            "vs": "runner"
+          },
+          {
+            "if": "planet_attacked",
+            "then": "go"
+          },
+          {
+            "if": "small",
+            "then": "go"
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_near",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          }
+        ]
+      },
+      "houseBot": {
+        "gambits": [
+          {
+            "if": "planet_attacked",
+            "then": "go"
+          },
+          {
+            "if": "weaker_enemy_near",
+            "then": "go",
+            "p": 3
+          },
+          {
+            "if": "bigger_enemy_near",
+            "then": "flank",
+            "p": 1
+          },
+          {
+            "if": "free_planet",
+            "then": "go"
+          },
+          {
+            "if": "enemy_planet",
+            "then": "go"
+          },
+          {
+            "if": "always",
+            "then": "hold"
+          }
+        ],
+        "army": {
+          "grunt": 3,
+          "tank": 3,
+          "runner": 6
+        }
+      },
+      "result": {
+        "winner": 1,
+        "reason": "time",
+        "t": 75,
+        "planets": [
+          8,
+          8
+        ],
+        "units": [
+          617,
+          817
+        ],
+        "timeline": [
+          {
+            "t": 15,
+            "planets": [
+              3,
+              3
+            ],
+            "units": [
+              1275,
+              1277
+            ]
+          },
+          {
+            "t": 30,
+            "planets": [
+              6,
+              6
+            ],
+            "units": [
+              1324,
+              1323
+            ]
+          },
+          {
+            "t": 45,
+            "planets": [
+              8,
+              8
+            ],
+            "units": [
+              900,
+              896
+            ]
+          },
+          {
+            "t": 60,
+            "planets": [
+              8,
+              8
+            ],
+            "units": [
+              887,
+              904
+            ]
+          },
+          {
+            "t": 75,
+            "planets": [
+              8,
+              8
+            ],
+            "units": [
+              617,
+              817
+            ]
+          }
+        ],
+        "ruleUse": [
+          [
+            455,
+            34,
+            100,
+            93,
+            192,
+            192,
+            0,
+            0
+          ],
+          [
+            288,
+            422,
+            56,
+            529,
+            0,
+            0
+          ]
+        ],
+        "roles": {
+          "start": [
+            {
+              "runner": 300,
+              "grunt": 300,
+              "tank": 600
+            },
+            {
+              "runner": 600,
+              "grunt": 300,
+              "tank": 300
+            }
+          ],
+          "end": [
+            {
+              "runner": 0,
+              "grunt": 293,
+              "tank": 324
+            },
+            {
+              "runner": 720,
+              "grunt": 97,
+              "tank": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "score": [
+    1,
+    4
+  ],
+  "winner": 1,
+  "finishedAt": "2026-11-27T06:07:37.225Z"
+}

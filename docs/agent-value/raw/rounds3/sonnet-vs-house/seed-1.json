@@ -1,0 +1,42 @@
+{
+  "seed": 1,
+  "model": "sonnet",
+  "house": "variable",
+  "winner": "house",
+  "score": [
+    0,
+    5
+  ],
+  "roundResults": [
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost"
+  ],
+  "armies": [
+    "4-4-4/3-6-3",
+    "2-3-7/3-6-3",
+    "3-1-8/3-6-3",
+    "3-0-9/3-6-3",
+    "1-0-11/3-6-3"
+  ],
+  "versionsPerPause": [
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "late": 0,
+  "invalid": 0,
+  "pausesWithoutVersion": 0,
+  "cost": 0.079775,
+  "turns": 12,
+  "wall": 384,
+  "stop": "success",
+  "calls": {
+    "wait_for_pause": 6,
+    "set_bot": 5
+  }
+}

@@ -1,0 +1,842 @@
+[
+  {
+    "seed": 1,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-6-3",
+      "2-3-7/3-6-3",
+      "3-1-8/3-6-3",
+      "3-0-9/3-6-3",
+      "1-0-11/3-6-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.079775,
+    "turns": 12,
+    "wall": 384,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 2,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "armies": [
+      "4-4-4/3-3-6",
+      "6-3-3/4-4-4",
+      "4-4-4/4-4-4",
+      "4-4-4/4-4-4",
+      "4-4-4/4-4-4"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 2,
+    "cost": 0.037182,
+    "turns": 10,
+    "wall": 421,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  },
+  {
+    "seed": 3,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "armies": [
+      "4-4-4/6-3-3",
+      "2-7-3/6-3-3",
+      "1-8-3/6-3-3",
+      "1-8-3/3-1-8",
+      "7-3-2/3-1-8"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      0,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.05077270000000001,
+    "turns": 12,
+    "wall": 390,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 4,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-6-3",
+      "2-3-7/3-6-3",
+      "2-2-8/3-6-3",
+      "1-2-9/3-6-3",
+      "1-2-9/3-6-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0548871,
+    "turns": 12,
+    "wall": 342,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 5,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-3-6",
+      "5-4-3/4-4-4",
+      "5-4-3/3-5-4",
+      "3-3-6/3-5-4",
+      "4-2-6/3-5-4"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.04416950000000001,
+    "turns": 12,
+    "wall": 324,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 7,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 6,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/6-3-3",
+      "2-7-3/4-4-4",
+      "3-6-3/3-2-7",
+      "6-4-2/3-3-6",
+      "6-4-2/2-6-4"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0415573,
+    "turns": 11,
+    "wall": 371,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 7,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-6-3",
+      "2-3-7/3-6-3",
+      "3-2-7/3-6-3",
+      "2-4-6/3-6-3",
+      "2-3-7/3-6-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0555741,
+    "turns": 12,
+    "wall": 330,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 8,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-3-6",
+      "7-3-2/4-4-4",
+      "4-4-4/4-4-4",
+      "4-3-5/4-4-4",
+      "4-3-5/5-4-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0437536,
+    "turns": 11,
+    "wall": 386,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 9,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/6-3-3",
+      "2-7-3/4-4-4",
+      "2-7-3/3-2-7",
+      "5-4-3/3-2-7",
+      "5-4-3/3-5-4"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 2,
+    "cost": 0.0359728,
+    "turns": 10,
+    "wall": 358,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  },
+  {
+    "seed": 10,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-6-3",
+      "3-2-7/3-6-3",
+      "0-3-9/3-6-3",
+      "0-2-10/3-6-3",
+      "0-1-11/3-6-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0506082,
+    "turns": 12,
+    "wall": 319,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 11,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "armies": [
+      "4-4-4/3-3-6",
+      "6-3-3/4-4-4",
+      "4-4-4/4-4-4",
+      "4-5-3/4-4-4",
+      "4-5-3/4-4-4"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.052534,
+    "turns": 12,
+    "wall": 353,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 12,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "won",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/6-3-3",
+      "2-7-3/6-3-3",
+      "2-7-3/3-2-7",
+      "7-3-2/3-2-7",
+      "3-2-7/2-7-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0545959,
+    "turns": 12,
+    "wall": 344,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 13,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-6-3",
+      "3-2-7/3-6-3",
+      "2-1-9/3-6-3",
+      "1-2-9/3-6-3",
+      "2-1-9/3-6-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.05213349999999999,
+    "turns": 12,
+    "wall": 356,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 14,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "lost",
+      "won",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-3-6",
+      "7-3-2/4-4-4",
+      "7-3-2/2-7-3",
+      "3-2-7/2-7-3",
+      "3-2-7/7-3-2"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 2,
+    "cost": 0.0384014,
+    "turns": 10,
+    "wall": 296,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  },
+  {
+    "seed": 15,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/6-3-3",
+      "2-8-2/6-3-3",
+      "2-8-2/2-2-8",
+      "7-4-1/2-2-8",
+      "9-2-1/2-2-8"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0571386,
+    "turns": 12,
+    "wall": 295,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 16,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-6-3",
+      "2-2-8/3-6-3",
+      "1-1-10/3-6-3",
+      "1-1-10/3-6-3",
+      "1-2-9/3-6-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0532319,
+    "turns": 12,
+    "wall": 258,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 17,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "armies": [
+      "4-4-4/3-3-6",
+      "6-3-3/4-4-4",
+      "4-4-4/4-4-4",
+      "4-4-4/4-4-4",
+      "4-4-4/4-4-4"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0424059,
+    "turns": 11,
+    "wall": 289,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 18,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/6-3-3",
+      "2-8-2/6-3-3",
+      "2-8-2/2-2-8",
+      "8-2-2/2-2-8",
+      "8-2-2/2-8-2"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0412909,
+    "turns": 11,
+    "wall": 228,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 19,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "won",
+      "lost",
+      "won"
+    ],
+    "armies": [
+      "4-4-4/3-6-3",
+      "2-2-8/3-6-3",
+      "2-1-9/3-6-3",
+      "2-1-9/9-2-1",
+      "1-9-2/9-2-1"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 0,
+    "cost": 0.05165650000000001,
+    "turns": 12,
+    "wall": 260,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 20,
+    "model": "sonnet",
+    "house": "variable",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "lost",
+      "won",
+      "lost"
+    ],
+    "armies": [
+      "4-4-4/3-3-6",
+      "6-3-3/4-4-4",
+      "6-3-3/3-6-3",
+      "4-3-5/3-6-3",
+      "4-3-5/5-4-3"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 0,
+    "pausesWithoutVersion": 2,
+    "cost": 0.0380961,
+    "turns": 10,
+    "wall": 266,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  }
+]
