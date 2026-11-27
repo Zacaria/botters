@@ -5,14 +5,22 @@ import { createAuth, identity } from './auth.js'
 import { transaction } from '../online/store.js'
 export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers: { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', ...headers } })
 export function failure(e) { return json({ error: e.status ? e.message : 'Online service is unavailable. Retry shortly.' }, e.status || 503) }
-export async function body(request, max = 16384) {
-  if (!request.body) return {}
-  if (!request.headers.get('content-type')?.startsWith('application/json')) throw Object.assign(new Error('Send JSON.'), { status: 415 })
+// The request body, read up to `max` bytes; a larger one is refused before anything parses or stores it.
+export async function bytes(request, max = 16384) {
+  if (!request.body) return null
   const reader = request.body.getReader(), chunks = []; let size = 0
   try { for (;;) { const { value, done } = await reader.read(); if (done) break; size += value.byteLength; if (size > max) throw Object.assign(new Error('Request is too large.'), { status: 413 }); chunks.push(value) } }
   finally { await reader.cancel() }
-  if (!size) return {}
-  try { return JSON.parse(new TextDecoder().decode(Uint8Array.from(chunks.flatMap(c => [...c])))) }
+  const all = new Uint8Array(size); let at = 0
+  for (const c of chunks) { all.set(c, at); at += c.byteLength }
+  return all
+}
+export async function body(request, max = 16384) {
+  if (!request.body) return {}
+  if (!request.headers.get('content-type')?.startsWith('application/json')) throw Object.assign(new Error('Send JSON.'), { status: 415 })
+  const raw = await bytes(request, max)
+  if (!raw.byteLength) return {}
+  try { return JSON.parse(new TextDecoder().decode(raw)) }
   catch { throw Object.assign(new Error('Send valid JSON.'), { status: 400 }) }
 }
 export async function runGame(env, method, path, q = new URLSearchParams(), data = {}, user = null, store = new D1Store(env.DB), stateCache = null) {

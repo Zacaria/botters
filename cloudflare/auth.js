@@ -46,7 +46,8 @@ export function createAuth(env) {
       if (!found || found.user.emailVerified || !credential?.password) return
       if (!await ctx.context.password.verify({ hash: credential.password, password: ctx.body.password })) await ctx.context.internalAdapter.updatePassword(found.user.id, await ctx.context.password.hash(nonce() + nonce()))
     }) },
-    databaseHooks: { user: { delete: { after: user => removeGameAccount(env.DB, user.id) } } },
+    // Nothing reads a session's network address or browser details, so they are not kept.
+    databaseHooks: { user: { delete: { after: user => removeGameAccount(env.DB, user.id) } }, session: { create: { before: async session => ({ data: { ...session, ipAddress: '', userAgent: '' } }) } } },
     emailAndPassword: { ...options.emailAndPassword,
       onPasswordReset: async ({ user }) => {
         await env.DB.prepare(`UPDATE game_records SET value=json_set(value,'$.agentVersion',coalesce(json_extract(value,'$.agentVersion'),0)+1,'$.agentGranted',0) WHERE key LIKE 'session:%' AND json_extract(value,'$.accountId')=?`).bind(user.id).run()

@@ -1,5 +1,5 @@
 import { createAuth } from './auth.js'
-import { json, failure } from './http.js'
+import { json, failure, bytes } from './http.js'
 import { hash, clientAddress } from './authority.js'
 import { gameTransport } from './game-transport.js'
 import { oauthRoute, oauthHTTP, authenticate } from './oauth.js'
@@ -17,13 +17,13 @@ async function dispatch(request,env) {
   if (!publicProtocol(url.pathname) && request.headers.has('origin') && request.headers.get('origin') !== env.SITE_URL) return json({ error:'Use Botters from its own site.' },403)
   const bearer = url.pathname === '/mcp' && /^Bearer ([A-Za-z0-9_-]{32})$/.exec(request.headers.get('authorization') || '')?.[1], id = bearer && hash(bearer)
   // Refuse excess requests before database work, using accepted agent credentials or the sender address.
-  if (env.BURST && (gamePaths.has(url.pathname) || url.pathname === '/mcp')) {
+  if (env.BURST && (gamePaths.has(url.pathname) || url.pathname === '/mcp' || url.pathname.startsWith('/api/auth/'))) {
     if (!(await env.BURST.limit({ key: accepted.get(id) > Date.now() ? `agent:${id}` : clientAddress(request) })).success) return json({ error:'Too many requests. Slow down and retry.' },429,{ 'retry-after':'10' })
   }
   if (url.pathname.startsWith('/api/auth/')) {
     const headers = new Headers(request.headers)
     headers.set('x-botters-client-ip',request.headers.get('cf-connecting-ip') || 'local')
-    return createAuth(env).handler(new Request(request,{headers}))
+    return createAuth(env).handler(new Request(request,{headers,body:await bytes(request) ?? undefined}))
   }
   if (oauthRoute(url.pathname)) return oauthHTTP(env,request)
   if (url.pathname === '/mcp') {
@@ -67,5 +67,7 @@ export default {
       const done = await env.DB.prepare('DELETE FROM game_records WHERE key IN (SELECT key FROM game_records WHERE expires>0 AND expires<? LIMIT 500)').bind(Date.now()).run()
       if (!(done.meta?.changes >= 500)) break
     }
+    // Sign-in counters are only read within their ten-minute window.
+    await env.DB.prepare('DELETE FROM rateLimit WHERE lastRequest<?').bind(Date.now() - 600000).run()
   },
 }
