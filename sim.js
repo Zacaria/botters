@@ -400,13 +400,18 @@ export function checkBot(bot) {
   return checkGambits(bot.gambits)
 }
 const roleTally = (s, side) => { const t = { runner: 0, grunt: 0, tank: 0 }; for (let i = side * MAXPER; i < (side + 1) * MAXPER; i++) if (s.alive[i]) t[ROLES[s.role[i]].name]++; return t }
-export function playRound(seed, bots, { seconds = ROUNDS.seconds, planets = 17, every = 15, counter = ROUNDS.counter } = {}) {
+// The state of one round before its first tick: playRound steps it on the server, the browser replays the same state.
+export function roundMatch(seed, bots, { seconds = ROUNDS.seconds, planets = 17, counter = ROUNDS.counter } = {}) {
   if (!Array.isArray(bots) || bots.length !== 2) throw new Error('send bots for both sides')
   bots.forEach(b => { const e = checkBot(b); if (e) throw new Error(e) })
   const gambits = bots.map(b => Array.isArray(b) ? b : b.gambits), army = bots.map(b => Array.isArray(b) ? null : b.breed)
-  const s = createMatch(seed, { minutes: 5, planets, army, counter }), timeline = [], ruleUse = gambits.map(g => g.map(() => 0))
+  const s = createMatch(seed, { minutes: 5, planets, army, counter })
   s.endTick = seconds * TPS
   gambits.forEach((g, side) => { const r = applyInput(s, side, { gambits: g }); if (!r.ok) throw new Error(r.error) })
+  return s
+}
+export function playRound(seed, bots, { seconds = ROUNDS.seconds, planets = 17, every = 15, counter = ROUNDS.counter } = {}) {
+  const s = roundMatch(seed, bots, { seconds, planets, counter }), timeline = [], ruleUse = s.gambits.map(g => g.map(() => 0))
   const start = [0, 1].map(side => roleTally(s, side))
   while (!s.ended) {
     step(s)
