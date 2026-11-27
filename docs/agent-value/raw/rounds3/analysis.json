@@ -1,0 +1,150 @@
+{
+  "docs/agent-value/raw/rounds3/sonnet-vs-sonnet": {
+    "A": {
+      "matches": {
+        "won": 23,
+        "drawn": 0,
+        "lost": 17
+      },
+      "rounds": {
+        "won": 114,
+        "played": 200
+      },
+      "counterRate": {
+        "round1": 0.025,
+        "rounds2to5": 0.4125
+      },
+      "predictability": {
+        "name": "after win/draw: prey of own last; after loss: predator of opponent last",
+        "rate": 0.69375,
+        "nullBaseline": 0.4027187500000003
+      },
+      "round1BreedDistribution": {
+        "grunt": 38,
+        "tank": 2
+      }
+    },
+    "B": {
+      "matches": {
+        "won": 17,
+        "drawn": 0,
+        "lost": 23
+      },
+      "rounds": {
+        "won": 86,
+        "played": 200
+      },
+      "counterRate": {
+        "round1": 0,
+        "rounds2to5": 0.26875
+      },
+      "predictability": {
+        "name": "after win/draw: predator of opponent last; after loss: predator of opponent last",
+        "rate": 0.6375,
+        "nullBaseline": 0.40331250000000013
+      },
+      "round1BreedDistribution": {
+        "grunt": 39,
+        "tank": 1
+      }
+    }
+  },
+  "docs/agent-value/raw/rounds3/sonnet-vs-haiku": {
+    "A": {
+      "matches": {
+        "won": 26,
+        "drawn": 0,
+        "lost": 14
+      },
+      "rounds": {
+        "won": 113,
+        "played": 200
+      },
+      "counterRate": {
+        "round1": 0.05,
+        "rounds2to5": 0.53125
+      },
+      "predictability": {
+        "name": "after win/draw: opponent last; after loss: predator of opponent last",
+        "rate": 0.7,
+        "nullBaseline": 0.4007500000000001
+      },
+      "round1BreedDistribution": {
+        "grunt": 38,
+        "tank": 2
+      }
+    },
+    "B": {
+      "matches": {
+        "won": 14,
+        "drawn": 0,
+        "lost": 26
+      },
+      "rounds": {
+        "won": 86,
+        "played": 200
+      },
+      "counterRate": {
+        "round1": 0,
+        "rounds2to5": 0.16875
+      },
+      "predictability": {
+        "name": "after win/draw: predator of opponent last; after loss: predator of opponent last",
+        "rate": 0.925,
+        "nullBaseline": 0.40362499999999985
+      },
+      "round1BreedDistribution": {
+        "grunt": 40
+      }
+    }
+  },
+  "docs/agent-value/raw/rounds3/sonnet-vs-noedit": {
+    "A": {
+      "matches": {
+        "won": 38,
+        "drawn": 0,
+        "lost": 2
+      },
+      "rounds": {
+        "won": 153,
+        "played": 200
+      },
+      "counterRate": {
+        "round1": 0.075,
+        "rounds2to5": 0.9625
+      },
+      "predictability": {
+        "name": "after win/draw: own last; after loss: predator of opponent last",
+        "rate": 0.9625,
+        "nullBaseline": 0.39884375
+      },
+      "round1BreedDistribution": {
+        "grunt": 37,
+        "tank": 3
+      }
+    },
+    "B": {
+      "matches": {
+        "won": 2,
+        "drawn": 0,
+        "lost": 38
+      },
+      "rounds": {
+        "won": 47,
+        "played": 200
+      },
+      "counterRate": {
+        "round1": 0,
+        "rounds2to5": 0
+      },
+      "predictability": {
+        "name": "after win/draw: own last; after loss: own last",
+        "rate": 1,
+        "nullBaseline": 0.39681249999999985
+      },
+      "round1BreedDistribution": {
+        "grunt": 40
+      }
+    }
+  }
+}

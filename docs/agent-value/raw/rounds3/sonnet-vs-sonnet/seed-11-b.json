@@ -1,0 +1,92 @@
+{
+  "seed": 11,
+  "tag": "seed-11-b",
+  "sides": [
+    "sonnet",
+    "sonnet"
+  ],
+  "entryOnSide0": "B",
+  "winnerSide": 0,
+  "score": [
+    3,
+    2
+  ],
+  "rounds": [
+    {
+      "breeds": [
+        "grunt",
+        "grunt"
+      ],
+      "winner": 1
+    },
+    {
+      "breeds": [
+        "tank",
+        "tank"
+      ],
+      "winner": 1
+    },
+    {
+      "breeds": [
+        "grunt",
+        "runner"
+      ],
+      "winner": 0
+    },
+    {
+      "breeds": [
+        "runner",
+        "tank"
+      ],
+      "winner": 0
+    },
+    {
+      "breeds": [
+        "tank",
+        "grunt"
+      ],
+      "winner": 0
+    }
+  ],
+  "perSide": [
+    {
+      "name": "sonnet",
+      "cost": 0.0506538,
+      "turns": 12,
+      "stop": "success",
+      "calls": {
+        "wait_for_pause": 6,
+        "set_bot": 5
+      },
+      "versionsPerPause": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "invalid": 0,
+      "late": 0
+    },
+    {
+      "name": "sonnet",
+      "cost": 0.0499459,
+      "turns": 12,
+      "stop": "success",
+      "calls": {
+        "wait_for_pause": 6,
+        "set_bot": 5
+      },
+      "versionsPerPause": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "invalid": 0,
+      "late": 0
+    }
+  ],
+  "wall": 264
+}

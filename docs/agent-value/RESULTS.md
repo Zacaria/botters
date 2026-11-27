@@ -112,6 +112,29 @@ Limits: the house follows one deterministic rule, so a model that names it wins;
 
 Per seed in `raw/rounds2/<model>-vs-house/` (same files as §4, plus `breeds` = agent-house breed per round in `seed-N.json`). Controls: `raw/rounds2/control-vs-house-seeds1-20.json`. Claude Code `--model haiku` and `--model sonnet`, MCP = `rounds-mcp.mjs` only. Model spend for this card: $1.05 (one Haiku smoke match included). §4's controls ran with the pre-breed `rounds.mjs`; its raw logs stay valid, its commands now play breeds.
 
+## 7. Rounds with breeds: agent against agent (2026-11-27)
+
+**Verdict:** against an opponent that adapts too, Sonnet's edge from §5 is gone: Sonnet against Sonnet picks the winning breed in 34 % of rounds, which is chance, and Sonnet beats Haiku (26/40) because Haiku always counters the last breed it saw, a rule Sonnet exploits in only half the rounds.
+
+Format: §5 unchanged, but both sides are players (`scripts/agent-value/rounds-host.mjs`). One host process runs the match and serves each side over its own MCP connection (`rounds-mcp.mjs` with `ROUNDS_SIDE`). Each side gets its own 30 s pause, slots, refusals and debrief. One gong locks both bots and plays the round. A side never sees the other's bot for the coming round, only the armies of rounds already played. Round 1 opens once both Claude Code processes have called `wait_for_pause`. The agent-facing text says "your opponent may change its bot between rounds", in every pairing. Seeds 1–20, each played twice with sides swapped (`--swap`): 40 matches per pairing, 160 agent rounds 2–5 per entry.
+
+| pairing (A vs B) | match wins A–B / 40 | rounds won A–B / 200 | picks the breed that beats the opponent's, rounds 2–5 (A · B) | best simple rule predicts its next breed (A · B; null 40 %) | cost |
+|---|---|---|---|---|---|
+| Sonnet vs Sonnet | 23–17 (side 0 21–19) | 114–86 | 41 % · 27 % (pooled **34 %**) | 69 % · 64 % (pooled 64 %) | $3.95 |
+| Sonnet vs Haiku | **26–14** | 113–86 (1 draw) | **53 %** · 17 % | 70 % · **93 %** | $2.04 |
+| Sonnet vs unchanged bot (grunt starting bot every round) | **38–2** | 153–47 | **96 %** · 0 % | 96 % · 100 % | $1.42 |
+
+- Breed still decides: across the 1,000 agent rounds, the side holding the predator of the other's breed won 91 % of them, the prey won 9 %, and same-breed rounds went 47 %.
+- Round 1 is a mirror: 192 of 200 agent openings kept grunt, the starting bot's breed.
+- Haiku plays one rule: "the breed that beats the opponent's last breed" fits 93 % of its picks (§5 showed the same habit). A script that knew it would pick right almost every round; Sonnet reached 53 %.
+- Sonnet is readable too, but not by Sonnet. In self-play its picks fit "after a loss, beat the opponent's last breed; after a win, beat the breed that beats mine" in 64 % of rounds. Both sides reason this way ("Opponent likely counters runner with grunt; tank beats grunt", seed 3), so they cancel out: in rounds 2–5 the counter pick lands 34 % of the time, and the same breed 32 %.
+- The unchanged bot loses 38 of 40: Sonnet finds tank from round 2 and keeps it. Its 2 losses are 4–1 matches on the side 1 maps of seeds 12 and 20.
+- The run was clean: 120/120 matches played to the end, no version late at the gong, 1 refused bot (Haiku). Median wall time 5 min per match.
+
+"Best simple rule" = the best of 36 rules "after a won or drawn round play X, after a lost round play Y", with X and Y each one of own last, opponent's last, or the breed that beats or is beaten by either. The null 40 % is the same best-of-36 score on random picks, because the best of 36 rules fits random picks better than a plain 33 %. Both are measured in-sample on rounds 2–5 (`rounds-analyze.mjs`).
+
+Per match in `raw/rounds3/<pairing>/`: `seed-N-a` (entry A on side 0) and `seed-N-b` (swapped). Each has `.json` (breeds and winner per round, cost per side), `.log.json` (every pause per side: versions with reasons, refusals, locked bots, round result) and `.sideK.stream.jsonl.gz` (Claude Code transcript per agent side). Aggregates: `raw/rounds3/analysis.json`, `summary.json` per pairing. Claude Code 2.1.326, `--model sonnet` and `--model haiku`. Model spend for this card: $7.42 (cap $35, all 20 seeds run, one $0.01 Haiku-vs-Haiku smoke match included).
+
 ## Reproduce
 
 ```

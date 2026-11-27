@@ -1,0 +1,92 @@
+{
+  "seed": 10,
+  "tag": "seed-10-b",
+  "sides": [
+    "haiku",
+    "sonnet"
+  ],
+  "entryOnSide0": "B",
+  "winnerSide": 1,
+  "score": [
+    2,
+    3
+  ],
+  "rounds": [
+    {
+      "breeds": [
+        "grunt",
+        "grunt"
+      ],
+      "winner": 1
+    },
+    {
+      "breeds": [
+        "tank",
+        "tank"
+      ],
+      "winner": 1
+    },
+    {
+      "breeds": [
+        "runner",
+        "runner"
+      ],
+      "winner": 1
+    },
+    {
+      "breeds": [
+        "tank",
+        "grunt"
+      ],
+      "winner": 0
+    },
+    {
+      "breeds": [
+        "grunt",
+        "runner"
+      ],
+      "winner": 0
+    }
+  ],
+  "perSide": [
+    {
+      "name": "haiku",
+      "cost": 0.005933020000000001,
+      "turns": 13,
+      "stop": "success",
+      "calls": {
+        "wait_for_pause": 6,
+        "set_bot": 6
+      },
+      "versionsPerPause": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "invalid": 0,
+      "late": 0
+    },
+    {
+      "name": "sonnet",
+      "cost": 0.04391779999999999,
+      "turns": 12,
+      "stop": "success",
+      "calls": {
+        "wait_for_pause": 6,
+        "set_bot": 5
+      },
+      "versionsPerPause": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "invalid": 0,
+      "late": 0
+    }
+  ],
+  "wall": 312
+}
