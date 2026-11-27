@@ -9,12 +9,12 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     let match = null
     const bot = { breed: 'runner', gambits: [{ if: 'always', then: 'hold', on: true }] }
     const debrief = { round: 1, result: 'You win', reason: 'More units', planets: { you: 3, house: 2 }, units: { you: 1200, house: 1100 }, timeline: [{ t: 3, planets: [3, 2], units: [1200, 1100] }], yourArmy: { breed: 'tank', atStart: { tank: 1200 }, atEnd: { tank: 1200 } }, houseArmy: { breed: 'grunt', atStart: { grunt: 1200 }, atEnd: { grunt: 1100 } }, yourRules: [{ rule: { if: 'always', then: 'hold' }, share: 1 }] }
-    await page.route('**/live-config.json', route => route.fulfill({ json: { rounds: true } }))
+    await page.route('**/live-config.json', async route => route.fulfill({ json: { ...(await (await route.fetch()).json()), rounds: true } }))
     await page.route('**/rounds**', async route => {
       const req = route.request(), url = new URL(req.url()), body = req.postDataJSON()
       if (url.pathname === '/rounds/start') match = { id: 'one', seed: 12345, planets: 17, phase: 'pause', round: 1, of: 5, score: { you: 0, house: 0 }, slots: { you: 3, house: 3 }, secondsLeft: 60, bot: { ...bot, breed: body.breed }, versions: [], refused: [], fight: null, rounds: [], result: null }
       if (url.pathname === '/rounds/bot') { match.bot = { breed: body.breed, gambits: body.gambits }; match.versions.push({ at: 3, who: 'human', breed: body.breed, rules: body.gambits.length, why: body.why }) }
-      if (url.pathname === '/rounds/ready') { match.phase = 'fight'; match.secondsLeft = 3; match.fight = { round: 1, bots: [match.bot, { ...bot, breed: 'grunt' }], seconds: 3, counter: 2, planets: 17, msLeft: 3000 }; match.rounds = [debrief] }
+      if (url.pathname === '/rounds/ready') { match.phase = 'fight'; match.secondsLeft = 3; match.fight = { round: 1, bots: [match.bot, { ...bot, breed: 'grunt' }], seconds: 3, counter: 2, planets: 17, msLeft: 60000 }; match.rounds = [debrief] }
       await route.fulfill({ json: url.pathname === '/rounds' ? { available: true, match } : { ok: true, match } })
     })
     await enterAccount(page, 'Rounds player')

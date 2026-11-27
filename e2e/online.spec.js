@@ -20,7 +20,7 @@ test('agent play opens ChatGPT with a prepared prompt and waits for the agent', 
   await popup.waitForURL('https://chatgpt.com/**')
   expect(popup.url()).toContain('https://chatgpt.com/?q=')
   expect(new URL(popup.url()).searchParams.get('q')).toContain('join_match')
-  expect(new URL(popup.url()).searchParams.get('q')).toContain('https://play.botters.havesomecode.io/mcp')
+  expect(new URL(popup.url()).searchParams.get('q')).toContain(`${(await (await page.request.get('/live-config.json')).json()).url}/mcp`) // the site's own connector (prod: play.botters…)
   await expect(page.locator('#big')).toContainText('Waiting for your agent')
   await expect(page.getByRole('button', { name: 'Start without agent' })).toBeVisible()
 })
