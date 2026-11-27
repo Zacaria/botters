@@ -28,3 +28,11 @@ test('a request that needs no account data sends no database statement', async (
   assert.equal(r.status, 200); assert.equal(await r.json(), null)
   assert.deepEqual(statements, [])
 })
+
+test('sign-in counters are dropped once their window has passed', { timeout: 60000 }, async t => {
+  const { mf, db } = await runtime(); t.after(() => mf.dispose())
+  const insert = (key, at) => db.prepare('INSERT INTO rateLimit (id, key, count, lastRequest) VALUES (?, ?, 1, ?)').bind(key, key, at).run()
+  await insert('old', Date.now() - 601000); await insert('current', Date.now() - 1000)
+  await (await mf.getWorker()).scheduled({ cron: '*/10 * * * *' })
+  assert.deepEqual((await db.prepare('SELECT key FROM rateLimit ORDER BY key').all()).results.map(r => r.key), ['current'])
+})

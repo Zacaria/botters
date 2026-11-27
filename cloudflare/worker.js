@@ -67,5 +67,7 @@ export default {
       const done = await env.DB.prepare('DELETE FROM game_records WHERE key IN (SELECT key FROM game_records WHERE expires>0 AND expires<? LIMIT 500)').bind(Date.now()).run()
       if (!(done.meta?.changes >= 500)) break
     }
+    // Sign-in counters are only read within their ten-minute window.
+    await env.DB.prepare('DELETE FROM rateLimit WHERE lastRequest<?').bind(Date.now() - 600000).run()
   },
 }
