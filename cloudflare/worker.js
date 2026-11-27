@@ -61,7 +61,8 @@ export default {
     let response
     try { response = await dispatch(request,env) }
     catch(e) {
-      if (oauthRoute(path)) response = json({error:!e.status || e.status >= 500 ? 'server_error' : path === '/token' ? 'invalid_grant' : 'invalid_request',error_description:e.status ? e.message : 'Authorization service unavailable.'},e.status || 503)
+      // A client drops its tokens on invalid_grant and registers again on invalid_client: name each case exactly.
+      if (oauthRoute(path)) response = json({error:!e.status || e.status >= 500 ? 'server_error' : e.status === 429 ? 'temporarily_unavailable' : e.code || (path === '/token' ? 'invalid_grant' : 'invalid_request'),error_description:e.status ? e.message : 'Authorization service unavailable.'},e.status || 503,e.status === 429 ? {'retry-after':String(600-Math.floor(Date.now()/1000)%600)} : {})
       else response = failure(e)
     }
     if (!protocol && response.status !== 101) {

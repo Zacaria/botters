@@ -93,7 +93,7 @@ export async function oauthHTTP(env, request) {
     if (data.resource !== resource(env) || data.scope !== undefined && data.scope !== scope) throw error('The exact MCP resource and scope are required.')
     return json(await transaction(store, async tx => {
       const client = await tx.get(`oauth:client:${data.client_id}`,null,30*DAY)
-      if (!client) throw error('Unknown client.')
+      if (!client) throw Object.assign(error('Unknown client.',401),{code:'invalid_client'})
       const isCode = data.grant_type === 'authorization_code'
       if (!isCode && data.grant_type !== 'refresh_token') throw error('Unsupported grant type.')
       const key = isCode ? `oauth:code:${hash(data.code || '')}` : `oauth:token:${hash(data.refresh_token || '')}`
