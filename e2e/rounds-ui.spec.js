@@ -26,7 +26,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await page.locator('#roundWhy').fill('Protect the planets')
     await page.locator('#roundSave').click()
     await expect(page.locator('#roundVersions')).toContainText('Protect the planets')
-    const shots = path.join(process.env.TMPDIR, 'rounds-ui-shots'); await mkdir(shots, { recursive: true })
+    const shots = test.info().outputPath('shots'); await mkdir(shots, { recursive: true })
     await page.screenshot({ path: path.join(shots, `pause-${viewport.width}.png`), fullPage: true })
     expect(await page.evaluate(() => document.querySelector('#rounds').scrollWidth <= document.querySelector('#rounds').clientWidth)).toBeTruthy()
     await page.locator('#roundFight').click()
