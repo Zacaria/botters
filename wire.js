@@ -1,6 +1,6 @@
 // Fog transport: what one side may see, as corrections to the predicted position. Layout: DESIGN.md "Fog transport".
 // The server keeps one mirror per connection and decodes its own frames into it, so both ends always agree.
-import { MAXPER, live, fighting } from './sim.js'
+import { MAXPER, live, fighting, progress } from './sim.js'
 
 const N = 2 * MAXPER, Q = 4 // positions travel in quarter pixels
 const SIGHT_BAT = 150 ** 2, SIGHT_PLANET = 80 ** 2 // same rule as sim.visible
@@ -85,7 +85,7 @@ export function board(s, side) {
     endTick: s.endTick, ended: s.ended ? { reason: s.ended.reason, result: s.ended.winner === null ? 'draw' : s.ended.winner === side ? 'won' : 'lost' } : null,
     totals: { you: n[side], enemy: n[1 - side], planets: { you: pl[side], enemy: pl[1 - side] } },
     bats: live(s, side).map(b => ({ id: b.id, manual: b.manual, rule: b.rule, tx: b.tx, ty: b.ty, via: b.via, fighting: fighting(s, b) })),
-    planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner, prog: p.prog, by: p.by })),
+    planets: s.planets.map(p => ({ id: p.id, x: p.x, y: p.y, r: p.r, owner: p.owner, ...progress(s, side, p) })),
   }
 }
 // Battalions appearing, disappearing or changing control: meta goes out at once rather than within a second.

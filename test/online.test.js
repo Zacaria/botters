@@ -392,3 +392,13 @@ test('agent doctrine edits are logged, hand orders refused, human toggles notify
   const events = await f.call(a, 'GET', '/events', {}, 'agent')
   assert.ok(events.events.some(e => e.text === 'HUMAN switched rule 1 off: IF always → hold'))
 })
+
+test('names and messages keep ordinary text and drop control and direction-override characters', async () => {
+  const f = fixture(), a = await f.session('Ad\u202Enim\u0007'), b = await f.session('\u0645\u0631\u062D\u0628\u0627 \u{1F469}\u200D\u{1F680}')
+  await f.call(a, 'POST', '/play', { vs: 'player' }); await f.call(b, 'POST', '/play', { vs: 'player' })
+  assert.equal((await f.call(b, 'GET', '/state')).opponent.name, 'Adnim')
+  assert.equal((await f.call(a, 'GET', '/state')).opponent.name, '\u0645\u0631\u062D\u0628\u0627 \u{1F469}\u200D\u{1F680}')
+  await f.call(a, 'POST', '/chat', { text: 'gg\u202E\r\n\u0000 wp' })
+  assert.equal((await f.call(b, 'GET', '/state')).chat[0].text, 'gg wp')
+  await assert.rejects(f.call(a, 'POST', '/chat', { text: '\u202E\u2067\u0001' }), { status: 400 })
+})

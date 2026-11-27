@@ -1,12 +1,13 @@
 // D1 batch is the atomic boundary, including read-only comparisons.
 import { boardNamespace, ratingKey, rankPairs } from '../online/ratings.js'
+export const boardQuery = "SELECT key, value FROM game_records WHERE key >= ? AND key < ? AND (expires=0 OR expires>?)"
 export class D1Store {
   constructor(db) { this.db = db.withSession ? db.withSession('first-primary') : db; this.reads = 0; this.writes = 0 }
   async get(key) {
     this.reads++
     const namespace = boardNamespace(key)
     if (namespace !== null) {
-      const { results } = await this.db.prepare("SELECT key, value FROM game_records WHERE key LIKE ? AND (expires=0 OR expires>?)").bind(`${namespace}elo:%`, Date.now()).all()
+      const { results } = await this.db.prepare(boardQuery).bind(`${namespace}elo:`, `${namespace}elo;`, Date.now()).all()
       return JSON.stringify(rankPairs(results.filter(r => ratingKey(r.key)?.[1] === namespace).map(r => [ratingKey(r.key)[2], JSON.parse(r.value)])).slice(0, 12))
     }
     return (await this.db.prepare('SELECT value FROM game_records WHERE key=? AND (expires=0 OR expires>?)').bind(key, Date.now()).first())?.value ?? null
