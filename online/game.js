@@ -160,9 +160,12 @@ export class OnlineGame {
         if (cached && cached.tick === m.stateTick && cached.log === m.logCount) state = structuredClone(cached.state)
         else {
           const checkpoint = await tx.get(`state:${id}`)
+          // A finished match is kept a day; once its saved state is gone the match is over for everyone.
+          if (!checkpoint) return null
           state = restore(checkpoint)
           for (let i = m.checkpointLog || 0; i < m.logCount; i++) {
             const chunk = await tx.get(`log:${id}:${Math.floor(i / 64)}`)
+            if (!chunk?.[i % 64]) return null
             const e = chunk[i % 64]
             while (state.tick < e.tick && !state.ended) step(state)
             const result = applyInput(state, e.side, e.input)

@@ -132,3 +132,19 @@ test('a session can start a bounded number of matches per ten minutes', async ()
   f.advance(600000)
   assert.equal((await f.call(a, 'POST', '/play', { vs: 'easy', withAgent: false })).ok, true)
 })
+
+test('a player who comes back after a finished match was forgotten can still play', async () => {
+  let now = 1_800_000_000_000
+  const store = new MemoryStore(() => now), fresh = () => new OnlineGame(store, { now: () => now, seed: () => 3 })
+  const call = (s, method, path, body = {}) => fresh().request(method, path, new URLSearchParams({ token: s.humanToken }), body)
+  const a = await fresh().request('POST', '/session', undefined, { name: 'a' })
+  await call(a, 'POST', '/play', { vs: 'easy', withAgent: false, planning: 10, minutes: 3 })
+  let ended = false
+  for (let i = 0; i < 200 && !ended; i++) { now += 4500; ended = !!(await call(a, 'GET', '/state')).report }
+  assert.ok(ended)
+  now += 23 * 3600000
+  assert.ok((await call(a, 'GET', '/state')).report, 'the result is still shown the next day')
+  now += 2 * 3600000
+  await assert.rejects(call(a, 'GET', '/state'), { message: 'Not in a match.' })
+  assert.deepEqual(await call(a, 'POST', '/play', { vs: 'easy', withAgent: false, planning: 10, minutes: 3 }), { ok: true })
+})
