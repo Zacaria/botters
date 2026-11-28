@@ -1,0 +1,160 @@
+{
+ "seed": 6,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "time",
+ "at": 300,
+ "planets": {
+  "you": 9,
+  "enemy": 8
+ },
+ "units": [
+  345,
+  1151
+ ],
+ "edits": 6,
+ "calls": {
+  "wait": 116,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "breed": 3,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 472,
+ "wall": 478,
+ "cost": 1.3621437399999998,
+ "turns": 124,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 31,
+   "why": "Doctrine: defend threatened planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 142,
+   "why": "Planet 5 under attack and my main army is 400 units away; widen defend radius so the big battalions swing north.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 900,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 160,
+   "why": "Enemy battalions 12, 15, 17 are almost all tanks; runners beat tanks and my grunts are losing to them.",
+   "breed": "runner"
+  },
+  {
+   "at": 208,
+   "why": "Enemy holds 9 planets to my 7; retake nearby enemy planet 5 (and others within 600) before chasing units.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 900,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 600,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 218,
+   "why": "Enemy armies are now grunt and tank with almost no runners; tanks beat grunts and runners are losing to them.",
+   "breed": "tank"
+  },
+  {
+   "at": 317,
+   "why": "Enemy now has ~430 runners in a 272-unit blob; grunts beat runners, and tanks are losing to them.",
+   "breed": "grunt"
+  }
+ ]
+}

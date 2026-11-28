@@ -1,0 +1,155 @@
+{
+ "seed": 14,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 247,
+ "planets": {
+  "you": 14,
+  "enemy": 0
+ },
+ "units": [
+  1396,
+  0
+ ],
+ "edits": 9,
+ "calls": {
+  "wait": 99,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "breed": 6,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 366,
+ "wall": 372,
+ "cost": 0.9449649400000001,
+ "turns": 110,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 16,
+   "why": "Doctrine: defend planets, flank bigger foes instead of retreating, hit weaker foes, grab free planets, then push enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 19,
+   "why": "Doctrine: defend, flank bigger foes, hit weaker ones, grab free planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 83,
+   "why": "Enemy has ~380 grunts and tanks; tanks beat grunts, so breed tanks.",
+   "breed": "tank"
+  },
+  {
+   "at": 132,
+   "why": "Enemy runner blobs (~150) now outnumber its tanks (~86); grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 145,
+   "why": "Enemy has no grunts left and ~200 tanks; grunts now lose to them.",
+   "breed": "tank"
+  },
+  {
+   "at": 195,
+   "why": "Enemy now mostly runners (~300) with few tanks left; grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 234,
+   "why": "Army now outnumbers enemy; push enemy planets after fights.",
+   "gambits": [
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 246,
+   "why": "Enemy runners are nearly gone and its remaining units are tanks; tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 250,
+   "why": "Enemy's new battalions are ~150 tanks; runners beat tanks.",
+   "breed": "runner"
+  }
+ ]
+}

@@ -1,0 +1,170 @@
+{
+ "seed": 6,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 151,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1814
+ ],
+ "edits": 7,
+ "calls": {
+  "wait": 61,
+  "state": 0,
+  "set": 3,
+  "toggle": 0,
+  "breed": 4,
+  "call_human": 2,
+  "join": 1
+ },
+ "agentStoppedAt": 218,
+ "wall": 223,
+ "cost": 0.28918278,
+ "turns": 72,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 23,
+   "why": "Doctrine: defend threatened planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 23,
+   "why": "Tanks beat grunts; house opponent mix unknown, tanks give a sturdy base to breed from.",
+   "breed": "tank"
+  },
+  {
+   "at": 95,
+   "why": "Two enemy 440-unit battalions are near; merge the small squads into the nearest friend so we fight as one mass.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 107,
+   "why": "Enemy 504-unit force is taking our northern planet 5; widen the defend radius so the main army swings back to defend.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 600,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 118,
+   "why": "Enemy has many pure-runner squads (runners beat tanks); grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 158,
+   "why": "Enemy armies are now mostly tanks and runners with few grunts; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 172,
+   "why": "Enemy now fields huge pure-runner swarms (160+); grunts beat runners.",
+   "breed": "grunt"
+  }
+ ]
+}

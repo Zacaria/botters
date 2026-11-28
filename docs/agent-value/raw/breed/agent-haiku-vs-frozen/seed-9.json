@@ -1,0 +1,315 @@
+{
+ "seed": 9,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 220,
+ "planets": {
+  "you": 16,
+  "enemy": 0
+ },
+ "units": [
+  2803,
+  0
+ ],
+ "edits": 9,
+ "calls": {
+  "wait": 94,
+  "state": 0,
+  "set": 7,
+  "toggle": 0,
+  "breed": 2,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 253,
+ "wall": 262,
+ "cost": 0.79527026,
+ "turns": 105,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 6,
+   "why": "Opening from doctrine: defend, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 60,
+   "why": "Enemy armies are at parity; merge stragglers under 120 units into the nearest friendly battalion to rebuild mass.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 64,
+   "why": "Fragmented reserves are being picked off; merge anything under 120 first, then defend.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 78,
+   "why": "Enemy main blocks are tank-heavy (89 and 60 tanks); runners counter tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 102,
+   "why": "Enemy mass is now mostly runners (~400 across battalions) with only one 60-tank group left; grunts counter runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 112,
+   "why": "We lead on units (497 vs 233); prioritize capturing enemy planets over chasing runners.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 144,
+   "why": "Planet 2 just went neutral right next to our army; grab free planets before enemy ones.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 186,
+   "why": "Enemy armies are down to scraps; prioritize capturing the remaining enemy planets over defending.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 190,
+   "why": "Flank rule is parking our big battalions idle; drop it and send them at free and enemy planets.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

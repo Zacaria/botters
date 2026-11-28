@@ -2,10 +2,16 @@
 // (snapshot/restore, exact), plays each candidate set to the end against the fixed opponent, and keeps the best.
 // It knows the opponent's rules and the future, which no agent does. If even this cannot beat the fixed set, live editing has no value.
 // node scripts/agent-value/lookahead.mjs <seeds> <opponentSet> <candidates,comma> <every_s> <until_s> <threads> <out.json>
+// A set may carry a breed: `pincer+tank`; the opponent may use `+seeded` (runner/grunt/tank from the seed, like the bench house).
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads'
 import { writeFileSync } from 'node:fs'
 import { createMatch, applyInput, step, snapshot, restore, advanceTo, count, owned, TPS } from '../../sim.js'
 import { SETS } from './strategies.mjs'
+const BREEDS = ['runner', 'grunt', 'tank']
+function use(s, side, name) { // apply `set` or `set+breed`
+  const [set, breed] = name.split('+'); applyInput(s, side, { gambits: SETS[set] })
+  if (breed) applyInput(s, side, { breed: breed === 'seeded' ? BREEDS[s.seed % 3] : breed })
+}
 
 function value(s, me) { // win > draw > loss, then planets, then units
   const w = s.ended?.winner, pl = owned(s), n = count(s)
@@ -13,19 +19,19 @@ function value(s, me) { // win > draw > loss, then planets, then units
 }
 function oracle({ seed, me, opp, cands, every, until }) {
   const s = createMatch(seed)
-  applyInput(s, 1 - me, { gambits: SETS[opp] })
+  use(s, 1 - me, opp)
   const plan = []
   for (let t = 0; t <= until && !s.ended; t += every) {
     advanceTo(s, t * TPS); if (s.ended) break
     const snap = snapshot(s); let best = null
     for (const c of cands) {
-      const f = restore(snap); applyInput(f, me, { gambits: SETS[c] }); advanceTo(f, f.endTick + 1)
+      const f = restore(snap); use(f, me, c); advanceTo(f, f.endTick + 1)
       const v = value(f, me); if (!best || v > best.v) best = { c, v }
     }
-    applyInput(s, me, { gambits: SETS[best.c] }); plan.push({ t, set: best.c })
+    use(s, me, best.c); plan.push({ t, set: best.c })
   }
   advanceTo(s, s.endTick + 1)
-  const fixed = cands.map(c => { const f = createMatch(seed); applyInput(f, 1 - me, { gambits: SETS[opp] }); applyInput(f, me, { gambits: SETS[c] }); advanceTo(f, f.endTick + 1); return { c, won: f.ended.winner === me ? 1 : f.ended.winner === null ? 0.5 : 0 } })
+  const fixed = cands.map(c => { const f = createMatch(seed); use(f, 1 - me, opp); use(f, me, c); advanceTo(f, f.endTick + 1); return { c, won: f.ended.winner === me ? 1 : f.ended.winner === null ? 0.5 : 0 } })
   return { seed, me, won: s.ended.winner === me ? 1 : s.ended.winner === null ? 0.5 : 0, reason: s.ended.reason, t: s.tick / TPS, switches: plan.filter((p, i) => i && p.set !== plan[i - 1].set).length, plan, fixed }
 }
 

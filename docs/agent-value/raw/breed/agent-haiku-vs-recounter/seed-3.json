@@ -1,0 +1,196 @@
+{
+ "seed": 3,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 229.5,
+ "planets": {
+  "you": 0,
+  "enemy": 16
+ },
+ "units": [
+  0,
+  1977
+ ],
+ "edits": 8,
+ "calls": {
+  "wait": 78,
+  "state": 0,
+  "set": 4,
+  "toggle": 0,
+  "breed": 4,
+  "call_human": 4,
+  "join": 1
+ },
+ "agentStoppedAt": 351,
+ "wall": 358,
+ "cost": 0.49041119999999994,
+ "turns": 92,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 18,
+   "why": "Opening from doctrine: defend planets, flank bigger enemies, hit weaker ones, grab free planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 113,
+   "why": "Enemy armies are now mostly tanks with few grunts; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 120,
+   "why": "Enemy 481-unit army is near; merge the 30-70 unit stragglers into friendly battalions instead of trickling them into fights.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 3,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 125,
+   "why": "Merge small stragglers into friends; regroup vs 400-unit enemy.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 3,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 175,
+   "why": "Take free center planet 2 before chasing weak enemies.",
+   "gambits": [
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 3,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 193,
+   "why": "Enemy armies are now almost all grunts; grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 199,
+   "why": "Enemy is ~290 grunts and almost no runners; tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 256,
+   "why": "Enemy now has ~217 runners; grunts beat runners.",
+   "breed": "grunt"
+  }
+ ]
+}

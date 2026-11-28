@@ -1,0 +1,70 @@
+{
+ "seed": 16,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 154.5,
+ "planets": {
+  "you": 0,
+  "enemy": 16
+ },
+ "units": [
+  0,
+  1165
+ ],
+ "edits": 2,
+ "calls": {
+  "wait": 65,
+  "state": 0,
+  "set": 1,
+  "toggle": 0,
+  "breed": 1,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 192,
+ "wall": 197,
+ "cost": 0.32268641,
+ "turns": 70,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 8,
+   "why": "Doctrine: defend threatened planets, flank bigger enemies, attack weaker ones, grab free planets first.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 61,
+   "why": "Enemy battalions are grunt-heavy (~240 grunts each); tanks beat grunts.",
+   "breed": "tank"
+  }
+ ]
+}

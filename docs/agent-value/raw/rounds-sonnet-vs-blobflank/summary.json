@@ -1,0 +1,702 @@
+[
+  {
+    "seed": 1,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 4,
+    "cost": 0.046152000000000006,
+    "turns": 9,
+    "wall": 196,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 2
+    }
+  },
+  {
+    "seed": 2,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 3,
+    "cost": 0.054943700000000005,
+    "turns": 10,
+    "wall": 186,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  },
+  {
+    "seed": 3,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      2,
+      3
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0622825,
+    "turns": 12,
+    "wall": 187,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 4,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 0,
+    "cost": 0.06336220000000001,
+    "turns": 13,
+    "wall": 186,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 6
+    }
+  },
+  {
+    "seed": 5,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 4,
+    "cost": 0.0281358,
+    "turns": 9,
+    "wall": 179,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 2
+    }
+  },
+  {
+    "seed": 6,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.044767999999999995,
+    "turns": 12,
+    "wall": 189,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 7,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 4,
+    "cost": 0.026909100000000005,
+    "turns": 9,
+    "wall": 176,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 2
+    }
+  },
+  {
+    "seed": 8,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      3,
+      2
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "lost",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0410258,
+    "turns": 12,
+    "wall": 184,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 9,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.0433078,
+    "turns": 12,
+    "wall": 178,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 10,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      0,
+      5
+    ],
+    "roundResults": [
+      "lost",
+      "lost",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 0,
+    "cost": 0.0434912,
+    "turns": 13,
+    "wall": 188,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 6
+    }
+  },
+  {
+    "seed": 11,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 4,
+    "cost": 0.029360700000000003,
+    "turns": 9,
+    "wall": 187,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 2
+    }
+  },
+  {
+    "seed": 12,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 3,
+    "cost": 0.0304569,
+    "turns": 10,
+    "wall": 187,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  },
+  {
+    "seed": 13,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 3,
+    "cost": 0.030782300000000002,
+    "turns": 10,
+    "wall": 194,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  },
+  {
+    "seed": 14,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 4,
+    "cost": 0.0268996,
+    "turns": 9,
+    "wall": 185,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 2
+    }
+  },
+  {
+    "seed": 15,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "house",
+    "score": [
+      1,
+      4
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "lost",
+      "lost",
+      "lost"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 1,
+    "cost": 0.044249899999999995,
+    "turns": 12,
+    "wall": 192,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 5
+    }
+  },
+  {
+    "seed": 16,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      1,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 2,
+    "cost": 0.035806000000000004,
+    "turns": 11,
+    "wall": 186,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 4
+    }
+  },
+  {
+    "seed": 17,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 4,
+    "cost": 0.0277164,
+    "turns": 9,
+    "wall": 190,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 2
+    }
+  },
+  {
+    "seed": 18,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      5,
+      0
+    ],
+    "roundResults": [
+      "won",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 4,
+    "cost": 0.0285917,
+    "turns": 9,
+    "wall": 181,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 2
+    }
+  },
+  {
+    "seed": 19,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "won",
+      "lost",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      0,
+      1,
+      1,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 3,
+    "cost": 0.0319959,
+    "turns": 10,
+    "wall": 184,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  },
+  {
+    "seed": 20,
+    "model": "sonnet",
+    "house": "blobflank",
+    "winner": "agent",
+    "score": [
+      4,
+      1
+    ],
+    "roundResults": [
+      "lost",
+      "won",
+      "won",
+      "won",
+      "won"
+    ],
+    "versionsPerPause": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "late": 0,
+    "invalid": 1,
+    "pausesWithoutVersion": 3,
+    "cost": 0.032550800000000005,
+    "turns": 10,
+    "wall": 183,
+    "stop": "success",
+    "calls": {
+      "wait_for_pause": 6,
+      "set_bot": 3
+    }
+  }
+]

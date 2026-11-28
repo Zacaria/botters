@@ -1,0 +1,260 @@
+{
+ "seed": 17,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 247.5,
+ "planets": {
+  "you": 16,
+  "enemy": 0
+ },
+ "units": [
+  1911,
+  0
+ ],
+ "edits": 8,
+ "calls": {
+  "wait": 104,
+  "state": 0,
+  "set": 7,
+  "toggle": 0,
+  "breed": 1,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 294,
+ "wall": 303,
+ "cost": 1.03375986,
+ "turns": 114,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 12,
+   "why": "Doctrine: defend planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 59,
+   "why": "Fragments are dwindling; merge small battalions into the nearest friend before other orders.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 73,
+   "why": "Enemy army is 157 tanks; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 79,
+   "why": "Fragments were ping-ponging to each other; pull them back to a planet instead of merging mid-battle.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "retreat"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 100,
+   "why": "Runner fragments are now our tank-killers; stop retreating them and let them flank enemy tanks.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 214,
+   "why": "Enemy army is nearly gone; send units to capture planets instead of chasing stragglers.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 275,
+   "why": "Two enemy planets left (1 and 16); prioritize capturing them over the nearly-taken neutral planet.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 290,
+   "why": "Planet 1 just went neutral and nobody is holding it; grab it first, then head for enemy planet 16.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

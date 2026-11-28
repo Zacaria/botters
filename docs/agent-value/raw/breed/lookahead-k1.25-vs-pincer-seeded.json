@@ -1,0 +1,1002 @@
+{
+ "opp": "pincer+seeded",
+ "cands": [
+  "pincer+runner",
+  "pincer+grunt",
+  "pincer+tank",
+  "blob+runner",
+  "blob+grunt",
+  "blob+tank"
+ ],
+ "every": 30,
+ "until": 150,
+ "oracleScore": 0.9375,
+ "bestFixed": [
+  {
+   "c": "pincer+runner",
+   "score": 0.375
+  },
+  {
+   "c": "pincer+grunt",
+   "score": 0.625
+  },
+  {
+   "c": "pincer+tank",
+   "score": 0.25
+  },
+  {
+   "c": "blob+runner",
+   "score": 0.4375
+  },
+  {
+   "c": "blob+grunt",
+   "score": 0.6875
+  },
+  {
+   "c": "blob+tank",
+   "score": 0.25
+  }
+ ],
+ "res": [
+  {
+   "seed": 3003,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 181,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 30,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 60,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 90,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3000,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 210,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "pincer+runner"
+    },
+    {
+     "t": 30,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 60,
+     "set": "blob+tank"
+    },
+    {
+     "t": 90,
+     "set": "blob+tank"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 1
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3001,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 233,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 30,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 60,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 90,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 120,
+     "set": "blob+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 0
+    },
+    {
+     "c": "pincer+tank",
+     "won": 1
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 1
+    }
+   ]
+  },
+  {
+   "seed": 3001,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 243.5,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+tank"
+    },
+    {
+     "t": 30,
+     "set": "blob+tank"
+    },
+    {
+     "t": 60,
+     "set": "blob+tank"
+    },
+    {
+     "t": 90,
+     "set": "blob+tank"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 1
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 1
+    }
+   ]
+  },
+  {
+   "seed": 3000,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 253,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 30,
+     "set": "blob+tank"
+    },
+    {
+     "t": 60,
+     "set": "blob+tank"
+    },
+    {
+     "t": 90,
+     "set": "blob+tank"
+    },
+    {
+     "t": 120,
+     "set": "blob+tank"
+    },
+    {
+     "t": 150,
+     "set": "blob+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3002,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 284.5,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+runner"
+    },
+    {
+     "t": 30,
+     "set": "blob+runner"
+    },
+    {
+     "t": 60,
+     "set": "blob+runner"
+    },
+    {
+     "t": 90,
+     "set": "blob+runner"
+    },
+    {
+     "t": 120,
+     "set": "pincer+runner"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 0
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 1
+    },
+    {
+     "c": "blob+grunt",
+     "won": 0
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3002,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 286.5,
+   "switches": 0,
+   "plan": [
+    {
+     "t": 0,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 30,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 60,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 90,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 120,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 150,
+     "set": "pincer+grunt"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 1
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 1
+    },
+    {
+     "c": "blob+runner",
+     "won": 1
+    },
+    {
+     "c": "blob+grunt",
+     "won": 0
+    },
+    {
+     "c": "blob+tank",
+     "won": 1
+    }
+   ]
+  },
+  {
+   "seed": 3003,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 154.5,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 30,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 60,
+     "set": "blob+tank"
+    },
+    {
+     "t": 90,
+     "set": "blob+tank"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+runner"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 1
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 1
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3004,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 189,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 30,
+     "set": "blob+tank"
+    },
+    {
+     "t": 60,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 90,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3004,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 174.5,
+   "switches": 3,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 30,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 60,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 90,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 120,
+     "set": "blob+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 0
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3005,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 207.5,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+tank"
+    },
+    {
+     "t": 30,
+     "set": "blob+tank"
+    },
+    {
+     "t": 60,
+     "set": "blob+tank"
+    },
+    {
+     "t": 90,
+     "set": "blob+runner"
+    },
+    {
+     "t": 120,
+     "set": "blob+runner"
+    },
+    {
+     "t": 150,
+     "set": "pincer+runner"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 1
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 0
+    },
+    {
+     "c": "pincer+tank",
+     "won": 1
+    },
+    {
+     "c": "blob+runner",
+     "won": 1
+    },
+    {
+     "c": "blob+grunt",
+     "won": 0
+    },
+    {
+     "c": "blob+tank",
+     "won": 1
+    }
+   ]
+  },
+  {
+   "seed": 3005,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 265.5,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "pincer+runner"
+    },
+    {
+     "t": 30,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 60,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 90,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 1
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 0
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 1
+    },
+    {
+     "c": "blob+grunt",
+     "won": 0
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3007,
+   "me": 0,
+   "won": 0,
+   "reason": "wipe",
+   "t": 160,
+   "switches": 2,
+   "plan": [
+    {
+     "t": 0,
+     "set": "pincer+runner"
+    },
+    {
+     "t": 30,
+     "set": "pincer+runner"
+    },
+    {
+     "t": 60,
+     "set": "pincer+runner"
+    },
+    {
+     "t": 90,
+     "set": "pincer+runner"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+grunt"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 0
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 0
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3006,
+   "me": 0,
+   "won": 1,
+   "reason": "wipe",
+   "t": 227,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+runner"
+    },
+    {
+     "t": 30,
+     "set": "blob+runner"
+    },
+    {
+     "t": 60,
+     "set": "blob+runner"
+    },
+    {
+     "t": 90,
+     "set": "blob+runner"
+    },
+    {
+     "t": 120,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 1
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3006,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 174,
+   "switches": 5,
+   "plan": [
+    {
+     "t": 0,
+     "set": "blob+runner"
+    },
+    {
+     "t": 30,
+     "set": "blob+grunt"
+    },
+    {
+     "t": 60,
+     "set": "blob+tank"
+    },
+    {
+     "t": 90,
+     "set": "pincer+tank"
+    },
+    {
+     "t": 120,
+     "set": "blob+tank"
+    },
+    {
+     "t": 150,
+     "set": "pincer+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 1
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 1
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  },
+  {
+   "seed": 3007,
+   "me": 1,
+   "won": 1,
+   "reason": "wipe",
+   "t": 254.5,
+   "switches": 1,
+   "plan": [
+    {
+     "t": 0,
+     "set": "pincer+grunt"
+    },
+    {
+     "t": 30,
+     "set": "blob+tank"
+    },
+    {
+     "t": 60,
+     "set": "blob+tank"
+    },
+    {
+     "t": 90,
+     "set": "blob+tank"
+    },
+    {
+     "t": 120,
+     "set": "blob+tank"
+    },
+    {
+     "t": 150,
+     "set": "blob+tank"
+    }
+   ],
+   "fixed": [
+    {
+     "c": "pincer+runner",
+     "won": 0
+    },
+    {
+     "c": "pincer+grunt",
+     "won": 1
+    },
+    {
+     "c": "pincer+tank",
+     "won": 0
+    },
+    {
+     "c": "blob+runner",
+     "won": 0
+    },
+    {
+     "c": "blob+grunt",
+     "won": 1
+    },
+    {
+     "c": "blob+tank",
+     "won": 0
+    }
+   ]
+  }
+ ]
+}

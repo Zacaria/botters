@@ -1,0 +1,35 @@
+{
+  "seed": 4,
+  "model": "sonnet",
+  "house": "blobflank",
+  "winner": "house",
+  "score": [
+    1,
+    4
+  ],
+  "roundResults": [
+    "won",
+    "lost",
+    "lost",
+    "lost",
+    "lost"
+  ],
+  "versionsPerPause": [
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "late": 0,
+  "invalid": 1,
+  "pausesWithoutVersion": 0,
+  "cost": 0.06336220000000001,
+  "turns": 13,
+  "wall": 186,
+  "stop": "success",
+  "calls": {
+    "wait_for_pause": 6,
+    "set_bot": 6
+  }
+}

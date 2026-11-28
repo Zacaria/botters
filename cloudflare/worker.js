@@ -2,6 +2,8 @@ import { createAuth } from './auth.js'
 import { json, failure, bytes } from './http.js'
 import { hash, clientAddress } from './authority.js'
 import { gameTransport } from './game-transport.js'
+import { roundsHTTP } from './rounds-http.js'
+export { RoundsRoom } from './rounds-room.js'
 import { oauthRoute, oauthHTTP, authenticate } from './oauth.js'
 import { rangeResponse } from './media.js'
 export { MatchRoom } from './match-room.js'
@@ -32,8 +34,9 @@ async function dispatch(request,env) {
     accepted.set(id,Date.now() + 600000)
     return env.AGENTS.getByName(grant.grantId).fetch(request)
   }
+  if (url.pathname.startsWith('/rounds')) return roundsHTTP(env,request)
   if (gamePaths.has(url.pathname)) return gameTransport(env,request)
-  if (url.pathname === '/live-config.json') return json({url:env.SITE_URL,accountRequired:true})
+  if (url.pathname === '/live-config.json') return json({url:env.SITE_URL,accountRequired:true,rounds:env.ROUNDS_ENABLED === '1'})
   if (url.pathname === '/media/public-demo.webm' && request.method === 'GET' && request.headers.has('range') && env.ASSETS) return rangeResponse(request,() => env.ASSETS.fetch(request.url))
   if (/^\/r\/[A-Z2-9]{6}$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/',request.url),request))
   return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found',{status:404})

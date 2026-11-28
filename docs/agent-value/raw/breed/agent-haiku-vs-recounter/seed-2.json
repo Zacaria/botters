@@ -1,0 +1,120 @@
+{
+ "seed": 2,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 216,
+ "planets": {
+  "you": 0,
+  "enemy": 16
+ },
+ "units": [
+  0,
+  1093
+ ],
+ "edits": 4,
+ "calls": {
+  "wait": 78,
+  "state": 0,
+  "set": 2,
+  "toggle": 0,
+  "breed": 2,
+  "call_human": 1,
+  "join": 1
+ },
+ "agentStoppedAt": 337,
+ "wall": 344,
+ "cost": 0.49561224,
+ "turns": 85,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 20,
+   "why": "Opening per doctrine: defend planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 100,
+   "why": "Enemy armies are tank-heavy (138-175 tanks), and tanks beat our grunts; runners counter tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 107,
+   "why": "Merge stragglers under 120 units into the nearest friend so small grunt groups stop trickling into tank fights.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 210,
+   "why": "Enemy now fields many grunt groups (~180 grunts); tanks beat grunts and our new units should counter that.",
+   "breed": "tank"
+  }
+ ]
+}

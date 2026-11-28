@@ -1,0 +1,662 @@
+[
+ {
+  "seed": 1,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "agent",
+  "reason": "wipe",
+  "at": 299.5,
+  "planets": {
+   "you": 9,
+   "enemy": 0
+  },
+  "units": [
+   781,
+   0
+  ],
+  "edits": 10,
+  "calls": {
+   "wait": 95,
+   "state": 0,
+   "set": 7,
+   "toggle": 0,
+   "breed": 3,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 458,
+  "wall": 467,
+  "cost": 0.8270262700000001,
+  "turns": 108,
+  "stop": "success"
+ },
+ {
+  "seed": 2,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 216,
+  "planets": {
+   "you": 0,
+   "enemy": 16
+  },
+  "units": [
+   0,
+   1093
+  ],
+  "edits": 4,
+  "calls": {
+   "wait": 78,
+   "state": 0,
+   "set": 2,
+   "toggle": 0,
+   "breed": 2,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 337,
+  "wall": 344,
+  "cost": 0.49561224,
+  "turns": 85,
+  "stop": "success"
+ },
+ {
+  "seed": 3,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 229.5,
+  "planets": {
+   "you": 0,
+   "enemy": 16
+  },
+  "units": [
+   0,
+   1977
+  ],
+  "edits": 8,
+  "calls": {
+   "wait": 78,
+   "state": 0,
+   "set": 4,
+   "toggle": 0,
+   "breed": 4,
+   "call_human": 4,
+   "join": 1
+  },
+  "agentStoppedAt": 351,
+  "wall": 358,
+  "cost": 0.49041119999999994,
+  "turns": 92,
+  "stop": "success"
+ },
+ {
+  "seed": 4,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 207.5,
+  "planets": {
+   "you": 0,
+   "enemy": 15
+  },
+  "units": [
+   0,
+   1889
+  ],
+  "edits": 5,
+  "calls": {
+   "wait": 77,
+   "state": 0,
+   "set": 3,
+   "toggle": 0,
+   "breed": 2,
+   "call_human": 0,
+   "join": 1
+  },
+  "agentStoppedAt": 330,
+  "wall": 336,
+  "cost": 0.4528445100000001,
+  "turns": 84,
+  "stop": "success"
+ },
+ {
+  "seed": 5,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 221,
+  "planets": {
+   "you": 0,
+   "enemy": 13
+  },
+  "units": [
+   0,
+   890
+  ],
+  "edits": 6,
+  "calls": {
+   "wait": 74,
+   "state": 0,
+   "set": 1,
+   "toggle": 0,
+   "breed": 5,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 355,
+  "wall": 363,
+  "cost": 0.5395164300000002,
+  "turns": 83,
+  "stop": "success"
+ },
+ {
+  "seed": 6,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "agent",
+  "reason": "time",
+  "at": 300,
+  "planets": {
+   "you": 9,
+   "enemy": 8
+  },
+  "units": [
+   345,
+   1151
+  ],
+  "edits": 6,
+  "calls": {
+   "wait": 116,
+   "state": 0,
+   "set": 3,
+   "toggle": 0,
+   "breed": 3,
+   "call_human": 0,
+   "join": 1
+  },
+  "agentStoppedAt": 472,
+  "wall": 478,
+  "cost": 1.3621437399999998,
+  "turns": 124,
+  "stop": "success"
+ },
+ {
+  "seed": 7,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 165,
+  "planets": {
+   "you": 0,
+   "enemy": 16
+  },
+  "units": [
+   0,
+   1508
+  ],
+  "edits": 4,
+  "calls": {
+   "wait": 59,
+   "state": 0,
+   "set": 2,
+   "toggle": 0,
+   "breed": 2,
+   "call_human": 2,
+   "join": 1
+  },
+  "agentStoppedAt": 257,
+  "wall": 269,
+  "cost": 0.24349410999999999,
+  "turns": 67,
+  "stop": "success"
+ },
+ {
+  "seed": 8,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 235.5,
+  "planets": {
+   "you": 0,
+   "enemy": 15
+  },
+  "units": [
+   0,
+   1468
+  ],
+  "edits": 6,
+  "calls": {
+   "wait": 88,
+   "state": 0,
+   "set": 3,
+   "toggle": 0,
+   "breed": 3,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 352,
+  "wall": 358,
+  "cost": 0.7102843099999999,
+  "turns": 97,
+  "stop": "success"
+ },
+ {
+  "seed": 9,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 200.5,
+  "planets": {
+   "you": 0,
+   "enemy": 15
+  },
+  "units": [
+   0,
+   1074
+  ],
+  "edits": 7,
+  "calls": {
+   "wait": 87,
+   "state": 0,
+   "set": 4,
+   "toggle": 0,
+   "breed": 3,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 295,
+  "wall": 300,
+  "cost": 0.6699539899999999,
+  "turns": 97,
+  "stop": "success"
+ },
+ {
+  "seed": 10,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 182.5,
+  "planets": {
+   "you": 0,
+   "enemy": 15
+  },
+  "units": [
+   0,
+   1134
+  ],
+  "edits": 8,
+  "calls": {
+   "wait": 72,
+   "state": 0,
+   "set": 3,
+   "toggle": 0,
+   "breed": 5,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 256,
+  "wall": 262,
+  "cost": 0.38997861000000017,
+  "turns": 83,
+  "stop": "success"
+ },
+ {
+  "seed": 11,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 258,
+  "planets": {
+   "you": 0,
+   "enemy": 14
+  },
+  "units": [
+   0,
+   1675
+  ],
+  "edits": 8,
+  "calls": {
+   "wait": 91,
+   "state": 0,
+   "set": 5,
+   "toggle": 0,
+   "breed": 3,
+   "call_human": 4,
+   "join": 1
+  },
+  "agentStoppedAt": 373,
+  "wall": 380,
+  "cost": 0.72990418,
+  "turns": 105,
+  "stop": "success"
+ },
+ {
+  "seed": 12,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 245,
+  "planets": {
+   "you": 0,
+   "enemy": 15
+  },
+  "units": [
+   0,
+   1639
+  ],
+  "edits": 7,
+  "calls": {
+   "wait": 84,
+   "state": 0,
+   "set": 3,
+   "toggle": 0,
+   "breed": 4,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 354,
+  "wall": 361,
+  "cost": 0.7064721,
+  "turns": 94,
+  "stop": "success"
+ },
+ {
+  "seed": 13,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 175.5,
+  "planets": {
+   "you": 0,
+   "enemy": 16
+  },
+  "units": [
+   0,
+   892
+  ],
+  "edits": 2,
+  "calls": {
+   "wait": 65,
+   "state": 0,
+   "set": 1,
+   "toggle": 0,
+   "breed": 1,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 273,
+  "wall": 277,
+  "cost": 0.38212267000000005,
+  "turns": 70,
+  "stop": "success"
+ },
+ {
+  "seed": 14,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "agent",
+  "reason": "wipe",
+  "at": 247,
+  "planets": {
+   "you": 14,
+   "enemy": 0
+  },
+  "units": [
+   1396,
+   0
+  ],
+  "edits": 9,
+  "calls": {
+   "wait": 99,
+   "state": 0,
+   "set": 3,
+   "toggle": 0,
+   "breed": 6,
+   "call_human": 0,
+   "join": 1
+  },
+  "agentStoppedAt": 366,
+  "wall": 372,
+  "cost": 0.9449649400000001,
+  "turns": 110,
+  "stop": "success"
+ },
+ {
+  "seed": 15,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "agent",
+  "reason": "wipe",
+  "at": 201.5,
+  "planets": {
+   "you": 13,
+   "enemy": 0
+  },
+  "units": [
+   1123,
+   0
+  ],
+  "edits": 5,
+  "calls": {
+   "wait": 82,
+   "state": 0,
+   "set": 2,
+   "toggle": 0,
+   "breed": 3,
+   "call_human": 0,
+   "join": 1
+  },
+  "agentStoppedAt": 286,
+  "wall": 290,
+  "cost": 0.6527180100000001,
+  "turns": 89,
+  "stop": "success"
+ },
+ {
+  "seed": 16,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 140.5,
+  "planets": {
+   "you": 0,
+   "enemy": 16
+  },
+  "units": [
+   0,
+   1148
+  ],
+  "edits": 5,
+  "calls": {
+   "wait": 51,
+   "state": 0,
+   "set": 3,
+   "toggle": 0,
+   "breed": 2,
+   "call_human": 1,
+   "join": 1
+  },
+  "agentStoppedAt": 218,
+  "wall": 223,
+  "cost": 0.19010026000000002,
+  "turns": 59,
+  "stop": "success"
+ },
+ {
+  "seed": 17,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "house",
+  "reason": "wipe",
+  "at": 288.5,
+  "planets": {
+   "you": 0,
+   "enemy": 15
+  },
+  "units": [
+   0,
+   1386
+  ],
+  "edits": 11,
+  "calls": {
+   "wait": 115,
+   "state": 0,
+   "set": 4,
+   "toggle": 0,
+   "breed": 7,
+   "call_human": 0,
+   "join": 1
+  },
+  "agentStoppedAt": 392,
+  "wall": 398,
+  "cost": 1.1171549399999998,
+  "turns": 128,
+  "stop": "success"
+ },
+ {
+  "seed": 18,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "agent",
+  "reason": "time",
+  "at": 300,
+  "planets": {
+   "you": 12,
+   "enemy": 5
+  },
+  "units": [
+   1207,
+   164
+  ],
+  "edits": 13,
+  "calls": {
+   "wait": 119,
+   "state": 0,
+   "set": 6,
+   "toggle": 0,
+   "breed": 7,
+   "call_human": 0,
+   "join": 1
+  },
+  "agentStoppedAt": 392,
+  "wall": 397,
+  "cost": 1.27954248,
+  "turns": 134,
+  "stop": "success"
+ },
+ {
+  "seed": 19,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "agent",
+  "reason": "wipe",
+  "at": 214,
+  "planets": {
+   "you": 16,
+   "enemy": 0
+  },
+  "units": [
+   1326,
+   0
+  ],
+  "edits": 5,
+  "calls": {
+   "wait": 81,
+   "state": 0,
+   "set": 1,
+   "toggle": 0,
+   "breed": 4,
+   "call_human": 0,
+   "join": 1
+  },
+  "agentStoppedAt": 283,
+  "wall": 290,
+  "cost": 0.6651657100000001,
+  "turns": 88,
+  "stop": "success"
+ },
+ {
+  "seed": 20,
+  "set": "blobflank",
+  "houseScript": "counter",
+  "model": "haiku",
+  "brief": "default",
+  "winner": "agent",
+  "reason": "wipe",
+  "at": 256.5,
+  "planets": {
+   "you": 16,
+   "enemy": 0
+  },
+  "units": [
+   1448,
+   0
+  ],
+  "edits": 4,
+  "calls": {
+   "wait": 110,
+   "state": 0,
+   "set": 1,
+   "toggle": 0,
+   "breed": 3,
+   "call_human": 2,
+   "join": 1
+  },
+  "agentStoppedAt": 329,
+  "wall": 336,
+  "cost": 1.2902714399999997,
+  "turns": 118,
+  "stop": "success"
+ }
+]

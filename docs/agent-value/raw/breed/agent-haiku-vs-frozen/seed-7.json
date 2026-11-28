@@ -1,0 +1,255 @@
+{
+ "seed": 7,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 172,
+ "planets": {
+  "you": 0,
+  "enemy": 14
+ },
+ "units": [
+  0,
+  1144
+ ],
+ "edits": 7,
+ "calls": {
+  "wait": 83,
+  "state": 0,
+  "set": 5,
+  "toggle": 0,
+  "breed": 2,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 215,
+ "wall": 220,
+ "cost": 0.5597176400000001,
+ "turns": 92,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 14,
+   "why": "Opening from doctrine: defend, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 66,
+   "why": "Enemy 437-unit battalion engaging my main army; merge my small stragglers into the nearest friendly force.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 72,
+   "why": "Enemy armies are tank-heavy (~90-110 tanks each), and runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 80,
+   "why": "Losing on attrition; reinforce friendly fights so forces concentrate instead of trickling in.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 450,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 0.8,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 83,
+   "why": "Enemy has shifted to mostly grunts now; tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 103,
+   "why": "Our army is now tank-heavy vs enemy grunts; let tanks engage enemies up to 1.3x our size, and pull idle groups into fights.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 450,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1.3,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 105,
+   "why": "Tanks beat enemy grunts; engage enemies up to 1.3x our size.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "ally_fighting",
+     "p": 450,
+     "then": "go"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1.3,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  }
+ ]
+}

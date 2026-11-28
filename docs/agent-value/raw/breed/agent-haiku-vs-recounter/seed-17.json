@@ -1,0 +1,225 @@
+{
+ "seed": 17,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "house",
+ "reason": "wipe",
+ "at": 288.5,
+ "planets": {
+  "you": 0,
+  "enemy": 15
+ },
+ "units": [
+  0,
+  1386
+ ],
+ "edits": 11,
+ "calls": {
+  "wait": 115,
+  "state": 0,
+  "set": 4,
+  "toggle": 0,
+  "breed": 7,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 392,
+ "wall": 398,
+ "cost": 1.1171549399999998,
+ "turns": 128,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 16,
+   "why": "Doctrine: grab free planets early, defend threatened ones, hit weaker enemies, flank bigger ones rather than retreat.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 75,
+   "why": "Fragments under 60 units merge into the nearest friendly battalion so the army stays concentrated.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 60,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 94,
+   "why": "Enemy's main battalion is 157 tanks; tanks beat grunts and only lose to runners, the enemy's smallest group (108).",
+   "breed": "tank"
+  },
+  {
+   "at": 106,
+   "why": "Enemy reinforcements are now mostly tanks (93 and 106 tank battalions); runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 168,
+   "why": "Enemy is now mostly runners (~140 runners in fragments); grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 187,
+   "why": "Enemy fragments are now mostly grunts (55 + 28 + ...); tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 206,
+   "why": "Tank groups of 40-50 were merging into each other instead of hitting the grunt blobs; tanks beat grunts, so let them fight.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 30,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1.2,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 209,
+   "why": "Tank groups of 40-60 were merging instead of hitting grunt blobs; tanks beat grunts.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 30,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1.2,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 236,
+   "why": "Enemy now has ~130 tanks and only ~25 grunts; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 249,
+   "why": "Enemy is now ~230 runners across battalions; grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 305,
+   "why": "Enemy's remaining blobs are tank-heavy (67 and 32 tanks), with no grunts; runners beat tanks.",
+   "breed": "runner"
+  }
+ ]
+}

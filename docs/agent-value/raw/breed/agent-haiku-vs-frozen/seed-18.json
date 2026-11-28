@@ -1,0 +1,205 @@
+{
+ "seed": 18,
+ "set": "blobflank",
+ "houseScript": null,
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "wipe",
+ "at": 191.5,
+ "planets": {
+  "you": 16,
+  "enemy": 0
+ },
+ "units": [
+  1427,
+  0
+ ],
+ "edits": 7,
+ "calls": {
+  "wait": 81,
+  "state": 0,
+  "set": 4,
+  "toggle": 0,
+  "breed": 3,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 242,
+ "wall": 246,
+ "cost": 0.5997226100000002,
+ "turns": 90,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 14,
+   "why": "Doctrine: defend planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 15,
+   "why": "Keep grunts for now; no enemy roles visible yet, grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 68,
+   "why": "Enemy has most grunts (167) in the big battalion; tanks beat grunts. Enemy tanks (117) are the next target for runners.",
+   "breed": "tank"
+  },
+  {
+   "at": 73,
+   "why": "Merge the many small fragments into the nearest battalion so they fight as a unit.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 124,
+   "why": "Stop 100-unit tank groups chasing merge targets across the map; only merge near-empty scraps. Let them take free planets instead.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 10,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 128,
+   "why": "Stop big tank groups chasing scraps; only merge near-empty ones.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 350,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 10,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "p": 2000,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 147,
+   "why": "Enemy armies are now almost all runners; grunts beat runners.",
+   "breed": "grunt"
+  }
+ ]
+}

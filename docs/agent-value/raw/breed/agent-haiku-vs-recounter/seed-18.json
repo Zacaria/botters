@@ -1,0 +1,288 @@
+{
+ "seed": 18,
+ "set": "blobflank",
+ "houseScript": "counter",
+ "model": "haiku",
+ "brief": "default",
+ "winner": "agent",
+ "reason": "time",
+ "at": 300,
+ "planets": {
+  "you": 12,
+  "enemy": 5
+ },
+ "units": [
+  1207,
+  164
+ ],
+ "edits": 13,
+ "calls": {
+  "wait": 119,
+  "state": 0,
+  "set": 6,
+  "toggle": 0,
+  "breed": 7,
+  "call_human": 0,
+  "join": 1
+ },
+ "agentStoppedAt": 392,
+ "wall": 397,
+ "cost": 1.27954248,
+ "turns": 134,
+ "stop": "success",
+ "editLog": [
+  {
+   "at": 16,
+   "why": "Doctrine: defend threatened planets, flank bigger enemies, hit weaker ones, grab free planets early.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 88,
+   "why": "Enemy armies are mostly grunts and tanks; tanks beat grunts and our planets will breed reinforcements.",
+   "breed": "tank"
+  },
+  {
+   "at": 95,
+   "why": "Stragglers under 120 units merge into the nearest friendly army instead of trickling into enemies.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 117,
+   "why": "Enemy reinforcements are now mostly tanks, which runners beat.",
+   "breed": "runner"
+  },
+  {
+   "at": 159,
+   "why": "Main army at 100+ units was walking off to merge; only merge true stragglers under 40.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 40,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 162,
+   "why": "Enemy forces are now mostly runners; grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 184,
+   "why": "Enemy reinforcements are now grunt-heavy; tanks beat grunts.",
+   "breed": "tank"
+  },
+  {
+   "at": 216,
+   "why": "Enemy armies are now mostly tanks; runners beat tanks.",
+   "breed": "runner"
+  },
+  {
+   "at": 241,
+   "why": "Enemy has shifted to mostly runners; grunts beat runners.",
+   "breed": "grunt"
+  },
+  {
+   "at": 258,
+   "why": "Planet 2 fell to the enemy; tighten the defend radius so armies go retake enemy planets instead of guarding far-off planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "p": 120,
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 40,
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 274,
+   "why": "Recapture planet 2 and push enemy planets now that we lead on units.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 40,
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 291,
+   "why": "Planet 2 is neutral again; grab it before pushing enemy planets.",
+   "gambits": [
+    {
+     "if": "planet_attacked",
+     "then": "go"
+    },
+    {
+     "if": "small",
+     "p": 40,
+     "then": "go"
+    },
+    {
+     "if": "free_planet",
+     "then": "go"
+    },
+    {
+     "if": "enemy_planet",
+     "then": "go"
+    },
+    {
+     "if": "bigger_enemy_near",
+     "p": 1.3,
+     "then": "flank"
+    },
+    {
+     "if": "weaker_enemy_near",
+     "p": 1,
+     "then": "go"
+    },
+    {
+     "if": "always",
+     "then": "hold"
+    }
+   ]
+  },
+  {
+   "at": 305,
+   "why": "Enemy reinforcements are tank-heavy; runners beat tanks.",
+   "breed": "runner"
+  }
+ ]
+}
